@@ -15,13 +15,13 @@ type Scalar interface {
 	// Equality test for two Scalars derived from the same Group
 	Equal(s2 Scalar) bool
 
-	// Set equal to another Scalar a
+	// Set sets the receiver equal to another Scalar a
 	Set(a Scalar) Scalar
 
 	// Clone creates a new Scalar with same value
 	Clone() Scalar
 
-	// Set to a small integer value
+	// Set sets the receiver to a small integer value
 	SetInt64(v int64) Scalar
 
 	// Set to the additive identity (0)
@@ -55,44 +55,44 @@ type Scalar interface {
 	// reducing if necessary to the appropriate modulus.
 	SetBytes([]byte) Scalar
 
-	// Bytes returns a big-Endian representation of the scalar
+	// Bytes returns a big-endian representation of the scalar
 	Bytes() []byte
 }
 
 // A Point kyber.y represents an element of a public-key cryptographic Group.
 // For example,
 // this is a number modulo the prime P in a DSA-style Schnorr group,
-// or an x,y point on an elliptic curve.
-// A Point can contain a Diffie-Hellman public key,
-// an ElGamal ciphertext, etc.
+// or an (x, y) point on an elliptic curve.
+// A Point can contain a Diffie-Hellman public key, an ElGamal ciphertext, etc.
 type Point interface {
 	Marshaling
 
 	// Equality test for two Points derived from the same Group
 	Equal(s2 Point) bool
 
-	Null() Point // Set to neutral identity element
+	// Null sets the receiver to the neutral identity element.
+	Null() Point
 
-	// Set to this group's standard base point.
+	// Set sets the receiver to this group's standard base point.
 	Base() Point
 
-	// Pick set to a fresh random or pseudo-random Point.
+	// Pick sets the receiver to a fresh random or pseudo-random Point.
 	Pick(rand cipher.Stream) Point
 
-	// Set equal to another Point p.
+	// Set sets the receiver equal to another Point p.
 	Set(p Point) Point
 
 	// Clone clones the underlying point.
 	Clone() Point
 
-	// Maximum number of bytes that can be reliably embedded
-	// in a single group element via Pick().
+	// Maximum number of bytes that can be embedded in a single
+	// group element via Pick().
 	EmbedLen() int
 
-	// Embed encodes a limited amount of specified data in the Point.
-	// Implementations only embed the first EmbedLen bytes of the given data.
-	// Currently probabilistic approach requires to include some randomness
-	// given by the cipher.Stream.
+	// Embed encodes a limited amount of specified data in the
+	// Point, using r as a source of cryptographically secure
+	// random data.  Implementations only embed the first EmbedLen
+	// bytes of the given data.
 	Embed(data []byte, r cipher.Stream) Point
 
 	// Extract data embedded in a point chosen via Embed().
@@ -121,11 +121,14 @@ type Point interface {
 // operations may be faster, but also risk leaking information via a
 // timing side channel. Thus they are only safe to use on public
 // Scalars and Points, never on secret ones.
+//
+// To compile variable time suites into the library, you must give the
+// option "-tags vertime" to "go build" or "go test".
 type AllowsVarTime interface {
 	AllowVarTime(bool)
 }
 
-// Group interface represents a kyber.cryptographic group
+// Group interface represents a mathematical group
 // usable for Diffie-Hellman key exchange, ElGamal encryption,
 // and the related body of public-key cryptographic algorithms
 // and zero-knowledge proof methods.

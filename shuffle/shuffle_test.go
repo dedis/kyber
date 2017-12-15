@@ -1,26 +1,26 @@
+// +build experimental
+
 package shuffle
 
 import (
-	//"fmt"
-	//"encoding/hex"
-
 	"testing"
 
-	kyber "github.com/dedis/kyber"
+	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/group/edwards25519"
 	"github.com/dedis/kyber/proof"
+	"github.com/dedis/kyber/xof/blake"
 )
 
-var tSuite = edwards25519.NewBlakeSHA256Ed25519()
 var k = 5
 var N = 10
 
 func TestShuffle(t *testing.T) {
-	shuffleTest(tSuite, k, N)
+	s := edwards25519.NewBlakeSHA256Ed25519WithRand(blake.New(nil))
+	shuffleTest(s, k, N)
 }
 
 func shuffleTest(suite Suite, k, N int) {
-	rand := suite.XOF(nil)
+	rand := suite.RandomStream()
 
 	// Create a "server" private/public keypair
 	h := suite.Scalar().Pick(rand)
@@ -52,7 +52,7 @@ func shuffleTest(suite Suite, k, N int) {
 
 		// Do a key-shuffle
 		Xbar, Ybar, prover := Shuffle(suite, nil, H, X, Y, rand)
-		prf, err := proof.HashProve(suite, "PairShuffle", rand, prover)
+		prf, err := proof.HashProve(suite, "PairShuffle", prover)
 		if err != nil {
 			panic("Shuffle proof failed: " + err.Error())
 		}

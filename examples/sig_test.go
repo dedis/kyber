@@ -86,7 +86,10 @@ func SchnorrVerify(suite Suite, message []byte, publicKey kyber.Point,
 	return nil
 }
 
-// Example of using Schnorr
+// This example shows how to perform a simple Schnorr signature. Please, use this
+// example as a reference to understand the abstraction only. There is a
+// `sign/schnorr` package which provides Schnorr signatures functionality in a
+// more secure manner.
 func Example_schnorr() {
 	// Crypto setup
 	suite := edwards25519.NewBlakeSHA256Ed25519()

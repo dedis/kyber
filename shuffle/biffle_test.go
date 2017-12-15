@@ -1,18 +1,24 @@
+// +build experimental
+
 package shuffle
 
 import (
 	"testing"
 
-	kyber "github.com/dedis/kyber"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/group/edwards25519"
 	"github.com/dedis/kyber/proof"
+	"github.com/dedis/kyber/xof/blake"
 )
 
 func TestBiffle(t *testing.T) {
-	biffleTest(tSuite, N)
+	rand := blake.New(nil)
+	s := edwards25519.NewBlakeSHA256Ed25519WithRand(rand)
+	biffleTest(s, N)
 }
 
 func biffleTest(suite Suite, N int) {
-	rand := suite.XOF(nil)
+	rand := suite.RandomStream()
 
 	// Create a "server" private/public keypair
 	h := suite.Scalar().Pick(rand)
@@ -43,7 +49,7 @@ func biffleTest(suite Suite, N int) {
 
 		// Do a key-shuffle
 		Xbar, Ybar, prover := Biffle(suite, nil, H, X, Y, rand)
-		prf, err := proof.HashProve(suite, "Biffle", rand, prover)
+		prf, err := proof.HashProve(suite, "Biffle", prover)
 		if err != nil {
 			panic("Biffle proof failed: " + err.Error())
 		}

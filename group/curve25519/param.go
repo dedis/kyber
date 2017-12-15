@@ -1,20 +1,17 @@
-// This package contains several implementations of Twisted Edwards Curves,
+// +build vartime
+
+// Package curve25519 contains several implementations of Twisted Edwards Curves,
 // from general and unoptimized to highly specialized and optimized.
 //
-// Twisted Edwards curves (TEC's) are elliptic curves satisfying the equation:
+// Twisted Edwards curves are elliptic curves satisfying the equation:
 //
 //	ax^2 + y^2 = c^2(1 + dx^2y^2)
 //
-// for some scalars c, d over some field K.
-// We assume K is a (finite) prime field for a large prime p.
-// We also assume c == 1 because all curves in the generalized form
+// for some scalars c, d over some field K. We assume K is a (finite) prime field for a
+// large prime p. We also assume c == 1 because all curves in the generalized form
 // are isomorphic to curves having c == 1.
-// For details see Bernstein et al, "Twisted Edwards Curves",
-// http://eprint.iacr.org/2008/013.pdf
 //
-
-// +build vartime
-
+// For details see Bernstein et al, "Twisted Edwards Curves", http://eprint.iacr.org/2008/013.pdf
 package curve25519
 
 import (

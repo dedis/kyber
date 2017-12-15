@@ -6,7 +6,6 @@ group/edwards25519
 group/internal/marshalling
 group/mod
 group/nist
-proof
 proof/dleq
 share
 share/dkg/rabin
@@ -15,16 +14,13 @@ share/dss
 share/pvss
 share/vss/rabin
 share/vss/pedersen
-shuffle
 sign/anon
 sign/cosi
 sign/eddsa
 sign/schnorr
 util/encoding
-util/hash
 util/key
 util/random
-util/subtle
 util/test
 xof
 xof/blake

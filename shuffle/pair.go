@@ -1,3 +1,5 @@
+// +build experimental
+
 // Package shuffle implements Andrew Neff's verifiable shuffle proof scheme.
 // Neff's shuffle proof algorithm as implemented here is described in the paper
 // "Verifiable Mixing (Shuffling) of ElGamal Pairs", April 2004.
@@ -17,6 +19,8 @@
 // The general PairShuffle builds on this SimpleShuffle scheme,
 // but SimpleShuffle may also be used by itself in situations
 // that satisfy its assumptions, and is more efficient.
+//
+// Package shuffle requires build tag "experimental".
 package shuffle
 
 import (
@@ -24,7 +28,7 @@ import (
 	"encoding/binary"
 	"errors"
 
-	kyber "github.com/dedis/kyber"
+	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/proof"
 	"github.com/dedis/kyber/util/random"
 )

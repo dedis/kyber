@@ -1,8 +1,8 @@
 /*
 Package cosi implements the collective signing (CoSi) algorithm as presented in
 the paper "Keeping Authorities 'Honest or Bust' with Decentralized Witness
-Cosigning" by Ewa Syta et al., see https://arxiv.org/abs/1503.08768. This
-package **only** provides the functionality for the cryptographic operations of
+Cosigning" by Ewa Syta et al. See https://arxiv.org/abs/1503.08768. This
+package only provides the functionality for the cryptographic operations of
 CoSi. All network-related operations have to be handled elsewhere. Below we
 describe a high-level overview of the CoSi protocol (using a star communication
 topology). We refer to the research paper for further details on communication
@@ -49,7 +49,7 @@ import (
 // Commit returns a random scalar v, generated from the given suite,
 // and a corresponding commitment V = [v]G. If the given cipher stream is nil,
 // a random stream is used.
-func Commit(suite Suite) (kyber.Scalar, kyber.Point) {
+func Commit(suite Suite) (v kyber.Scalar, V kyber.Point) {
 	random := suite.Scalar().Pick(suite.RandomStream())
 	commitment := suite.Point().Mul(random, nil)
 	return random, commitment
@@ -57,13 +57,13 @@ func Commit(suite Suite) (kyber.Scalar, kyber.Point) {
 
 // AggregateCommitments returns the sum of the given commitments and the
 // bitwise OR of the corresponding masks.
-func AggregateCommitments(suite Suite, commitments []kyber.Point, masks [][]byte) (kyber.Point, []byte, error) {
+func AggregateCommitments(suite Suite, commitments []kyber.Point, masks [][]byte) (sum kyber.Point, commits []byte, err error) {
 	if len(commitments) != len(masks) {
 		return nil, nil, errors.New("mismatching lengths of commitment and mask slices")
 	}
 	aggCom := suite.Point().Null()
 	aggMask := make([]byte, len(masks[0]))
-	var err error
+
 	for i := range commitments {
 		aggCom = suite.Point().Add(aggCom, commitments[i])
 		aggMask, err = AggregateMasks(aggMask, masks[i])
@@ -324,8 +324,9 @@ func (m *Mask) KeyEnabled(public kyber.Point) (bool, error) {
 }
 
 // CountEnabled returns the number of enabled nodes in the CoSi participation
-// mask, i.e., it returns the hamming weight of the mask.
+// mask.
 func (m *Mask) CountEnabled() int {
+	// hw is hamming weight
 	hw := 0
 	for i := range m.publics {
 		byt := i >> 3

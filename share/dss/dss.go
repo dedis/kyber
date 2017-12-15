@@ -8,7 +8,7 @@
 // Each participant then creates a DSS struct, that can issue partial signatures
 // with `dss.PartialSignature()`. These partial signatures can be broadcasted to
 // the whole group or to a trusted combiner. Once one has collected enough
-// partial signature, it is possible to compute the distributed signature with
+// partial signatures, it is possible to compute the distributed signature with
 // the `Signature` method.
 // The resulting signature is compatible with the EdDSA verification function.
 // against the longterm distributed key.
@@ -33,8 +33,8 @@ type Suite interface {
 	kyber.Random
 }
 
-// DistKeyShare is an abstraction to allow one to use disttributed key share
-// from different shcemes easily into this distributed threshold schnorr
+// DistKeyShare is an abstraction to allow one to use distributed key share
+// from different schemes easily into this distributed threshold Schnorr
 // signature framework.
 type DistKeyShare interface {
 	PriShare() *share.PriShare
@@ -62,7 +62,7 @@ type DSS struct {
 }
 
 // PartialSig is partial representation of the final distributed signature. It
-// must be sent to each other participants.
+// must be sent to each of the other participants.
 type PartialSig struct {
 	Partial   *share.PriShare
 	SessionID []byte
@@ -107,12 +107,9 @@ func NewDSS(suite Suite, secret kyber.Scalar, participants []kyber.Point,
 }
 
 // PartialSig generates the partial signature related to this DSS. This
-// PartialSig can be broadcasted to every other participants or only to a
-// trusted *combiner* as described in the paper.
-// The signature format is compatible with EdDSA verification implementations
-// The PartialSig can be broadcasted to every other peers or to a trusted
-// combiner which collects all partial signatures to compute the distributed
-// signature.
+// PartialSig can be broadcasted to every other participant or only to a
+// trusted combiner as described in the paper.
+// The signature format is compatible with EdDSA verification implementations.
 func (d *DSS) PartialSig() (*PartialSig, error) {
 	// following the notations from the paper
 	alpha := d.long.PriShare().V
@@ -175,15 +172,15 @@ func (d *DSS) ProcessPartialSig(ps *PartialSig) error {
 	return nil
 }
 
-// EnoughPartialSig returns true if there is enough partial signature to compute
-// the distributed signature. It returns false otherwise. If there is enough
+// EnoughPartialSig returns true if there are enough partial signature to compute
+// the distributed signature. It returns false otherwise. If there are enough
 // partial signatures, one can issue the signature with `Signature()`.
 func (d *DSS) EnoughPartialSig() bool {
 	return len(d.partials) >= d.T
 }
 
 // Signature computes the distributed signature from the list of partial
-// signatures received. It returns an error if there is not enough partial
+// signatures received. It returns an error if there are not enough partial
 // signatures. The signature is compatible with the EdDSA verification
 // alrogithm.
 func (d *DSS) Signature() ([]byte, error) {

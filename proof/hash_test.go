@@ -1,3 +1,5 @@
+// +build experimental
+
 package proof
 
 import (
@@ -6,6 +8,7 @@ import (
 
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/group/edwards25519"
+	"github.com/dedis/kyber/xof/blake"
 )
 
 // This example shows how to build classic ElGamal-style digital signatures
@@ -13,13 +16,13 @@ import (
 func Example_hashProve1() {
 
 	// Crypto setup
-	suite := edwards25519.NewBlakeSHA256Ed25519()
-	rand := suite.XOF([]byte("example"))
+	rand := blake.New([]byte("example"))
+	suite := edwards25519.NewBlakeSHA256Ed25519WithRand(rand)
 	B := suite.Point().Base() // standard base point
 
 	// Create a public/private keypair (X,x)
-	x := suite.Scalar().Pick(rand) // create a private key x
-	X := suite.Point().Mul(x, nil) // corresponding public key X
+	x := suite.Scalar().Pick(suite.RandomStream()) // create a private key x
+	X := suite.Point().Mul(x, nil)                 // corresponding public key X
 
 	// Generate a proof that we know the discrete logarithm of X.
 	M := "Hello World!" // message we want to sign
@@ -27,7 +30,7 @@ func Example_hashProve1() {
 	sec := map[string]kyber.Scalar{"x": x}
 	pub := map[string]kyber.Point{"B": B, "X": X}
 	prover := rep.Prover(suite, sec, pub, nil)
-	proof, _ := HashProve(suite, M, rand, prover)
+	proof, _ := HashProve(suite, M, prover)
 	fmt.Print("Signature:\n" + hex.Dump(proof))
 
 	// Verify the signature against the correct message M.
@@ -78,20 +81,20 @@ func Example_hashProve1() {
 func Example_hashProve2() {
 
 	// Crypto setup
-	suite := edwards25519.NewBlakeSHA256Ed25519()
-	rand := suite.XOF([]byte("example"))
+	rand := blake.New([]byte("example"))
+	suite := edwards25519.NewBlakeSHA256Ed25519WithRand(rand)
 	B := suite.Point().Base() // standard base point
 
 	// Create an anonymity ring of random "public keys"
 	X := make([]kyber.Point, 3)
 	for i := range X { // pick random points
-		X[i] = suite.Point().Pick(rand)
+		X[i] = suite.Point().Pick(suite.RandomStream())
 	}
 
 	// Make just one of them an actual public/private keypair (X[mine],x)
-	mine := 2                           // only the signer knows this
-	x := suite.Scalar().Pick(rand)      // create a private key x
-	X[mine] = suite.Point().Mul(x, nil) // corresponding public key X
+	mine := 2                                      // only the signer knows this
+	x := suite.Scalar().Pick(suite.RandomStream()) // create a private key x
+	X[mine] = suite.Point().Mul(x, nil)            // corresponding public key X
 
 	// Produce the correct linkage tag for the signature,
 	// as a pseudorandom base point multiplied by our private key.
@@ -122,7 +125,7 @@ func Example_hashProve2() {
 	// Generate the signature
 	M := "Hello World!" // message we want to sign
 	prover := pred.Prover(suite, sec, pub, choice)
-	proof, _ := HashProve(suite, M, rand, prover)
+	proof, _ := HashProve(suite, M, prover)
 	fmt.Print("Linkable Ring Signature:\n" + hex.Dump(proof))
 
 	// Verify the signature

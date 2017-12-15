@@ -67,8 +67,8 @@ func signH1(suite Suite, H1pre kyber.XOF, PG, PH kyber.Point) kyber.Scalar {
 // even if all members' private keys are later released.
 // For cryptographic background on unlinkable anonymity-set signatures -
 // also known as ring signatures or ad-hoc group signatures -
-// see Rivest, "How to Leak a Scalar" at
-// http://people.csail.mit.edu/rivest/RivestShamirTauman-HowToLeakAScalar.pdf.
+// see Rivest, "How to Leak a Secret" at
+// https://people.csail.mit.edu/rivest/pubs/RST01.pdf.
 //
 // If the caller passes a non-nil linkScope,
 // the resulting anonymous signature will be linkable.
@@ -84,7 +84,7 @@ func signH1(suite Suite, H1pre kyber.XOF, PG, PH kyber.Point) kyber.Scalar {
 // For details on the linkable signature algorithm this function implements,
 // see Liu/Wei/Wong,
 // "Linkable Spontaneous Anonymous Group Signature for Ad Hoc Groups" at
-// http://www.cs.cityu.edu.hk/~duncan/papers/04liuetal_lsag.pdf.
+// https://eprint.iacr.org/2004/027.
 //
 // Linkage tags may be used to protect against sock-puppetry or Sybil attacks
 // in situations where a verifier needs to know how many distinct members
@@ -190,7 +190,7 @@ func Sign(suite Suite, message []byte,
 // this function returns a linkage tag that uniquely corresponds
 // to the signer within the given linkScope.
 // If the signature is a valid unlinkable signature (linkScope == nil),
-// returns an empty but non-nil byte-slice instead of a linkage tag on success.
+// Verify returns an empty but non-nil byte-slice instead of a linkage tag on success.
 // Returns a nil linkage tag and an error if the signature is invalid.
 func Verify(suite Suite, message []byte, anonymitySet Set,
 	linkScope []byte, signatureBuffer []byte) ([]byte, error) {

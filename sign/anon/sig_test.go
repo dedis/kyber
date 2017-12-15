@@ -18,7 +18,7 @@ import (
 // producing traditional ElGamal signatures:
 // the resulting signatures are exactly the same length
 // and represent essentially the same computational cost.
-func Example_sign1() {
+func ExampleSign_one() {
 	// Crypto setup: Get a suite which returns a predictable
 	// random number stream for this example.
 	// In production, simply use edwards25519.NewBlakeSHA256Ed25519()

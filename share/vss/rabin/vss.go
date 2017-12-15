@@ -185,6 +185,7 @@ func NewDealer(suite Suite, longterm, secret kyber.Scalar, verifiers []kyber.Poi
 }
 
 // PlaintextDeal returns the plaintext version of the deal destined for peer i.
+// Use this only for testing.
 func (d *Dealer) PlaintextDeal(i int) (*Deal, error) {
 	if i >= len(d.deals) {
 		return nil, errors.New("dealer: PlaintextDeal given wrong index")
@@ -295,7 +296,7 @@ func (d *Dealer) Commits() []kyber.Point {
 }
 
 // Key returns the longterm key pair used by this Dealer.
-func (d *Dealer) Key() (kyber.Scalar, kyber.Point) {
+func (d *Dealer) Key() (secret kyber.Scalar, public kyber.Point) {
 	return d.long, d.pub
 }
 

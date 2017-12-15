@@ -1,5 +1,5 @@
 // Package share implements Shamir secret sharing and polynomial commitments.
-// Shamir's scheme allows to split a secret value into multiple parts, so called
+// Shamir's scheme allows you to split a secret value into multiple parts, so called
 // shares, by evaluating a secret sharing polynomial at certain indices. The
 // shared secret can only be reconstructed (via Lagrange interpolation) if a
 // threshold of the participants provide their shares. A polynomial commitment
@@ -49,8 +49,9 @@ type PriPoly struct {
 	coeffs []kyber.Scalar // Coefficients of the polynomial
 }
 
-// NewPriPoly creates a new secret sharing polynomial for the cryptographic
-// group g, the secret sharing threshold t, and the secret to be shared s.
+// NewPriPoly creates a new secret sharing polynomial using cryptographic
+// suite, the secret sharing threshold t, and the secret to be shared s.
+// If s is nil, a new s is chosen using the suite's randomness stream.
 func NewPriPoly(suite Suite, t int, s kyber.Scalar) *PriPoly {
 	coeffs := make([]kyber.Scalar, t)
 	coeffs[0] = s
@@ -109,7 +110,10 @@ func (p *PriPoly) Add(q *PriPoly) (*PriPoly, error) {
 	return &PriPoly{p.s, coeffs}, nil
 }
 
-// Equal checks equality of two secret sharing polynomials p and q.
+// Equal checks equality of two secret sharing polynomials p and q. If p and q are trivially
+// unequal (i.e. due to mismatching cryptographic suites or polynomial size), this routine
+// returns in variable time. Otherwise it runs in constant time regardless of whether it
+// eventually returns true or false.
 func (p *PriPoly) Equal(q *PriPoly) bool {
 	if p.s.String() != q.s.String() {
 		return false
@@ -139,8 +143,8 @@ func (p *PriPoly) Commit(b kyber.Point) *PubPoly {
 // Mul multiples p  and q together. The result is a polynomial of the sum of
 // the two degrees of p and q. NOTE: it does not check for null coefficients
 // after the multiplication, so the degree of the polynomial is "always" as
-// described above. This is only to use in secret sharing schemes, and is not to
-// be considered a general polynomial manipulation routine.
+// described above. This is only for use in secret sharing schemes. It is not
+// a general polynomial manipulation routine.
 func (p *PriPoly) Mul(q *PriPoly) *PriPoly {
 	d1 := len(p.coeffs) - 1
 	d2 := len(q.coeffs) - 1
@@ -217,7 +221,7 @@ func xMinusConst(s Suite, c kyber.Scalar) *PriPoly {
 func RecoverPriPoly(s Suite, shares []*PriShare, t, n int) (*PriPoly, error) {
 	x := xScalar(s, shares, t, n)
 	if len(x) != t {
-		return nil, errors.New("share: not enough shares to recove private polynomial")
+		return nil, errors.New("share: not enough shares to recover private polynomial")
 	}
 
 	var accPoly *PriPoly
@@ -296,7 +300,7 @@ func NewPubPoly(g kyber.Group, b kyber.Point, commits []kyber.Point) *PubPoly {
 }
 
 // Info returns the base point and the commitments to the polynomial coefficients.
-func (p *PubPoly) Info() (kyber.Point, []kyber.Point) {
+func (p *PubPoly) Info() (base kyber.Point, commits []kyber.Point) {
 	return p.b, p.commits
 }
 
@@ -353,7 +357,11 @@ func (p *PubPoly) Add(q *PubPoly) (*PubPoly, error) {
 	return &PubPoly{p.g, p.b, commits}, nil
 }
 
-// Equal checks equality of two public commitment polynomials p and q.
+// Equal checks equality of two public commitment polynomials p and
+// q. If p and q are trivially unequal (i.e. due to mismatching
+// cryptographic suites), this routine returns in variable
+// time. Otherwise it runs in constant time regardless of whether it
+// eventually returns true or false.
 func (p *PubPoly) Equal(q *PubPoly) bool {
 	if p.g.String() != q.g.String() {
 		return false
@@ -386,7 +394,7 @@ func RecoverCommit(g kyber.Group, shares []*PubShare, t, n int) (kyber.Point, er
 	}
 
 	if len(x) < t {
-		return nil, errors.New("not enough good public shares to reconstruct secret commitment")
+		return nil, errors.New("share: not enough good public shares to reconstruct secret commitment")
 	}
 
 	num := g.Scalar()

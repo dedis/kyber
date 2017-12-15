@@ -42,8 +42,7 @@ func (c *Curve) Point() kyber.Point {
 }
 
 // NewKey returns a formatted Ed25519 key (avoiding subgroup attack by requiring
-// it to be a multiple of 8).
-// NewKey implements the kyber/util/key.Generator interface.
+// it to be a multiple of 8). NewKey implements the kyber/util/key.Generator interface.
 func (c *Curve) NewKey(stream cipher.Stream) kyber.Scalar {
 	var buffer [32]byte
 	random.Bytes(buffer[:], stream)
