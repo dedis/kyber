@@ -171,7 +171,7 @@ func (c *Context) Load(key string) (interface{}, error) {
 // exists, by eventually creating it, and returns the created bucket name,
 // which is the servicename + the given name.
 func (c *Context) GetAdditionalBucket(name string) (*bolt.DB, string) {
-	fullName := c.bucketName + name
+	fullName := c.bucketName + "_" + name
 	err := c.manager.db.Update(func(tx *bolt.Tx) error {
 		_, err := tx.CreateBucketIfNotExists([]byte(fullName))
 		if err != nil {
@@ -180,7 +180,7 @@ func (c *Context) GetAdditionalBucket(name string) (*bolt.DB, string) {
 		return nil
 	})
 	if err != nil {
-		return nil, ""
+		panic(err)
 	}
 	return c.manager.db, fullName
 }
