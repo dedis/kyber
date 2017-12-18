@@ -132,7 +132,8 @@ var testContextData = struct {
 
 // Save takes a key and an interface. The interface will be network.Marshal'ed
 // and saved in the database under the bucket named after the service name.
-// The database must be created by the server prior to using this function.
+//
+// The data will be stored in a different bucket for every service.
 func (c *Context) Save(key string, data interface{}) error {
 	buf, err := network.Marshal(data)
 	if err != nil {
@@ -169,7 +170,11 @@ func (c *Context) Load(key string) (interface{}, error) {
 
 // GetAdditionalBucket makes sure that a bucket with the given name
 // exists, by eventually creating it, and returns the created bucket name,
-// which is the servicename + the given name.
+// which is the servicename + "_" + the given name.
+//
+// This function should only be used if the Load and Save function do are not sufficient.
+// Additionally, the user should not create buckets directly on the DB but always
+// call this function to create new buckets to avoid bucket name conflicts.
 func (c *Context) GetAdditionalBucket(name string) (*bolt.DB, string) {
 	fullName := c.bucketName + "_" + name
 	err := c.manager.db.Update(func(tx *bolt.Tx) error {
