@@ -172,7 +172,7 @@ func (c *Context) Load(key string) (interface{}, error) {
 // exists, by eventually creating it, and returns the created bucket name,
 // which is the servicename + "_" + the given name.
 //
-// This function should only be used if the Load and Save function do are not sufficient.
+// This function should only be used if the Load and Save functions are not sufficient.
 // Additionally, the user should not create buckets directly on the DB but always
 // call this function to create new buckets to avoid bucket name conflicts.
 func (c *Context) GetAdditionalBucket(name string) (*bolt.DB, string) {
