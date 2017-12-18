@@ -78,6 +78,9 @@ type ServerIdentity struct {
 	Address Address
 	// Description of the server
 	Description string
+	// This is the private key, may be nil. It is not exported so that it will never
+	// be marshalled.
+	private kyber.Scalar
 }
 
 // ServerIdentityID uniquely identifies an ServerIdentity struct
@@ -129,6 +132,19 @@ func NewServerIdentity(public kyber.Point, address Address) *ServerIdentity {
 // Equal tests on same public key
 func (si *ServerIdentity) Equal(e2 *ServerIdentity) bool {
 	return si.Public.Equal(e2.Public)
+}
+
+// SetPrivate sets a private key associated with this ServerIdentity.
+// It will not be marshalled our output as Toml.
+// Before calling NewTCPRouter for a TLS server, you must set the private
+// key with SetPrivate.
+func (si *ServerIdentity) SetPrivate(p kyber.Scalar) {
+	si.private = p
+}
+
+// GetPrivate returns the private key set with SetPrivate.
+func (si *ServerIdentity) GetPrivate() kyber.Scalar {
+	return si.private
 }
 
 // Toml converts an ServerIdentity to a Toml-structure

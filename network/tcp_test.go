@@ -428,7 +428,7 @@ func TestTCPHostClose(t *testing.T) {
 	if _, err := h2.Connect(si); err == nil {
 		t.Fatal("Should not connect to dummy address or different type")
 	}
-	_, err = h2.Connect(NewTestServerIdentity(h1.addr))
+	_, err = h2.Connect(NewTestServerIdentity(h1.TCPListener.Address()))
 	if err != nil {
 		t.Fatal("Couldn't Connect()", err)
 	}
@@ -447,7 +447,7 @@ func TestTCPHostClose(t *testing.T) {
 		t.Fatal("Could not setup host", err)
 	}
 	go h3.Listen(acceptAndClose)
-	_, err = h2.Connect(NewTestServerIdentity(h3.addr))
+	_, err = h2.Connect(NewTestServerIdentity(h3.TCPListener.Address()))
 	if err != nil {
 		t.Fatal(h2, "Couldn Connect() to", h3)
 	}
@@ -492,7 +492,9 @@ func TestHandleError(t *testing.T) {
 
 func NewTestTCPHost(port int) (*TCPHost, error) {
 	addr := NewTCPAddress("127.0.0.1:" + strconv.Itoa(port))
-	return NewTCPHost(addr, tSuite)
+	kp := key.NewKeyPair(tSuite)
+	e := NewServerIdentity(kp.Public, addr)
+	return NewTCPHost(e, tSuite)
 }
 
 // Returns a ServerIdentity out of the address

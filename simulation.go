@@ -115,7 +115,8 @@ func LoadSimulationConfig(s, dir, ca string) ([]*SimulationConfig, error) {
 		}
 		for _, e := range sc.Roster.List {
 			if strings.Contains(e.Address.String(), ca) {
-				server := NewServerTCP(e, scf.PrivateKeys[e.Address], suite)
+				e.SetPrivate(scf.PrivateKeys[e.Address])
+				server := NewServerTCP(e, suite)
 				scNew := *sc
 				scNew.Server = server
 				scNew.Overlay = server.overlay

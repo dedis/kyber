@@ -25,8 +25,6 @@ const (
 	PlainTCP ConnType = "tcp"
 	// TLS is a TLS encrypted connection over TCP.
 	TLS = "tls"
-	// PURB is a PURB encryption connection over TCP.
-	PURB = "purb"
 	// Local is a channel based connection type.
 	Local = "local"
 	// InvalidConnType is an invalid connection type.
@@ -41,7 +39,7 @@ const typeAddressSep = "://"
 // it returns InvalidConnType.
 func connType(t string) ConnType {
 	ct := ConnType(t)
-	types := []ConnType{PlainTCP, TLS, PURB, Local}
+	types := []ConnType{PlainTCP, TLS, Local}
 	for _, t := range types {
 		if t == ct {
 			return ct
@@ -141,6 +139,10 @@ func (a Address) Resolve() string {
 // For easier integration and testing, this function also returns true if the
 // string doesn't have any '.' in it.
 func validHostname(s string) bool {
+	if len(s) == 0 {
+		return false
+	}
+
 	s = strings.ToLower(s)
 
 	maxLength := 253
@@ -196,6 +198,10 @@ func (a Address) Valid() bool {
 		return false
 	}
 
+	// If hostname is missing then they mean "all IPs", and that's valid.
+	if len(ip) == 0 {
+		return true
+	}
 	if net.ParseIP(ip) == nil {
 		// if the Host is NOT in the form of *.*.*.* , check whether it has a valid DNS name
 		// This includes "localhost", which is NOT recognized by net.ParseIP

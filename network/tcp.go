@@ -25,7 +25,7 @@ var MaxPacketSize = Size(10 * 1024 * 1024)
 
 // NewTCPRouter returns a new Router using TCPHost as the underlying Host.
 func NewTCPRouter(sid *ServerIdentity, suite Suite) (*Router, error) {
-	h, err := NewTCPHost(sid.Address, suite)
+	h, err := NewTCPHost(sid, suite)
 	if err != nil {
 		return nil, err
 	}
@@ -111,7 +111,7 @@ func (c *TCPConn) receiveRaw() ([]byte, error) {
 		return nil, handleError(err)
 	}
 	if total > MaxPacketSize {
-		return nil, errors.New(c.endpoint.String() + " sends too big packet")
+		return nil, fmt.Errorf(c.endpoint.String()+" sends too big packet %v>%v", total, MaxPacketSize)
 	}
 
 	b := make([]byte, total)
@@ -253,6 +253,9 @@ type TCPListener struct {
 	// case of ":0"-address.
 	addr net.Addr
 
+	// Is this a TCP or a TLS listener?
+	conntype ConnType
+
 	// suite that is given to each incoming connection
 	suite Suite
 }
@@ -264,10 +267,11 @@ type TCPListener struct {
 // A subsequent call to Address() gives the actual listening
 // address which is different if you gave it a ":0"-address.
 func NewTCPListener(addr Address, s Suite) (*TCPListener, error) {
-	if addr.ConnType() != PlainTCP {
-		return nil, errors.New("TCPListener can't listen on non-tcp address")
+	if addr.ConnType() != PlainTCP && addr.ConnType() != TLS {
+		return nil, errors.New("TCPListener can only listen on TCP and TLS addresses")
 	}
 	t := &TCPListener{
+		conntype:     addr.ConnType(),
 		quit:         make(chan bool),
 		quitListener: make(chan bool),
 		suite:        s,
@@ -367,7 +371,7 @@ func (t *TCPListener) Stop() error {
 func (t *TCPListener) Address() Address {
 	t.listeningLock.Lock()
 	defer t.listeningLock.Unlock()
-	return NewAddress(PlainTCP, t.addr.String())
+	return NewAddress(t.conntype, t.addr.String())
 }
 
 // Listening returns whether it's already listening.
@@ -379,34 +383,37 @@ func (t *TCPListener) Listening() bool {
 
 // TCPHost implements the Host interface using TCP connections.
 type TCPHost struct {
-	addr  Address
 	suite Suite
 	*TCPListener
 }
 
 // NewTCPHost returns a new Host using TCP connection based type.
-func NewTCPHost(addr Address, s Suite) (*TCPHost, error) {
+func NewTCPHost(sid *ServerIdentity, s Suite) (*TCPHost, error) {
 	h := &TCPHost{
-		addr:  addr,
 		suite: s,
 	}
 	var err error
-	h.TCPListener, err = NewTCPListener(addr, s)
+	if sid.Address.ConnType() == TLS {
+		h.TCPListener, err = NewTLSListener(sid, s)
+	} else {
+		h.TCPListener, err = NewTCPListener(sid.Address, s)
+	}
 	return h, err
 }
 
 // Connect can only connect to PlainTCP connections.
 // It will return an error if it is not a PlainTCP-connection-type.
 func (t *TCPHost) Connect(si *ServerIdentity) (Conn, error) {
-	addr := si.Address
-	switch addr.ConnType() {
+	switch si.Address.ConnType() {
 	case PlainTCP:
-		c, err := NewTCPConn(addr, t.suite)
+		c, err := NewTCPConn(si.Address, t.suite)
 		return c, err
+	case TLS:
+		return NewTLSConn(si, t.suite)
 	case InvalidConnType:
-		return nil, errors.New("This address is not correctly formatted: " + addr.String())
+		return nil, errors.New("This address is not correctly formatted: " + si.Address.String())
 	}
-	return nil, fmt.Errorf("TCPHost %s can't handle this type of connection: %s", addr, addr.ConnType())
+	return nil, fmt.Errorf("TCPHost %s can't handle this type of connection: %s", si.Address, si.Address.ConnType())
 }
 
 // NewTCPAddress returns a new Address that has type PlainTCP with the given

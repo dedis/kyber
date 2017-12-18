@@ -85,7 +85,7 @@ func newServer(s network.Suite, dbPath string, r *network.Router, pkey kyber.Sca
 func NewServerTCP(e *network.ServerIdentity, pkey kyber.Scalar, suite network.Suite) *Server {
 	r, err := network.NewTCPRouter(e, suite)
 	log.ErrFatal(err)
-	return newServer(suite, "", r, pkey)
+	return newServer(suite, "", r, sid.GetPrivate())
 }
 
 // Suite can (and should) be used to get the underlying Suite.
