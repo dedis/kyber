@@ -80,12 +80,16 @@ func (d *BlockingDispatcher) RegisterProcessorFunc(msgType MessageTypeID, fn fun
 // Dispatch calls the corresponding processor's method Process. It's a
 // blocking call if the Processor is blocking.
 func (d *BlockingDispatcher) Dispatch(packet *Envelope) error {
+	// cannot use the "defer unlock" idiom here because we cannot
+	// be holding the lock while calling p.Process in case the
+	// processor wants to call RegisterProcessor.
 	d.Lock()
-	defer d.Unlock()
 	var p Processor
 	if p = d.procs[packet.MsgType]; p == nil {
+		d.Unlock()
 		return errors.New("No Processor attached to this message type " + packet.MsgType.String())
 	}
+	d.Unlock()
 	p.Process(packet)
 	return nil
 }
