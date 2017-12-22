@@ -392,7 +392,7 @@ func SuiteTest(suite suite) {
 	// Test if it generates two fresh keys
 	p1 := key.NewKeyPair(suite)
 	p2 := key.NewKeyPair(suite)
-	if p1.Secret.Equal(p2.Secret) {
+	if p1.Private.Equal(p2.Private) {
 		panic("NewKeyPair returns the same secret key twice")
 	}
 
@@ -402,7 +402,7 @@ func SuiteTest(suite suite) {
 
 	p1.Gen(newSuiteStable(suite))
 	p2.Gen(newSuiteStable(suite))
-	if !p1.Secret.Equal(p2.Secret) {
+	if !p1.Private.Equal(p2.Private) {
 		panic("NewKeyPair returns different keys for same seed")
 	}
 
