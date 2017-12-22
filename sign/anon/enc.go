@@ -42,9 +42,9 @@ func encryptKey(suite Suite, anonymitySet Set, hide bool) (k, c []byte) {
 		kp.Gen(suite)
 		Xb, _ = kp.Public.MarshalBinary()
 	}
-	xb, _ := kp.Secret.MarshalBinary()
+	xb, _ := kp.Private.MarshalBinary()
 	// Generate the ciphertext header
-	return xb, header(suite, kp.Public, kp.Secret, Xb, xb, anonymitySet)
+	return xb, header(suite, kp.Public, kp.Private, Xb, xb, anonymitySet)
 }
 
 // Decrypt and verify a key encrypted via encryptKey.

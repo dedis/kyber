@@ -14,7 +14,7 @@ func TestSchnorrSignature(t *testing.T) {
 	suite := edwards25519.NewBlakeSHA256Ed25519()
 	kp := key.NewKeyPair(suite)
 
-	s, err := Sign(suite, kp.Secret, msg)
+	s, err := Sign(suite, kp.Private, msg)
 	if err != nil {
 		t.Fatalf("Couldn't sign msg: %s: %v", msg, err)
 	}
@@ -52,7 +52,7 @@ func TestEdDSACompatibility(t *testing.T) {
 	suite := edwards25519.NewBlakeSHA256Ed25519()
 	kp := key.NewKeyPair(suite)
 
-	s, err := Sign(suite, kp.Secret, msg)
+	s, err := Sign(suite, kp.Private, msg)
 	if err != nil {
 		t.Fatalf("Couldn't sign msg: %s: %v", msg, err)
 	}

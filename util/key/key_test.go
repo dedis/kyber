@@ -11,7 +11,7 @@ import (
 func TestNewKeyPair(t *testing.T) {
 	suite := edwards25519.NewBlakeSHA256Ed25519()
 	keypair := NewKeyPair(suite)
-	pub := suite.Point().Mul(keypair.Secret, nil)
+	pub := suite.Point().Mul(keypair.Private, nil)
 	if !pub.Equal(keypair.Public) {
 		t.Fatal("Public and private keys don't match")
 	}
@@ -33,7 +33,7 @@ func TestNewKeyPairGen(t *testing.T) {
 	key := NewKeyPair(suite)
 
 	scalar33 := suite.Scalar().SetInt64(33)
-	if !key.Secret.Equal(scalar33) {
-		t.Fatalf("expected fixed private key, got %v", key.Secret)
+	if !key.Private.Equal(scalar33) {
+		t.Fatalf("expected fixed private key, got %v", key.Private)
 	}
 }

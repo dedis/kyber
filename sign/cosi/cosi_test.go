@@ -37,7 +37,7 @@ func TestCoSi(t *testing.T) {
 	for i := 0; i < n; i++ {
 		kp := key.NewKeyPair(testSuite)
 		kps = append(kps, kp)
-		privates = append(privates, kp.Secret)
+		privates = append(privates, kp.Private)
 		publics = append(publics, kp.Public)
 	}
 
@@ -121,7 +121,7 @@ func TestCoSiThreshold(t *testing.T) {
 	for i := 0; i < n; i++ {
 		kp := key.NewKeyPair(testSuite)
 		kps = append(kps, kp)
-		privates = append(privates, kp.Secret)
+		privates = append(privates, kp.Private)
 		publics = append(publics, kp.Public)
 	}
 
@@ -203,7 +203,7 @@ func TestMask(t *testing.T) {
 	for i := 0; i < n; i++ {
 		kp := key.NewKeyPair(testSuite)
 		kps = append(kps, kp)
-		privates = append(privates, kp.Secret)
+		privates = append(privates, kp.Private)
 		publics = append(publics, kp.Public)
 	}
 

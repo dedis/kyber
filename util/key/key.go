@@ -22,10 +22,9 @@ type Suite interface {
 // Pair represents a public/private keypair together with the
 // ciphersuite the key was generated from.
 type Pair struct {
-	Suite  Suite        // Ciphersuite this keypair is for
-	Public kyber.Point  // Public key
-	Secret kyber.Scalar // Secret key
-	Hiding kyber.Hiding // Hidden encoding of the public key
+	Public  kyber.Point  // Public key
+	Private kyber.Scalar // Private key
+	Hiding  kyber.Hiding // Hidden encoding of the public key
 }
 
 // NewKeyPair directly creates a secret/public key pair
@@ -49,14 +48,13 @@ func NewHidingKeyPair(suite Suite) *Pair {
 // to generate the private key, otherwise the normal technique
 // of choosing a random scalar from the group is used.
 func (p *Pair) Gen(suite Suite) {
-	p.Suite = suite
 	random := suite.RandomStream()
 	if g, ok := suite.(Generator); ok {
-		p.Secret = g.NewKey(random)
+		p.Private = g.NewKey(random)
 	} else {
-		p.Secret = suite.Scalar().Pick(random)
+		p.Private = suite.Scalar().Pick(random)
 	}
-	p.Public = suite.Point().Mul(p.Secret, nil)
+	p.Public = suite.Point().Mul(p.Private, nil)
 }
 
 // GenHiding will generate key pairs repeatedly until one is found where the
