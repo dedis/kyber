@@ -293,9 +293,9 @@ func (l *LocalTest) MakeHELS(nbr int, sid ServiceID, s network.Suite) ([]*Server
 // "localserver:+port as first address.
 func NewPrivIdentity(suite network.Suite, port int) (kyber.Scalar, *network.ServerIdentity) {
 	address := network.NewLocalAddress("127.0.0.1:" + strconv.Itoa(port))
-	priv, pub := PrivPub(suite)
-	id := network.NewServerIdentity(pub, address)
-	return priv, id
+	kp := key.NewKeyPair(suite)
+	id := network.NewServerIdentity(kp.Public, address)
+	return kp.Private, id
 }
 
 // NewTCPServer creates a new server with a tcpRouter with "localserver:"+port as an
@@ -420,10 +420,4 @@ func (l *LocalTest) NewLocalServer(port int, s network.Suite) *Server {
 
 	return server
 
-}
-
-// PrivPub creates a private/public key pair.
-func PrivPub(s network.Suite) (kyber.Scalar, kyber.Point) {
-	keypair := key.NewKeyPair(s)
-	return keypair.Secret, keypair.Public
 }

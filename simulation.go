@@ -236,10 +236,8 @@ func (s *SimulationBFTree) CreateRoster(sc *SimulationConfig, addresses []string
 	log.Lvl3("Doing", hosts, "hosts")
 	key := key.NewKeyPair(suite)
 	for c := 0; c < hosts; c++ {
-		key.Secret.Add(key.Secret,
-			key.Suite.Scalar().One())
-		key.Public.Add(key.Public,
-			key.Suite.Point().Base())
+		key.Private.Add(key.Private, suite.Scalar().One())
+		key.Public.Add(key.Public, suite.Point().Base())
 		address := addresses[c%nbrAddr] + ":"
 		var add network.Address
 		if localhosts {
@@ -267,7 +265,7 @@ func (s *SimulationBFTree) CreateRoster(sc *SimulationConfig, addresses []string
 			add = network.NewTCPAddress(address)
 		}
 		entities[c] = network.NewServerIdentity(key.Public.Clone(), add)
-		sc.PrivateKeys[entities[c].Address] = key.Secret.Clone()
+		sc.PrivateKeys[entities[c].Address] = key.Private.Clone()
 	}
 
 	// And close all our listeners

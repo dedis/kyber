@@ -205,7 +205,7 @@ func checkOverwrite(file string) bool {
 func createKeyPair(suite network.Suite) (string, string) {
 	log.Info("Creating ed25519 private and public keys.")
 	kp := key.NewKeyPair(suite)
-	privStr, err := encoding.ScalarToStringHex(suite, kp.Secret)
+	privStr, err := encoding.ScalarToStringHex(suite, kp.Private)
 	if err != nil {
 		log.Fatal("Error formating private key to hexadecimal. Abort.")
 	}
