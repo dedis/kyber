@@ -646,6 +646,20 @@ func (n *TreeNodeInstance) SendToChildren(msg interface{}) error {
 // If the underlying node is a leaf node this function does
 // nothing.
 func (n *TreeNodeInstance) SendToChildrenInParallel(msg interface{}) error {
+	return collectErrors("Error while sending to %s: %s\n", n.sendToChildrenInParallel(msg))
+}
+
+// SendToChildrenInParallelIgnoreErrs is the same as SendToChildrenInParallel,
+// except it ignores errors if there are fewer than `t` of them.
+func (n *TreeNodeInstance) SendToChildrenInParallelIgnoreErrs(msg interface{}, t int) error {
+	errs := n.sendToChildrenInParallel(msg)
+	if len(errs) <= t {
+		return nil
+	}
+	return collectErrors("Error while sending to %s: %s\n", errs)
+}
+
+func (n *TreeNodeInstance) sendToChildrenInParallel(msg interface{}) []collectedErrors {
 	if n.IsLeaf() {
 		return nil
 	}
@@ -666,7 +680,7 @@ func (n *TreeNodeInstance) SendToChildrenInParallel(msg interface{}) error {
 		}(node)
 	}
 	wg.Wait()
-	return collectErrors("Error while sending to %s: %s\n", errs)
+	return errs
 }
 
 // CreateProtocol instantiates a new protocol of name "name" and
