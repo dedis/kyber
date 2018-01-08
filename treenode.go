@@ -642,15 +642,15 @@ func (n *TreeNodeInstance) SendToChildren(msg interface{}) error {
 // node. It has the following differences to node.SendToChildren:
 // The actual sending happens in a go routine (in parallel).
 // It continues sending to the other nodes if sending to one of the children
-// fails. In that case it will collect all errors (separated by '\n'.)
+// fails. In that case it will collect all errors in a slice.
 // If the underlying node is a leaf node this function does
 // nothing.
-func (n *TreeNodeInstance) SendToChildrenInParallel(msg interface{}) error {
+func (n *TreeNodeInstance) SendToChildrenInParallel(msg interface{}) []error {
 	if n.IsLeaf() {
 		return nil
 	}
 	children := n.Children()
-	errs := make([]collectedErrors, 0, len(children))
+	var errs []error
 	eMut := sync.Mutex{}
 	wg := sync.WaitGroup{}
 	for _, node := range children {
@@ -659,14 +659,14 @@ func (n *TreeNodeInstance) SendToChildrenInParallel(msg interface{}) error {
 		go func(n2 *TreeNode) {
 			if err := n.SendTo(n2, msg); err != nil {
 				eMut.Lock()
-				errs = append(errs, collectedErrors{name, err})
+				errs = append(errs, errors.New(name+": "+err.Error()))
 				eMut.Unlock()
 			}
 			wg.Done()
 		}(node)
 	}
 	wg.Wait()
-	return collectErrors("Error while sending to %s: %s\n", errs)
+	return errs
 }
 
 // CreateProtocol instantiates a new protocol of name "name" and

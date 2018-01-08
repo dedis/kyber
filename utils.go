@@ -2,8 +2,6 @@ package onet
 
 import (
 	"bytes"
-	"errors"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -62,20 +60,4 @@ func getFullName(filename string, dirOpt ...string) string {
 		}
 	}
 	return dir + "/" + filepath.Base(filename)
-}
-
-type collectedErrors struct {
-	s string
-	e error
-}
-
-func collectErrors(format string, m []collectedErrors) error {
-	var errStr string
-	for _, e := range m {
-		errStr += fmt.Sprintf(format, e.s, e.e)
-	}
-	if errStr == "" {
-		return nil
-	}
-	return errors.New(errStr)
 }
