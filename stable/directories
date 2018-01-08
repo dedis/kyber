@@ -18,6 +18,7 @@ sign/anon
 sign/cosi
 sign/eddsa
 sign/schnorr
+suites
 util/encoding
 util/key
 util/random
