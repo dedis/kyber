@@ -7,7 +7,7 @@ import (
 
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
-	"github.com/satori/go.uuid"
+	"gopkg.in/satori/go.uuid.v1"
 )
 
 // Overlay keeps all trees and entity-lists for a given Server. It creates

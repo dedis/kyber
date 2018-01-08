@@ -10,7 +10,7 @@ import (
 	"github.com/dedis/kyber"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/protobuf"
-	"github.com/satori/go.uuid"
+	"gopkg.in/satori/go.uuid.v1"
 )
 
 /// Encoding part ///
