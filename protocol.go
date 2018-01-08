@@ -6,7 +6,7 @@ import (
 
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
-	"github.com/satori/go.uuid"
+	"gopkg.in/satori/go.uuid.v1"
 )
 
 // ProtocolID uniquely identifies a protocol

@@ -1,8 +1,5 @@
 language: go
 
-go:
-  - tip
-
 install:
   - go get -t ./...
   - go get github.com/dedis/Coding || true

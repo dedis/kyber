@@ -5,8 +5,8 @@ import (
 
 	"github.com/coreos/bbolt"
 	"github.com/dedis/onet/log"
-	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/require"
+	"gopkg.in/satori/go.uuid.v1"
 )
 
 func TestServer_ProtocolRegisterName(t *testing.T) {
