@@ -642,29 +642,15 @@ func (n *TreeNodeInstance) SendToChildren(msg interface{}) error {
 // node. It has the following differences to node.SendToChildren:
 // The actual sending happens in a go routine (in parallel).
 // It continues sending to the other nodes if sending to one of the children
-// fails. In that case it will collect all errors (separated by '\n'.)
+// fails. In that case it will collect all errors in a slice.
 // If the underlying node is a leaf node this function does
 // nothing.
-func (n *TreeNodeInstance) SendToChildrenInParallel(msg interface{}) error {
-	return collectErrors("Error while sending to %s: %s\n", n.sendToChildrenInParallel(msg))
-}
-
-// SendToChildrenInParallelIgnoreErrs is the same as SendToChildrenInParallel,
-// except it ignores errors if there are fewer than `t` of them.
-func (n *TreeNodeInstance) SendToChildrenInParallelIgnoreErrs(msg interface{}, t int) error {
-	errs := n.sendToChildrenInParallel(msg)
-	if len(errs) <= t {
-		return nil
-	}
-	return collectErrors("Error while sending to %s: %s\n", errs)
-}
-
-func (n *TreeNodeInstance) sendToChildrenInParallel(msg interface{}) []collectedErrors {
+func (n *TreeNodeInstance) SendToChildrenInParallel(msg interface{}) []error {
 	if n.IsLeaf() {
 		return nil
 	}
 	children := n.Children()
-	errs := make([]collectedErrors, 0, len(children))
+	var errs []error
 	eMut := sync.Mutex{}
 	wg := sync.WaitGroup{}
 	for _, node := range children {
@@ -673,7 +659,7 @@ func (n *TreeNodeInstance) sendToChildrenInParallel(msg interface{}) []collected
 		go func(n2 *TreeNode) {
 			if err := n.SendTo(n2, msg); err != nil {
 				eMut.Lock()
-				errs = append(errs, collectedErrors{name, err})
+				errs = append(errs, errors.New(name+": "+err.Error()))
 				eMut.Unlock()
 			}
 			wg.Done()
