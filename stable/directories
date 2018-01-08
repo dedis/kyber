@@ -17,6 +17,7 @@ share/vss/pedersen
 sign/anon
 sign/cosi
 sign/eddsa
+sign/eddsa/testdata
 sign/schnorr
 suites
 util/encoding
