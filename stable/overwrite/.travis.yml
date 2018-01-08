@@ -7,7 +7,7 @@ go_import_path: gopkg.in/dedis/kyber.v1
 
 install:
   - go get -t ./...
-  - go get github.com/mattn/goveralls
+  - go get github.com/dedis/Coding || true
 
 script:
   - make test
