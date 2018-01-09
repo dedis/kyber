@@ -189,6 +189,12 @@ func TestProtocolError(t *testing.T) {
 	}
 	// Redirecting stderr, so we can catch the error
 	log.OutputToBuf()
+	defer func() {
+		log.OutputToOs()
+		log.SetDebugVisible(oldlvl)
+	}()
+	// Empty it of previous messages before running our test.
+	_ = log.GetStdErr()
 
 	// start the protocol
 	go func() {
@@ -219,9 +225,7 @@ func TestProtocolError(t *testing.T) {
 
 	str := log.GetStdErr()
 	assert.NotEqual(t, "", str, "No error output")
-	log.OutputToOs()
 
-	log.SetDebugVisible(oldlvl)
 }
 
 func TestMessageProxyFactory(t *testing.T) {
