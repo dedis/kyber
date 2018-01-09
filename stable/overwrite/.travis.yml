@@ -10,7 +10,7 @@ install:
   - go get github.com/dedis/Coding || true
 
 script:
-  - make test
+  - make test_stable
 
 notifications:
   email: false
