@@ -109,6 +109,8 @@ testReNGrep(){
 }
 
 doGrep(){
+    # echo "grepping in $RUNOUT"
+    # cat $RUNOUT
     WC=$( cat $RUNOUT | egrep "$1" | wc -l )
     EGREP=$( cat $RUNOUT | egrep "$1" )
 }
@@ -193,6 +195,7 @@ build(){
 buildDir(){
     BUILDDIR=${BUILDDIR:-$(mktemp -d)}
     mkdir -p $BUILDDIR
+    testOut "Working in $BUILDDIR"
     cd $BUILDDIR
 }
 
@@ -219,18 +222,13 @@ buildConode(){
     	echo -e "\t_ \"$i\""
     done
     echo ")" ) > $cotdir/import.go
-    cat - > $cotdir/main.go << EOF
-package main
-
-import (
-  "github.com/dedis/onet/app"
-  "github.com/dedis/kyber/suites"
-)
-
-func main(){
-	app.Server(suites.MustFind("Ed25519"))
-}
-EOF
+    
+    if [ ! -f "$gopath/src/github.com/dedis/cothority/conode/conode.go" ]; then
+	echo "Cannot find package github.com/dedis/cothority."
+	exit 1
+    fi
+    cp "$gopath/src/github.com/dedis/cothority/conode/conode.go" $cotdir/conode.go
+    
     build $cotdir
     rm -rf $cotdir
     setupConode
@@ -246,6 +244,10 @@ setupConode(){
         rm -f $co/*
 	mkdir -p $co
     	echo -e "127.0.0.1:200$(( 2 * $n ))\nCot-$n\n$co\n" | dbgRun runCo $n setup
+	if [ ! -f $co/public.toml ]; then
+	    echo "Setup failed: file $co/public.toml is missing."
+	    exit
+	fi
     	if [ $n -le $NBR_SERVERS_GROUP ]; then
 	    cat $co/public.toml >> public.toml
 	fi
@@ -256,7 +258,20 @@ setupConode(){
 runCoBG(){
     for nb in "$@"; do
     	testOut "starting conode-server #$nb"
-    	( ./conode -d $DBG_SRV -c co$nb/private.toml | tee $COLOG$nb.log & )
+    	(
+	    rm -f "$COLOG$nb.log.dead"
+	    ./conode -d $DBG_SRV -c co$nb/private.toml server 2>&1 | tee "$COLOG$nb.log"
+	    touch "$COLOG$nb.log.dead"
+	) &
+    done
+    sleep .1
+    for nb in "$@"; do
+    	testOut "checking conode-server #$nb"
+	if [ -f "$COLOG$nb.log.dead" ]; then
+	    echo "Server $nb failed to start:"
+	    cat "$COLOG$nb.log"
+	    exit 1
+	fi
     done
 }
 
