@@ -37,6 +37,7 @@ func TildeToHome(path string) string {
 // 'enter', the 'dev' will be returned.
 // In the case of an error it will Fatal.
 func Input(def string, args ...interface{}) string {
+	fmt.Fprintln(out)
 	fmt.Fprint(out, args...)
 	fmt.Fprintf(out, " [%s]: ", def)
 	str, err := in.ReadString('\n')

@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/dedis/kyber/suites"
 	"github.com/dedis/onet/log"
 )
 
@@ -14,7 +15,7 @@ func TestInteractiveConfig(t *testing.T) {
 	log.ErrFatal(err)
 	log.OutputToBuf()
 	setInput("127.0.0.1:2000\nCosi1\n" + tmp)
-	InteractiveConfig(tmp + "/config.bin")
+	InteractiveConfig(tmp+"/config.bin", suites.MustFind("Ed25519"))
 	log.ErrFatal(os.RemoveAll(tmp))
 	log.OutputToOs()
 }

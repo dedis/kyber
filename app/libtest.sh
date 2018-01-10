@@ -184,7 +184,7 @@ build(){
     local app=$( basename $builddir )
     if [ ! -e $app -o "$CLEANBUILD" ]; then
     	testOut "Building $app"
-        if ! go build -o $app $builddir/*.go; then
+        if ! go build -o $app $TAGS $builddir/*.go; then
             fail "Couldn't build $builddir"
         fi
     else

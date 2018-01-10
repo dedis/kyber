@@ -388,7 +388,9 @@ func NewRoster(ids []*network.ServerIdentity) *Roster {
 		agg := ids[0].Public.Clone()
 		agg.Null()
 		for _, e := range ids {
-			agg = agg.Add(agg, e.Public)
+			if e.Public != nil {
+				agg = agg.Add(agg, e.Public)
+			}
 		}
 		r.Aggregate = agg
 	}
