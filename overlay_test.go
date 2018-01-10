@@ -25,10 +25,7 @@ func (po *ProtocolOverlay) Start() error {
 
 func (po *ProtocolOverlay) Dispatch() error {
 	if po.failDispatch {
-		go func() {
-			// hopefully we write to channel after `Dispatch` returns
-			po.failChan <- true
-		}()
+		po.failChan <- true
 		return errors.New("Dispatch failed")
 	}
 	return nil
@@ -42,6 +39,10 @@ func (po *ProtocolOverlay) Release() {
 func TestOverlayDispatchFailure(t *testing.T) {
 	log.OutputToBuf()
 	defer log.OutputToOs()
+
+	// Flush them in case there was something from another test.
+	_ = log.GetStdOut()
+	_ = log.GetStdErr()
 
 	// setup
 	failChan := make(chan bool, 1)
