@@ -1,7 +1,6 @@
 package onet
 
 import (
-	"errors"
 	"testing"
 
 	"github.com/dedis/onet/log"
@@ -10,6 +9,24 @@ import (
 	"github.com/stretchr/testify/require"
 	"gopkg.in/satori/go.uuid.v1"
 )
+
+// A checkableError is a type that implements error and also lets
+// you find out, by reading on a channel, how many times it has been
+// formatted using Error().
+type checkableError struct {
+	ch  chan struct{}
+	msg string
+}
+
+func (ce *checkableError) Error() string {
+	ce.ch <- struct{}{}
+	return ce.msg
+}
+
+var dispFailErr = &checkableError{
+	ch:  make(chan struct{}, 10),
+	msg: "Dispatch failed",
+}
 
 type ProtocolOverlay struct {
 	*TreeNodeInstance
@@ -25,8 +42,7 @@ func (po *ProtocolOverlay) Start() error {
 
 func (po *ProtocolOverlay) Dispatch() error {
 	if po.failDispatch {
-		po.failChan <- true
-		return errors.New("Dispatch failed")
+		return dispFailErr
 	}
 	return nil
 }
@@ -39,10 +55,6 @@ func (po *ProtocolOverlay) Release() {
 func TestOverlayDispatchFailure(t *testing.T) {
 	log.OutputToBuf()
 	defer log.OutputToOs()
-
-	// Flush them in case there was something from another test.
-	_ = log.GetStdOut()
-	_ = log.GetStdErr()
 
 	// setup
 	failChan := make(chan bool, 1)
@@ -64,8 +76,8 @@ func TestOverlayDispatchFailure(t *testing.T) {
 		t.Fatal("error starting new node", err)
 	}
 
-	// wait for the dispatch goroutine in CreateProtocol to start
-	<-failChan
+	// wait for the error message to get formatted by overlay.go
+	<-dispFailErr.ch
 
 	// when using `go test -v`, the error string goes into the stderr buffer
 	// but with `go test`, it goes into the stdout buffer, so we check both
