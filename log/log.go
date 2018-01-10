@@ -62,12 +62,14 @@ var bufStdErr bytes.Buffer
 
 // OutputToBuf is called for sending all the log.*-outputs to internal buffers
 // that can be used for checking what the logger would've written. This is
-// mostly used for tests.
+// mostly used for tests. The buffers are zeroed after this call.
 func OutputToBuf() {
 	debugMut.Lock()
 	defer debugMut.Unlock()
 	stdOut = &bufStdOut
 	stdErr = &bufStdErr
+	bufStdOut.Reset()
+	bufStdErr.Reset()
 }
 
 // OutputToOs redirects the output of the log.*-outputs again to the os.
