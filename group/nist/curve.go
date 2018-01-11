@@ -52,8 +52,6 @@ func (p *curvePoint) Base() kyber.Point {
 }
 
 func (p *curvePoint) Valid() bool {
-	// return p.c.IsOnCurve(p.x, p.y)
-
 	// The IsOnCurve function in Go's elliptic curve package
 	// doesn't consider the point-at-infinity to be "on the curve"
 	return p.c.IsOnCurve(p.x, p.y) ||
