@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/sign/schnorr"
 	"github.com/dedis/kyber/util/encoding"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/protobuf"
@@ -22,9 +23,6 @@ const MaxIdentityExchange = 5 * time.Second
 
 // WaitRetry is the timeout on connection-setups.
 const WaitRetry = 20 * time.Millisecond
-
-// The various errors you can have
-// XXX not working as expected, often falls on errunknown
 
 // ErrClosed is when a connection has been closed.
 var ErrClosed = errors.New("Connection Closed")
@@ -105,6 +103,15 @@ func (si *ServerIdentity) String() string {
 	return si.Address.String()
 }
 
+// SignPublicKey generates a Schnorr signature of the marshaled
+// version of this server's public key, signed by the private key.
+// If si.private is not set, this method will panic.
+func (si *ServerIdentity) SignPublicKey(s Suite) ([]byte, error) {
+	buf := &bytes.Buffer{}
+	si.Public.MarshalTo(buf)
+	return schnorr.Sign(s, si.private, buf.Bytes())
+}
+
 // ServerIdentityType can be used to recognise an ServerIdentity-message
 var ServerIdentityType = RegisterMessage(ServerIdentity{})
 
@@ -135,7 +142,8 @@ func (si *ServerIdentity) Equal(e2 *ServerIdentity) bool {
 }
 
 // SetPrivate sets a private key associated with this ServerIdentity.
-// It will not be marshalled our output as Toml.
+// It will not be marshalled or output as Toml.
+//
 // Before calling NewTCPRouter for a TLS server, you must set the private
 // key with SetPrivate.
 func (si *ServerIdentity) SetPrivate(p kyber.Scalar) {
