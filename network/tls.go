@@ -1,6 +1,7 @@
 package network
 
 import (
+	"bytes"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
@@ -15,7 +16,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/dedis/kyber/sign/schnorr"
 	"github.com/dedis/kyber/util/random"
+	"github.com/dedis/onet/log"
 )
 
 // certMaker holds the data necessary to make a certificate on the
@@ -73,6 +76,18 @@ func (cm *certMaker) getCertificate(hello *tls.ClientHelloInfo) (*tls.Certificat
 // TODO: Get an enterprise object ID for DEDIS.
 var asnPubkeySig = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 2499, 1, 1}
 
+func isOurSig(in asn1.ObjectIdentifier) bool {
+	if len(in) != len(asnPubkeySig) {
+		return false
+	}
+	for i := range in {
+		if in[i] != asnPubkeySig[i] {
+			return false
+		}
+	}
+	return true
+}
+
 func (cm *certMaker) makeCert() error {
 	one := new(big.Int).SetUint64(1)
 	cm.serial.Add(cm.serial, one)
@@ -86,7 +101,7 @@ func (cm *certMaker) makeCert() error {
 		NotBefore:             time.Now().Add(-1 * 24 * time.Hour),
 		SerialNumber:          cm.serial,
 		SignatureAlgorithm:    x509.ECDSAWithSHA384,
-		Subject:               pkix.Name{CommonName: cm.si.private.String()},
+		Subject:               pkix.Name{CommonName: cm.si.Public.String()},
 		ExtraExtensions: []pkix.Extension{
 			{
 				Id:       asnPubkeySig,
@@ -152,24 +167,82 @@ func NewTLSAddress(addr string) Address {
 	return NewAddress(TLS, addr)
 }
 
-func tlsConfig(si *ServerIdentity) *tls.Config {
+func tlsConfig(si *ServerIdentity, suite Suite) *tls.Config {
 	return &tls.Config{
+		// InsecureSkipVerify means that crypto/tls will not be checking
+		// the cert for us.
 		InsecureSkipVerify: true,
+		// Thus, we need to have our own verification function.
+		VerifyPeerCertificate: func(rawCerts [][]byte, vrf [][]*x509.Certificate) (err error) {
+			defer func() {
+				log.LLvl3("verify cert -> ", err)
+			}()
+
+			if len(rawCerts) != 1 {
+				return errors.New("expected exactly one certificate")
+			}
+			certs, err := x509.ParseCertificates(rawCerts[0])
+			if err != nil {
+				return err
+			}
+			if len(certs) != 1 {
+				return errors.New("expected exactly one certificate")
+			}
+			cert := certs[0]
+
+			// Check that the certificate is self-signed as expected and not expired.
+			self := x509.NewCertPool()
+			self.AddCert(cert)
+			opts := x509.VerifyOptions{
+				Roots: self,
+			}
+			_, err = cert.Verify(opts)
+			if err != nil {
+				return err
+			}
+
+			// Check that the CN is the same as the public key.
+			err = cert.VerifyHostname(si.Public.String())
+			if err != nil {
+				return err
+			}
+
+			// Check that our extension exists.
+			var sig []byte
+			for _, x := range cert.Extensions {
+				log.LLvl3("ext", x)
+				if isOurSig(x.Id) {
+					sig = x.Value
+					break
+				}
+			}
+			if sig == nil {
+				return errors.New("conode pubkey signature not found")
+			}
+
+			// Check that signature in our extension is valid w.r.t. si.Public.
+			buf := &bytes.Buffer{}
+			si.Public.MarshalTo(buf)
+			err = schnorr.Verify(suite, si.Public, buf.Bytes(), sig)
+
+			return err
+		},
 	}
 }
 
 // NewTLSConn will open a TCPConn to the given server over TLS.
-// It will (eventually) check that the remote server has proven
+// It will check that the remote server has proven
 // it holds the given Public key by self-signing a certificate
 // linked to that key.
 func NewTLSConn(si *ServerIdentity, suite Suite) (conn *TCPConn, err error) {
+	log.LLvl3("NewTLSConn to: ", si.Public)
 	if si.Address.ConnType() != TLS {
 		return nil, errors.New("not a tls server")
 	}
 	netAddr := si.Address.NetworkAddress()
 	for i := 1; i <= MaxRetryConnect; i++ {
 		var c net.Conn
-		c, err = tls.Dial("tcp", netAddr, tlsConfig(si))
+		c, err = tls.Dial("tcp", netAddr, tlsConfig(si, suite))
 		if err == nil {
 			conn = &TCPConn{
 				endpoint: si.Address,
