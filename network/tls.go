@@ -10,7 +10,6 @@ import (
 	"crypto/x509/pkix"
 	"encoding/asn1"
 	"errors"
-	"fmt"
 	"math/big"
 	"net"
 	"sync"
@@ -33,26 +32,18 @@ type certMaker struct {
 	c       *tls.Certificate
 	expires time.Time
 	si      *ServerIdentity
-	// sig is the Schnorr signature of si.Public, added into the certificate as an extension
-	sig    []byte
-	suite  Suite
-	serial *big.Int
+	suite   Suite
+	serial  *big.Int
 }
 
 func newCertMaker(si *ServerIdentity, s Suite) (*certMaker, error) {
-	sig, err := si.SignPublicKey(s)
-	if err != nil {
-		return nil, fmt.Errorf("could not sign the ServerIdentity's public key: %v", err)
-	}
-
 	cm := &certMaker{
 		si:     si,
-		sig:    sig,
 		suite:  s,
 		serial: new(big.Int),
 	}
 
-	// Choose a random serial number to start with.
+	// Choose a random 128-bit serial number to start with.
 	r := random.Bits(128, true, random.New())
 	cm.serial.SetBytes(r)
 
@@ -74,14 +65,14 @@ func (cm *certMaker) getCertificate(hello *tls.ClientHelloInfo) (*tls.Certificat
 }
 
 // TODO: Get an enterprise object ID for DEDIS.
-var asnPubkeySig = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 2499, 1, 1}
+var oidDedisSig = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 2499, 1, 1}
 
-func isOurSig(in asn1.ObjectIdentifier) bool {
-	if len(in) != len(asnPubkeySig) {
+func isDedisSig(in asn1.ObjectIdentifier) bool {
+	if len(in) != len(oidDedisSig) {
 		return false
 	}
 	for i := range in {
-		if in[i] != asnPubkeySig[i] {
+		if in[i] != oidDedisSig[i] {
 			return false
 		}
 	}
@@ -89,8 +80,32 @@ func isOurSig(in asn1.ObjectIdentifier) bool {
 }
 
 func (cm *certMaker) makeCert() error {
+	// For each new certificate, increment the serial number.
 	one := new(big.Int).SetUint64(1)
 	cm.serial.Add(cm.serial, one)
+
+	subj := pkix.Name{CommonName: cm.si.Public.String()}
+
+	// Create a signature that proves that:
+	// 1. during the lifetime of this certificate (i.e. for this serial number)
+	// 2. for this public key
+	// 3. we have control of the private key that is associated with the public
+	// key named in the CN.
+	// Do this using the same standardized ASN.1 marshaling that x509 uses so
+	// that anyone trying to check these signatures themselves will be able to
+	// easily do so.
+	buf := &bytes.Buffer{}
+	serAsn1, err := asn1.Marshal(cm.serial)
+	if err != nil {
+		return err
+	}
+	buf.Write(serAsn1)
+	subAsn1, err := asn1.Marshal(subj.CommonName)
+	if err != nil {
+		return err
+	}
+	buf.Write(subAsn1)
+	sig, err := schnorr.Sign(cm.suite, cm.si.private, buf.Bytes())
 
 	tmpl := &x509.Certificate{
 		BasicConstraintsValid: true,
@@ -101,12 +116,12 @@ func (cm *certMaker) makeCert() error {
 		NotBefore:             time.Now().Add(-1 * 24 * time.Hour),
 		SerialNumber:          cm.serial,
 		SignatureAlgorithm:    x509.ECDSAWithSHA384,
-		Subject:               pkix.Name{CommonName: cm.si.Public.String()},
+		Subject:               subj,
 		ExtraExtensions: []pkix.Extension{
 			{
-				Id:       asnPubkeySig,
+				Id:       oidDedisSig,
 				Critical: false,
-				Value:    cm.sig,
+				Value:    sig,
 			},
 		},
 	}
@@ -175,7 +190,11 @@ func tlsConfig(si *ServerIdentity, suite Suite) *tls.Config {
 		// Thus, we need to have our own verification function.
 		VerifyPeerCertificate: func(rawCerts [][]byte, vrf [][]*x509.Certificate) (err error) {
 			defer func() {
-				log.LLvl3("verify cert -> ", err)
+				if err == nil {
+					log.Lvl3("verify cert ->", "ok")
+				} else {
+					log.Lvl3("verify cert ->", err)
+				}
 			}()
 
 			if len(rawCerts) != 1 {
@@ -210,19 +229,27 @@ func tlsConfig(si *ServerIdentity, suite Suite) *tls.Config {
 			// Check that our extension exists.
 			var sig []byte
 			for _, x := range cert.Extensions {
-				log.LLvl3("ext", x)
-				if isOurSig(x.Id) {
+				if isDedisSig(x.Id) {
 					sig = x.Value
 					break
 				}
 			}
 			if sig == nil {
-				return errors.New("conode pubkey signature not found")
+				return errors.New("DEDIS signature not found")
 			}
 
-			// Check that signature in our extension is valid w.r.t. si.Public.
+			// Check that the DEDIS signature is valid w.r.t. si.Public.
 			buf := &bytes.Buffer{}
-			si.Public.MarshalTo(buf)
+			serAsn1, err := asn1.Marshal(cert.SerialNumber)
+			if err != nil {
+				return err
+			}
+			buf.Write(serAsn1)
+			subAsn1, err := asn1.Marshal(cert.Subject.CommonName)
+			if err != nil {
+				return err
+			}
+			buf.Write(subAsn1)
 			err = schnorr.Verify(suite, si.Public, buf.Bytes(), sig)
 
 			return err
@@ -235,7 +262,7 @@ func tlsConfig(si *ServerIdentity, suite Suite) *tls.Config {
 // it holds the given Public key by self-signing a certificate
 // linked to that key.
 func NewTLSConn(si *ServerIdentity, suite Suite) (conn *TCPConn, err error) {
-	log.LLvl3("NewTLSConn to: ", si.Public)
+	log.Lvl3("NewTLSConn to:", si.Public)
 	if si.Address.ConnType() != TLS {
 		return nil, errors.New("not a tls server")
 	}

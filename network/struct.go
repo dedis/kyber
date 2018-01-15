@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/sign/schnorr"
 	"github.com/dedis/kyber/util/encoding"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/protobuf"
@@ -101,15 +100,6 @@ func (eId ServerIdentityID) IsNil() bool {
 
 func (si *ServerIdentity) String() string {
 	return si.Address.String()
-}
-
-// SignPublicKey generates a Schnorr signature of the marshaled
-// version of this server's public key, signed by the private key.
-// If si.private is not set, this method will panic.
-func (si *ServerIdentity) SignPublicKey(s Suite) ([]byte, error) {
-	buf := &bytes.Buffer{}
-	si.Public.MarshalTo(buf)
-	return schnorr.Sign(s, si.private, buf.Bytes())
 }
 
 // ServerIdentityType can be used to recognise an ServerIdentity-message
