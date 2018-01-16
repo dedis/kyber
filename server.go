@@ -104,7 +104,7 @@ func (c *Server) Close() error {
 		log.Lvl3("Error closing database: " + err.Error())
 	}
 	err = c.Router.Stop()
-	log.Lvl3("Host Close ", c.ServerIdentity.Address, "listening?", c.Router.Listening())
+	log.Lvl3("Host Close", c.ServerIdentity.Address, "listening?", c.Router.Listening())
 	return err
 }
 
