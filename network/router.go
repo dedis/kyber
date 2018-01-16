@@ -256,9 +256,16 @@ func (r *Router) handleConn(remote *ServerIdentity, c Conn) {
 	for {
 		packet, err := c.Receive()
 
-		if r.paused != nil {
-			<-r.paused
+		// Be careful not to hold r's mutex while
+		// pausing, or else Unpause would deadlock.
+		r.Lock()
+		paused := r.paused
+		r.Unlock()
+		if paused != nil {
+			<-paused
+			r.Lock()
 			r.paused = nil
+			r.Unlock()
 			return
 		}
 
