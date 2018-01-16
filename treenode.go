@@ -591,25 +591,27 @@ func (n *TreeNodeInstance) Index() int {
 }
 
 // Broadcast sends a given message from the calling node directly to all other TreeNodes
-func (n *TreeNodeInstance) Broadcast(msg interface{}) error {
+func (n *TreeNodeInstance) Broadcast(msg interface{}) []error {
+	var errs []error
 	for _, node := range n.List() {
 		if !node.Equal(n.TreeNode()) {
 			if err := n.SendTo(node, msg); err != nil {
-				return err
+				errs = append(errs, err)
 			}
 		}
 	}
-	return nil
+	return errs
 }
 
 // Multicast ... XXX: should probably have a parallel more robust version like "SendToChildrenInParallel"
-func (n *TreeNodeInstance) Multicast(msg interface{}, nodes ...*TreeNode) error {
+func (n *TreeNodeInstance) Multicast(msg interface{}, nodes ...*TreeNode) []error {
+	var errs []error
 	for _, node := range nodes {
 		if err := n.SendTo(node, msg); err != nil {
-			return err
+			errs = append(errs, err)
 		}
 	}
-	return nil
+	return errs
 }
 
 // SendToParent sends a given message to the parent of the calling node (unless it is the root)
