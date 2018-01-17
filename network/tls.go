@@ -23,10 +23,6 @@ import (
 // certMaker holds the data necessary to make a certificate on the
 // fly, cache it, expire it, and give it to crypto/tls via the
 // GetCertificate and GetClientCertificate callbacks.
-//
-// TODO: make the CN be the public key, and include a signature over the CN in the cert proving that we
-// hold the private key associated with the public key.
-
 type certMaker struct {
 	sync.Mutex
 	c       *tls.Certificate
@@ -64,8 +60,8 @@ func (cm *certMaker) getCertificate(hello *tls.ClientHelloInfo) (*tls.Certificat
 	return cm.c, nil
 }
 
-// TODO: Get an enterprise object ID for DEDIS.
-var oidDedisSig = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 2499, 1, 1}
+// See https://github.com/dedis/Coding/tree/master/mib/cothority.mib
+var oidDedisSig = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 51281, 1, 1}
 
 func isDedisSig(in asn1.ObjectIdentifier) bool {
 	if len(in) != len(oidDedisSig) {
