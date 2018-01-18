@@ -192,7 +192,7 @@ type LocalConn struct {
 	suite Suite
 }
 
-// newLocalConn initializes the fields of a LocalConn but does'nt
+// newLocalConn initializes the fields of a LocalConn but doesn't
 // connect. It should not be used from the outside, most user want
 // to use NewLocalConn.
 func newLocalConn(lm *LocalManager, local, remote endpoint, s Suite) *LocalConn {
@@ -396,6 +396,7 @@ func (ll *LocalListener) Stop() error {
 	if !ll.listening {
 		return nil
 	}
+
 	ll.manager.unsetListening(ll.addr)
 	close(ll.quit)
 	ll.listening = false

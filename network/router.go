@@ -48,6 +48,9 @@ type Router struct {
 
 	// keep bandwidth of closed connections
 	traffic counterSafe
+	// If paused is not nil, then handleConn will stop processing. When unpaused
+	// it will break the connection. This is for testing node failure cases.
+	paused chan bool
 }
 
 // NewRouter returns a new Router attached to a ServerIdentity and the host we want to
@@ -62,6 +65,27 @@ func NewRouter(own *ServerIdentity, h Host) *Router {
 	}
 	r.address = h.Address()
 	return r
+}
+
+// Pause casues the router to stop after reading the next incoming message. It
+// sleeps until it is woken up by Unpause. For testing use only.
+func (r *Router) Pause() {
+	r.Lock()
+	if r.paused == nil {
+		r.paused = make(chan bool)
+	}
+	r.Unlock()
+}
+
+// Unpause reverses a previous call to Pause. All paused connections are closed
+// and the Router is again ready to process messages normally. For testing use only.
+func (r *Router) Unpause() {
+	r.Lock()
+	if r.paused != nil {
+		close(r.paused)
+		r.paused = nil
+	}
+	r.Unlock()
 }
 
 // Start the listening routine of the underlying Host. This is a
@@ -102,6 +126,7 @@ func (r *Router) Start() {
 func (r *Router) Stop() error {
 	var err error
 	err = r.host.Stop()
+	r.Unpause()
 	r.Lock()
 	// set the isClosed to true
 	r.isClosed = true
@@ -230,6 +255,19 @@ func (r *Router) handleConn(remote *ServerIdentity, c Conn) {
 	log.Lvl3(r.address, "Handling new connection to", remote.Address)
 	for {
 		packet, err := c.Receive()
+
+		// Be careful not to hold r's mutex while
+		// pausing, or else Unpause would deadlock.
+		r.Lock()
+		paused := r.paused
+		r.Unlock()
+		if paused != nil {
+			<-paused
+			r.Lock()
+			r.paused = nil
+			r.Unlock()
+			return
+		}
 
 		if r.Closed() {
 			return

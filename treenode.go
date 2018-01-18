@@ -176,7 +176,6 @@ func (n *TreeNodeInstance) RegisterChannelLength(c interface{}, length int) erro
 	if cr.Kind() == reflect.Ptr {
 		val := reflect.ValueOf(c).Elem()
 		val.Set(reflect.MakeChan(val.Type(), length))
-		//val.Set(reflect.MakeChan(reflect.Indirect(cr), 1))
 		return n.RegisterChannel(reflect.Indirect(val).Interface())
 	} else if reflect.ValueOf(c).IsNil() {
 		return errors.New("Can not Register a (value) channel not initialized")
