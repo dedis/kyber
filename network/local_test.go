@@ -247,7 +247,7 @@ func testLocalConn(t *testing.T, a1, a2 Address) {
 			assert.Nil(t, err)
 			//wait ack
 			<-outgoingConn
-			assert.Equal(t, 2, listener.manager.len())
+			assert.Equal(t, 2, listener.manager.count())
 			// close connection
 			assert.Nil(t, c.Close())
 			incomingConn <- true

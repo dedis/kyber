@@ -165,6 +165,7 @@ func (l *LocalTest) GenRosterFromHost(servers ...*Server) *Roster {
 
 // CloseAll takes a list of servers that will be closed
 func (l *LocalTest) CloseAll() {
+	l.ctx.Stop()
 	for _, server := range l.Servers {
 		log.Lvl3("Closing server", server.ServerIdentity.Address)
 		err := server.Close()
