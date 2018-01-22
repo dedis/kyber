@@ -40,6 +40,7 @@ type LocalManager struct {
 	counter uint64
 	// close on this channel indicates that connection retries should stop
 	stopping chan bool
+	stopOnce sync.Once
 }
 
 // NewLocalManager returns a fresh new manager that can be used by LocalConn,
@@ -173,7 +174,7 @@ func (lm *LocalManager) count() int {
 // Stop tells any connections that are sleeping on retry
 // to stop sleeping and return an error.
 func (lm *LocalManager) Stop() {
-	close(lm.stopping)
+	lm.stopOnce.Do(func() { close(lm.stopping) })
 }
 
 // LocalConn is a connection that sends and receives messages to other
