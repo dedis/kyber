@@ -38,6 +38,9 @@ type LocalManager struct {
 
 	// connection-counter for giving unique IDs to each connection.
 	counter uint64
+	// close on this channel indicates that connection retries should stop
+	stopping chan bool
+	stopOnce sync.Once
 }
 
 // NewLocalManager returns a fresh new manager that can be used by LocalConn,
@@ -46,6 +49,7 @@ func NewLocalManager() *LocalManager {
 	return &LocalManager{
 		conns:     make(map[endpoint]*LocalConn),
 		listening: make(map[Address]func(Conn)),
+		stopping:  make(chan bool),
 	}
 }
 
@@ -161,10 +165,16 @@ func (lm *LocalManager) close(conn *LocalConn) error {
 }
 
 // len returns how many local connections are open.
-func (lm *LocalManager) len() int {
+func (lm *LocalManager) count() int {
 	lm.Lock()
 	defer lm.Unlock()
 	return len(lm.conns)
+}
+
+// Stop tells any connections that are sleeping on retry
+// to stop sleeping and return an error.
+func (lm *LocalManager) Stop() {
+	lm.stopOnce.Do(func() { close(lm.stopping) })
 }
 
 // LocalConn is a connection that sends and receives messages to other
@@ -462,7 +472,13 @@ func (lh *LocalHost) Connect(si *ServerIdentity) (Conn, error) {
 			return c, nil
 		}
 		finalErr = err
-		time.Sleep(WaitRetry)
+		select {
+		case <-time.After(WaitRetry):
+			// sleep done, go try again
+		case <-lh.lm.stopping:
+			// stop sleeping and return immediately
+			return nil, finalErr
+		}
 	}
 	return nil, finalErr
 

@@ -576,12 +576,39 @@ func (ro *Roster) GenerateBinaryTree() *Tree {
 	return ro.GenerateNaryTree(2)
 }
 
+// GenerateStar creates a star topology with the first element
+// of Roster as root, and all other elements as children of the root.
+func (ro *Roster) GenerateStar() *Tree {
+	return ro.GenerateNaryTree(len(ro.List) - 1)
+}
+
 // RandomServerIdentity returns a random element of the Roster.
 func (ro *Roster) RandomServerIdentity() *network.ServerIdentity {
 	if ro.List == nil || len(ro.List) == 0 {
 		return nil
 	}
 	return ro.List[rand.Int()%len(ro.List)]
+}
+
+// RandomSubset returns a new Roster which starts with root and is
+// followed by a random subset of n elements of ro, not including root.
+func (ro *Roster) RandomSubset(root *network.ServerIdentity, n int) *Roster {
+	if n > len(ro.List) {
+		n = len(ro.List)
+	}
+	out := make([]*network.ServerIdentity, 1)
+	out[0] = root
+
+	perm := rand.Perm(len(ro.List))
+	for _, p := range perm {
+		if ro.List[p] != root {
+			out = append(out, ro.List[p])
+			if len(out) == n+1 {
+				break
+			}
+		}
+	}
+	return NewRoster(out)
 }
 
 // addNary is a recursive function to create the binary tree.

@@ -16,6 +16,28 @@ import (
 
 var prefix = "127.0.0.1:"
 
+func TestSubset(t *testing.T) {
+	// subset of 10 from roster of 1: degenerate case
+	names := genLocalhostPeerNames(1, 0)
+	ro := genRoster(tSuite, names)
+	r := ro.RandomSubset(ro.List[0], 10)
+	// (return just the root)
+	assert.Equal(t, len(r.List), 1)
+	assert.Equal(t, r.List[0], ro.List[0])
+	assert.NotContains(t, r.List[1:], ro.List[0])
+
+	// subset of 4 from a roster of 20: all returned should be in orig
+	// roster.
+	names = genLocalhostPeerNames(20, 0)
+	ro = genRoster(tSuite, names)
+	r = ro.RandomSubset(ro.List[0], 4)
+	assert.Equal(t, len(r.List), 5)
+	for _, x := range r.List {
+		assert.Contains(t, ro.List, x)
+	}
+	assert.NotContains(t, r.List[1:], ro.List[0])
+}
+
 // test the ID generation
 func TestTreeId(t *testing.T) {
 	names := genLocalhostPeerNames(3, 0)

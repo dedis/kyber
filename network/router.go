@@ -252,7 +252,7 @@ func (r *Router) handleConn(remote *ServerIdentity, c Conn) {
 		r.removeConnection(remote, c)
 	}()
 	address := c.Remote()
-	log.Lvl3(r.address, "Handling new connection to", remote.Address)
+	log.Lvl3(r.address, "Handling new connection from", remote.Address)
 	for {
 		packet, err := c.Receive()
 
