@@ -591,18 +591,22 @@ func (ro *Roster) RandomServerIdentity() *network.ServerIdentity {
 }
 
 // RandomSubset returns a new Roster which starts with root and is
-// followed by a random subset of n elements of ro.
+// followed by a random subset of n elements of ro, not including root.
 func (ro *Roster) RandomSubset(root *network.ServerIdentity, n int) *Roster {
 	if n > len(ro.List) {
 		n = len(ro.List)
 	}
-	out := make([]*network.ServerIdentity, n+1)
+	out := make([]*network.ServerIdentity, 1)
 	out[0] = root
 
 	perm := rand.Perm(len(ro.List))
-	log.Lvl3("perm is", perm)
-	for i := 0; i < n; i++ {
-		out[i+1] = ro.List[perm[i]]
+	for _, p := range perm {
+		if ro.List[p] != root {
+			out = append(out, ro.List[p])
+			if len(out) == n+1 {
+				break
+			}
+		}
 	}
 	return NewRoster(out)
 }
