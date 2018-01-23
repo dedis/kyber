@@ -273,10 +273,6 @@ if __name__ == '__main__':
         # rm_file(logfile)
         rm_file(logdone)
         call("mn -c > /dev/null 2>&1", shell=True)
-        dbg( 1, "Starting mininet for %s" % myNet )
-        t1 = threading.Thread(target=RunNet)
-        t1.start()
-        time.sleep(1)
 
     threads = []
     if len(sys.argv) > 2:
@@ -297,6 +293,10 @@ if __name__ == '__main__':
             thr.start()
 
     if myNet:
+        dbg( 1, "Starting mininet for %s" % myNet )
+        t1 = threading.Thread(target=RunNet)
+        t1.start()
+        time.sleep(1)
         t1.join()
 
     for thr in threads:
