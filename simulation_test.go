@@ -69,7 +69,7 @@ func TestSimulationLoadSave(t *testing.T) {
 	log.ErrFatal(err)
 	defer os.RemoveAll(dir)
 	sc.Save(dir)
-	sc2, err := LoadSimulationConfig(dir, sc.Roster.List[0].Address.NetworkAddress())
+	sc2, err := LoadSimulationConfig("Ed25519", dir, sc.Roster.List[0].Address.NetworkAddress())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -88,7 +88,7 @@ func TestSimulationMultipleInstances(t *testing.T) {
 	log.ErrFatal(err)
 	defer os.RemoveAll(dir)
 	sc.Save(dir)
-	sc2, err := LoadSimulationConfig(dir, sc.Roster.List[0].Address.Host())
+	sc2, err := LoadSimulationConfig("Ed25519", dir, sc.Roster.List[0].Address.Host())
 	if err != nil {
 		t.Fatal(err)
 	}

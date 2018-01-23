@@ -29,12 +29,17 @@ var monitorAddress string
 // Simul is != "" if this node needs to start a simulation of that protocol
 var simul string
 
+// suite is Ed25519 by default
+var suite string
+
 // Initialize before 'init' so we can directly use the fields as parameters
 // to 'Flag'
 func init() {
 	flag.StringVar(&serverAddress, "address", "", "our address to use")
 	flag.StringVar(&simul, "simul", "", "start simulating that protocol")
 	flag.StringVar(&monitorAddress, "monitor", "", "remote monitor")
+	flag.StringVar(&suite, "suite", "Ed25519", "cryptographic suite to use")
+
 }
 
 // Start has to be called by the main-file that imports the protocol and/or the
@@ -59,7 +64,7 @@ func Start(rcs ...string) {
 	if simul == "" {
 		startBuild()
 	} else {
-		err := platform.Simulate(serverAddress, simul, monitorAddress)
+		err := platform.Simulate(suite, serverAddress, simul, monitorAddress)
 		log.ErrFatal(err)
 	}
 	os.Chdir(wd)

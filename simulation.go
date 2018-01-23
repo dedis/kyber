@@ -76,9 +76,9 @@ type SimulationConfigFile struct {
 
 // LoadSimulationConfig gets all configuration from dir + SimulationFileName and instantiates the
 // corresponding host 'ca'.
-func LoadSimulationConfig(dir, ca string) ([]*SimulationConfig, error) {
+func LoadSimulationConfig(s, dir, ca string) ([]*SimulationConfig, error) {
 	// TODO: Figure this out from the incoming simulation file somehow
-	suite := suites.MustFind("Ed25519")
+	suite := suites.MustFind(s)
 
 	network.RegisterMessage(SimulationConfigFile{})
 	bin, err := ioutil.ReadFile(dir + "/" + SimulationFileName)
