@@ -41,6 +41,8 @@ type LocalManager struct {
 	// close on this channel indicates that connection retries should stop
 	stopping chan bool
 	stopOnce sync.Once
+	// a waitgroup to check that all serving goroutines are done
+	wg sync.WaitGroup
 }
 
 // NewLocalManager returns a fresh new manager that can be used by LocalConn,
@@ -175,6 +177,7 @@ func (lm *LocalManager) count() int {
 // to stop sleeping and return an error.
 func (lm *LocalManager) Stop() {
 	lm.stopOnce.Do(func() { close(lm.stopping) })
+	lm.wg.Wait()
 }
 
 // LocalConn is a connection that sends and receives messages to other
@@ -216,7 +219,8 @@ func newLocalConn(lm *LocalManager, local, remote endpoint, s Suite) *LocalConn 
 		closeConfirm:  make(chan bool),
 		suite:         s,
 	}
-	go lc.start()
+	lm.wg.Add(1)
+	go lc.start(&lm.wg)
 	return lc
 }
 
@@ -242,7 +246,8 @@ func NewLocalConnWithManager(lm *LocalManager, local, remote Address, s Suite) (
 	return nil, errors.New("Could not connect")
 }
 
-func (lc *LocalConn) start() {
+func (lc *LocalConn) start(wg *sync.WaitGroup) {
+	defer wg.Done()
 	for {
 		select {
 		case buff := <-lc.incomingQueue:
