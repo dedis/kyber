@@ -247,7 +247,6 @@ func NewLocalConnWithManager(lm *LocalManager, local, remote Address, s Suite) (
 }
 
 func (lc *LocalConn) start(wg *sync.WaitGroup) {
-	defer wg.Done()
 	for {
 		select {
 		case buff := <-lc.incomingQueue:
@@ -257,6 +256,7 @@ func (lc *LocalConn) start(wg *sync.WaitGroup) {
 			close(lc.outgoingQueue)
 			close(lc.incomingQueue)
 			lc.closeConfirm <- true
+			wg.Done()
 			return
 		}
 	}
