@@ -181,7 +181,7 @@ func (d *Localhost) Start(args ...string) error {
 		host := "127.0.0." + strconv.Itoa(index)
 		go func(i int, h string) {
 			log.Lvl3("Localhost: will start host", i, h)
-			err := Simulate(host, d.Simulation, "")
+			err := Simulate(d.Suite, host, d.Simulation, "")
 			if err != nil {
 				log.Error("Error running localhost", h, ":", err)
 				d.errChan <- err

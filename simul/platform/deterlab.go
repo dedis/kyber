@@ -326,7 +326,7 @@ func (d *Deterlab) Start(args ...string) error {
 	}
 	log.Lvl3("Setup remote port forwarding", cmd)
 	go func() {
-		err := SSHRunStdout(d.Login, d.Host, "cd remote; GOMAXPROCS=8 ./users --suite="+d.Suite)
+		err := SSHRunStdout(d.Login, d.Host, "cd remote; GOMAXPROCS=8 ./users -suite="+d.Suite)
 		if err != nil {
 			log.Lvl3(err)
 		}

@@ -67,6 +67,7 @@ func startBuild() {
 		deployP.Configure(&platform.Config{
 			MonitorPort: monitorPort,
 			Debug:       log.DebugVisible(),
+			Suite:       runconfigs[0].Get("Suite"),
 		})
 
 		if clean {
