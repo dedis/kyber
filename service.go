@@ -214,16 +214,14 @@ type serviceManager struct {
 }
 
 // newServiceManager will create a serviceStore out of all the registered Service
-func newServiceManager(svr *Server, o *Overlay, dbPath string) *serviceManager {
+func newServiceManager(svr *Server, o *Overlay, dbPath string, delDb bool) *serviceManager {
 	services := make(map[ServiceID]Service)
 	s := &serviceManager{
 		services:   services,
 		server:     svr,
 		dbPath:     dbPath,
+		delDb:      delDb,
 		Dispatcher: network.NewRoutineDispatcher(),
-	}
-	if dbPath == "" {
-		s.delDb = true
 	}
 
 	db, err := openDb(s.dbFileName(svr))

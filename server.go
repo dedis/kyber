@@ -44,6 +44,10 @@ type Server struct {
 // location. If where is != "", it is considered a temp dir, and the
 // DB is deleted on close.
 func newServer(where string, r *network.Router, pkey kyber.Scalar, s network.Suite) *Server {
+	delDb := false
+	if where != "" {
+		delDb = true
+	}
 	c := &Server{
 		private:              pkey,
 		statusReporterStruct: newStatusReporterStruct(),
@@ -55,7 +59,7 @@ func newServer(where string, r *network.Router, pkey kyber.Scalar, s network.Sui
 	}
 	c.overlay = NewOverlay(c)
 	c.websocket = NewWebSocket(r.ServerIdentity)
-	c.serviceManager = newServiceManager(c, c.overlay, where)
+	c.serviceManager = newServiceManager(c, c.overlay, where, delDb)
 	c.statusReporterStruct.RegisterStatusReporter("Status", c)
 	for name, inst := range protocols.instantiators {
 		log.Lvl4("Registering global protocol", name)
