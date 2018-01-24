@@ -40,12 +40,12 @@ type Server struct {
 }
 
 // NewServer returns a fresh Server tied to a given Router.
-// If where is "", the server will write its database to the default
-// location. If where is != "", it is considered a temp dir, and the
+// If dbPath is "", the server will write its database to the default
+// location. If dbPath is != "", it is considered a temp dir, and the
 // DB is deleted on close.
-func newServer(where string, r *network.Router, pkey kyber.Scalar, s network.Suite) *Server {
+func newServer(dbPath string, r *network.Router, pkey kyber.Scalar, s network.Suite) *Server {
 	delDb := false
-	if where != "" {
+	if dbPath != "" {
 		delDb = true
 	}
 	c := &Server{
@@ -59,7 +59,7 @@ func newServer(where string, r *network.Router, pkey kyber.Scalar, s network.Sui
 	}
 	c.overlay = NewOverlay(c)
 	c.websocket = NewWebSocket(r.ServerIdentity)
-	c.serviceManager = newServiceManager(c, c.overlay, where, delDb)
+	c.serviceManager = newServiceManager(c, c.overlay, dbPath, delDb)
 	c.statusReporterStruct.RegisterStatusReporter("Status", c)
 	for name, inst := range protocols.instantiators {
 		log.Lvl4("Registering global protocol", name)
