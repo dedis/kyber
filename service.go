@@ -205,20 +205,19 @@ type serviceManager struct {
 	// the onet host
 	server *Server
 	// a bbolt database for all services
-	db *bolt.DB
-	// where the database should be
-	where string
+	db     *bolt.DB
+	dbPath string
 	// the dispatcher can take registration of Processors
 	network.Dispatcher
 }
 
 // newServiceManager will create a serviceStore out of all the registered Service
-func newServiceManager(svr *Server, o *Overlay, where string) *serviceManager {
+func newServiceManager(svr *Server, o *Overlay, dbPath string) *serviceManager {
 	services := make(map[ServiceID]Service)
 	s := &serviceManager{
 		services:   services,
 		server:     svr,
-		where:      where,
+		dbPath:     dbPath,
 		Dispatcher: network.NewRoutineDispatcher(),
 	}
 
@@ -270,7 +269,7 @@ func createBucketForService(db *bolt.DB, bucketName string) error {
 }
 
 func (s *serviceManager) dbFileName(svr *Server) string {
-	p := s.where
+	p := s.dbPath
 	if p == "" {
 		p = defaultPath
 	}
@@ -296,7 +295,7 @@ func (s *serviceManager) closeDatabase() error {
 		s.db = nil
 	}
 
-	if s.where != "" {
+	if s.dbPath != "" {
 		err := os.Remove(s.dbFileName(s.server))
 		if err != nil {
 			return err

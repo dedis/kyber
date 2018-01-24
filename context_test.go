@@ -125,7 +125,7 @@ func TestContext_Path(t *testing.T) {
 }
 
 // createContext creates the minimum number of things required for the test
-func createContext(t *testing.T, where string) *Context {
+func createContext(t *testing.T, dbPath string) *Context {
 	kp := key.NewKeyPair(tSuite)
 	si := network.NewServerIdentity(kp.Public,
 		network.NewAddress(network.Local, "localhost:0"))
@@ -142,7 +142,7 @@ func createContext(t *testing.T, where string) *Context {
 
 	sm := &serviceManager{
 		server: cn,
-		where:  where,
+		dbPath: dbPath,
 	}
 
 	db, err := openDb(sm.dbFileName(cn))
