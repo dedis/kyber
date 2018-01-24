@@ -2,10 +2,9 @@ package onet
 
 import (
 	"errors"
+	"io/ioutil"
 	"strconv"
 	"time"
-
-	"os"
 
 	"fmt"
 	"net"
@@ -37,6 +36,7 @@ type LocalTest struct {
 	// it enables to have multiple local test running simultaneously
 	ctx   *network.LocalManager
 	Suite network.Suite
+	path  string
 }
 
 const (
@@ -49,11 +49,11 @@ const (
 // NewLocalTest creates a new Local handler that can be used to test protocols
 // locally
 func NewLocalTest(s network.Suite) *LocalTest {
-	if s, err := os.Stat("config"); err == nil && s.IsDir() {
-		log.Lvl4("Removing config-dir")
-		os.RemoveAll("config")
+	dir, err := ioutil.TempDir("", "onet")
+	if err != nil {
+		log.Fatal("could not create temp directory: ", err)
 	}
-	setContextDataPath("")
+
 	return &LocalTest{
 		Servers:  make(map[network.ServerIdentityID]*Server),
 		Overlays: make(map[network.ServerIdentityID]*Overlay),
@@ -64,6 +64,7 @@ func NewLocalTest(s network.Suite) *LocalTest {
 		mode:     Local,
 		ctx:      network.NewLocalManager(),
 		Suite:    s,
+		path:     dir,
 	}
 }
 
@@ -72,7 +73,6 @@ func NewLocalTest(s network.Suite) *LocalTest {
 func NewTCPTest(s network.Suite) *LocalTest {
 	t := NewLocalTest(s)
 	t.mode = TCP
-	setContextDataPath("")
 	return t
 }
 
@@ -329,7 +329,7 @@ func NewTCPServer(port int, s network.Suite) *Server {
 	}
 	id.Address = network.NewAddress(id.Address.ConnType(), "127.0.0.1:"+id.Address.Port())
 	router := network.NewRouter(id, tcpHost)
-	h := NewServer(router, priv, s)
+	h := NewServer("", router, priv, s)
 	go h.Start()
 	for !h.Listening() {
 		time.Sleep(10 * time.Millisecond)
@@ -341,12 +341,17 @@ func NewTCPServer(port int, s network.Suite) *Server {
 // At the return of this function, the router is already Run()ing in a go
 // routine.
 func NewLocalServer(port int, s network.Suite) *Server {
+	dir, err := ioutil.TempDir("", "example")
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	priv, id := NewPrivIdentity(s, port)
 	localRouter, err := network.NewLocalRouter(id, s)
 	if err != nil {
 		panic(err)
 	}
-	h := NewServer(localRouter, priv, s)
+	h := NewServer(dir, localRouter, priv, s)
 	go h.Start()
 	for !h.Listening() {
 		time.Sleep(10 * time.Millisecond)
@@ -408,7 +413,7 @@ func (l *LocalTest) NewLocalServer(port int, s network.Suite) *Server {
 	if err != nil {
 		panic(err)
 	}
-	server := NewServer(localRouter, priv, s)
+	server := NewServer(l.path, localRouter, priv, s)
 	go server.Start()
 	for !server.Listening() {
 		time.Sleep(10 * time.Millisecond)

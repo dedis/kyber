@@ -36,9 +36,7 @@ func newContext(c *Server, o *Overlay, servID ServiceID, manager *serviceManager
 	}
 }
 
-func init() {
-	initContextDataPath()
-}
+var defaultPath = initContextDataPath()
 
 // NewTreeNodeInstance creates a TreeNodeInstance that is bound to a
 // service instead of the Overlay.
@@ -200,7 +198,7 @@ func (c *Context) GetAdditionalBucket(name string) (*bolt.DB, string) {
 // permissions (0750).
 //
 // The path can be overridden with the environmental variable "CONODE_SERVICE_PATH".
-func initContextDataPath() {
+func initContextDataPath() string {
 	p := os.Getenv("CONODE_SERVICE_PATH")
 	if p == "" {
 		u, err := user.Current()
@@ -217,24 +215,5 @@ func initContextDataPath() {
 		}
 	}
 	log.ErrFatal(os.MkdirAll(p, 0750))
-	setContextDataPath(p)
-}
-
-var (
-	cdpMutex sync.Mutex
-	// contextDataPath indicates where the service-data will be stored. If it is
-	// empty, a memory-map is used.
-	contextDataPath = ""
-)
-
-func setContextDataPath(path string) {
-	cdpMutex.Lock()
-	defer cdpMutex.Unlock()
-	contextDataPath = path
-}
-
-func getContextDataPath() string {
-	cdpMutex.Lock()
-	defer cdpMutex.Unlock()
-	return contextDataPath
+	return p
 }

@@ -3,7 +3,6 @@ package onet
 import (
 	"errors"
 	"fmt"
-	"path"
 	"runtime"
 	"sort"
 	"strconv"
@@ -41,18 +40,21 @@ type Server struct {
 }
 
 // NewServer returns a fresh Server tied to a given Router.
-func NewServer(r *network.Router, pkey kyber.Scalar, s network.Suite) *Server {
+// If where is "", the server will write its database to the default
+// location.
+func NewServer(where string, r *network.Router, pkey kyber.Scalar, s network.Suite) *Server {
 	c := &Server{
 		private:              pkey,
 		statusReporterStruct: newStatusReporterStruct(),
 		Router:               r,
 		protocols:            newProtocolStorage(),
-		started:              time.Now(),
-		suite:                s,
+		// TODO: Move this to Start()
+		started: time.Now(),
+		suite:   s,
 	}
 	c.overlay = NewOverlay(c)
 	c.websocket = NewWebSocket(r.ServerIdentity)
-	c.serviceManager = newServiceManager(c, c.overlay)
+	c.serviceManager = newServiceManager(c, c.overlay, where)
 	c.statusReporterStruct.RegisterStatusReporter("Status", c)
 	for name, inst := range protocols.instantiators {
 		log.Lvl4("Registering global protocol", name)
@@ -66,7 +68,7 @@ func NewServer(r *network.Router, pkey kyber.Scalar, s network.Suite) *Server {
 func NewServerTCP(e *network.ServerIdentity, pkey kyber.Scalar, suite network.Suite) *Server {
 	r, err := network.NewTCPRouter(e, suite)
 	log.ErrFatal(err)
-	return NewServer(r, pkey, suite)
+	return NewServer("", r, pkey, suite)
 }
 
 // Suite can (and should) be used to get the underlying Suite.
@@ -144,11 +146,4 @@ func (c *Server) protocolInstantiate(protoID ProtocolID, tni *TreeNodeInstance) 
 func (c *Server) Start() {
 	go c.Router.Start()
 	c.websocket.start()
-}
-
-// dbFileName returns the database file name. The exact file name depends on how
-// contextDataPath is initialised, see `initContextDataPath()`.
-func (c *Server) dbFileName() string {
-	pub, _ := c.ServerIdentity.Public.MarshalBinary()
-	return path.Join(getContextDataPath(), fmt.Sprintf("%x.db", pub))
 }
