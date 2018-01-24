@@ -6,8 +6,6 @@ import (
 	"reflect"
 	"sync"
 
-	"strings"
-
 	"github.com/dedis/kyber"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
@@ -378,15 +376,6 @@ func (n *TreeNodeInstance) dispatchChannel(msgSlice []*ProtocolMsg) error {
 			log.Lvl4("Adding msg", m, "to", n.ServerIdentity().Address)
 			out.Index(i).Set(m)
 		}
-		// Debugging some rare error found in travis
-		switch {
-		case mt == network.ErrorType:
-			log.Print("https://github.com/dedis/onet/issues/51",
-				log.Stack())
-		case n.channels[mt] == nil:
-			log.Print("https://github.com/dedis/onet/issues/51",
-				mt, log.Stack())
-		}
 		reflect.ValueOf(n.channels[mt]).Send(out)
 	} else {
 		for _, msg := range msgSlice {
@@ -630,8 +619,6 @@ func (n *TreeNodeInstance) SendToParent(msg interface{}) error {
 	if n.IsRoot() {
 		return nil
 	}
-	log.Lvl4(n.Name(), strings.Split(log.Stack(), "\n")[7], "Sends to",
-		n.Parent().Name())
 	return n.SendTo(n.Parent(), msg)
 }
 
