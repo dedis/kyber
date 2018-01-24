@@ -41,8 +41,9 @@ type Server struct {
 
 // NewServer returns a fresh Server tied to a given Router.
 // If where is "", the server will write its database to the default
-// location.
-func NewServer(where string, r *network.Router, pkey kyber.Scalar, s network.Suite) *Server {
+// location. If where is != "", it is considered a temp dir, and the
+// DB is deleted on close.
+func newServer(where string, r *network.Router, pkey kyber.Scalar, s network.Suite) *Server {
 	c := &Server{
 		private:              pkey,
 		statusReporterStruct: newStatusReporterStruct(),
@@ -65,10 +66,20 @@ func NewServer(where string, r *network.Router, pkey kyber.Scalar, s network.Sui
 
 // NewServerTCP returns a new Server out of a private-key and its related public
 // key within the ServerIdentity. The server will use a default TcpRouter as Router.
+//
+// The path to the file is chosen as follows:
+//   Mac: ~/Library/Conode/Services
+//   Other Unix: ~/.local/share/conode
+//   Windows: $HOME$\AppData\Local\Conode
+//
+// If the directory doesn't exist, it will be created using rwxr-x---
+// permissions (0750).
+//
+// The path can be overridden with the environmental variable "CONODE_SERVICE_PATH".
 func NewServerTCP(e *network.ServerIdentity, pkey kyber.Scalar, suite network.Suite) *Server {
 	r, err := network.NewTCPRouter(e, suite)
 	log.ErrFatal(err)
-	return NewServer("", r, pkey, suite)
+	return newServer("", r, pkey, suite)
 }
 
 // Suite can (and should) be used to get the underlying Suite.

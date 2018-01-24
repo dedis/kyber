@@ -329,7 +329,7 @@ func NewTCPServer(port int, s network.Suite) *Server {
 	}
 	id.Address = network.NewAddress(id.Address.ConnType(), "127.0.0.1:"+id.Address.Port())
 	router := network.NewRouter(id, tcpHost)
-	h := NewServer("", router, priv, s)
+	h := newServer("", router, priv, s)
 	go h.Start()
 	for !h.Listening() {
 		time.Sleep(10 * time.Millisecond)
@@ -351,7 +351,7 @@ func NewLocalServer(port int, s network.Suite) *Server {
 	if err != nil {
 		panic(err)
 	}
-	h := NewServer(dir, localRouter, priv, s)
+	h := newServer(dir, localRouter, priv, s)
 	go h.Start()
 	for !h.Listening() {
 		time.Sleep(10 * time.Millisecond)
@@ -413,7 +413,7 @@ func (l *LocalTest) NewLocalServer(port int, s network.Suite) *Server {
 	if err != nil {
 		panic(err)
 	}
-	server := NewServer(l.path, localRouter, priv, s)
+	server := newServer(l.path, localRouter, priv, s)
 	go server.Start()
 	for !server.Listening() {
 		time.Sleep(10 * time.Millisecond)

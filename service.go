@@ -207,6 +207,8 @@ type serviceManager struct {
 	// a bbolt database for all services
 	db     *bolt.DB
 	dbPath string
+	// should the db be deleted on close?
+	delDb bool
 	// the dispatcher can take registration of Processors
 	network.Dispatcher
 }
@@ -219,6 +221,9 @@ func newServiceManager(svr *Server, o *Overlay, dbPath string) *serviceManager {
 		server:     svr,
 		dbPath:     dbPath,
 		Dispatcher: network.NewRoutineDispatcher(),
+	}
+	if dbPath == "" {
+		s.delDb = true
 	}
 
 	db, err := openDb(s.dbFileName(svr))
@@ -295,7 +300,7 @@ func (s *serviceManager) closeDatabase() error {
 		s.db = nil
 	}
 
-	if s.dbPath != "" {
+	if s.delDb {
 		err := os.Remove(s.dbFileName(s.server))
 		if err != nil {
 			return err
