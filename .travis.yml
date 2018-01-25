@@ -9,4 +9,3 @@ script:
 
 notifications:
   email: false
-

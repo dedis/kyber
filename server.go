@@ -3,6 +3,8 @@ package onet
 import (
 	"errors"
 	"fmt"
+	"os"
+	"os/user"
 	"path"
 	"runtime"
 	"sort"
@@ -40,19 +42,48 @@ type Server struct {
 	suite network.Suite
 }
 
+func dbPathFromEnv() string {
+	p := os.Getenv("CONODE_SERVICE_PATH")
+	if p == "" {
+		u, err := user.Current()
+		if err != nil {
+			log.Fatal("Couldn't get current user's environment:", err)
+		}
+		switch runtime.GOOS {
+		case "darwin":
+			p = path.Join(u.HomeDir, "Library", "Conode", "Services")
+		case "windows":
+			p = path.Join(u.HomeDir, "AppData", "Local", "Conode")
+		default:
+			p = path.Join(u.HomeDir, ".local", "share", "conode")
+		}
+	}
+	return p
+}
+
 // NewServer returns a fresh Server tied to a given Router.
-func NewServer(r *network.Router, pkey kyber.Scalar, s network.Suite) *Server {
+// If dbPath is "", the server will write its database to the default
+// location. If dbPath is != "", it is considered a temp dir, and the
+// DB is deleted on close.
+func newServer(dbPath string, r *network.Router, pkey kyber.Scalar, s network.Suite) *Server {
+	delDb := false
+	if dbPath == "" {
+		dbPath = dbPathFromEnv()
+		log.ErrFatal(os.MkdirAll(dbPath, 0750))
+	} else {
+		delDb = true
+	}
+
 	c := &Server{
 		private:              pkey,
 		statusReporterStruct: newStatusReporterStruct(),
 		Router:               r,
 		protocols:            newProtocolStorage(),
-		started:              time.Now(),
 		suite:                s,
 	}
 	c.overlay = NewOverlay(c)
 	c.websocket = NewWebSocket(r.ServerIdentity)
-	c.serviceManager = newServiceManager(c, c.overlay)
+	c.serviceManager = newServiceManager(c, c.overlay, dbPath, delDb)
 	c.statusReporterStruct.RegisterStatusReporter("Status", c)
 	for name, inst := range protocols.instantiators {
 		log.Lvl4("Registering global protocol", name)
@@ -63,10 +94,20 @@ func NewServer(r *network.Router, pkey kyber.Scalar, s network.Suite) *Server {
 
 // NewServerTCP returns a new Server out of a private-key and its related public
 // key within the ServerIdentity. The server will use a default TcpRouter as Router.
+//
+// The path to the file is chosen as follows:
+//   Mac: ~/Library/Conode/Services
+//   Other Unix: ~/.local/share/conode
+//   Windows: $HOME$\AppData\Local\Conode
+//
+// If the directory doesn't exist, it will be created using rwxr-x---
+// permissions (0750).
+//
+// The path can be overridden with the environmental variable "CONODE_SERVICE_PATH".
 func NewServerTCP(e *network.ServerIdentity, pkey kyber.Scalar, suite network.Suite) *Server {
 	r, err := network.NewTCPRouter(e, suite)
 	log.ErrFatal(err)
-	return NewServer(r, pkey, suite)
+	return newServer("", r, pkey, suite)
 }
 
 // Suite can (and should) be used to get the underlying Suite.
@@ -142,13 +183,7 @@ func (c *Server) protocolInstantiate(protoID ProtocolID, tni *TreeNodeInstance) 
 // Start makes the router and the websocket listen on their respective
 // ports.
 func (c *Server) Start() {
+	c.started = time.Now()
 	go c.Router.Start()
 	c.websocket.start()
-}
-
-// dbFileName returns the database file name. The exact file name depends on how
-// contextDataPath is initialised, see `initContextDataPath()`.
-func (c *Server) dbFileName() string {
-	pub, _ := c.ServerIdentity.Public.MarshalBinary()
-	return path.Join(getContextDataPath(), fmt.Sprintf("%x.db", pub))
 }

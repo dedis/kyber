@@ -25,12 +25,13 @@ func TestContextSaveLoad(t *testing.T) {
 	tmp, err := ioutil.TempDir("", "conode")
 	defer os.RemoveAll(tmp)
 	os.Setenv("CONODE_SERVICE_PATH", tmp)
-	initContextDataPath()
+	p := dbPathFromEnv()
+	require.Equal(t, p, tmp)
 
 	nbr := 10
 	c := make([]*Context, nbr)
 	for i := range c {
-		c[i] = createContext(t)
+		c[i] = createContext(t, p)
 	}
 
 	testSaveFailure(t, c[0])
@@ -49,7 +50,6 @@ func TestContextSaveLoad(t *testing.T) {
 	require.False(t, files[0].IsDir())
 	require.True(t, files[0].Mode().IsRegular())
 	require.True(t, strings.HasSuffix(files[0].Name(), ".db"))
-	setContextDataPath("")
 }
 
 func testLoadSave(t *testing.T, c *Context) {
@@ -86,9 +86,8 @@ func TestContext_GetAdditionalBucket(t *testing.T) {
 	tmp, err := ioutil.TempDir("", "conode")
 	log.ErrFatal(err)
 	defer os.RemoveAll(tmp)
-	os.Setenv("CONODE_SERVICE_PATH", tmp)
-	initContextDataPath()
-	c := createContext(t)
+
+	c := createContext(t, tmp)
 	db, name := c.GetAdditionalBucket("new")
 	require.NotNil(t, db)
 	require.Equal(t, "testService_new", name)
@@ -99,21 +98,25 @@ func TestContext_GetAdditionalBucket(t *testing.T) {
 }
 
 func TestContext_Path(t *testing.T) {
-	setContextDataPath("")
-	c := createContext(t)
-	pub, _ := c.ServerIdentity().Public.MarshalBinary()
-	dbPath := path.Join("", fmt.Sprintf("%x.db", pub))
-	_, err := os.Stat(dbPath)
-	log.ErrFatal(err)
-	os.Remove(dbPath)
-
 	tmp, err := ioutil.TempDir("", "conode")
 	log.ErrFatal(err)
 	defer os.RemoveAll(tmp)
-	os.Setenv("CONODE_SERVICE_PATH", tmp)
-	initContextDataPath()
-	c = createContext(t)
-	require.Equal(t, tmp, contextDataPath)
+
+	c := createContext(t, tmp)
+	pub, _ := c.ServerIdentity().Public.MarshalBinary()
+	dbPath := path.Join(tmp, fmt.Sprintf("%x.db", pub))
+	_, err = os.Stat(dbPath)
+	if err != nil {
+		t.Error(err)
+	}
+	os.Remove(dbPath)
+
+	tmp, err = ioutil.TempDir("", "conode")
+	log.ErrFatal(err)
+	defer os.RemoveAll(tmp)
+
+	c = createContext(t, tmp)
+
 	_, err = os.Stat(tmp)
 	log.ErrFatal(err)
 	pub, _ = c.ServerIdentity().Public.MarshalBinary()
@@ -122,7 +125,7 @@ func TestContext_Path(t *testing.T) {
 }
 
 // createContext creates the minimum number of things required for the test
-func createContext(t *testing.T) *Context {
+func createContext(t *testing.T, dbPath string) *Context {
 	kp := key.NewKeyPair(tSuite)
 	si := network.NewServerIdentity(kp.Public,
 		network.NewAddress(network.Local, "localhost:0"))
@@ -137,7 +140,12 @@ func createContext(t *testing.T) *Context {
 		return nil, nil
 	})
 
-	db, err := openDb(cn.dbFileName())
+	sm := &serviceManager{
+		server: cn,
+		dbPath: dbPath,
+	}
+
+	db, err := openDb(sm.dbFileName())
 	require.Nil(t, err)
 
 	err = db.Update(func(tx *bolt.Tx) error {
@@ -145,10 +153,7 @@ func createContext(t *testing.T) *Context {
 		return err
 	})
 	require.Nil(t, err)
+	sm.db = db
 
-	sm := &serviceManager{
-		server: cn,
-		db:     db,
-	}
 	return newContext(cn, nil, ServiceFactory.ServiceID(name), sm)
 }

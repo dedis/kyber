@@ -6,6 +6,7 @@ import (
 	"github.com/dedis/kyber/suites"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
+	"github.com/stretchr/testify/require"
 )
 
 var tSuite = suites.MustFind("Ed25519")
@@ -14,6 +15,12 @@ const clientServiceName = "ClientService"
 
 func init() {
 	RegisterNewService(clientServiceName, newClientService)
+}
+
+func Test_panicClose(t *testing.T) {
+	l := NewLocalTest(tSuite)
+	l.CloseAll()
+	require.Panics(t, func() { l.genLocalHosts(2) })
 }
 
 func TestGenLocalHost(t *testing.T) {

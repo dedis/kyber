@@ -23,7 +23,10 @@ func init() {
 }
 
 func TestNewWebSocket(t *testing.T) {
-	c := NewTCPServer(0, tSuite)
+	l := NewLocalTest(tSuite)
+	defer l.CloseAll()
+
+	c := newTCPServer(0, tSuite, l.path)
 	defer c.Close()
 	require.Equal(t, len(c.serviceManager.services), len(c.websocket.services))
 	require.NotEmpty(t, c.websocket.services[serviceWebSocket])

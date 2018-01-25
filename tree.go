@@ -378,7 +378,7 @@ var RosterTypeID = network.RegisterMessage(Roster{})
 // adds a UUID which is randomly chosen.
 func NewRoster(ids []*network.ServerIdentity) *Roster {
 	// Don't allow a crash if things are not as expected.
-	if len(ids) < 0 || ids[0].Public == nil {
+	if len(ids) < 1 || ids[0].Public == nil {
 		return nil
 	}
 

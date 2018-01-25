@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path"
 
 	"sync"
 
@@ -204,22 +205,31 @@ type serviceManager struct {
 	// the onet host
 	server *Server
 	// a bbolt database for all services
-	db *bolt.DB
+	db     *bolt.DB
+	dbPath string
+	// should the db be deleted on close?
+	delDb bool
 	// the dispatcher can take registration of Processors
 	network.Dispatcher
 }
 
-const configFolder = "config"
-
 // newServiceManager will create a serviceStore out of all the registered Service
-func newServiceManager(c *Server, o *Overlay) *serviceManager {
-	db, err := openDb(c.dbFileName())
+func newServiceManager(svr *Server, o *Overlay, dbPath string, delDb bool) *serviceManager {
+	services := make(map[ServiceID]Service)
+	s := &serviceManager{
+		services:   services,
+		server:     svr,
+		dbPath:     dbPath,
+		delDb:      delDb,
+		Dispatcher: network.NewRoutineDispatcher(),
+	}
+
+	db, err := openDb(s.dbFileName())
 	if err != nil {
 		log.Panic("Failed to create new database: " + err.Error())
 	}
+	s.db = db
 
-	services := make(map[ServiceID]Service)
-	s := &serviceManager{services, c, db, network.NewRoutineDispatcher()}
 	ids := ServiceFactory.registeredServiceIDs()
 	for _, id := range ids {
 		name := ServiceFactory.Name(id)
@@ -230,16 +240,16 @@ func newServiceManager(c *Server, o *Overlay) *serviceManager {
 			log.Panic("Failed to create bucket: " + err.Error())
 		}
 
-		cont := newContext(c, o, id, s)
+		cont := newContext(svr, o, id, s)
 		s, err := ServiceFactory.start(name, cont)
 		if err != nil {
 			log.Panic("Trying to instantiate service", name, ":", err)
 		}
 		log.Lvl3("Started Service", name)
 		services[id] = s
-		c.websocket.registerService(name, s)
+		svr.websocket.registerService(name, s)
 	}
-	log.Lvl3(c.Address(), "instantiated all services")
+	log.Lvl3(svr.Address(), "instantiated all services")
 	return s
 }
 
@@ -261,6 +271,11 @@ func createBucketForService(db *bolt.DB, bucketName string) error {
 	})
 }
 
+func (s *serviceManager) dbFileName() string {
+	pub, _ := s.server.ServerIdentity.Public.MarshalBinary()
+	return path.Join(s.dbPath, fmt.Sprintf("%x.db", pub))
+}
+
 // Process implements the Processor interface: service manager will relay
 // messages to the right Service.
 func (s *serviceManager) Process(env *network.Envelope) {
@@ -269,7 +284,7 @@ func (s *serviceManager) Process(env *network.Envelope) {
 }
 
 // closeDatabase closes the database.
-// It also removes the database file if contextDataPath is set to "".
+// It also removes the database file if the path is not default (i.e. testing config)
 func (s *serviceManager) closeDatabase() error {
 	if s.db != nil {
 		err := s.db.Close()
@@ -279,8 +294,8 @@ func (s *serviceManager) closeDatabase() error {
 		s.db = nil
 	}
 
-	if getContextDataPath() == "" {
-		err := os.Remove(s.server.dbFileName())
+	if s.delDb {
+		err := os.Remove(s.dbFileName())
 		if err != nil {
 			return err
 		}
