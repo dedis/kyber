@@ -2,14 +2,9 @@ package onet
 
 import (
 	"fmt"
-	"os"
-	"os/user"
-	"path"
-	"runtime"
 	"sync"
 
 	bolt "github.com/coreos/bbolt"
-	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
 )
 
@@ -35,8 +30,6 @@ func newContext(c *Server, o *Overlay, servID ServiceID, manager *serviceManager
 		Dispatcher: network.NewBlockingDispatcher(),
 	}
 }
-
-var defaultPath = initContextDataPath()
 
 // NewTreeNodeInstance creates a TreeNodeInstance that is bound to a
 // service instead of the Overlay.
@@ -186,34 +179,4 @@ func (c *Context) GetAdditionalBucket(name string) (*bolt.DB, string) {
 		panic(err)
 	}
 	return c.manager.db, fullName
-}
-
-// Returns the path to the file for storage/retrieval of the service-state.
-//
-// The path to the file is chosen as follows:
-//   Mac: ~/Library/Conode/Services
-//   Other Unix: ~/.local/share/conode
-//   Windows: $HOME$\AppData\Local\Conode
-// If the directory doesn't exist, it will be created using rwxr-x---
-// permissions (0750).
-//
-// The path can be overridden with the environmental variable "CONODE_SERVICE_PATH".
-func initContextDataPath() string {
-	p := os.Getenv("CONODE_SERVICE_PATH")
-	if p == "" {
-		u, err := user.Current()
-		if err != nil {
-			log.Fatal("Couldn't get current user's environment:", err)
-		}
-		switch runtime.GOOS {
-		case "darwin":
-			p = path.Join(u.HomeDir, "Library", "Conode", "Services")
-		case "windows":
-			p = path.Join(u.HomeDir, "AppData", "Local", "Conode")
-		default:
-			p = path.Join(u.HomeDir, ".local", "share", "conode")
-		}
-	}
-	log.ErrFatal(os.MkdirAll(p, 0750))
-	return p
 }

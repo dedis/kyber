@@ -3,6 +3,7 @@ package onet
 import (
 	"errors"
 	"io/ioutil"
+	"os"
 	"strconv"
 	"time"
 
@@ -185,6 +186,7 @@ func (l *LocalTest) CloseAll() {
 	}
 	l.ctx.Stop()
 	l.Nodes = make([]*TreeNodeInstance, 0)
+	os.RemoveAll(l.path)
 }
 
 // getTree returns the tree of the given TreeNode
@@ -299,7 +301,7 @@ func NewPrivIdentity(suite network.Suite, port int) (kyber.Scalar, *network.Serv
 
 // NewTCPServer creates a new server with a tcpRouter with "localserver:"+port as an
 // address.
-func NewTCPServer(port int, s network.Suite) *Server {
+func newTCPServer(port int, s network.Suite, path string) *Server {
 	priv, id := NewPrivIdentity(s, port)
 	addr := network.NewTCPAddress(id.Address.NetworkAddress())
 	var tcpHost *network.TCPHost
@@ -329,7 +331,7 @@ func NewTCPServer(port int, s network.Suite) *Server {
 	}
 	id.Address = network.NewAddress(id.Address.ConnType(), "127.0.0.1:"+id.Address.Port())
 	router := network.NewRouter(id, tcpHost)
-	h := newServer("", router, priv, s)
+	h := newServer(path, router, priv, s)
 	go h.Start()
 	for !h.Listening() {
 		time.Sleep(10 * time.Millisecond)
@@ -388,7 +390,7 @@ func (l *LocalTest) NewServer(port int, s network.Suite) *Server {
 	var server *Server
 	switch l.mode {
 	case TCP:
-		server = l.NewTCPServer(s)
+		server = l.newTCPServer(s)
 	default:
 		server = l.NewLocalServer(port, s)
 	}
@@ -396,8 +398,8 @@ func (l *LocalTest) NewServer(port int, s network.Suite) *Server {
 }
 
 // NewTCPServer returns a new TCP Server attached to this LocalTest.
-func (l *LocalTest) NewTCPServer(s network.Suite) *Server {
-	server := NewTCPServer(0, s)
+func (l *LocalTest) newTCPServer(s network.Suite) *Server {
+	server := newTCPServer(0, s, l.path)
 	l.Servers[server.ServerIdentity.ID] = server
 	l.Overlays[server.ServerIdentity.ID] = server.overlay
 	l.Services[server.ServerIdentity.ID] = server.serviceManager.services

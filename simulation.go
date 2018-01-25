@@ -4,6 +4,7 @@ import (
 	"errors"
 	"io/ioutil"
 	"net"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -77,6 +78,10 @@ type SimulationConfigFile struct {
 // LoadSimulationConfig gets all configuration from dir + SimulationFileName and instantiates the
 // corresponding host 'ca'.
 func LoadSimulationConfig(s, dir, ca string) ([]*SimulationConfig, error) {
+	// Have all servers created by NewServerTCP below put their
+	// db's into this simulation directory.
+	os.Setenv("CONODE_SERVICE_PATH", dir)
+
 	// TODO: Figure this out from the incoming simulation file somehow
 	suite := suites.MustFind(s)
 

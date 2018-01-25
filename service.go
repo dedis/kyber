@@ -224,7 +224,7 @@ func newServiceManager(svr *Server, o *Overlay, dbPath string, delDb bool) *serv
 		Dispatcher: network.NewRoutineDispatcher(),
 	}
 
-	db, err := openDb(s.dbFileName(svr))
+	db, err := openDb(s.dbFileName())
 	if err != nil {
 		log.Panic("Failed to create new database: " + err.Error())
 	}
@@ -271,13 +271,9 @@ func createBucketForService(db *bolt.DB, bucketName string) error {
 	})
 }
 
-func (s *serviceManager) dbFileName(svr *Server) string {
-	p := s.dbPath
-	if p == "" {
-		p = defaultPath
-	}
-	pub, _ := svr.ServerIdentity.Public.MarshalBinary()
-	return path.Join(p, fmt.Sprintf("%x.db", pub))
+func (s *serviceManager) dbFileName() string {
+	pub, _ := s.server.ServerIdentity.Public.MarshalBinary()
+	return path.Join(s.dbPath, fmt.Sprintf("%x.db", pub))
 }
 
 // Process implements the Processor interface: service manager will relay
@@ -299,7 +295,7 @@ func (s *serviceManager) closeDatabase() error {
 	}
 
 	if s.delDb {
-		err := os.Remove(s.dbFileName(s.server))
+		err := os.Remove(s.dbFileName())
 		if err != nil {
 			return err
 		}

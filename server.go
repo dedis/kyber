@@ -3,6 +3,9 @@ package onet
 import (
 	"errors"
 	"fmt"
+	"os"
+	"os/user"
+	"path"
 	"runtime"
 	"sort"
 	"strconv"
@@ -39,23 +42,44 @@ type Server struct {
 	suite network.Suite
 }
 
+func dbPathFromEnv() string {
+	p := os.Getenv("CONODE_SERVICE_PATH")
+	if p == "" {
+		u, err := user.Current()
+		if err != nil {
+			log.Fatal("Couldn't get current user's environment:", err)
+		}
+		switch runtime.GOOS {
+		case "darwin":
+			p = path.Join(u.HomeDir, "Library", "Conode", "Services")
+		case "windows":
+			p = path.Join(u.HomeDir, "AppData", "Local", "Conode")
+		default:
+			p = path.Join(u.HomeDir, ".local", "share", "conode")
+		}
+	}
+	return p
+}
+
 // NewServer returns a fresh Server tied to a given Router.
 // If dbPath is "", the server will write its database to the default
 // location. If dbPath is != "", it is considered a temp dir, and the
 // DB is deleted on close.
 func newServer(dbPath string, r *network.Router, pkey kyber.Scalar, s network.Suite) *Server {
 	delDb := false
-	if dbPath != "" {
+	if dbPath == "" {
+		dbPath = dbPathFromEnv()
+		log.ErrFatal(os.MkdirAll(dbPath, 0750))
+	} else {
 		delDb = true
 	}
+
 	c := &Server{
 		private:              pkey,
 		statusReporterStruct: newStatusReporterStruct(),
 		Router:               r,
 		protocols:            newProtocolStorage(),
-		// TODO: Move this to Start()
-		started: time.Now(),
-		suite:   s,
+		suite:                s,
 	}
 	c.overlay = NewOverlay(c)
 	c.websocket = NewWebSocket(r.ServerIdentity)
@@ -159,6 +183,7 @@ func (c *Server) protocolInstantiate(protoID ProtocolID, tni *TreeNodeInstance) 
 // Start makes the router and the websocket listen on their respective
 // ports.
 func (c *Server) Start() {
+	c.started = time.Now()
 	go c.Router.Start()
 	c.websocket.start()
 }

@@ -25,7 +25,8 @@ func TestContextSaveLoad(t *testing.T) {
 	tmp, err := ioutil.TempDir("", "conode")
 	defer os.RemoveAll(tmp)
 	os.Setenv("CONODE_SERVICE_PATH", tmp)
-	p := initContextDataPath()
+	p := dbPathFromEnv()
+	require.Equal(t, p, tmp)
 
 	nbr := 10
 	c := make([]*Context, nbr)
@@ -85,8 +86,8 @@ func TestContext_GetAdditionalBucket(t *testing.T) {
 	tmp, err := ioutil.TempDir("", "conode")
 	log.ErrFatal(err)
 	defer os.RemoveAll(tmp)
-	os.Setenv("CONODE_SERVICE_PATH", tmp)
-	c := createContext(t, initContextDataPath())
+
+	c := createContext(t, tmp)
 	db, name := c.GetAdditionalBucket("new")
 	require.NotNil(t, db)
 	require.Equal(t, "testService_new", name)
@@ -100,11 +101,10 @@ func TestContext_Path(t *testing.T) {
 	tmp, err := ioutil.TempDir("", "conode")
 	log.ErrFatal(err)
 	defer os.RemoveAll(tmp)
-	os.Setenv("CONODE_SERVICE_PATH", tmp)
-	p := initContextDataPath()
-	c := createContext(t, p)
+
+	c := createContext(t, tmp)
 	pub, _ := c.ServerIdentity().Public.MarshalBinary()
-	dbPath := path.Join(p, fmt.Sprintf("%x.db", pub))
+	dbPath := path.Join(tmp, fmt.Sprintf("%x.db", pub))
 	_, err = os.Stat(dbPath)
 	if err != nil {
 		t.Error(err)
@@ -114,8 +114,8 @@ func TestContext_Path(t *testing.T) {
 	tmp, err = ioutil.TempDir("", "conode")
 	log.ErrFatal(err)
 	defer os.RemoveAll(tmp)
-	os.Setenv("CONODE_SERVICE_PATH", tmp)
-	c = createContext(t, initContextDataPath())
+
+	c = createContext(t, tmp)
 
 	_, err = os.Stat(tmp)
 	log.ErrFatal(err)
@@ -145,7 +145,7 @@ func createContext(t *testing.T, dbPath string) *Context {
 		dbPath: dbPath,
 	}
 
-	db, err := openDb(sm.dbFileName(cn))
+	db, err := openDb(sm.dbFileName())
 	require.Nil(t, err)
 
 	err = db.Update(func(tx *bolt.Tx) error {
