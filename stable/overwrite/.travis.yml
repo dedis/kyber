@@ -1,17 +1,16 @@
 language: go
 
 go:
-  - 1.7
+  - 1.8
 
 install:
   - go get -t ./...
-  - go get golang.org/x/tools/cmd/cover
-  - go get github.com/dedis/goveralls
+  - go get github.com/dedis/Coding || true
 
 go_import_path: gopkg.in/dedis/onet.v1
 
 script:
-  - make test
+  - make test_stable
 
 notifications:
   email: false

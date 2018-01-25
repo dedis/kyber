@@ -2,12 +2,14 @@ package app
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"os"
 	"strings"
 
 	"github.com/BurntSushi/toml"
 	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/suites"
 	"github.com/dedis/kyber/util/encoding"
 	"github.com/dedis/onet"
 	"github.com/dedis/onet/log"
@@ -16,6 +18,7 @@ import (
 
 // CothorityConfig is the configuration structure of the cothority daemon.
 type CothorityConfig struct {
+	Suite       string
 	Public      string
 	Private     string
 	Address     network.Address
@@ -42,20 +45,30 @@ func (hc *CothorityConfig) Save(file string) error {
 // ParseCothority parses the config file into a CothorityConfig.
 // It returns the CothorityConfig, the Host so we can already use it, and an error if
 // the file is inaccessible or has wrong values in it.
-func ParseCothority(file string, suite network.Suite) (*CothorityConfig, *onet.Server, error) {
+func ParseCothority(file string) (*CothorityConfig, *onet.Server, error) {
 	hc := &CothorityConfig{}
 	_, err := toml.DecodeFile(file, hc)
 	if err != nil {
 		return nil, nil, err
 	}
-	// Try to decode the Hex values
-	secret, err := encoding.StringHexToScalar(suite, hc.Private)
+
+	// Backwards compatibility with configs before we included the suite name
+	if hc.Suite == "" {
+		hc.Suite = "Ed25519"
+	}
+	suite, err := suites.Find(hc.Suite)
 	if err != nil {
 		return nil, nil, err
 	}
+
+	// Try to decode the Hex values
+	secret, err := encoding.StringHexToScalar(suite, hc.Private)
+	if err != nil {
+		return nil, nil, fmt.Errorf("parsing private key: %v", err)
+	}
 	point, err := encoding.StringHexToPoint(suite, hc.Public)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("parsing public key: %v", err)
 	}
 	si := network.NewServerIdentity(point, hc.Address)
 	si.Description = hc.Description
@@ -81,6 +94,7 @@ func NewGroupToml(servers ...*ServerToml) *GroupToml {
 // the cothority.
 type ServerToml struct {
 	Address     network.Address
+	Suite       string
 	Public      string
 	Description string
 }
@@ -100,7 +114,7 @@ func (g *Group) GetDescription(e *network.ServerIdentity) string {
 // and descriptions in the file.
 // If the file couldn't be decoded or doesn't hold valid ServerIdentities,
 // an error is returned.
-func ReadGroupDescToml(f io.Reader, suite network.Suite) (*Group, error) {
+func ReadGroupDescToml(f io.Reader) (*Group, error) {
 	group := &GroupToml{}
 	_, err := toml.DecodeReader(f, group)
 	if err != nil {
@@ -110,7 +124,11 @@ func ReadGroupDescToml(f io.Reader, suite network.Suite) (*Group, error) {
 	var entities = make([]*network.ServerIdentity, len(group.Servers))
 	var descs = make(map[*network.ServerIdentity]string)
 	for i, s := range group.Servers {
-		en, err := s.toServerIdentity(suite)
+		// Backwards compatibility with old group files.
+		if s.Suite == "" {
+			s.Suite = "Ed25519"
+		}
+		en, err := s.toServerIdentity()
 		if err != nil {
 			return nil, err
 		}
@@ -119,17 +137,6 @@ func ReadGroupDescToml(f io.Reader, suite network.Suite) (*Group, error) {
 	}
 	el := onet.NewRoster(entities)
 	return &Group{el, descs}, nil
-}
-
-// ReadGroupToml reads a group.toml file and returns the list of ServerIdentity
-// described in the file.
-// If the file holds an invalid ServerIdentity-description, an error is returned.
-func ReadGroupToml(f io.Reader, suite network.Suite) (*onet.Roster, error) {
-	group, err := ReadGroupDescToml(f, suite)
-	if err != nil {
-		return nil, err
-	}
-	return group.Roster, nil
 }
 
 // Save writes the GroupToml definition into the file given by its name.
@@ -161,7 +168,12 @@ func (gt *GroupToml) String() string {
 }
 
 // toServerIdentity converts this ServerToml struct to a ServerIdentity.
-func (s *ServerToml) toServerIdentity(suite network.Suite) (*network.ServerIdentity, error) {
+func (s *ServerToml) toServerIdentity() (*network.ServerIdentity, error) {
+	suite, err := suites.Find(s.Suite)
+	if err != nil {
+		return nil, err
+	}
+
 	pubR := strings.NewReader(s.Public)
 	public, err := encoding.ReadHexPoint(suite, pubR)
 	if err != nil {
@@ -183,6 +195,7 @@ func NewServerToml(suite network.Suite, public kyber.Point, addr network.Address
 	}
 	return &ServerToml{
 		Address:     addr,
+		Suite:       suite.String(),
 		Public:      buff.String(),
 		Description: desc,
 	}

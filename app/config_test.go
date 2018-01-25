@@ -5,7 +5,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dedis/kyber/suites"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
 )
@@ -26,11 +25,12 @@ var serverGroup string = `Description = "Default Dedis Cosi servers"
 
 [[servers]]
   Address = "tcp://185.26.156.40:61117"
+  Suite = "Ed25519"
   Public = "6a921638a4ade8970ebcd9e371570f08d71a24987f90f12391b9f6c525be5be4"
   Description = "Ismail's server"`
 
 func TestReadGroupDescToml(t *testing.T) {
-	group, err := ReadGroupDescToml(strings.NewReader(serverGroup), suites.MustFind("Ed25519"))
+	group, err := ReadGroupDescToml(strings.NewReader(serverGroup))
 	if err != nil {
 		t.Fatal(err)
 	}

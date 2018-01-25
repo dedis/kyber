@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/suites"
 	"github.com/dedis/kyber/util/encoding"
 	"github.com/dedis/kyber/util/key"
 	"github.com/dedis/onet"
@@ -48,7 +47,7 @@ const portscan = "https://dedis.ch/portscan.php"
 // no public IP can be configured, localhost will be used.
 // If everything is OK, the configuration-files will be written.
 // In case of an error this method Fatals.
-func InteractiveConfig(binaryName string) {
+func InteractiveConfig(binaryName string, suite network.Suite) {
 	log.Info("Setting up a cothority-server.")
 	checkAvailableMemory()
 	str := Inputf(strconv.Itoa(DefaultPort), "Please enter the [address:]PORT for incoming requests")
@@ -84,6 +83,7 @@ func InteractiveConfig(binaryName string) {
 		return
 	}
 
+	log.Info()
 	log.Info("We now need to get a reachable address for other Servers")
 	log.Info("and clients to contact you. This address will be put in a group definition")
 	log.Info("file that you can share and combine with others to form a Cothority roster.")
@@ -118,13 +118,13 @@ func InteractiveConfig(binaryName string) {
 		if publicAddress.Public() {
 			// trying to connect to ipfound:portgiven
 			tryIP := publicAddress
-			log.Info("Check if the address", tryIP, "is reachable from Internet by binding to", serverBinding, ".")
+			log.Info("Check if the address", tryIP, "is reachable from the Internet by binding to", serverBinding, ".")
 			if err := tryConnect(tryIP, serverBinding); err != nil {
 				log.Error("Could not connect to your public IP")
 				publicAddress = askReachableAddress(portStr)
 			} else {
 				publicAddress = tryIP
-				log.Info("Address", publicAddress, "is publicly available from Internet.")
+				log.Info("Address", publicAddress, "is publicly available from the Internet.")
 			}
 		}
 	}
@@ -134,9 +134,9 @@ func InteractiveConfig(binaryName string) {
 	}
 
 	// create the keys
-	suite := suites.MustFind("Ed25519")
 	privStr, pubStr := createKeyPair(suite)
 	conf := &CothorityConfig{
+		Suite:   suite.String(),
 		Public:  pubStr,
 		Private: privStr,
 		Address: publicAddress,
@@ -203,7 +203,7 @@ func checkOverwrite(file string) bool {
 
 // createKeyPair returns the private and public key in hexadecimal representation.
 func createKeyPair(suite network.Suite) (string, string) {
-	log.Info("Creating ed25519 private and public keys.")
+	log.Infof("Creating private and public keys for suite %v.", suite.String())
 	kp := key.NewKeyPair(suite)
 	privStr, err := encoding.ScalarToStringHex(suite, kp.Private)
 	if err != nil {
@@ -214,7 +214,7 @@ func createKeyPair(suite network.Suite) (string, string) {
 		log.Fatal("Could not parse public key. Abort.")
 	}
 
-	log.Info("Public key:", pubStr, "\n")
+	log.Info("Public key:", pubStr)
 	return privStr, pubStr
 }
 
@@ -374,12 +374,12 @@ func checkAvailableMemory() {
 
 // RunServer starts a cothority server with the given config file name. It can
 // be used by different apps (like CoSi, for example)
-func RunServer(configFilename string, suite network.Suite) {
+func RunServer(configFilename string) {
 	if _, err := os.Stat(configFilename); os.IsNotExist(err) {
 		log.Fatalf("[-] Configuration file does not exist. %s", configFilename)
 	}
 	// Let's read the config
-	_, server, err := ParseCothority(configFilename, suite)
+	_, server, err := ParseCothority(configFilename)
 	if err != nil {
 		log.Fatal("Couldn't parse config:", err)
 	}

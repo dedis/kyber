@@ -1,15 +1,13 @@
 language: go
 
 install:
- - go get -t ./...
- - go get github.com/dedis/Coding || true
- - go get golang.org/x/tools/cmd/cover
- - go get github.com/dedis/goveralls
+  - go get -t ./...
+  - go get github.com/dedis/Coding || true
 
 script:
- - make test
- # This takes the GH_TOKEN and OTHER_REPO env variables from the encrypted ones below.
- - ../Coding/bin/start-other-travis
+  - make test
+  # This takes the GH_TOKEN and OTHER_REPO env variables from the encrypted ones below.
+  - ../Coding/bin/start-other-travis
 
 notifications:
   email: false

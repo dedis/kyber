@@ -17,7 +17,7 @@ import (
 func TestInput(t *testing.T) {
 	setInput("Y")
 	assert.Equal(t, "Y", Input("def", "Question"))
-	assert.Equal(t, "Question [def]: ", getOutput())
+	assert.Equal(t, "\nQuestion [def]: ", getOutput())
 	setInput("")
 	assert.Equal(t, "def", Input("def", "Question"))
 	setInput("1\n2")
@@ -30,10 +30,10 @@ func TestInputYN(t *testing.T) {
 	assert.True(t, InputYN(true))
 	setInput("")
 	assert.False(t, InputYN(false, "Are you sure?"))
-	assert.Equal(t, "Are you sure? [Ny]: ", getOutput())
+	assert.Equal(t, "\nAre you sure? [Ny]: ", getOutput())
 	setInput("")
 	assert.True(t, InputYN(true, "Are you sure?"))
-	assert.Equal(t, "Are you sure? [Yn]: ", getOutput(), "one")
+	assert.Equal(t, "\nAre you sure? [Yn]: ", getOutput(), "one")
 }
 
 func TestCopy(t *testing.T) {

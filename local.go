@@ -165,7 +165,6 @@ func (l *LocalTest) GenRosterFromHost(servers ...*Server) *Roster {
 
 // CloseAll takes a list of servers that will be closed
 func (l *LocalTest) CloseAll() {
-	l.ctx.Stop()
 	for _, server := range l.Servers {
 		log.Lvl3("Closing server", server.ServerIdentity.Address)
 		err := server.Close()
@@ -184,9 +183,8 @@ func (l *LocalTest) CloseAll() {
 		log.Lvl3("Closing node", node)
 		node.closeDispatch()
 	}
+	l.ctx.Stop()
 	l.Nodes = make([]*TreeNodeInstance, 0)
-	// Give the nodes some time to correctly close down
-	//time.Sleep(time.Millisecond * 500)
 }
 
 // getTree returns the tree of the given TreeNode
