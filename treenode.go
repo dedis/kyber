@@ -148,7 +148,7 @@ func (n *TreeNodeInstance) Roster() *Roster {
 	return n.Tree().Roster
 }
 
-// Suite can be used to get the current abstract.Suite (currently hardcoded into
+// Suite can be used to get the current kyber.Suite (currently hardcoded into
 // the network library).
 func (n *TreeNodeInstance) Suite() network.Suite {
 	return n.overlay.suite()

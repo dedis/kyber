@@ -498,7 +498,7 @@ func (o *Overlay) nodeDone(tok *Token) {
 func (o *Overlay) nodeDelete(tok *Token) {
 	tni, ok := o.instances[tok.ID()]
 	if !ok {
-		log.Lvlf2("Node %x already gone", tok.ID())
+		log.Lvlf2("Node %s already gone", tok.ID())
 		return
 	}
 	log.Lvl4("Closing node", tok.ID())
