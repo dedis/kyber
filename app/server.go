@@ -22,8 +22,6 @@ import (
 	"github.com/dedis/onet/network"
 
 	"github.com/shirou/gopsutil/mem"
-	// CoSi-protocol is not part of the cothority.
-	// For the moment, the server only serves CoSi requests
 )
 
 // DefaultServerConfig is the default server configuration file-name.
@@ -225,7 +223,7 @@ func saveFiles(conf *CothorityConfig, fileConf string, group *GroupToml, fileGro
 	if err := conf.Save(fileConf); err != nil {
 		log.Fatal("Unable to write the config to file:", err)
 	}
-	log.Info("Success! You can now use the CoSi server with the config file", fileConf)
+	log.Info("Success! You can now use the conode with the config file", fileConf)
 	// group definition part
 	if err := group.Save(fileGroup); err != nil {
 		log.Fatal("Could not write your group file snippet:", err)
@@ -372,7 +370,7 @@ func checkAvailableMemory() {
 	}
 }
 
-// RunServer starts a cothority server with the given config file name. It can
+// RunServer starts a conode with the given config file name. It can
 // be used by different apps (like CoSi, for example)
 func RunServer(configFilename string) {
 	if _, err := os.Stat(configFilename); os.IsNotExist(err) {

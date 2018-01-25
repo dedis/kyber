@@ -83,7 +83,7 @@ type GroupToml struct {
 
 // NewGroupToml creates a new GroupToml struct from the given ServerTomls.
 // Currently used together with calling String() on the GroupToml to output
-// a snippet which can be used to create a CoSi group.
+// a snippet which can be used to create a Cothority.
 func NewGroupToml(servers ...*ServerToml) *GroupToml {
 	return &GroupToml{
 		Servers: servers,
