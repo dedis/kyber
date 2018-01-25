@@ -218,6 +218,18 @@ func (n *TreeNodeInstance) RegisterChannels(channels ...interface{}) error {
 	return nil
 }
 
+// RegisterChannelsLength is a convenience function to register a vararg of
+// channels with a given length.
+func (n *TreeNodeInstance) RegisterChannelsLength(length int, channels ...interface{}) error {
+	for _, ch := range channels {
+		if err := n.RegisterChannelLength(ch, length); err != nil {
+			return fmt.Errorf("Error, could not register channel %T: %s",
+				ch, err.Error())
+		}
+	}
+	return nil
+}
+
 // RegisterHandler takes a function which takes a struct as argument that contains two
 // elements: a TreeNode and a message. It will send every message that are the
 // same type to this channel.

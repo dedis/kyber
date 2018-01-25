@@ -314,7 +314,7 @@ func (d *Deterlab) Start(args ...string) error {
 	// proxy => the proxy redirects packets to the same port the sink is
 	// listening.
 	// -n = stdout == /Dev/null, -N => no command stream, -T => no tty
-	redirection := strconv.Itoa(d.MonitorPort+1) + ":" + d.ProxyAddress + ":" + strconv.Itoa(d.MonitorPort)
+	redirection := strconv.Itoa(d.MonitorPort) + ":" + d.ProxyAddress + ":" + strconv.Itoa(d.MonitorPort)
 	cmd := []string{"-nNTf", "-o", "StrictHostKeyChecking=no", "-o", "ExitOnForwardFailure=yes", "-R",
 		redirection, fmt.Sprintf("%s@%s", d.Login, d.Host)}
 	exCmd := exec.Command("ssh", cmd...)
@@ -326,7 +326,7 @@ func (d *Deterlab) Start(args ...string) error {
 	}
 	log.Lvl3("Setup remote port forwarding", cmd)
 	go func() {
-		err := SSHRunStdout(d.Login, d.Host, "cd remote; GOMAXPROCS=8 ./users --suite="+d.Suite)
+		err := SSHRunStdout(d.Login, d.Host, "cd remote; GOMAXPROCS=8 ./users -suite="+d.Suite)
 		if err != nil {
 			log.Lvl3(err)
 		}
