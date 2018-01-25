@@ -16,7 +16,7 @@ func TestMain(m *testing.M) {
 	log.MainTest(m)
 }
 
-var serverGroup string = `Description = "Default Dedis Cosi servers"
+var serverGroup string = `Description = "Default Dedis Cothority"
 
 [[servers]]
   Address = "tcp://5.135.161.91:2000"

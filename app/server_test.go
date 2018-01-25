@@ -11,10 +11,10 @@ import (
 )
 
 func TestInteractiveConfig(t *testing.T) {
-	tmp, err := ioutil.TempDir("", "cosi")
+	tmp, err := ioutil.TempDir("", "conode")
 	log.ErrFatal(err)
 	log.OutputToBuf()
-	setInput("127.0.0.1:2000\nCosi1\n" + tmp)
+	setInput("127.0.0.1:2000\nConode1\n" + tmp)
 	InteractiveConfig(tmp+"/config.bin", suites.MustFind("Ed25519"))
 	log.ErrFatal(os.RemoveAll(tmp))
 	log.OutputToOs()
