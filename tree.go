@@ -374,13 +374,20 @@ func (roID RosterID) IsNil() bool {
 // RosterTypeID of Roster message as registered in network
 var RosterTypeID = network.RegisterMessage(Roster{})
 
-// NewRoster creates a new ServerIdentity from a list of entities. It also
+// NewRoster creates a new roster from a list of entities. It also
 // adds a UUID which is randomly chosen.
 func NewRoster(ids []*network.ServerIdentity) *Roster {
-	r := &Roster{
-		List: ids,
-		ID:   RosterID(uuid.NewV4()),
+	// Don't allow a crash if things are not as expected.
+	if len(ids) < 0 || ids[0].Public == nil {
+		return nil
 	}
+
+	r := &Roster{
+		ID: RosterID(uuid.NewV4()),
+	}
+	// Take a copy of ids, in case the caller tries to change it later.
+	r.List = append(r.List, ids...)
+
 	if len(ids) != 0 {
 		// compute the aggregate key, using the first server's
 		// public key to discover which kyber.Group we should be
