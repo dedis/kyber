@@ -137,6 +137,9 @@ func (a Address) Resolve() string {
 //		https://github.com/dedis/cothority/issues/620
 // This method assumes that only the host part is passed as parameter
 // This function is integrated in the Valid() function
+//
+// For easier integration and testing, this function also returns true if the
+// string doesn't have any '.' in it.
 func validHostname(s string) bool {
 	s = strings.ToLower(s)
 
@@ -159,6 +162,11 @@ func validHostname(s string) bool {
 	}
 
 	valid, _ := regexp.MatchString("^(([a-z0-9]|[a-z0-9][a-z0-9\\-]*[a-z0-9])\\.)*([a-z]+)$", s)
+	if !valid {
+		if strings.Count(s, ".") == 0 {
+			return true
+		}
+	}
 	return valid
 }
 

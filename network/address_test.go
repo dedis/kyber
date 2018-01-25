@@ -108,6 +108,7 @@ func TestDNSNames(t *testing.T) {
 	assert.True(t, validHostname("localhost"))
 	assert.True(t, validHostname("www.asd.lol.xd"))
 	assert.True(t, validHostname("randomtext"))
+	assert.True(t, validHostname("conode1"))
 	assert.False(t, validHostname("www.asd.lol.x-d"))
 	assert.False(t, validHostname("192.168.1.1"))
 	assert.False(t, validHostname("..a"))

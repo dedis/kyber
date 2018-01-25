@@ -400,6 +400,8 @@ func (t *TCPHost) Connect(si *ServerIdentity) (Conn, error) {
 	case PlainTCP:
 		c, err := NewTCPConn(addr, t.suite)
 		return c, err
+	case InvalidConnType:
+		return nil, errors.New("This address is not correctly formatted: " + addr.String())
 	}
 	return nil, fmt.Errorf("TCPHost %s can't handle this type of connection: %s", addr, addr.ConnType())
 }
