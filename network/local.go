@@ -40,7 +40,7 @@ type LocalManager struct {
 	counter uint64
 	// close on this channel indicates that connection retries should stop
 	stopping chan bool
-	stopOnce sync.Once
+	stopped  bool
 	// a waitgroup to check that all serving goroutines are done
 	wg sync.WaitGroup
 }
@@ -105,6 +105,9 @@ func (lm *LocalManager) unsetListening(addr Address) {
 func (lm *LocalManager) connect(local, remote Address, s Suite) (*LocalConn, error) {
 	lm.Lock()
 	defer lm.Unlock()
+	if lm.stopped {
+		return nil, errors.New("system is stopped")
+	}
 
 	fn, ok := lm.listening[remote]
 	if !ok {
@@ -176,7 +179,14 @@ func (lm *LocalManager) count() int {
 // Stop tells any connections that are sleeping on retry
 // to stop sleeping and return an error.
 func (lm *LocalManager) Stop() {
-	lm.stopOnce.Do(func() { close(lm.stopping) })
+	lm.Lock()
+	lm.stopped = true
+	close(lm.stopping)
+	lm.Unlock()
+	for _, v := range lm.conns {
+		lm.close(v)
+	}
+
 	lm.wg.Wait()
 }
 
@@ -222,13 +232,6 @@ func newLocalConn(lm *LocalManager, local, remote endpoint, s Suite) *LocalConn 
 	lm.wg.Add(1)
 	go lc.start(&lm.wg)
 	return lc
-}
-
-// NewLocalConn returns a new channel connection from local to remote.
-// It mimics the behavior of NewTCPConn and tries to connect right away.
-// It uses the default local manager.
-func NewLocalConn(local, remote Address, s Suite) (*LocalConn, error) {
-	return NewLocalConnWithManager(defaultLocalManager, local, remote, s)
 }
 
 // NewLocalConnWithManager is similar to NewLocalConn but takes a specific

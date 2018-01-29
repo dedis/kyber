@@ -181,6 +181,13 @@ func (l *LocalTest) panicClosed() {
 
 // CloseAll takes a list of servers that will be closed
 func (l *LocalTest) CloseAll() {
+	log.Lvl3("Stopping all")
+	// If the debug-level is 0, we copy all errors to a buffer that
+	// will be discarded at the end.
+	if log.DebugVisible() == 0 {
+		log.OutputToBuf()
+	}
+	l.ctx.Stop()
 	for _, server := range l.Servers {
 		log.Lvl3("Closing server", server.ServerIdentity.Address)
 		err := server.Close()
@@ -199,10 +206,12 @@ func (l *LocalTest) CloseAll() {
 		log.Lvl3("Closing node", node)
 		node.closeDispatch()
 	}
-	l.ctx.Stop()
 	l.Nodes = make([]*TreeNodeInstance, 0)
 	os.RemoveAll(l.path)
 	l.closed = true
+	if log.DebugVisible() == 0 {
+		log.OutputToOs()
+	}
 }
 
 // getTree returns the tree of the given TreeNode

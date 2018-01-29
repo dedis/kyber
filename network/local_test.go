@@ -85,7 +85,7 @@ func TestLocalConnCloseReceive(t *testing.T) {
 	}()
 	<-ready
 
-	outgoing, err := NewLocalConn(addr, addr, tSuite)
+	outgoing, err := NewLocalConnWithManager(defaultLocalManager, addr, addr, tSuite)
 	if err != nil {
 		t.Fatal("erro NewLocalConn:", err)
 	}
@@ -257,7 +257,7 @@ func testLocalConn(t *testing.T, a1, a2 Address) {
 	}()
 	<-ready
 
-	outgoing, err := NewLocalConn(addr2, addr1, tSuite)
+	outgoing, err := NewLocalConnWithManager(defaultLocalManager, addr2, addr1, tSuite)
 	if err != nil {
 		t.Fatal("erro NewLocalConn:", err)
 	}
@@ -310,7 +310,7 @@ func TestLocalManyConn(t *testing.T) {
 	for i := 1; i <= nbrConn; i++ {
 		go func(j int) {
 			a := NewLocalAddress("127.0.0.1:" + strconv.Itoa(2000+j))
-			c, err := NewLocalConn(a, addr, tSuite)
+			c, err := NewLocalConnWithManager(defaultLocalManager, a, addr, tSuite)
 			if err != nil {
 				t.Fatal(err)
 			}
