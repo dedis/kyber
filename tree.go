@@ -605,12 +605,12 @@ func (ro *Roster) RandomSubset(root *network.ServerIdentity, n int) *Roster {
 	if n > len(ro.List) {
 		n = len(ro.List)
 	}
-	out := make([]*network.ServerIdentity, 1)
+	out := make([]*network.ServerIdentity, 1, n+1)
 	out[0] = root
 
 	perm := rand.Perm(len(ro.List))
 	for _, p := range perm {
-		if ro.List[p] != root {
+		if !ro.List[p].ID.Equal(root.ID) {
 			out = append(out, ro.List[p])
 			if len(out) == n+1 {
 				break
