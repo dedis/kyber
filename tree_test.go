@@ -42,7 +42,10 @@ func TestSubset(t *testing.T) {
 	names = genLocalhostPeerNames(2, 0)
 	ro = genRoster(tSuite, names)
 	assert.Equal(t, len(ro.List), 2)
-	r = ro.RandomSubset(ro.List[1], 1)
+	ro.List[1] = network.NewServerIdentity(ro.List[1].Public, ro.List[1].Address)
+	// the bug turned out to be about comapring let's give a root that is the same
+	// server id, but a different pointer
+	r = ro.RandomSubset(network.NewServerIdentity(ro.List[1].Public, ro.List[1].Address), 1)
 	assert.Equal(t, len(r.List), 2)
 	assert.Equal(t, r.List[0], ro.List[1])
 	assert.Equal(t, r.List[1], ro.List[0])
