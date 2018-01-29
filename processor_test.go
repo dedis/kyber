@@ -1,6 +1,7 @@
 package onet
 
 import (
+	"errors"
 	"testing"
 
 	"reflect"
@@ -61,7 +62,7 @@ func TestServiceProcessor_ProcessClientRequest(t *testing.T) {
 	h1 := NewLocalServer(2000, tSuite)
 	defer h1.Close()
 	p := NewServiceProcessor(&Context{server: h1})
-	log.ErrFatal(p.RegisterHandler(procMsg))
+	log.ErrFatal(p.RegisterHandlers(procMsg, procMsg2))
 
 	buf, err := protobuf.Encode(&testMsg{11})
 	log.ErrFatal(err)
@@ -76,6 +77,12 @@ func TestServiceProcessor_ProcessClientRequest(t *testing.T) {
 	buf, err = protobuf.Encode(&testMsg{42})
 	log.ErrFatal(err)
 	rep, cerr = p.ProcessClientRequest("testMsg", buf)
+	assert.NotNil(t, cerr)
+	require.Equal(t, 4005, cerr.ErrorCode())
+
+	buf, err = protobuf.Encode(&testMsg2{42})
+	log.ErrFatal(err)
+	rep, cerr = p.ProcessClientRequest("testMsg2", buf)
 	assert.NotNil(t, cerr)
 	require.Equal(t, 4142, cerr.ErrorCode())
 }
@@ -108,15 +115,19 @@ type testMsg3 testMsg
 type testMsg4 testMsg
 type testMsg5 testMsg
 
-func procMsg(msg *testMsg) (network.Message, ClientError) {
+func procMsg(msg *testMsg) (network.Message, error) {
 	// Return an error for testing
 	if msg.I == 42 {
-		return nil, NewClientErrorCode(4142, "")
+		return nil, errors.New("42 is NOT the answer")
 	}
 	return msg, nil
 }
 
 func procMsg2(msg *testMsg2) (network.Message, ClientError) {
+	// Return an error for testing
+	if msg.I == 42 {
+		return nil, NewClientErrorCode(4142, "42 is NOT the answer")
+	}
 	return nil, nil
 }
 func procMsg3(msg *testMsg3) (network.Message, ClientError) {

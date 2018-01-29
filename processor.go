@@ -34,6 +34,8 @@ func NewServiceProcessor(c *Context) *ServiceProcessor {
 	}
 }
 
+var errType = reflect.TypeOf((*error)(nil)).Elem()
+
 // RegisterHandler will store the given handler that will be used by the service.
 // WebSocket will then forward requests to "ws://service_name/struct_name"
 // to the given function f, which must be of the following form:
@@ -76,8 +78,8 @@ func (p *ServiceProcessor) RegisterHandler(f interface{}) error {
 		}
 	}
 
-	if ft.Out(1) != reflect.TypeOf((*ClientError)(nil)).Elem() {
-		return errors.New("2nd return value has to be: ClientError, but is: " +
+	if !ft.Out(1).Implements(errType) {
+		return errors.New("2nd return value has to implement error, but is: " +
 			ft.Out(1).String())
 	}
 
@@ -132,10 +134,12 @@ func (p *ServiceProcessor) ProcessClientRequest(path string, buf []byte) ([]byte
 		arg.Elem().Set(reflect.ValueOf(msg).Elem())
 		ret := f.Call([]reflect.Value{arg})
 
-		cerr := ret[1].Interface()
-
-		if cerr != nil {
-			return nil, cerr.(ClientError)
+		ierr := ret[1].Interface()
+		if ierr != nil {
+			if cerr, ok := ierr.(ClientError); ok {
+				return nil, cerr
+			}
+			return nil, NewClientErrorCode(WebSocketErrorConverted, ierr.(error).Error())
 		}
 		return ret[0].Interface(), nil
 	}()
