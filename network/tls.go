@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/dedis/kyber/sign/schnorr"
+	"github.com/dedis/kyber/util/encoding"
 	"github.com/dedis/kyber/util/random"
 	"github.com/dedis/onet/log"
 )
@@ -32,7 +33,7 @@ type certMaker struct {
 	serial  *big.Int
 }
 
-func newCertMaker(si *ServerIdentity, s Suite) (*certMaker, error) {
+func newCertMaker(si *ServerIdentity, s Suite) *certMaker {
 	cm := &certMaker{
 		si:     si,
 		suite:  s,
@@ -43,10 +44,18 @@ func newCertMaker(si *ServerIdentity, s Suite) (*certMaker, error) {
 	r := random.Bits(128, true, random.New())
 	cm.serial.SetBytes(r)
 
-	return cm, nil
+	return cm
 }
 
 func (cm *certMaker) getCertificate(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
+	return cm.get()
+}
+
+func (cm *certMaker) getClientCertificate(req *tls.CertificateRequestInfo) (*tls.Certificate, error) {
+	return cm.get()
+}
+
+func (cm *certMaker) get() (*tls.Certificate, error) {
 	cm.Lock()
 	defer cm.Unlock()
 
@@ -160,15 +169,13 @@ func NewTLSListener(si *ServerIdentity, s Suite) (*TCPListener, error) {
 		return nil, err
 	}
 
-	ch, err := newCertMaker(si, s)
-	if err != nil {
-		return nil, err
-	}
+	cfg := tlsConfig(si, nil, s)
+	// this is "any client cert" because we do not want crypto/tls
+	// to run Verify. However, since we provide a VerifyPeerCertificate
+	// callback, it will still call us.
+	cfg.ClientAuth = tls.RequireAnyClientCert
 
-	tlsCfg := &tls.Config{
-		GetCertificate: ch.getCertificate,
-	}
-	tcp.listener = tls.NewListener(tcp.listener, tlsCfg)
+	tcp.listener = tls.NewListener(tcp.listener, cfg)
 	return tcp, nil
 }
 
@@ -178,8 +185,14 @@ func NewTLSAddress(addr string) Address {
 	return NewAddress(TLS, addr)
 }
 
-func tlsConfig(si *ServerIdentity, suite Suite) *tls.Config {
+// tlsConfig returns a generic config that has things set as both the server
+// and client need them. The returned config is customized after tlsConfig returns.
+func tlsConfig(us, them *ServerIdentity, suite Suite) *tls.Config {
+	cm := newCertMaker(us, suite)
+
 	return &tls.Config{
+		GetCertificate:       cm.getCertificate,
+		GetClientCertificate: cm.getClientCertificate,
 		// InsecureSkipVerify means that crypto/tls will not be checking
 		// the cert for us.
 		InsecureSkipVerify: true,
@@ -216,10 +229,13 @@ func tlsConfig(si *ServerIdentity, suite Suite) *tls.Config {
 				return err
 			}
 
+			// When we know who we are connecting to (e.g. client mode):
 			// Check that the CN is the same as the public key.
-			err = cert.VerifyHostname(si.Public.String())
-			if err != nil {
-				return err
+			if them != nil {
+				err = cert.VerifyHostname(them.Public.String())
+				if err != nil {
+					return err
+				}
 			}
 
 			// Check that our extension exists.
@@ -235,6 +251,11 @@ func tlsConfig(si *ServerIdentity, suite Suite) *tls.Config {
 			}
 
 			// Check that the DEDIS signature is valid w.r.t. si.Public.
+			pub, err := encoding.StringHexToPoint(suite, cert.Subject.CommonName)
+			if err != nil {
+				return err
+			}
+
 			buf := &bytes.Buffer{}
 			serAsn1, err := asn1.Marshal(cert.SerialNumber)
 			if err != nil {
@@ -246,7 +267,7 @@ func tlsConfig(si *ServerIdentity, suite Suite) *tls.Config {
 				return err
 			}
 			buf.Write(subAsn1)
-			err = schnorr.Verify(suite, si.Public, buf.Bytes(), sig)
+			err = schnorr.Verify(suite, pub, buf.Bytes(), sig)
 
 			return err
 		},
@@ -257,18 +278,23 @@ func tlsConfig(si *ServerIdentity, suite Suite) *tls.Config {
 // It will check that the remote server has proven
 // it holds the given Public key by self-signing a certificate
 // linked to that key.
-func NewTLSConn(si *ServerIdentity, suite Suite) (conn *TCPConn, err error) {
-	log.Lvl3("NewTLSConn to:", si.Public)
-	if si.Address.ConnType() != TLS {
+func NewTLSConn(us *ServerIdentity, them *ServerIdentity, suite Suite) (conn *TCPConn, err error) {
+	log.Lvl3("NewTLSConn to:", them)
+	if them.Address.ConnType() != TLS {
 		return nil, errors.New("not a tls server")
 	}
-	netAddr := si.Address.NetworkAddress()
+	netAddr := them.Address.NetworkAddress()
 	for i := 1; i <= MaxRetryConnect; i++ {
+		if us.GetPrivate() == nil {
+			return nil, errors.New("private key is not set")
+		}
+		cfg := tlsConfig(us, them, suite)
+
 		var c net.Conn
-		c, err = tls.Dial("tcp", netAddr, tlsConfig(si, suite))
+		c, err = tls.Dial("tcp", netAddr, cfg)
 		if err == nil {
 			conn = &TCPConn{
-				endpoint: si.Address,
+				endpoint: them.Address,
 				conn:     c,
 				suite:    suite,
 			}

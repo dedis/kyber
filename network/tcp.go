@@ -384,6 +384,7 @@ func (t *TCPListener) Listening() bool {
 // TCPHost implements the Host interface using TCP connections.
 type TCPHost struct {
 	suite Suite
+	sid   *ServerIdentity
 	*TCPListener
 }
 
@@ -391,6 +392,7 @@ type TCPHost struct {
 func NewTCPHost(sid *ServerIdentity, s Suite) (*TCPHost, error) {
 	h := &TCPHost{
 		suite: s,
+		sid:   sid,
 	}
 	var err error
 	if sid.Address.ConnType() == TLS {
@@ -409,7 +411,7 @@ func (t *TCPHost) Connect(si *ServerIdentity) (Conn, error) {
 		c, err := NewTCPConn(si.Address, t.suite)
 		return c, err
 	case TLS:
-		return NewTLSConn(si, t.suite)
+		return NewTLSConn(t.sid, si, t.suite)
 	case InvalidConnType:
 		return nil, errors.New("This address is not correctly formatted: " + si.Address.String())
 	}

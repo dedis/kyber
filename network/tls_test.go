@@ -10,48 +10,62 @@ import (
 )
 
 func TestTLS(t *testing.T) {
-	log.SetDebugVisible(5)
+	log.SetDebugVisible(3)
 	type hello struct {
 		Hello string
 	}
 	mt := RegisterMessage(&hello{})
 
-	kp := key.NewKeyPair(tSuite)
-	si := NewServerIdentity(kp.Public, NewTLSAddress(":0"))
-	si.SetPrivate(kp.Private)
+	kp1 := key.NewKeyPair(tSuite)
+	sid1 := NewServerIdentity(kp1.Public, NewTLSAddress(":0"))
+	sid1.SetPrivate(kp1.Private)
 
-	r, err := NewTCPRouter(si, tSuite)
+	r1, err := NewTCPRouter(sid1, tSuite)
 	require.Nil(t, err, "new tcp router")
+	sid1.Address = r1.address
+
+	kp2 := key.NewKeyPair(tSuite)
+	sid2 := NewServerIdentity(kp2.Public, NewTLSAddress(":0"))
+	sid2.SetPrivate(kp2.Private)
+
+	r2, err := NewTCPRouter(sid2, tSuite)
+	require.Nil(t, err, "new tcp router 2")
 
 	ready := make(chan bool)
 	stop := make(chan bool)
 	rcv := make(chan bool, 1)
 
-	r.Dispatcher.RegisterProcessorFunc(mt, func(*Envelope) {
+	r1.Dispatcher.RegisterProcessorFunc(mt, func(*Envelope) {
 		rcv <- true
 	})
 
 	go func() {
 		ready <- true
-		r.Start()
+		r1.Start()
+		stop <- true
+	}()
+	go func() {
+		ready <- true
+		r2.Start()
 		stop <- true
 	}()
 
 	<-ready
+	<-ready
 
-	// siClient has remote address set correctly after the OS
-	// chose it, and Secret is NOT set.
-	siClient := NewServerIdentity(kp.Public, r.address)
-	t.Log("sending to", siClient)
-
-	err = r.Send(siClient, &hello{"Hello"})
+	// now send a message from r2 to r1
+	err = r2.Send(sid1, &hello{"Hello"})
 	require.Nil(t, err, "Could not router.Send")
-	<-rcv
-	r.Stop()
 
-	select {
-	case <-stop:
-	case <-time.After(100 * time.Millisecond):
-		t.Fatal("Could not stop listener")
+	<-rcv
+	r1.Stop()
+	r2.Stop()
+
+	for i := 0; i < 2; i++ {
+		select {
+		case <-stop:
+		case <-time.After(100 * time.Millisecond):
+			t.Fatal("Could not stop router", i)
+		}
 	}
 }
