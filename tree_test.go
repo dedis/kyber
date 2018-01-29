@@ -36,6 +36,22 @@ func TestSubset(t *testing.T) {
 		assert.Contains(t, ro.List, x)
 	}
 	assert.NotContains(t, r.List[1:], ro.List[0])
+
+	// with two nodes, if the second is the root, the first should end up
+	// in r.List[0]
+	names = genLocalhostPeerNames(2, 0)
+	ro = genRoster(tSuite, names)
+	assert.Equal(t, len(ro.List), 2)
+	r = ro.RandomSubset(ro.List[1], 1)
+	assert.Equal(t, len(r.List), 2)
+	assert.Equal(t, r.List[0], ro.List[1])
+	assert.Equal(t, r.List[1], ro.List[0])
+	// Check that the "star" topology of these two guys
+	// is root==0 -> (len(child)==1) && child[0]==1
+	tr := r.GenerateStar()
+	assert.Equal(t, tr.Root.ServerIdentity, r.List[0])
+	assert.Equal(t, len(tr.Root.Children), 1)
+	assert.Equal(t, tr.Root.Children[0].ServerIdentity, r.List[1])
 }
 
 // test the ID generation
