@@ -136,9 +136,9 @@ func (s *scalar) Pick(rand cipher.Stream) kyber.Scalar {
 	return s.setInt(i)
 }
 
-// SetBytes s to b, interpreted as a little endian integer.
+// SetBytes s to b, interpreted as a big endian integer.
 func (s *scalar) SetBytes(b []byte) kyber.Scalar {
-	return s.setInt(mod.NewIntBytes(b, primeOrder, mod.LittleEndian))
+	return s.setInt(mod.NewIntBytes(b, primeOrder, mod.BigEndian))
 }
 
 // Bytes returns a big-endian representation of the scalar
