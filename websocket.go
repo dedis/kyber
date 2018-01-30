@@ -43,6 +43,8 @@ const (
 	WebSocketErrorInvalidErrorCode
 	// WebSocketErrorRead indicates that there has been a problem on reception
 	WebSocketErrorRead
+	// WebSocketErrorConverted is temporary: it is used when wrapping an error from code that is no longer using ClientError
+	WebSocketErrorConverted
 )
 
 // NewWebSocket opens a webservice-listener one port above the given
