@@ -3,12 +3,14 @@ package platform_test
 import (
 	"io/ioutil"
 	"testing"
+	"time"
 
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/simul/platform"
 )
 
 var testfile = `Machines = 8
+RunWait = "33s"
 App = "sign"
 
 Ppm, Rounds
@@ -41,6 +43,13 @@ func TestReadRunfile(t *testing.T) {
 	if tests[0].Get("machines") != "8" {
 		log.Fatal("Machines = 8 has not been copied into RunConfig")
 	}
+	dt, err := tests[0].GetDuration("runwait")
+	if err != nil {
+		t.Fatal("unexpected runwait err", err)
+	}
+	if dt != 33*time.Second {
+		t.Fatal("unexpected runwait")
+	}
 }
 
 func TestReadRunfile2(t *testing.T) {
@@ -66,6 +75,7 @@ func TestReadRunfile2(t *testing.T) {
 type TPlat struct {
 	App      string
 	Machines int
+	RunWait  duration
 }
 
 func (t *TPlat) Configure(pc *platform.Config)       {}
@@ -75,3 +85,13 @@ func (t *TPlat) Start(...string) error               { return nil }
 func (t *TPlat) Stop() error                         { return nil }
 func (t *TPlat) Cleanup() error                      { return nil }
 func (t *TPlat) Wait() error                         { return nil }
+
+type duration struct {
+	time.Duration
+}
+
+func (d *duration) UnmarshalText(text []byte) error {
+	var err error
+	d.Duration, err = time.ParseDuration(string(text))
+	return err
+}

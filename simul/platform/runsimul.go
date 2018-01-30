@@ -2,6 +2,7 @@ package platform
 
 import (
 	"sync"
+	"time"
 
 	"github.com/dedis/onet"
 	"github.com/dedis/onet/log"
@@ -103,7 +104,7 @@ func Simulate(suite, serverAddress, simul, monitorAddress string) error {
 		wait := true
 		// The timeout starts with 1 second, which is the time of response between
 		// each level of the tree.
-		timeout := 1000
+		timeout := 1 * time.Second
 		for wait {
 			p, err := rootSC.Overlay.CreateProtocol("Count", rootSC.Tree, onet.NilServiceID)
 			if err != nil {

@@ -12,6 +12,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"sync"
 
@@ -215,6 +216,15 @@ func (r *RunConfig) GetInt(field string) (int, error) {
 	}
 	ret, err := strconv.Atoi(val)
 	return ret, err
+}
+
+// GetDuration returns the field parsed as a duration, or error if a parse error occurs.
+func (r *RunConfig) GetDuration(field string) (time.Duration, error) {
+	val := r.Get(field)
+	if val == "" {
+		return 0, errors.New("Didn't find " + field)
+	}
+	return time.ParseDuration(val)
 }
 
 // Put inserts a new field - value relationship

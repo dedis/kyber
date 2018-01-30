@@ -27,8 +27,8 @@ var machines = 3
 var monitorPort = monitor.DefaultSinkPort
 var simRange = ""
 var race = false
-var runWait = 180
-var experimentWait = 0
+var runWait = 180 * time.Second
+var experimentWait = 0 * time.Second
 
 func init() {
 	flag.StringVar(&platformDst, "platform", platformDst, "platform to deploy to [localhost,mininet,deterlab]")
@@ -39,8 +39,8 @@ func init() {
 	flag.IntVar(&machines, "machines", machines, "Number of machines on Deterlab")
 	flag.IntVar(&monitorPort, "mport", monitorPort, "Port-number for monitor")
 	flag.StringVar(&simRange, "range", simRange, "Range of simulations to run. 0: or 3:4 or :4")
-	flag.IntVar(&runWait, "runwait", runWait, "How long to wait for each simulation to finish - overwrites .toml-value")
-	flag.IntVar(&experimentWait, "experimentwait", experimentWait, "How long to wait for the whole experiment to finish")
+	flag.DurationVar(&runWait, "runwait", runWait, "How long to wait for each simulation to finish - overwrites .toml-value")
+	flag.DurationVar(&experimentWait, "experimentwait", experimentWait, "How long to wait for the whole experiment to finish")
 	log.RegisterFlags()
 }
 
@@ -89,7 +89,7 @@ func startBuild() {
 			select {
 			case <-testsDone:
 				log.Lvl3("Done with test", simulation)
-			case <-time.After(time.Second * time.Duration(timeout)):
+			case <-time.After(timeout):
 				log.Fatal("Test failed to finish in", timeout, "seconds")
 			}
 		}
@@ -210,7 +210,7 @@ func RunTest(rc *platform.RunConfig) (*monitor.Stats, error) {
 		log.Lvl3("Test complete:", rs)
 	}()
 
-	timeOut := getRunWait(rc)
+	timeout := getRunWait(rc)
 	// can timeout the command if it takes too long
 	select {
 	case err := <-done:
@@ -218,7 +218,7 @@ func RunTest(rc *platform.RunConfig) (*monitor.Stats, error) {
 			return nil, err
 		}
 		return rs, nil
-	case <-time.After(time.Second * time.Duration(timeOut)):
+	case <-time.After(timeout):
 		monitor.Stop()
 		return rs, errors.New("Simulation timeout")
 	}
@@ -311,8 +311,8 @@ func getStartStop(rcs int) (int, int) {
 
 // getRunWait returns either the command-line value or the value from the runconfig
 // file
-func getRunWait(rc *platform.RunConfig) int {
-	rcWait, err := rc.GetInt("runwait")
+func getRunWait(rc *platform.RunConfig) time.Duration {
+	rcWait, err := rc.GetDuration("runwait")
 	if err == nil {
 		return rcWait
 	}
@@ -323,15 +323,15 @@ func getRunWait(rc *platform.RunConfig) int {
 // 1. the command-line value
 // 2. the value from runconfig
 // 3. #runconfigs * runWait
-func getExperimentWait(rcs []*platform.RunConfig) int {
+func getExperimentWait(rcs []*platform.RunConfig) time.Duration {
 	if experimentWait > 0 {
 		return experimentWait
 	}
-	rcExp, err := rcs[0].GetInt("experimentwait")
+	rcExp, err := rcs[0].GetDuration("experimentwait")
 	if err == nil {
 		return rcExp
 	}
-	wait := 0
+	wait := 0 * time.Second
 	for _, rc := range rcs {
 		wait += getRunWait(rc)
 	}

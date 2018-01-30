@@ -33,7 +33,7 @@ type ProtocolCount struct {
 	Replies          int
 	Count            chan int
 	Quit             chan bool
-	timeout          int
+	timeout          time.Duration
 	timeoutMu        sync.Mutex
 	PrepareCountChan chan struct {
 		*onet.TreeNode
@@ -49,7 +49,7 @@ type ProtocolCount struct {
 // PrepareCount is sent so that every node can contact the root to say
 // the counting is still going on.
 type PrepareCount struct {
-	Timeout int
+	Timeout time.Duration
 }
 
 // NodeIsUp - if it is received by the root it will reset the counter.
@@ -71,7 +71,7 @@ func NewCount(n *onet.TreeNodeInstance) (onet.ProtocolInstance, error) {
 	p := &ProtocolCount{
 		TreeNodeInstance: n,
 		Quit:             make(chan bool),
-		timeout:          1024,
+		timeout:          1024 * time.Millisecond,
 	}
 	p.Count = make(chan int, 1)
 	if err := p.RegisterChannel(&p.CountChan); err != nil {
@@ -99,11 +99,11 @@ func (p *ProtocolCount) Start() error {
 func (p *ProtocolCount) Dispatch() error {
 	running := true
 	for running {
-		log.Lvl3(p.Info(), "waiting for message during", p.Timeout())
+		log.Lvl3(p.Info(), "waiting for message for", p.Timeout())
 		select {
 		case pc := <-p.PrepareCountChan:
 			log.Lvl3(p.Info(), "received from", pc.TreeNode.ServerIdentity.Address,
-				pc.Timeout)
+				"timeout", pc.Timeout)
 			p.SetTimeout(pc.Timeout)
 			p.FuncPC()
 		case c := <-p.CountChan:
@@ -119,7 +119,7 @@ func (p *ProtocolCount) Dispatch() error {
 			} else {
 				p.Replies++
 			}
-		case <-time.After(time.Duration(p.Timeout()) * time.Millisecond):
+		case <-time.After(time.Duration(p.Timeout())):
 			log.Lvl3(p.Info(), "timed out while waiting for", p.Timeout())
 			if p.IsRoot() {
 				log.Lvl2("Didn't get all children in time:", p.Replies)
@@ -145,7 +145,7 @@ func (p *ProtocolCount) FuncPC() {
 	if !p.IsLeaf() {
 		for _, child := range p.Children() {
 			go func(c *onet.TreeNode) {
-				log.Lvl3(p.Info(), "sending to", c.ServerIdentity.Address, c.ID, p.timeout)
+				log.Lvl3(p.Info(), "sending to", c.ServerIdentity.Address, c.ID, "timeout", p.timeout)
 				err := p.SendTo(c, &PrepareCount{Timeout: p.timeout})
 				if err != nil {
 					log.Lvl2(p.Info(), "couldn't send to child",
@@ -178,14 +178,14 @@ func (p *ProtocolCount) FuncC(cc []CountMsg) {
 }
 
 // SetTimeout sets the new timeout
-func (p *ProtocolCount) SetTimeout(t int) {
+func (p *ProtocolCount) SetTimeout(t time.Duration) {
 	p.timeoutMu.Lock()
 	p.timeout = t
 	p.timeoutMu.Unlock()
 }
 
 // Timeout returns the current timeout
-func (p *ProtocolCount) Timeout() int {
+func (p *ProtocolCount) Timeout() time.Duration {
 	p.timeoutMu.Lock()
 	defer p.timeoutMu.Unlock()
 	return p.timeout

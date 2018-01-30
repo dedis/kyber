@@ -44,10 +44,15 @@ setup.
 
 ### Timeouts
 
+Timeouts are parsed according to Go's time.Duration: A duration string
+is a possibly signed sequence of decimal numbers, each with optional
+fraction and a unit suffix, such as "300ms", "-1.5h" or "2h45m". Valid
+time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
+
 Two timeout variables are available:
 
 - RunWait - how many seconds to wait for a run (one line of .toml-file) to finish
-    (default: 180)
+    (default: 180s)
 - ExperimentWait - how many seconds to wait for the while experiment to finish
     (default: RunWait * #Runs)
 
