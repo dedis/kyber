@@ -71,7 +71,7 @@ func NewCount(n *onet.TreeNodeInstance) (onet.ProtocolInstance, error) {
 	p := &ProtocolCount{
 		TreeNodeInstance: n,
 		Quit:             make(chan bool),
-		timeout:          1024 * time.Millisecond,
+		timeout:          1 * time.Second,
 	}
 	p.Count = make(chan int, 1)
 	if err := p.RegisterChannel(&p.CountChan); err != nil {
