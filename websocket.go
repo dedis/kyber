@@ -3,6 +3,7 @@ package onet
 import (
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"reflect"
 	"strconv"
@@ -419,5 +420,5 @@ func getWebAddress(si *network.ServerIdentity, global bool) (string, error) {
 	if global {
 		host = "0.0.0.0"
 	}
-	return fmt.Sprintf("%s:%d", host, p+1), nil
+	return net.JoinHostPort(host, strconv.Itoa(p+1)), nil
 }

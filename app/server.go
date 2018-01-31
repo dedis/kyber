@@ -75,7 +75,7 @@ func InteractiveConfig(binaryName string, suite network.Suite) {
 		portStr = port
 	}
 
-	serverBinding = network.NewTCPAddress(hostStr + ":" + portStr)
+	serverBinding = network.NewTCPAddress(net.JoinHostPort(hostStr, portStr))
 	if !serverBinding.Valid() {
 		log.Error("Unable to validate address given", serverBinding)
 		return
