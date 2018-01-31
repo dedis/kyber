@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"time"
 
-	"fmt"
 	"net"
 
 	"github.com/dedis/kyber"
@@ -354,7 +353,7 @@ func newTCPServer(port int, s network.Suite, path string) *Server {
 		if err != nil {
 			panic(err)
 		}
-		addr := fmt.Sprintf("%s:%d", id.Address.Host(), port+1)
+		addr := net.JoinHostPort(id.Address.Host(), strconv.Itoa(port+1))
 		if l, err := net.Listen("tcp", addr); err == nil {
 			l.Close()
 			break

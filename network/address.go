@@ -221,10 +221,6 @@ func (a Address) Host() string {
 	if e != nil {
 		return ""
 	}
-	// IPv6 unspecified address has to be in brackets.
-	if h == "::" {
-		h = "[::]"
-	}
 	return h
 }
 
