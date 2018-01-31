@@ -66,8 +66,8 @@ func TestServiceProcessor_ProcessClientRequest(t *testing.T) {
 
 	buf, err := protobuf.Encode(&testMsg{11})
 	log.ErrFatal(err)
-	rep, cerr := p.ProcessClientRequest("testMsg", buf)
-	require.Equal(t, nil, cerr)
+	rep, err := p.ProcessClientRequest("testMsg", buf)
+	require.Equal(t, nil, err)
 	val := &testMsg{}
 	log.ErrFatal(protobuf.Decode(rep, val))
 	if val.I != 11 {
@@ -76,15 +76,13 @@ func TestServiceProcessor_ProcessClientRequest(t *testing.T) {
 
 	buf, err = protobuf.Encode(&testMsg{42})
 	log.ErrFatal(err)
-	rep, cerr = p.ProcessClientRequest("testMsg", buf)
-	assert.NotNil(t, cerr)
-	require.Equal(t, 4005, cerr.ErrorCode())
+	rep, err = p.ProcessClientRequest("testMsg", buf)
+	assert.NotNil(t, err)
 
 	buf, err = protobuf.Encode(&testMsg2{42})
 	log.ErrFatal(err)
-	rep, cerr = p.ProcessClientRequest("testMsg2", buf)
-	assert.NotNil(t, cerr)
-	require.Equal(t, 4142, cerr.ErrorCode())
+	rep, err = p.ProcessClientRequest("testMsg2", buf)
+	assert.NotNil(t, err)
 }
 
 func TestProcessor_ProcessClientRequest(t *testing.T) {
@@ -96,8 +94,8 @@ func TestProcessor_ProcessClientRequest(t *testing.T) {
 
 	client := local.NewClient(testServiceName)
 	msg := &testMsg{}
-	cerr := client.SendProtobuf(h.ServerIdentity, &testMsg{12}, msg)
-	log.ErrFatal(cerr)
+	err := client.SendProtobuf(h.ServerIdentity, &testMsg{12}, msg)
+	log.ErrFatal(err)
 	if msg == nil {
 		t.Fatal("Msg should not be nil")
 	}
@@ -123,44 +121,44 @@ func procMsg(msg *testMsg) (network.Message, error) {
 	return msg, nil
 }
 
-func procMsg2(msg *testMsg2) (network.Message, ClientError) {
+func procMsg2(msg *testMsg2) (network.Message, error) {
 	// Return an error for testing
 	if msg.I == 42 {
-		return nil, NewClientErrorCode(4142, "42 is NOT the answer")
+		return nil, errors.New("42 is NOT the answer")
 	}
 	return nil, nil
 }
-func procMsg3(msg *testMsg3) (network.Message, ClientError) {
+func procMsg3(msg *testMsg3) (network.Message, error) {
 	return nil, nil
 }
-func procMsg4(msg *testMsg4) (*testMsg4, ClientError) {
+func procMsg4(msg *testMsg4) (*testMsg4, error) {
 	return msg, nil
 }
 
-func procMsgWrong1() (network.Message, ClientError) {
+func procMsgWrong1() (network.Message, error) {
 	return nil, nil
 }
 
-func procMsgWrong2(msg testMsg2) (network.Message, ClientError) {
+func procMsgWrong2(msg testMsg2) (network.Message, error) {
 	return msg, nil
 }
 
-func procMsgWrong3(msg *testMsg3) ClientError {
+func procMsgWrong3(msg *testMsg3) error {
 	return nil
 }
 
-func procMsgWrong4(msg *testMsg4) (ClientError, network.Message) {
+func procMsgWrong4(msg *testMsg4) (error, network.Message) {
 	return nil, msg
 }
 
-func procMsgWrong5(msg *testMsg) (*network.Message, ClientError) {
+func procMsgWrong5(msg *testMsg) (*network.Message, error) {
 	return nil, nil
 }
 
-func procMsgWrong6(msg *testMsg) (int, ClientError) {
+func procMsgWrong6(msg *testMsg) (int, error) {
 	return 10, nil
 }
-func procMsgWrong7(msg *testMsg) (testMsg, ClientError) {
+func procMsgWrong7(msg *testMsg) (testMsg, error) {
 	return *msg, nil
 }
 
@@ -181,7 +179,7 @@ func (ts *testService) NewProtocol(tn *TreeNodeInstance, conf *GenericConfig) (P
 	return nil, nil
 }
 
-func (ts *testService) ProcessMsg(msg *testMsg) (network.Message, ClientError) {
+func (ts *testService) ProcessMsg(msg *testMsg) (network.Message, error) {
 	ts.Msg = msg
 	return msg, nil
 }

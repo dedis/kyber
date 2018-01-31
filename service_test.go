@@ -2,6 +2,7 @@ package onet
 
 import (
 	"bytes"
+	"errors"
 	"testing"
 	"time"
 
@@ -94,11 +95,9 @@ func TestServiceProcessRequest(t *testing.T) {
 	// Send a request to the service
 	client := NewClient(dummyServiceName, tSuite)
 	log.Lvl1("Sending request to service...")
-	_, cerr := client.Send(server.ServerIdentity, "nil", []byte("a"))
+	_, err = client.Send(server.ServerIdentity, "nil", []byte("a"))
 	log.Lvl2("Got reply")
-	require.Error(t, cerr)
-	require.Equal(t, 4100, cerr.ErrorCode())
-	require.Equal(t, "wrong message", cerr.ErrorMsg())
+	require.Error(t, err)
 	// wait for the link
 	if <-link {
 		t.Fatal("was expecting false !")
@@ -135,8 +134,8 @@ func TestServiceRequestNewProtocol(t *testing.T) {
 
 	// Now resend the value so we instantiate using the same treenode
 	log.Lvl1("Sending request again to service...")
-	cerr := client.SendProtobuf(server.ServerIdentity, &DummyMsg{10}, nil)
-	assert.Error(t, cerr)
+	err := client.SendProtobuf(server.ServerIdentity, &DummyMsg{10}, nil)
+	assert.Error(t, err)
 	// this should fail
 	waitOrFatalValue(ds.link, false, t)
 }
@@ -260,8 +259,8 @@ func TestServiceBackForthProtocol(t *testing.T) {
 		Val:              10,
 	}
 	sr := &SimpleResponse{}
-	cerr := client.SendProtobuf(servers[0].ServerIdentity, r, sr)
-	log.ErrFatal(cerr)
+	err = client.SendProtobuf(servers[0].ServerIdentity, r, sr)
+	log.ErrFatal(err)
 	assert.Equal(t, sr.Val, 10)
 }
 
@@ -451,11 +450,11 @@ type simpleService struct {
 	ctx *Context
 }
 
-func (s *simpleService) ProcessClientRequest(path string, buf []byte) ([]byte, ClientError) {
+func (s *simpleService) ProcessClientRequest(path string, buf []byte) ([]byte, error) {
 	msg := &SimpleRequest{}
 	err := protobuf.DecodeWithConstructors(buf, msg, network.DefaultConstructors(tSuite))
 	if err != nil {
-		return nil, NewClientErrorCode(WebSocketErrorProtobufDecode, "")
+		return nil, errors.New("")
 	}
 	tree := msg.ServerIdentities.GenerateBinaryTree()
 	tni := s.ctx.NewTreeNodeInstance(tree, tree.Root, backForthServiceName)
@@ -464,15 +463,15 @@ func (s *simpleService) ProcessClientRequest(path string, buf []byte) ([]byte, C
 		ret <- n
 	})
 	if err != nil {
-		return nil, NewClientErrorCode(4100, "")
+		return nil, errors.New("")
 	}
 	if err = s.ctx.RegisterProtocolInstance(proto); err != nil {
-		return nil, NewClientErrorCode(4101, "")
+		return nil, errors.New("")
 	}
 	proto.Start()
 	resp, err := protobuf.Encode(&SimpleResponse{<-ret})
 	if err != nil {
-		return nil, NewClientErrorCode(4102, "")
+		return nil, errors.New("")
 	}
 	return resp, nil
 }
@@ -537,13 +536,13 @@ type DummyService struct {
 	Config   DummyConfig
 }
 
-func (ds *DummyService) ProcessClientRequest(path string, buf []byte) ([]byte, ClientError) {
+func (ds *DummyService) ProcessClientRequest(path string, buf []byte) ([]byte, error) {
 	log.Lvl2("Got called with path", path, buf)
 	msg := &DummyMsg{}
 	err := protobuf.Decode(buf, msg)
 	if err != nil {
 		ds.link <- false
-		return nil, NewClientErrorCode(4100, "wrong message")
+		return nil, errors.New("wrong message")
 	}
 	if ds.firstTni == nil {
 		ds.firstTni = ds.c.NewTreeNodeInstance(ds.fakeTree, ds.fakeTree.Root, dummyServiceName)
@@ -553,7 +552,7 @@ func (ds *DummyService) ProcessClientRequest(path string, buf []byte) ([]byte, C
 
 	if err := ds.c.RegisterProtocolInstance(dp); err != nil {
 		ds.link <- false
-		return nil, NewClientErrorCode(4101, "")
+		return nil, errors.New("")
 	}
 	log.Lvl2("Starting protocol")
 	go func() {
@@ -607,7 +606,7 @@ func newDummyService2(c *Context) (Service, error) {
 	return &dummyService2{Context: c}, nil
 }
 
-func (ds *dummyService2) ProcessClientRequest(path string, buf []byte) ([]byte, ClientError) {
+func (ds *dummyService2) ProcessClientRequest(path string, buf []byte) ([]byte, error) {
 	panic("should not be called")
 }
 

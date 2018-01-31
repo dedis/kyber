@@ -31,11 +31,12 @@ type Service interface {
 	// the ProtocolInstance it is using. If a Service returns (nil,nil), that
 	// means this Service lets Onet handle the protocol instance.
 	NewProtocol(*TreeNodeInstance, *GenericConfig) (ProtocolInstance, error)
-	// ProcessClientRequest is called when a message from an external client is received by
-	// the websocket for this service. It returns a message that will be
-	// sent back to the client. The returned ClientError is either nil
-	// or any errorCode between 4100 and 4999.
-	ProcessClientRequest(handler string, msg []byte) (reply []byte, err ClientError)
+	// ProcessClientRequest is called when a message from an
+	// external client is received by the websocket for this
+	// service. It returns a message that will be sent back to the
+	// client. The returned error will be formatted as a websocket
+	// error code 4000, using the string form of the error as the message.
+	ProcessClientRequest(handler string, msg []byte) (reply []byte, err error)
 	// Processor makes a Service being able to handle any kind of packets
 	// directly from the network. It is used for inter service communications,
 	// which are mostly single packets with no or little interactions needed. If
