@@ -1,10 +1,7 @@
 package cosi
 
 import (
-	"crypto/cipher"
-	"crypto/sha512"
 	"errors"
-	"hash"
 	"testing"
 
 	"github.com/dedis/kyber"
@@ -13,18 +10,7 @@ import (
 	"github.com/dedis/kyber/xof/blake"
 )
 
-// Specify cipher suite using AES-128, SHA512, and the Edwards25519 curve.
-type cosiSuite struct {
-	Suite
-	r kyber.XOF
-}
-
-func (m *cosiSuite) Hash() hash.Hash {
-	return sha512.New()
-}
-func (m *cosiSuite) RandomStream() cipher.Stream { return m.r }
-
-var testSuite = &cosiSuite{edwards25519.NewBlakeSHA256Ed25519(), blake.New(nil)}
+var testSuite = edwards25519.NewBlakeSHA256Ed25519WithRand(blake.New(nil))
 
 func TestCoSi(t *testing.T) {
 	n := 5
@@ -186,9 +172,10 @@ func TestCoSiThreshold(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+
 		// Verify (using threshold policy)
 		if err := Verify(testSuite, publics, message, sig, NewThresholdPolicy(n-f)); err != nil {
-			t.Fatal(err)
+			t.Fatal(i, err)
 		}
 	}
 }

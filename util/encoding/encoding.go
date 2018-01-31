@@ -94,3 +94,15 @@ func getHex(r io.Reader, l int) ([]byte, error) {
 	}
 	return bufByte, nil
 }
+
+// ConvertEndian copies src into dst in byte-reversed order and returns dst,
+// such that src[0] goes into dst[len-1] and vice versa.
+// dst and src may be the same slice but otherwise must not overlap.
+func ConvertEndian(dst, src []byte) []byte {
+	l := len(dst)
+	for i, j := 0, l-1; i < (l+1)/2; i++ {
+		dst[i], dst[j] = src[j], src[i]
+		j--
+	}
+	return dst
+}

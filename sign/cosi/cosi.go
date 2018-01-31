@@ -29,7 +29,7 @@ participations together with the message M if it was not sent in phase 1. Upon
 receiving a commitment message, a node starts the challenge phase.
 
 3. Challenge: Each node i computes the collective challenge c = H(V || A || M)
-using a cryptographic hash function H (here: SHA512), computes its
+using a cryptographic hash function H (equivalently: an XOF), computes its
 response r_i = v_i + c*a_i and sends it back to the leader.
 
 4. Response: The leader waits until he has received replies from all nodes in
@@ -84,15 +84,16 @@ func Challenge(suite Suite, commitment, public kyber.Point, message []byte) (kyb
 	if message == nil {
 		return nil, errors.New("no message provided")
 	}
-	hash := suite.Hash()
-	if _, err := commitment.MarshalTo(hash); err != nil {
+	xof := suite.XOF(nil)
+	if _, err := commitment.MarshalTo(xof); err != nil {
 		return nil, err
 	}
-	if _, err := public.MarshalTo(hash); err != nil {
+	if _, err := public.MarshalTo(xof); err != nil {
 		return nil, err
 	}
-	hash.Write(message)
-	return suite.Scalar().SetBytes(hash.Sum(nil)), nil
+	xof.Write(message)
+	chal := suite.Scalar().Pick(xof)
+	return chal, nil
 }
 
 // Response creates the response from the given random scalar v, (collective)
@@ -146,6 +147,7 @@ func Sign(suite Suite, commitment kyber.Point, response kyber.Scalar, mask *Mask
 	if err != nil {
 		return nil, errors.New("marshalling of signature failed")
 	}
+
 	sig := make([]byte, lenSig+mask.Len())
 	copy(sig[:], VB)
 	copy(sig[lenV:lenSig], RB)
@@ -179,7 +181,11 @@ func Verify(suite Suite, publics []kyber.Point, message, sig []byte, policy Poli
 	// Unpack the aggregate response
 	lenRes := lenCom + suite.ScalarLen()
 	rBuff := sig[lenCom:lenRes]
-	r := suite.Scalar().SetBytes(rBuff)
+	r := suite.Scalar()
+	err := r.UnmarshalBinary(rBuff)
+	if err != nil {
+		return err
+	}
 
 	// Unpack the participation mask and get the aggregate public key
 	mask, err := NewMask(suite, publics, nil)
@@ -194,12 +200,11 @@ func Verify(suite Suite, publics []kyber.Point, message, sig []byte, policy Poli
 	}
 
 	// Recompute the challenge
-	hash := suite.Hash()
-	hash.Write(VBuff)
-	hash.Write(ABuff)
-	hash.Write(message)
-	buff := hash.Sum(nil)
-	k := suite.Scalar().SetBytes(buff)
+	xof := suite.XOF(nil)
+	xof.Write(VBuff)
+	xof.Write(ABuff)
+	xof.Write(message)
+	k := suite.Scalar().Pick(xof)
 
 	// k * -aggPublic + s * B = k*-A + s*B
 	// from s = k * a + r => s * B = k * a * B + r * B <=> s*B = k*A + r*B

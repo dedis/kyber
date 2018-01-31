@@ -10,6 +10,7 @@ import (
 
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/group/mod"
+	"github.com/dedis/kyber/util/encoding"
 )
 
 var zero = big.NewInt(0)
@@ -199,7 +200,7 @@ func (c *curve) encodePoint(x, y *mod.Int) []byte {
 	}
 
 	// Convert to little-endian
-	reverse(b, b)
+	encoding.ConvertEndian(b, b)
 	return b
 }
 
@@ -214,11 +215,9 @@ func (c *curve) encodePoint(x, y *mod.Int) []byte {
 // hence Diffie-Hellman exchange can be done without subgroup checking
 // without exposing more than the least-significant bits of the scalar.
 func (c *curve) decodePoint(bb []byte, x, y *mod.Int) error {
-
 	// Convert from little-endian
-	//fmt.Printf("decoding:\n%s\n", hex.Dump(bb))
 	b := make([]byte, len(bb))
-	reverse(b, bb)
+	encoding.ConvertEndian(b, bb)
 
 	// Extract the sign of the x-coordinate
 	xsign := uint(b[0] >> 7)
@@ -325,7 +324,7 @@ func (c *curve) embed(P point, data []byte, rand cipher.Stream) {
 			b[0] = byte(dl)       // Encode length in low 8 bits
 			copy(b[1:1+dl], data) // Copy in data to embed
 		}
-		reverse(b, b) // Convert to big-endian form
+		encoding.ConvertEndian(b, b) // Convert to big-endian form
 
 		xsign := b[0] >> 7                    // save x-coordinate sign bit
 		b[0] &^= 0xff << uint(c.P.BitLen()&7) // clear high bits
@@ -387,17 +386,4 @@ func (c *curve) data(x, y *mod.Int) ([]byte, error) {
 		return nil, errors.New("invalid embedded data length")
 	}
 	return b[1 : 1+dl], nil
-}
-
-// reverse copies src into dst in byte-reversed order and returns dst,
-// such that src[0] goes into dst[len-1] and vice versa.
-// dst and src may be the same slice but otherwise must not overlap.
-func reverse(dst, src []byte) []byte {
-	l := len(dst)
-	for i, j := 0, l-1; i < (l+1)/2; {
-		dst[i], dst[j] = src[j], src[i]
-		i++
-		j--
-	}
-	return dst
 }

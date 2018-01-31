@@ -6,5 +6,6 @@ import "github.com/dedis/kyber"
 type Suite interface {
 	kyber.Group
 	kyber.HashFactory
+	kyber.XOFFactory
 	kyber.Random
 }

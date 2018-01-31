@@ -11,6 +11,7 @@ import (
 
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/group/internal/marshalling"
+	"github.com/dedis/kyber/util/encoding"
 	"github.com/dedis/kyber/util/random"
 )
 
@@ -336,10 +337,12 @@ func (i *Int) UnmarshalBinary(buf []byte) error {
 		return errors.New("UnmarshalBinary: wrong size buffer")
 	}
 	// Still needed here because of the comparison with the modulo
+	b := buf
 	if i.BO == LittleEndian {
-		buf = reverse(nil, buf)
+		b = make([]byte, len(buf))
+		encoding.ConvertEndian(b, buf)
 	}
-	i.V.SetBytes(buf)
+	i.V.SetBytes(b)
 	if i.V.Cmp(i.M) >= 0 {
 		return errors.New("UnmarshalBinary: value out of range")
 	}
@@ -379,7 +382,8 @@ func (i *Int) BigEndian(min, max int) []byte {
 func (i *Int) SetBytes(a []byte) kyber.Scalar {
 	var buff = a
 	if i.BO == LittleEndian {
-		buff = reverse(nil, a)
+		buff = make([]byte, len(a))
+		encoding.ConvertEndian(buff, a)
 	}
 	i.V.SetBytes(buff).Mod(&i.V, i.M)
 	return i
@@ -390,7 +394,7 @@ func (i *Int) SetBytes(a []byte) kyber.Scalar {
 func (i *Int) Bytes() []byte {
 	buff := i.V.Bytes()
 	if i.BO == LittleEndian {
-		reverse(buff, buff)
+		encoding.ConvertEndian(buff, buff)
 	}
 	return buff
 }
@@ -413,7 +417,7 @@ func (i *Int) LittleEndian(min, max int) []byte {
 		panic("Int not representable in max bytes")
 	}
 	buf := make([]byte, pad)
-	reverse(buf[:act], vBytes)
+	encoding.ConvertEndian(buf[:act], vBytes)
 	return buf
 }
 
@@ -469,20 +473,4 @@ func (i *Int) HideDecode(buf []byte) {
 	}
 	i.V.SetBytes(buf)
 	i.V.Mod(&i.V, i.M)
-}
-
-// reverse copies src into dst in byte-reversed order and returns dst,
-// such that src[0] goes into dst[len-1] and vice versa.
-// dst and src may be the same slice but otherwise must not overlap.
-func reverse(dst, src []byte) []byte {
-	if dst == nil {
-		dst = make([]byte, len(src))
-	}
-	l := len(dst)
-	for i, j := 0, l-1; i < (l+1)/2; {
-		dst[i], dst[j] = src[j], src[i]
-		i++
-		j--
-	}
-	return dst
 }
