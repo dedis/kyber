@@ -205,9 +205,8 @@ type serviceManager struct {
 	// the onet host
 	server *Server
 	// a bbolt database for all services
-	db      *bolt.DB
-	dbPath  string
-	dbMutex sync.Mutex
+	db     *bolt.DB
+	dbPath string
 	// should the db be deleted on close?
 	delDb bool
 	// the dispatcher can take registration of Processors
@@ -287,14 +286,11 @@ func (s *serviceManager) Process(env *network.Envelope) {
 // closeDatabase closes the database.
 // It also removes the database file if the path is not default (i.e. testing config)
 func (s *serviceManager) closeDatabase() error {
-	s.dbMutex.Lock()
-	defer s.dbMutex.Unlock()
 	if s.db != nil {
 		err := s.db.Close()
 		if err != nil {
 			log.Error("Close database failed with: " + err.Error())
 		}
-		s.db = nil
 	}
 
 	if s.delDb {
