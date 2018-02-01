@@ -243,7 +243,7 @@ setupConode(){
     co=co$n
     rm -f $co/*
     mkdir -p $co
-    echo -e "127.0.0.1:200$(( 2 * $n ))\nCot-$n\n$co\n" | dbgRun runCo $n setup
+    echo -e "localhost:200$(( 2 * $n ))\nCot-$n\n$co\n" | dbgRun runCo $n setup
     if [ ! -f $co/public.toml ]; then
       echo "Setup failed: file $co/public.toml is missing."
       exit
