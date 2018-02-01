@@ -166,7 +166,7 @@ type Client struct {
 
 // NewClient returns a client using the service s. On the first Send, the
 // connection will be started, until Close is called.
-func NewClient(s string, suite network.Suite) *Client {
+func NewClient(suite network.Suite, s string) *Client {
 	return &Client{
 		service:     s,
 		connections: make(map[destination]*websocket.Conn),
@@ -176,7 +176,7 @@ func NewClient(s string, suite network.Suite) *Client {
 
 // NewClientKeep returns a Client that doesn't close the connection between
 // two messages if it's the same server.
-func NewClientKeep(s string, suite network.Suite) *Client {
+func NewClientKeep(suite network.Suite, s string) *Client {
 	return &Client{
 		service:     s,
 		keep:        true,

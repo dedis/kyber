@@ -332,7 +332,7 @@ func NewPrivIdentity(suite network.Suite, port int) (kyber.Scalar, *network.Serv
 
 // NewTCPServer creates a new server with a tcpRouter with "localserver:"+port as an
 // address.
-func newTCPServer(port int, s network.Suite, path string) *Server {
+func newTCPServer(s network.Suite, port int, path string) *Server {
 	priv, id := NewPrivIdentity(s, port)
 	addr := network.NewTCPAddress(id.Address.NetworkAddress())
 	var tcpHost *network.TCPHost
@@ -362,7 +362,7 @@ func newTCPServer(port int, s network.Suite, path string) *Server {
 	}
 	id.Address = network.NewAddress(id.Address.ConnType(), "127.0.0.1:"+id.Address.Port())
 	router := network.NewRouter(id, tcpHost)
-	h := newServer(path, router, priv, s)
+	h := newServer(s, path, router, priv)
 	go h.Start()
 	for !h.Listening() {
 		time.Sleep(10 * time.Millisecond)
@@ -373,7 +373,7 @@ func newTCPServer(port int, s network.Suite, path string) *Server {
 // NewLocalServer returns a new server using a LocalRouter (channels) to communicate.
 // At the return of this function, the router is already Run()ing in a go
 // routine.
-func NewLocalServer(port int, s network.Suite) *Server {
+func NewLocalServer(s network.Suite, port int) *Server {
 	dir, err := ioutil.TempDir("", "example")
 	if err != nil {
 		log.Fatal(err)
@@ -384,7 +384,7 @@ func NewLocalServer(port int, s network.Suite) *Server {
 	if err != nil {
 		panic(err)
 	}
-	h := newServer(dir, localRouter, priv, s)
+	h := newServer(s, dir, localRouter, priv)
 	go h.Start()
 	for !h.Listening() {
 		time.Sleep(10 * time.Millisecond)
@@ -397,7 +397,7 @@ func NewLocalServer(port int, s network.Suite) *Server {
 func (l *LocalTest) NewClient(serviceName string) *Client {
 	switch l.mode {
 	case TCP:
-		return NewClient(serviceName, l.Suite)
+		return NewClient(l.Suite, serviceName)
 	default:
 		log.Fatal("Can't make local client")
 		return nil
@@ -433,7 +433,7 @@ func (l *LocalTest) NewServer(port int, s network.Suite) *Server {
 // NewTCPServer returns a new TCP Server attached to this LocalTest.
 func (l *LocalTest) newTCPServer(s network.Suite) *Server {
 	l.panicClosed()
-	server := newTCPServer(0, s, l.path)
+	server := newTCPServer(s, 0, l.path)
 	l.Servers[server.ServerIdentity.ID] = server
 	l.Overlays[server.ServerIdentity.ID] = server.overlay
 	l.Services[server.ServerIdentity.ID] = server.serviceManager.services
@@ -450,7 +450,7 @@ func (l *LocalTest) NewLocalServer(port int, s network.Suite) *Server {
 	if err != nil {
 		panic(err)
 	}
-	server := newServer(l.path, localRouter, priv, s)
+	server := newServer(s, l.path, localRouter, priv)
 	go server.Start()
 	for !server.Listening() {
 		time.Sleep(10 * time.Millisecond)

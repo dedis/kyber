@@ -45,7 +45,7 @@ const portscan = "https://dedis.ch/portscan.php"
 // no public IP can be configured, localhost will be used.
 // If everything is OK, the configuration-files will be written.
 // In case of an error this method Fatals.
-func InteractiveConfig(binaryName string, suite network.Suite) {
+func InteractiveConfig(suite network.Suite, binaryName string) {
 	log.Info("Setting up a cothority-server.")
 	checkAvailableMemory()
 	str := Inputf(strconv.Itoa(DefaultPort), "Please enter the [address:]PORT for incoming requests")

@@ -65,7 +65,7 @@ func dbPathFromEnv() string {
 // If dbPath is "", the server will write its database to the default
 // location. If dbPath is != "", it is considered a temp dir, and the
 // DB is deleted on close.
-func newServer(dbPath string, r *network.Router, pkey kyber.Scalar, s network.Suite) *Server {
+func newServer(s network.Suite, dbPath string, r *network.Router, pkey kyber.Scalar) *Server {
 	delDb := false
 	if dbPath == "" {
 		dbPath = dbPathFromEnv()
@@ -107,7 +107,7 @@ func newServer(dbPath string, r *network.Router, pkey kyber.Scalar, s network.Su
 func NewServerTCP(e *network.ServerIdentity, pkey kyber.Scalar, suite network.Suite) *Server {
 	r, err := network.NewTCPRouter(e, suite)
 	log.ErrFatal(err)
-	return newServer("", r, pkey, suite)
+	return newServer(suite, "", r, pkey)
 }
 
 // Suite can (and should) be used to get the underlying Suite.

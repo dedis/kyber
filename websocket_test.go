@@ -24,7 +24,7 @@ func TestNewWebSocket(t *testing.T) {
 	l := NewLocalTest(tSuite)
 	defer l.CloseAll()
 
-	c := newTCPServer(0, tSuite, l.path)
+	c := newTCPServer(tSuite, 0, l.path)
 	defer c.Close()
 	require.Equal(t, len(c.serviceManager.services), len(c.websocket.services))
 	require.NotEmpty(t, c.websocket.services[serviceWebSocket])
@@ -129,7 +129,7 @@ func TestClient_Parallel(t *testing.T) {
 }
 
 func TestNewClientKeep(t *testing.T) {
-	c := NewClientKeep(serviceWebSocket, tSuite)
+	c := NewClientKeep(tSuite, serviceWebSocket)
 	assert.True(t, c.keep)
 }
 
@@ -145,7 +145,7 @@ func TestMultiplePath(t *testing.T) {
 	hs := local.GenServers(2)
 	server := hs[0]
 	defer local.CloseAll()
-	client := NewClientKeep(dummyService3Name, tSuite)
+	client := NewClientKeep(tSuite, dummyService3Name)
 	msg, err := protobuf.Encode(&DummyMsg{})
 	require.Equal(t, nil, err)
 	path1, path2 := "path1", "path2"

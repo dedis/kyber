@@ -22,7 +22,7 @@ func init() {
 }
 
 func TestProcessor_AddMessage(t *testing.T) {
-	h1 := NewLocalServer(2000, tSuite)
+	h1 := NewLocalServer(tSuite, 2000)
 	defer h1.Close()
 	p := NewServiceProcessor(&Context{server: h1})
 	log.ErrFatal(p.RegisterHandler(procMsg))
@@ -51,7 +51,7 @@ func TestProcessor_AddMessage(t *testing.T) {
 }
 
 func TestProcessor_RegisterMessages(t *testing.T) {
-	h1 := NewLocalServer(2000, tSuite)
+	h1 := NewLocalServer(tSuite, 2000)
 	defer h1.Close()
 	p := NewServiceProcessor(&Context{server: h1})
 	log.ErrFatal(p.RegisterHandlers(procMsg, procMsg2, procMsg3, procMsg4))
@@ -59,7 +59,7 @@ func TestProcessor_RegisterMessages(t *testing.T) {
 }
 
 func TestServiceProcessor_ProcessClientRequest(t *testing.T) {
-	h1 := NewLocalServer(2000, tSuite)
+	h1 := NewLocalServer(tSuite, 2000)
 	defer h1.Close()
 	p := NewServiceProcessor(&Context{server: h1})
 	log.ErrFatal(p.RegisterHandlers(procMsg, procMsg2))

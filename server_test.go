@@ -10,7 +10,7 @@ import (
 )
 
 func TestServer_ProtocolRegisterName(t *testing.T) {
-	c := NewLocalServer(0, tSuite)
+	c := NewLocalServer(tSuite, 0)
 	defer c.Close()
 	plen := len(c.protocols.instantiators)
 	require.True(t, plen > 0)
@@ -26,14 +26,14 @@ func TestServer_ProtocolRegisterName(t *testing.T) {
 }
 
 func TestServer_GetService(t *testing.T) {
-	c := NewLocalServer(0, tSuite)
+	c := NewLocalServer(tSuite, 0)
 	defer c.Close()
 	s := c.Service("nil")
 	require.Nil(t, s)
 }
 
 func TestServer_Database(t *testing.T) {
-	c := NewLocalServer(0, tSuite)
+	c := NewLocalServer(tSuite, 0)
 	require.NotNil(t, c.serviceManager.db)
 
 	for _, s := range c.serviceManager.availableServices() {

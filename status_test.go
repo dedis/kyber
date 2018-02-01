@@ -23,7 +23,7 @@ func TestStatusHost(t *testing.T) {
 	l := NewLocalTest(tSuite)
 	defer l.CloseAll()
 
-	c := newTCPServer(0, tSuite, l.path)
+	c := newTCPServer(tSuite, 0, l.path)
 	defer c.Close()
 	stats := c.GetStatus()
 	a := ServiceFactory.RegisteredServiceNames()
