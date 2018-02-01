@@ -292,7 +292,6 @@ func (s *serviceManager) closeDatabase() error {
 		if err != nil {
 			log.Error("Close database failed with: " + err.Error())
 		}
-		s.db = nil
 	}
 
 	if s.delDb {
