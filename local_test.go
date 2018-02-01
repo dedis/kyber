@@ -42,8 +42,8 @@ func TestNewTCPTest(t *testing.T) {
 	defer l.CloseAll()
 
 	c1 := NewClient(clientServiceName, tSuite)
-	cerr := c1.SendProtobuf(el.List[0], &SimpleMessage{}, nil)
-	log.ErrFatal(cerr)
+	err := c1.SendProtobuf(el.List[0], &SimpleMessage{}, nil)
+	log.ErrFatal(err)
 }
 
 type clientService struct {
@@ -53,13 +53,13 @@ type clientService struct {
 
 type SimpleMessage2 struct{}
 
-func (c *clientService) SimpleMessage(msg *SimpleMessage) (network.Message, ClientError) {
+func (c *clientService) SimpleMessage(msg *SimpleMessage) (network.Message, error) {
 	log.Lvl3("Got request", msg)
 	c.cl.SendProtobuf(c.ServerIdentity(), &SimpleMessage2{}, nil)
 	return nil, nil
 }
 
-func (c *clientService) SimpleMessage2(msg *SimpleMessage2) (network.Message, ClientError) {
+func (c *clientService) SimpleMessage2(msg *SimpleMessage2) (network.Message, error) {
 	log.Lvl3("Got request", msg)
 	return nil, nil
 }

@@ -32,22 +32,6 @@ type WebSocket struct {
 	sync.Mutex
 }
 
-const (
-	// WebSocketErrorPathNotFound indicates the path has not been registered
-	WebSocketErrorPathNotFound = 4000 + iota
-	// WebSocketErrorProtobufDecode indicates an error in decoding the protobuf-packet
-	WebSocketErrorProtobufDecode
-	// WebSocketErrorProtobufEncode indicates an error in encoding the return packet
-	WebSocketErrorProtobufEncode
-	// WebSocketErrorInvalidErrorCode indicates the service returned
-	// an invalid error-code
-	WebSocketErrorInvalidErrorCode
-	// WebSocketErrorRead indicates that there has been a problem on reception
-	WebSocketErrorRead
-	// WebSocketErrorConverted is temporary: it is used when wrapping an error from code that is no longer using ClientError
-	WebSocketErrorConverted
-)
-
 // NewWebSocket opens a webservice-listener one port above the given
 // ServerIdentity.
 func NewWebSocket(si *network.ServerIdentity) *WebSocket {
@@ -132,20 +116,21 @@ func (t wsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	defer func() {
 		ws.Close()
 	}()
-	var ce ClientError
-	// Loop as long as we don't return an error.
-	for ce == nil {
-		mt, buf, err := ws.ReadMessage()
-		if err != nil {
-			ce = NewClientErrorCode(WebSocketErrorRead, err.Error())
-			return
+
+	// Loop for each message
+	for err == nil {
+		mt, buf, rerr := ws.ReadMessage()
+		if rerr != nil {
+			err = rerr
+			break
 		}
+
 		s := t.service
 		var reply []byte
 		path := strings.TrimPrefix(r.URL.Path, "/"+t.serviceName+"/")
 		log.Lvl3("Got request for", t.serviceName, path)
-		reply, ce = s.ProcessClientRequest(path, buf)
-		if ce == nil {
+		reply, err = s.ProcessClientRequest(path, buf)
+		if err == nil {
 			err := ws.WriteMessage(mt, reply)
 			if err != nil {
 				log.Error(err)
@@ -153,12 +138,11 @@ func (t wsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	if ce.ErrorCode() < 4000 || ce.ErrorCode() >= 5000 {
-		ce = NewClientErrorCode(WebSocketErrorInvalidErrorCode, ce.Error())
-	}
+
 	ws.WriteControl(websocket.CloseMessage,
-		websocket.FormatCloseMessage(ce.ErrorCode(), ce.ErrorMsg()),
+		websocket.FormatCloseMessage(4000, err.Error()),
 		time.Now().Add(time.Millisecond*500))
+	return
 }
 
 type destination struct {
@@ -207,7 +191,7 @@ func (c *Client) Suite() network.Suite {
 }
 
 // Send will marshal the message into a ClientRequest message and send it.
-func (c *Client) Send(dst *network.ServerIdentity, path string, buf []byte) ([]byte, ClientError) {
+func (c *Client) Send(dst *network.ServerIdentity, path string, buf []byte) ([]byte, error) {
 	c.Lock()
 	defer c.Unlock()
 	dest := destination{dst, path}
@@ -216,7 +200,7 @@ func (c *Client) Send(dst *network.ServerIdentity, path string, buf []byte) ([]b
 		// Open connection to service.
 		url, err := getWebAddress(dst, false)
 		if err != nil {
-			return nil, NewClientError(err)
+			return nil, err
 		}
 		log.Lvlf4("Sending %x to %s/%s/%s", buf, url, c.service, path)
 		d := &websocket.Dialer{}
@@ -230,7 +214,7 @@ func (c *Client) Send(dst *network.ServerIdentity, path string, buf []byte) ([]b
 			time.Sleep(network.WaitRetry)
 		}
 		if err != nil {
-			return nil, NewClientError(err)
+			return nil, err
 		}
 		c.connections[dest] = conn
 	}
@@ -242,12 +226,12 @@ func (c *Client) Send(dst *network.ServerIdentity, path string, buf []byte) ([]b
 		}
 	}()
 	if err := conn.WriteMessage(websocket.BinaryMessage, buf); err != nil {
-		return nil, NewClientError(err)
+		return nil, err
 	}
 	c.tx += uint64(len(buf))
 	_, rcv, err := conn.ReadMessage()
 	if err != nil {
-		return nil, NewClientError(err)
+		return nil, err
 	}
 	log.Lvlf4("Received %x", rcv)
 	c.rx += uint64(len(rcv))
@@ -259,33 +243,31 @@ func (c *Client) Send(dst *network.ServerIdentity, path string, buf []byte) ([]b
 // protobuf-encoded and sent over the websocket. If ret is non-nil, it
 // has to be a pointer to the struct that is sent back to the
 // client. If there is no error, the ret-structure is filled with the
-// data from the service. ClientError has a code and a msg in case
-// something went wrong.
-func (c *Client) SendProtobuf(dst *network.ServerIdentity, msg interface{}, ret interface{}) ClientError {
+// data from the service.
+func (c *Client) SendProtobuf(dst *network.ServerIdentity, msg interface{}, ret interface{}) error {
 	buf, err := protobuf.Encode(msg)
 	if err != nil {
-		return NewClientError(err)
+		return err
 	}
 	path := strings.Split(reflect.TypeOf(msg).String(), ".")[1]
-	reply, cerr := c.Send(dst, path, buf)
-	if cerr != nil {
-		return cerr
+	reply, err := c.Send(dst, path, buf)
+	if err != nil {
+		return err
 	}
 	if ret != nil {
-		err := protobuf.DecodeWithConstructors(reply, ret,
+		return protobuf.DecodeWithConstructors(reply, ret,
 			network.DefaultConstructors(c.suite))
-		return NewClientError(err)
 	}
 	return nil
 }
 
 // SendToAll sends a message to all ServerIdentities of the Roster and returns
 // all errors encountered concatenated together as a string.
-func (c *Client) SendToAll(dst *Roster, path string, buf []byte) ([][]byte, ClientError) {
+func (c *Client) SendToAll(dst *Roster, path string, buf []byte) ([][]byte, error) {
 	msgs := make([][]byte, len(dst.List))
 	var errstrs []string
 	for i, e := range dst.List {
-		var err ClientError
+		var err error
 		msgs[i], err = c.Send(e, path, buf)
 		if err != nil {
 			errstrs = append(errstrs, fmt.Sprint(e.String(), err.Error()))
@@ -295,7 +277,7 @@ func (c *Client) SendToAll(dst *Roster, path string, buf []byte) ([][]byte, Clie
 	if len(errstrs) > 0 {
 		err = errors.New(strings.Join(errstrs, "\n"))
 	}
-	return msgs, NewClientError(err)
+	return msgs, err
 }
 
 // Close sends a close-command to all open connections and returns nil if no
@@ -341,72 +323,6 @@ func (c *Client) Rx() uint64 {
 	c.Lock()
 	defer c.Unlock()
 	return c.rx
-}
-
-// ClientError allows for returning error-codes and error-messages. It is
-// implemented by cerror, that can be instantiated using NewClientError and
-// NewClientErrorCode.
-type ClientError interface {
-	Error() string
-	ErrorCode() int
-	ErrorMsg() string
-}
-
-type cerror struct {
-	code int
-	msg  string
-}
-
-const wsPrefix = "websocket: close "
-
-// NewClientError takes a standard error and
-// - returns a ClientError if it's a standard error
-// or
-// - parses the wsPrefix to correctly get the id and msg of the error
-func NewClientError(e error) ClientError {
-	if e == nil {
-		return nil
-	}
-	str := e.Error()
-	if strings.HasPrefix(str, wsPrefix) {
-		str = str[len(wsPrefix):]
-		errMsg := strings.SplitN(str, ":", 2)
-		if len(errMsg) > 1 && len(errMsg[1]) > 0 {
-			errMsg[1] = errMsg[1][1:]
-		} else {
-			errMsg = append(errMsg, "")
-		}
-		errCode, _ := strconv.Atoi(errMsg[0])
-		return &cerror{errCode, errMsg[1]}
-	}
-	return &cerror{0, e.Error()}
-}
-
-// NewClientErrorCode takes an errorCode and an errorMsg and returns the
-// corresponding ClientError.
-func NewClientErrorCode(code int, msg string) ClientError {
-	return &cerror{code, msg}
-}
-
-// ErrorCode returns the errorCode.
-func (ce *cerror) ErrorCode() int {
-	return ce.code
-}
-
-// ErrorMsg returns the errorMsg.
-func (ce *cerror) ErrorMsg() string {
-	return ce.msg
-}
-
-// Error makes the cerror-structure confirm to the error-interface.
-func (ce *cerror) Error() string {
-	if ce == nil {
-		return ""
-	}
-	if ce.code > 0 {
-		return fmt.Sprintf(wsPrefix+"%d: %s", ce.code, ce.msg)
-	}
-	return ce.msg
 }
 
 // getWebAddress returns the host:port+1 of the serverIdentity. If

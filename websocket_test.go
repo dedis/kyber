@@ -5,8 +5,6 @@ import (
 
 	"fmt"
 
-	"errors"
-
 	"sync"
 
 	"github.com/dedis/onet/log"
@@ -130,23 +128,6 @@ func TestClient_Parallel(t *testing.T) {
 	wg.Wait()
 }
 
-func TestNewClientError(t *testing.T) {
-	ce := NewClientError(errors.New("websocket:close 1100: hello"))
-	assert.Equal(t, 0, ce.ErrorCode())
-	needsColumn := "websocket: close 1100:"
-	ce = NewClientError(errors.New(needsColumn))
-	assert.Equal(t, 1100, ce.ErrorCode())
-	assert.Equal(t, "", ce.ErrorMsg())
-	str := "websocket: close 1100: hello"
-	ce = NewClientError(errors.New(str))
-	assert.Equal(t, 1100, ce.ErrorCode())
-	assert.Equal(t, "hello", ce.ErrorMsg())
-	assert.Equal(t, str, ce.Error())
-
-	assert.True(t, NewClientError(nil) == nil)
-	assert.True(t, NewClientError((error)(nil)) == nil)
-}
-
 func TestNewClientKeep(t *testing.T) {
 	c := NewClientKeep(serviceWebSocket, tSuite)
 	assert.True(t, c.keep)
@@ -168,11 +149,11 @@ func TestMultiplePath(t *testing.T) {
 	msg, err := protobuf.Encode(&DummyMsg{})
 	require.Equal(t, nil, err)
 	path1, path2 := "path1", "path2"
-	resp, cerr := client.Send(server.ServerIdentity, path1, msg)
-	require.Equal(t, nil, cerr)
+	resp, err := client.Send(server.ServerIdentity, path1, msg)
+	require.Equal(t, nil, err)
 	require.Equal(t, path1, string(resp))
-	resp, cerr = client.Send(server.ServerIdentity, path2, msg)
-	require.Equal(t, nil, cerr)
+	resp, err = client.Send(server.ServerIdentity, path2, msg)
+	require.Equal(t, nil, err)
 	require.Equal(t, path2, string(resp))
 }
 
@@ -182,7 +163,7 @@ type ServiceWebSocket struct {
 	*ServiceProcessor
 }
 
-func (i *ServiceWebSocket) SimpleResponse(msg *SimpleResponse) (network.Message, ClientError) {
+func (i *ServiceWebSocket) SimpleResponse(msg *SimpleResponse) (network.Message, error) {
 	return &SimpleResponse{msg.Val + 1}, nil
 }
 
@@ -199,7 +180,7 @@ const dummyService3Name = "dummyService3"
 type DummyService3 struct {
 }
 
-func (ds *DummyService3) ProcessClientRequest(path string, buf []byte) ([]byte, ClientError) {
+func (ds *DummyService3) ProcessClientRequest(path string, buf []byte) ([]byte, error) {
 	log.Lvl2("Got called with path", path, buf)
 	return []byte(path), nil
 }
