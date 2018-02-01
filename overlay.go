@@ -64,7 +64,7 @@ func NewOverlay(c *Server) *Overlay {
 		pendingTreeMarshal: make(map[RosterID][]*TreeMarshal),
 		pendingConfigs:     make(map[TokenID]*GenericConfig),
 	}
-	o.protoIO = newMessageProxyStore(c, o, c.suite)
+	o.protoIO = newMessageProxyStore(c.suite, c, o)
 	// messages going to protocol instances
 	c.RegisterProcessor(o,
 		ProtocolMsgID,      // protocol instance's messages

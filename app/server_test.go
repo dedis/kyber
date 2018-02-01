@@ -15,7 +15,7 @@ func TestInteractiveConfig(t *testing.T) {
 	log.ErrFatal(err)
 	log.OutputToBuf()
 	setInput("127.0.0.1:2000\nConode1\n" + tmp)
-	InteractiveConfig(tmp+"/config.bin", suites.MustFind("Ed25519"))
+	InteractiveConfig(suites.MustFind("Ed25519"), tmp+"/config.bin")
 	log.ErrFatal(os.RemoveAll(tmp))
 	log.OutputToOs()
 }

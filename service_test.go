@@ -93,7 +93,7 @@ func TestServiceProcessRequest(t *testing.T) {
 	log.Lvl1("Host created and listening")
 	defer local.CloseAll()
 	// Send a request to the service
-	client := NewClient(dummyServiceName, tSuite)
+	client := NewClient(tSuite, dummyServiceName)
 	log.Lvl1("Sending request to service...")
 	_, err = client.Send(server.ServerIdentity, "nil", []byte("a"))
 	log.Lvl2("Got reply")

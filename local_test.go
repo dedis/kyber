@@ -41,7 +41,7 @@ func TestNewTCPTest(t *testing.T) {
 	_, el, _ := l.GenTree(3, true)
 	defer l.CloseAll()
 
-	c1 := NewClient(clientServiceName, tSuite)
+	c1 := NewClient(tSuite, clientServiceName)
 	err := c1.SendProtobuf(el.List[0], &SimpleMessage{}, nil)
 	log.ErrFatal(err)
 }
@@ -67,7 +67,7 @@ func (c *clientService) SimpleMessage2(msg *SimpleMessage2) (network.Message, er
 func newClientService(c *Context) (Service, error) {
 	s := &clientService{
 		ServiceProcessor: NewServiceProcessor(c),
-		cl:               NewClient(clientServiceName, c.server.Suite()),
+		cl:               NewClient(c.server.Suite(), clientServiceName),
 	}
 	log.ErrFatal(s.RegisterHandlers(s.SimpleMessage, s.SimpleMessage2))
 	return s, nil
