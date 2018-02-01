@@ -51,6 +51,5 @@ func (c *Curve) NewKey(stream cipher.Stream) kyber.Scalar {
 	scalar[31] &= 0x3f
 	scalar[31] |= 0x40
 
-	secret := c.Scalar().SetBytes(scalar[:32])
-	return secret
+	return c.Scalar().SetBytes(scalar[:32])
 }

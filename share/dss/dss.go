@@ -24,6 +24,7 @@ import (
 	"github.com/dedis/kyber/share"
 	"github.com/dedis/kyber/sign/eddsa"
 	"github.com/dedis/kyber/sign/schnorr"
+	"github.com/dedis/kyber/util/encoding"
 )
 
 // Suite represents the functionalities needed by the dss package
@@ -208,7 +209,9 @@ func (d *DSS) hashSig() kyber.Scalar {
 	_, _ = d.random.Commitments()[0].MarshalTo(h)
 	_, _ = d.long.Commitments()[0].MarshalTo(h)
 	_, _ = h.Write(d.msg)
-	return d.suite.Scalar().SetBytes(h.Sum(nil))
+	hBuff := h.Sum(nil)
+	encoding.ConvertEndian(hBuff, hBuff)
+	return d.suite.Scalar().SetBytes(hBuff)
 }
 
 // Verify takes a public key, a message and a signature and returns an error if

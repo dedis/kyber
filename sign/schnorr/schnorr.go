@@ -18,6 +18,7 @@ import (
 	"fmt"
 
 	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/util/encoding"
 )
 
 // Suite represents the set of functionalities needed by the package schnorr.
@@ -104,5 +105,7 @@ func hash(g kyber.Group, public, r kyber.Point, msg []byte) (kyber.Scalar, error
 	if _, err := h.Write(msg); err != nil {
 		return nil, err
 	}
-	return g.Scalar().SetBytes(h.Sum(nil)), nil
+	hbuff := h.Sum(nil)
+	encoding.ConvertEndian(hbuff, hbuff)
+	return g.Scalar().SetBytes(hbuff), nil
 }

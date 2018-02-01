@@ -10,6 +10,7 @@ import (
 
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/group/edwards25519"
+	"github.com/dedis/kyber/util/encoding"
 	"github.com/dedis/kyber/util/random"
 )
 
@@ -38,7 +39,8 @@ func NewEdDSA(stream cipher.Stream) *EdDSA {
 
 	scalar := hashSeed(buffer[:])
 
-	secret := group.Scalar().SetBytes(scalar[:32])
+	secret := group.Scalar()
+	secret.UnmarshalBinary(scalar[:32])
 	public := group.Point().Mul(secret, nil)
 
 	return &EdDSA{
@@ -72,7 +74,8 @@ func (e *EdDSA) UnmarshalBinary(buff []byte) error {
 	e.seed = buff[:32]
 	scalar := hashSeed(e.seed)
 	e.prefix = scalar[32:]
-	e.Secret = group.Scalar().SetBytes(scalar[:32])
+	e.Secret = group.Scalar()
+	e.Secret.UnmarshalBinary(scalar[:32])
 	e.Public = group.Point().Mul(e.Secret, nil)
 	return nil
 }
@@ -84,7 +87,10 @@ func (e *EdDSA) Sign(msg []byte) ([]byte, error) {
 	_, _ = hash.Write(msg)
 
 	// deterministic random secret and its commit
-	r := group.Scalar().SetBytes(hash.Sum(nil))
+	r := group.Scalar()
+	rBuff := hash.Sum(nil)
+	encoding.ConvertEndian(rBuff, rBuff)
+	_ = r.SetBytes(rBuff)
 	R := group.Point().Mul(r, nil)
 
 	// challenge
@@ -103,7 +109,10 @@ func (e *EdDSA) Sign(msg []byte) ([]byte, error) {
 	_, _ = hash.Write(Abuff)
 	_, _ = hash.Write(msg)
 
-	h := group.Scalar().SetBytes(hash.Sum(nil))
+	h := group.Scalar()
+	hBuff := hash.Sum(nil)
+	encoding.ConvertEndian(hBuff, hBuff)
+	_ = h.SetBytes(hBuff)
 
 	// response
 	// s = r + h * s
@@ -150,7 +159,10 @@ func Verify(public kyber.Point, msg, sig []byte) error {
 	_, _ = hash.Write(Pbuff)
 	_, _ = hash.Write(msg)
 
-	h := group.Scalar().SetBytes(hash.Sum(nil))
+	h := group.Scalar()
+	hBuff := hash.Sum(nil)
+	encoding.ConvertEndian(hBuff, hBuff)
+	_ = h.SetBytes(hBuff)
 	// reconstruct S == k*A + R
 	S := group.Point().Mul(s, nil)
 	hA := group.Point().Mul(h, public)
