@@ -4,8 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"os/user"
-	"path"
 	"runtime"
 	"sort"
 	"strconv"
@@ -14,6 +12,7 @@ import (
 	"time"
 
 	"github.com/dedis/kyber"
+	"github.com/dedis/onet/app/path"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
 )
@@ -45,18 +44,7 @@ type Server struct {
 func dbPathFromEnv() string {
 	p := os.Getenv("CONODE_SERVICE_PATH")
 	if p == "" {
-		u, err := user.Current()
-		if err != nil {
-			log.Fatal("Couldn't get current user's environment:", err)
-		}
-		switch runtime.GOOS {
-		case "darwin":
-			p = path.Join(u.HomeDir, "Library", "Conode", "Services")
-		case "windows":
-			p = path.Join(u.HomeDir, "AppData", "Local", "Conode")
-		default:
-			p = path.Join(u.HomeDir, ".local", "share", "conode")
-		}
+		p = path.GetDataPath("conode")
 	}
 	return p
 }

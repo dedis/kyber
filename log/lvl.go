@@ -6,12 +6,11 @@ import (
 	"os"
 	"regexp"
 	"runtime"
+	"runtime/pprof"
 	"strconv"
 	"sync"
 	"testing"
 	"time"
-
-	"runtime/pprof"
 
 	"github.com/daviddengcn/go-colortext"
 )
