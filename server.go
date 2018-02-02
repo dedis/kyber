@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/dedis/kyber"
-	"github.com/dedis/onet/app/path"
+	"github.com/dedis/onet/cfgpath"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
 )
@@ -44,7 +44,7 @@ type Server struct {
 func dbPathFromEnv() string {
 	p := os.Getenv("CONODE_SERVICE_PATH")
 	if p == "" {
-		p = path.GetDataPath("conode")
+		p = cfgpath.GetDataPath("conode")
 	}
 	return p
 }
@@ -82,16 +82,6 @@ func newServer(s network.Suite, dbPath string, r *network.Router, pkey kyber.Sca
 
 // NewServerTCP returns a new Server out of a private-key and its related public
 // key within the ServerIdentity. The server will use a default TcpRouter as Router.
-//
-// The path to the file is chosen as follows:
-//   Mac: ~/Library/Conode/Services
-//   Other Unix: ~/.local/share/conode
-//   Windows: $HOME$\AppData\Local\Conode
-//
-// If the directory doesn't exist, it will be created using rwxr-x---
-// permissions (0750).
-//
-// The path can be overridden with the environmental variable "CONODE_SERVICE_PATH".
 func NewServerTCP(e *network.ServerIdentity, pkey kyber.Scalar, suite network.Suite) *Server {
 	r, err := network.NewTCPRouter(e, suite)
 	log.ErrFatal(err)

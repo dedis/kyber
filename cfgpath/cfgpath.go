@@ -1,4 +1,4 @@
-package path
+package cfgpath
 
 import (
 	"os"
@@ -43,14 +43,14 @@ func GetConfigPath(appName string) string {
 
 // GetDataPath returns the location for which the data files are stored.
 // Linux:	we follow the XDG Base Directory specification
-// All others:	the "Data" directory in the path retunred by GetConfigPath
+// All others:	the "data" directory in the path retunred by GetConfigPath
 func GetDataPath(appName string) string {
 	switch runtime.GOOS {
 	case "linux", "freebsd":
 		u, err := user.Current()
 		if err != nil {
 			log.Error("could not get your home-directory switching back to current dir.")
-			return path.Join(getCurrentDir(appName), "Data")
+			return path.Join(getCurrentDir(appName), "data")
 		}
 		xdg := os.Getenv("XDG_DATA_HOME")
 		if xdg != "" {
@@ -59,7 +59,7 @@ func GetDataPath(appName string) string {
 		return path.Join(u.HomeDir, ".local", "share", appName)
 	default:
 		p := GetConfigPath(appName)
-		return path.Join(p, "Data")
+		return path.Join(p, "data")
 	}
 }
 

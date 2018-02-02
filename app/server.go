@@ -15,7 +15,7 @@ import (
 
 	"github.com/dedis/kyber/util/encoding"
 	"github.com/dedis/kyber/util/key"
-	apath "github.com/dedis/onet/app/path"
+	"github.com/dedis/onet/cfgpath"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
 	"github.com/shirou/gopsutil/mem"
@@ -140,7 +140,7 @@ func InteractiveConfig(suite network.Suite, binaryName string) {
 	}
 
 	var configFolder string
-	var defaultFolder = apath.GetConfigPath(binaryName)
+	var defaultFolder = cfgpath.GetConfigPath(binaryName)
 	var configFile string
 	var groupFile string
 
