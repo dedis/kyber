@@ -218,11 +218,13 @@ func (r *RunConfig) GetInt(field string) (int, error) {
 	return ret, err
 }
 
+var ErrorFieldNotPresent = errors.New("field not present")
+
 // GetDuration returns the field parsed as a duration, or error if a parse error occurs.
 func (r *RunConfig) GetDuration(field string) (time.Duration, error) {
 	val := r.Get(field)
 	if val == "" {
-		return 0, errors.New("Didn't find " + field)
+		return 0, ErrorFieldNotPresent
 	}
 	return time.ParseDuration(val)
 }
