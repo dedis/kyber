@@ -7,7 +7,6 @@
 //   go build -tags vartime
 //   go install -tags vartime
 //   go test -tags vartime
-
 package suites
 
 import (
