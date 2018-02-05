@@ -123,8 +123,8 @@ func (p *PriPoly) Equal(q *PriPoly) bool {
 	}
 	b := 1
 	for i := 0; i < p.Threshold(); i++ {
-		pb := p.coeffs[i].Bytes()
-		qb := q.coeffs[i].Bytes()
+		pb, _ := p.coeffs[i].MarshalBinary()
+		qb, _ := q.coeffs[i].MarshalBinary()
 		b &= subtle.ConstantTimeCompare(pb, qb)
 	}
 	return b == 1

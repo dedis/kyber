@@ -51,12 +51,11 @@ type Scalar interface {
 	// Set to a fresh random or pseudo-random scalar
 	Pick(rand cipher.Stream) Scalar
 
-	// SetBytes sets the scalar from a big-endian byte-slice,
+	// SetBytes sets the scalar from a byte-slice,
 	// reducing if necessary to the appropriate modulus.
+	// The endianess of the byte-slice is determined by the
+	// implementation.
 	SetBytes([]byte) Scalar
-
-	// Bytes returns a big-endian representation of the scalar
-	Bytes() []byte
 }
 
 // A Point kyber.y represents an element of a public-key cryptographic Group.
