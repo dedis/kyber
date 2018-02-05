@@ -149,16 +149,9 @@ func Simulate(suite, serverAddress, simul, monitorAddress string) error {
 			log.Error("The tree doesn't use all ServerIdentities from the list!\n" +
 				"This means that the CloseAll will fail and the experiment never ends!")
 		}
-		closeTree := rootSC.Tree
-		if rootSC.GetSingleHost() {
-			// In case of "SingleHost" we need a new tree that contains every
-			// entity only once, whereas rootSC.Tree will have the same
-			// entity at different TreeNodes, which makes it difficult to
-			// correctly close everything.
-			log.Lvl2("Making new root-tree for SingleHost config")
-			closeTree = rootSC.Roster.GenerateBinaryTree()
-			rootSC.Overlay.RegisterTree(closeTree)
-		}
+		// Recreate a tree out of the original roster, to be sure all nodes are included and
+		// that the tree is easy to close.
+		closeTree := rootSC.Roster.GenerateBinaryTree()
 		pi, err := rootSC.Overlay.CreateProtocol("CloseAll", closeTree, onet.NilServiceID)
 		pi.Start()
 		if err != nil {
