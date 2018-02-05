@@ -329,7 +329,7 @@ func getRunWait(rc *platform.RunConfig) (time.Duration, error) {
 	return 0, err
 }
 
-// getExperimentWait returns
+// getExperimentWait returns, in the following order of precedence:
 // 1. the command-line value
 // 2. the value from runconfig
 // 3. #runconfigs * runWait
@@ -351,7 +351,7 @@ func getExperimentWait(rcs []*platform.RunConfig) (time.Duration, error) {
 	for _, rc := range rcs {
 		w, err := getRunWait(rc)
 		if err != nil {
-			log.Fatal("RunWait:", err)
+			return 0, err
 		}
 		wait += w
 	}
