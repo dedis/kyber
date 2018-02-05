@@ -16,25 +16,20 @@
 package platform
 
 import (
-	"os"
-	"os/exec"
-	"strings"
-	"sync"
-
 	"bufio"
+	"errors"
 	"fmt"
 	"io/ioutil"
-	"path"
-	"strconv"
-	"time"
-
+	"os"
+	"os/exec"
 	"os/user"
-
-	"runtime"
-
+	"path"
 	"path/filepath"
-
-	"errors"
+	"runtime"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
 
 	"github.com/BurntSushi/toml"
 	"github.com/dedis/onet"
@@ -352,8 +347,7 @@ func (d *Deterlab) Wait() error {
 			}
 			log.Lvl1("Received out-of-line message", msg)
 		case <-time.After(wait):
-			log.Lvl1("Quitting after ", wait/60,
-				" minutes of waiting")
+			log.Lvl1("Quitting after waiting", wait)
 			d.started = false
 		}
 		d.started = false
