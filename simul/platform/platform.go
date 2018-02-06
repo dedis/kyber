@@ -208,11 +208,14 @@ func (r *RunConfig) Delete(field string) {
 	delete(r.fields, field)
 }
 
+// ErrorFieldNotPresent signals that a field is not in the RunConfig.
+var ErrorFieldNotPresent = errors.New("field not present")
+
 // GetInt returns the integer of the field, or error if not defined
 func (r *RunConfig) GetInt(field string) (int, error) {
 	val := r.Get(field)
 	if val == "" {
-		return 0, errors.New("Didn't find " + field)
+		return 0, ErrorFieldNotPresent
 	}
 	ret, err := strconv.Atoi(val)
 	return ret, err
@@ -222,7 +225,7 @@ func (r *RunConfig) GetInt(field string) (int, error) {
 func (r *RunConfig) GetDuration(field string) (time.Duration, error) {
 	val := r.Get(field)
 	if val == "" {
-		return 0, errors.New("Didn't find " + field)
+		return 0, ErrorFieldNotPresent
 	}
 	return time.ParseDuration(val)
 }

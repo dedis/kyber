@@ -16,25 +16,20 @@
 package platform
 
 import (
-	"os"
-	"os/exec"
-	"strings"
-	"sync"
-
 	"bufio"
+	"errors"
 	"fmt"
 	"io/ioutil"
-	"path"
-	"strconv"
-	"time"
-
+	"os"
+	"os/exec"
 	"os/user"
-
-	"runtime"
-
+	"path"
 	"path/filepath"
-
-	"errors"
+	"runtime"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
 
 	"github.com/BurntSushi/toml"
 	"github.com/dedis/onet"
@@ -91,7 +86,7 @@ type Deterlab struct {
 	// Debugging-level: 0 is none - 5 is everything
 	Debug int
 	// RunWait for long simulations
-	RunWait int
+	RunWait time.Duration
 	// suite used for the simulation
 	Suite string
 	// PreScript defines a script that is run before the simulation
@@ -340,7 +335,7 @@ func (d *Deterlab) Start(args ...string) error {
 func (d *Deterlab) Wait() error {
 	wait := d.RunWait
 	if wait == 0 {
-		wait = 600
+		wait = 600 * time.Second
 	}
 	if d.started {
 		log.Lvl3("Simulation is started")
@@ -351,9 +346,8 @@ func (d *Deterlab) Wait() error {
 				return nil
 			}
 			log.Lvl1("Received out-of-line message", msg)
-		case <-time.After(time.Second * time.Duration(wait)):
-			log.Lvl1("Quitting after ", wait/60,
-				" minutes of waiting")
+		case <-time.After(wait):
+			log.Lvl1("Quitting after waiting", wait)
 			d.started = false
 		}
 		d.started = false

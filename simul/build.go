@@ -81,7 +81,10 @@ func startBuild() {
 		} else {
 			logname := strings.Replace(filepath.Base(simulation), ".toml", "", 1)
 			testsDone := make(chan bool)
-			timeout := getExperimentWait(runconfigs)
+			timeout, err := getExperimentWait(runconfigs)
+			if err != nil {
+				log.Fatal("ExperimentWait:", err)
+			}
 			go func() {
 				RunTests(logname, runconfigs)
 				testsDone <- true
@@ -210,7 +213,11 @@ func RunTest(rc *platform.RunConfig) (*monitor.Stats, error) {
 		log.Lvl3("Test complete:", rs)
 	}()
 
-	timeout := getRunWait(rc)
+	timeout, err := getRunWait(rc)
+	if err != nil {
+		log.Fatal("RunWait:", err)
+	}
+
 	// can timeout the command if it takes too long
 	select {
 	case err := <-done:
@@ -311,29 +318,42 @@ func getStartStop(rcs int) (int, int) {
 
 // getRunWait returns either the command-line value or the value from the runconfig
 // file
-func getRunWait(rc *platform.RunConfig) time.Duration {
+func getRunWait(rc *platform.RunConfig) (time.Duration, error) {
 	rcWait, err := rc.GetDuration("runwait")
-	if err == nil {
-		return rcWait
+	if err == platform.ErrorFieldNotPresent {
+		return runWait, nil
 	}
-	return runWait
+	if err == nil {
+		return rcWait, nil
+	}
+	return 0, err
 }
 
-// getExperimentWait returns
+// getExperimentWait returns, in the following order of precedence:
 // 1. the command-line value
 // 2. the value from runconfig
 // 3. #runconfigs * runWait
-func getExperimentWait(rcs []*platform.RunConfig) time.Duration {
+func getExperimentWait(rcs []*platform.RunConfig) (time.Duration, error) {
 	if experimentWait > 0 {
-		return experimentWait
+		return experimentWait, nil
 	}
 	rcExp, err := rcs[0].GetDuration("experimentwait")
 	if err == nil {
-		return rcExp
+		return rcExp, nil
 	}
+	// Probably a parse error parsing the duration.
+	if err != platform.ErrorFieldNotPresent {
+		return 0, err
+	}
+
+	// Otherwise calculate a useful default.
 	wait := 0 * time.Second
 	for _, rc := range rcs {
-		wait += getRunWait(rc)
+		w, err := getRunWait(rc)
+		if err != nil {
+			return 0, err
+		}
+		wait += w
 	}
-	return wait
+	return wait, nil
 }

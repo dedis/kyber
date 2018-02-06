@@ -6,22 +6,16 @@ package platform
 
 import (
 	"fmt"
+	"io/ioutil"
+	"net"
 	"os"
 	"os/exec"
-	"path/filepath"
-	"time"
-
-	"net"
-
-	"io/ioutil"
-
 	"path"
-
-	"strings"
-
-	"sort"
-
+	"path/filepath"
 	"runtime"
+	"sort"
+	"strings"
+	"time"
 
 	"github.com/BurntSushi/toml"
 	"github.com/dedis/onet"
@@ -75,7 +69,7 @@ type MiniNet struct {
 	// Whether to show color debugging-messages
 	DebugColor bool
 	// The number of seconds to wait for closing the connection
-	RunWait int
+	RunWait time.Duration
 	// Delay in ms of the network connection
 	Delay int
 	// Bandwidth in Mbps of the network connection
@@ -301,7 +295,7 @@ func (m *MiniNet) Start(args ...string) error {
 func (m *MiniNet) Wait() error {
 	wait := m.RunWait
 	if wait == 0 {
-		wait = 600
+		wait = 600 * time.Second
 	}
 	if m.started {
 		log.Lvl3("Simulation is started")
@@ -312,9 +306,8 @@ func (m *MiniNet) Wait() error {
 				return nil
 			}
 			log.Lvl1("Received out-of-line message", msg)
-		case <-time.After(time.Second * time.Duration(wait)):
-			log.Lvl1("Quitting after ", wait/60,
-				" minutes of waiting")
+		case <-time.After(wait):
+			log.Lvl1("Quitting after waiting", wait)
 			m.started = false
 		}
 		m.started = false
