@@ -16,6 +16,16 @@ var testP256 = NewBlakeSHA256P256()
 
 func TestP256(t *testing.T) { test.SuiteTest(testP256) }
 
+func TestSetBytesBE(t *testing.T) {
+	s := testP256.Scalar()
+	s.SetBytes([]byte{0, 1, 2, 3})
+	// 010203 because initial 0 is trimmed in String(), and 03 (last byte of BE) ends up
+	// in the LSB of the bigint.
+	if s.String() != "010203" {
+		t.Fatal("unexpected result from String():", s.String())
+	}
+}
+
 var benchP256 = test.NewGroupBench(testP256)
 
 func BenchmarkScalarAdd(b *testing.B)    { benchP256.ScalarAdd(b.N) }

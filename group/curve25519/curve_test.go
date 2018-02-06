@@ -49,6 +49,17 @@ func TestE521(t *testing.T) {
 	test.GroupTest(new(ExtendedCurve).Init(ParamE521(), false))
 }
 
+func TestSetBytesBE(t *testing.T) {
+	g := new(ExtendedCurve).Init(ParamE521(), false)
+	s := g.Scalar()
+	s.SetBytes([]byte{0, 1, 2, 3})
+	// 010203 because initial 0 is trimmed in String(), and 03 (last byte of BE) ends up
+	// in the LSB of the bigint.
+	if s.String() != "010203" {
+		t.Fatal("unexpected result from String():", s.String())
+	}
+}
+
 // Test the full-group-order Extended coordinates versions of each curve
 // for which a full-group-order base point is defined.
 
