@@ -123,6 +123,7 @@ func (c *TCPConn) receiveRaw() ([]byte, error) {
 		n, err := c.conn.Read(b)
 		// Quit if there is an error.
 		if err != nil {
+			c.updateRx(4 + uint64(read))
 			return nil, handleError(err)
 		}
 		// Append the read bytes into the buffer.
@@ -133,8 +134,9 @@ func (c *TCPConn) receiveRaw() ([]byte, error) {
 		b = b[n:]
 	}
 
-	// register how many bytes we read.
-	c.updateRx(uint64(read))
+	// register how many bytes we read. (4 is for the frame size
+	// that we read up above).
+	c.updateRx(4 + uint64(read))
 	return buffer.Bytes(), nil
 }
 
@@ -168,12 +170,13 @@ func (c *TCPConn) sendRaw(b []byte) error {
 	for sent < packetSize {
 		n, err := c.conn.Write(b[sent:])
 		if err != nil {
+			c.updateTx(4 + uint64(sent))
 			return handleError(err)
 		}
 		sent += Size(n)
 	}
-	// update stats on the connection.
-	c.updateTx(uint64(packetSize))
+	// update stats on the connection. Plus 4 for the uint32 for the frame size.
+	c.updateTx(4 + uint64(sent))
 	return nil
 }
 

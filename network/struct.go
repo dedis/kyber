@@ -173,29 +173,31 @@ type counterSafe struct {
 }
 
 // Rx returns the rx counter
-func (c *counterSafe) Rx() uint64 {
+func (c *counterSafe) Rx() (out uint64) {
 	c.Lock()
-	defer c.Unlock()
-	return c.rx
+	out = c.rx
+	c.Unlock()
+	return
 }
 
 // Tx returns the tx counter
-func (c *counterSafe) Tx() uint64 {
+func (c *counterSafe) Tx() (out uint64) {
 	c.Lock()
-	defer c.Unlock()
-	return c.tx
+	out = c.tx
+	c.Unlock()
+	return
 }
 
 // updateRx adds delta to the rx counter
 func (c *counterSafe) updateRx(delta uint64) {
 	c.Lock()
-	defer c.Unlock()
 	c.rx += delta
+	c.Unlock()
 }
 
 // updateTx adds delta to the tx counter
 func (c *counterSafe) updateTx(delta uint64) {
 	c.Lock()
-	defer c.Unlock()
 	c.tx += delta
+	c.Unlock()
 }
