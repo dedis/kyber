@@ -7,20 +7,17 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"os/user"
 	"path"
 	"runtime"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/util/encoding"
 	"github.com/dedis/kyber/util/key"
-	"github.com/dedis/onet"
+	"github.com/dedis/onet/cfgpath"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
-
 	"github.com/shirou/gopsutil/mem"
 )
 
@@ -142,13 +139,12 @@ func InteractiveConfig(suite network.Suite, binaryName string) {
 			"Give a description of the cothority"),
 	}
 
-	var configDone bool
 	var configFolder string
-	var defaultFolder = path.Dir(GetDefaultConfigFile(binaryName))
+	var defaultFolder = cfgpath.GetConfigPath(binaryName)
 	var configFile string
 	var groupFile string
 
-	for !configDone {
+	for {
 		// get name of config file and write to config file
 		configFolder = Input(defaultFolder, "Please enter a folder for the configuration files")
 		configFile = path.Join(configFolder, DefaultServerConfig)
@@ -177,16 +173,6 @@ func InteractiveConfig(suite network.Suite, binaryName string) {
 
 	saveFiles(conf, configFile, group, groupFile)
 	log.Info("All configurations saved, ready to serve signatures now.")
-}
-
-// entityListToPublics returns a slice of Points of all elements
-// of the roster.
-func entityListToPublics(el *onet.Roster) []kyber.Point {
-	publics := make([]kyber.Point, len(el.List))
-	for i, e := range el.List {
-		publics[i] = e.Public
-	}
-	return publics
 }
 
 // Returns true if file exists and user confirms overwriting, or if file doesn't exist.
@@ -231,31 +217,6 @@ func saveFiles(conf *CothorityConfig, fileConf string, group *GroupToml, fileGro
 
 	log.Info("Saved a group definition snippet for your server at", fileGroup)
 	log.Info(group.String())
-
-}
-
-// GetDefaultConfigFile returns the default path to the configuration-path, which
-// is ~/.config/binaryName for Unix and ~/Library/binaryName for MacOSX.
-// In case of an error it Fatals.
-func GetDefaultConfigFile(binaryName string) string {
-	u, err := user.Current()
-	// can't get the user dir, so fallback to current working dir
-	if err != nil {
-		log.Error("Could not get your home-directory (", err.Error(), "). Switching back to current dir.")
-		if curr, err := os.Getwd(); err != nil {
-			log.Fatal("Impossible to get the current directory:", err)
-		} else {
-			return path.Join(curr, DefaultServerConfig)
-		}
-	}
-	// Fetch standard folders.
-	switch runtime.GOOS {
-	case "darwin":
-		return path.Join(u.HomeDir, "Library", binaryName, DefaultServerConfig)
-	default:
-		return path.Join(u.HomeDir, ".config", binaryName, DefaultServerConfig)
-		// TODO Windows? FreeBSD?
-	}
 }
 
 // askReachableAddress uses stdin to get the contactable IP-address of the server
@@ -351,8 +312,8 @@ func tryConnect(ip, binding network.Address) error {
 	return nil
 }
 
-//checkAvailableMemory detects the system's memory and warns if there is not
-//enough. Works only with darwin or linux
+// checkAvailableMemory detects the system's memory and warns if there is not
+// enough. Works only with darwin or linux
 func checkAvailableMemory() {
 	log.Info("checking system memory")
 	if runtime.GOOS == "darwin" || runtime.GOOS == "linux" {
