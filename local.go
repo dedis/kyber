@@ -3,11 +3,10 @@ package onet
 import (
 	"errors"
 	"io/ioutil"
+	"net"
 	"os"
 	"strconv"
 	"time"
-
-	"net"
 
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/util/key"
@@ -168,6 +167,9 @@ func (l *LocalTest) GenRosterFromHost(servers ...*Server) *Roster {
 		entities = append(entities, servers[i].ServerIdentity)
 	}
 	list := NewRoster(entities)
+	if list == nil {
+		return nil
+	}
 	l.Rosters[list.ID] = list
 	return list
 }
