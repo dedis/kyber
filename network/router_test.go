@@ -196,6 +196,7 @@ func testRouterAutoConnection(t *testing.T, fac routerFactory) {
 	require.NotNil(t, h21)
 	assert.Nil(t, h21.Close())
 	time.Sleep(100 * time.Millisecond)
+
 	err = h1.Send(h2.ServerIdentity, &SimpleMessage{12})
 	require.Nil(t, err)
 	<-proc.relay
@@ -204,8 +205,10 @@ func testRouterAutoConnection(t *testing.T, fac routerFactory) {
 		t.Fatal("Should be able to stop h2")
 	}
 	err = h1.Send(h2.ServerIdentity, &SimpleMessage{12})
+	if err == nil {
+		t.Error("h1 let us send still")
+	}
 	require.NotNil(t, err)
-
 }
 
 // Test connection of multiple Hosts and sending messages back and forth
