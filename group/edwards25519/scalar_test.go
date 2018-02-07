@@ -8,7 +8,7 @@ import (
 )
 
 // SimpleCTScalar implements the scalar operations only using `ScMulAdd` by
-// plaiying with the parameters.
+// playing with the parameters.
 type SimpleCTScalar struct {
 	*scalar
 }
@@ -103,7 +103,15 @@ func TestString(t *testing.T) {
 	s.SetInt64(0x100)
 	s.Add(s, one)
 	if s.String() != "0101000000000000000000000000000000000000000000000000000000000000" {
-		t.Fatal("unexepcted result from String():", s.String())
+		t.Fatal("unexpected result from String():", s.String())
+	}
+}
+
+func TestSetBytesLE(t *testing.T) {
+	s := new(scalar)
+	s.SetBytes([]byte{0, 1, 2, 3})
+	if s.String() != "0001020300000000000000000000000000000000000000000000000000000000" {
+		t.Fatal("unexpected result from String():", s.String())
 	}
 }
 

@@ -141,19 +141,6 @@ func (s *scalar) SetBytes(b []byte) kyber.Scalar {
 	return s.setInt(mod.NewIntBytes(b, primeOrder, mod.LittleEndian))
 }
 
-// Bytes returns a big-endian representation of the scalar
-func (s *scalar) Bytes() []byte {
-	var buf = s.v
-	reverse(buf[:], buf[:])
-	var i int
-	for i = 0; i < 32; i++ {
-		if buf[i] != 0 {
-			break
-		}
-	}
-	return buf[i:]
-}
-
 // String returns the string representation of this scalar (fixed length of 32 bytes, little endian).
 func (s *scalar) String() string {
 	b, _ := s.toInt().MarshalBinary()
@@ -2235,16 +2222,4 @@ func scReduce(out *[32]byte, s *[64]byte) {
 	out[29] = byte(s11 >> 1)
 	out[30] = byte(s11 >> 9)
 	out[31] = byte(s11 >> 17)
-}
-
-// reverse copies src into dst in byte-reversed order and returns dst,
-// such that src[0] goes into dst[len-1] and vice versa.
-// dst and src may be the same slice but otherwise must not overlap.
-func reverse(dst, src []byte) []byte {
-	l := len(dst)
-	for i, j := 0, l-1; i < (l+1)/2; i++ {
-		dst[i], dst[j] = src[j], src[i]
-		j--
-	}
-	return dst
 }

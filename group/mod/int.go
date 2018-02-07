@@ -385,16 +385,6 @@ func (i *Int) SetBytes(a []byte) kyber.Scalar {
 	return i
 }
 
-// Bytes returns the variable length byte slice of the value.
-// It returns the byte slice using the same endianness as i.
-func (i *Int) Bytes() []byte {
-	buff := i.V.Bytes()
-	if i.BO == LittleEndian {
-		reverse(buff, buff)
-	}
-	return buff
-}
-
 // LittleEndian encodes the value of this Int into a little-endian byte-slice
 // at least min bytes but no more than max bytes long.
 // Panics if max != 0 and the Int cannot be represented in max bytes.

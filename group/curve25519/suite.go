@@ -50,6 +50,10 @@ func (s *SuiteEd25519) RandomStream() cipher.Stream {
 // github.com/dedis/kyber/xof/blake, SHA-256, and Curve25519.
 //
 // If fullGroup is false, then the group is the prime-order subgroup.
+//
+// The scalars created by this group implement kyber.Scalar's SetBytes
+// method, interpreting the bytes as a big-endian integer, so as to be
+// compatible with the Go standard library's big.Int type.
 func NewBlakeSHA256Curve25519(fullGroup bool) *SuiteEd25519 {
 	suite := new(SuiteEd25519)
 	suite.Init(Param25519(), fullGroup)

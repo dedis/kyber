@@ -26,6 +26,10 @@ func (c *Curve) ScalarLen() int {
 }
 
 // Scalar creates a new Scalar for the prime-order subgroup of the Ed25519 curve.
+// The scalars in this package implement kyber.Scalar's SetBytes
+// method, interpreting the bytes as a little-endian integer, in order to remain
+// compatible with other Ed25519 implementations, and with the standard implementation
+// of the EdDSA signature.
 func (c *Curve) Scalar() kyber.Scalar {
 	return &scalar{}
 }

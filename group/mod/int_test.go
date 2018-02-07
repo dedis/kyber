@@ -69,7 +69,8 @@ func TestInits(t *testing.T) {
 	i1 := NewInt64(int64(65500), big.NewInt(65535))
 	i2 := NewInt(&i1.V, i1.M)
 	assert.True(t, i1.Equal(i2))
-	i3 := NewIntBytes(i1.Bytes(), i1.M, BigEndian)
+	b, _ := i1.MarshalBinary()
+	i3 := NewIntBytes(b, i1.M, BigEndian)
 	assert.True(t, i1.Equal(i3))
 	i4 := NewIntString(i1.String(), "", 16, i1.M)
 	assert.True(t, i1.Equal(i4))
@@ -81,7 +82,9 @@ func TestIntClone(t *testing.T) {
 
 	clone := base.Clone()
 	clone.Add(clone, clone)
-	if bytes.Compare(clone.Bytes(), base.Bytes()) == 0 {
+	b1, _ := clone.MarshalBinary()
+	b2, _ := base.MarshalBinary()
+	if bytes.Compare(b1, b2) == 0 {
 		t.Error("Should not be equal")
 	}
 }
