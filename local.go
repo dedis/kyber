@@ -316,7 +316,7 @@ func (l *LocalTest) GetServices(servers []*Server, sid ServiceID) []Service {
 // MakeHELS creates nbr servers, and will return the associated roster. It also
 // returns the Service object of the first server in the list having sid as a
 // ServiceID.
-func (l *LocalTest) MakeHELS(nbr int, sid ServiceID, s network.Suite) ([]*Server, *Roster, Service) {
+func (l *LocalTest) MakeHELS(s network.Suite, nbr int, sid ServiceID) ([]*Server, *Roster, Service) {
 	l.panicClosed()
 	servers := l.GenServers(nbr)
 	el := l.GenRosterFromHost(servers...)
@@ -412,7 +412,7 @@ func (l *LocalTest) genLocalHosts(n int) []*Server {
 	servers := make([]*Server, n)
 	for i := 0; i < n; i++ {
 		port := 2000 + i*10
-		servers[i] = l.NewServer(port, l.Suite)
+		servers[i] = l.NewServer(l.Suite, port)
 	}
 	return servers
 }
@@ -420,14 +420,14 @@ func (l *LocalTest) genLocalHosts(n int) []*Server {
 // NewServer returns a new server which type is determined by the local mode:
 // TCP or Local. If it's TCP, then an available port is used, otherwise, the
 // port given in argument is used.
-func (l *LocalTest) NewServer(port int, s network.Suite) *Server {
+func (l *LocalTest) NewServer(s network.Suite, port int) *Server {
 	l.panicClosed()
 	var server *Server
 	switch l.mode {
 	case TCP:
 		server = l.newTCPServer(s)
 	default:
-		server = l.NewLocalServer(port, s)
+		server = l.NewLocalServer(s, port)
 	}
 	return server
 }
@@ -445,7 +445,7 @@ func (l *LocalTest) newTCPServer(s network.Suite) *Server {
 
 // NewLocalServer returns a fresh Host using local connections within the context
 // of this LocalTest
-func (l *LocalTest) NewLocalServer(port int, s network.Suite) *Server {
+func (l *LocalTest) NewLocalServer(s network.Suite, port int) *Server {
 	l.panicClosed()
 	priv, id := NewPrivIdentity(s, port)
 	localRouter, err := network.NewLocalRouterWithManager(l.ctx, id, s)
