@@ -313,10 +313,9 @@ func (l *LocalTest) GetServices(servers []*Server, sid ServiceID) []Service {
 	return services
 }
 
-// MakeHELS creates nbr servers, and will return the associated roster. It also
-// returns the Service object of the first server in the list having sid as a
-// ServiceID.
-func (l *LocalTest) MakeHELS(s network.Suite, nbr int, sid ServiceID) ([]*Server, *Roster, Service) {
+// MakeSRS creates and returns nbr Servers, the associated Roster and the
+// Service object of the first server in the list having sid as a ServiceID.
+func (l *LocalTest) MakeSRS(s network.Suite, nbr int, sid ServiceID) ([]*Server, *Roster, Service) {
 	l.panicClosed()
 	servers := l.GenServers(nbr)
 	el := l.GenRosterFromHost(servers...)
