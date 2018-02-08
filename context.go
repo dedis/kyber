@@ -79,7 +79,7 @@ func (c *Context) RegisterProtocolInstance(pi ProtocolInstance) error {
 }
 
 // ReportStatus returns all status of the services.
-func (c *Context) ReportStatus() map[string]*Status {
+func (c *Context) ReportStatus() map[string]Status {
 	return c.server.statusReporterStruct.ReportStatus()
 }
 

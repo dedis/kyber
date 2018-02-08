@@ -1,13 +1,11 @@
 package onet
 
 // Status holds key/value pairs of the status to be returned to the requester.
-type Status struct {
-	Field map[string]string
-}
+type Status map[string]string
 
 // StatusReporter is the interface that all structures that want to return a status will implement.
 type StatusReporter interface {
-	GetStatus() *Status
+	GetStatus() Status
 }
 
 // statusReporterStruct holds a map of all StatusReporters.
@@ -30,19 +28,10 @@ func (s *statusReporterStruct) RegisterStatusReporter(name string, sr StatusRepo
 
 // ReportStatus gets the status of all StatusReporters within the Registry and
 // puts them in a map
-func (s *statusReporterStruct) ReportStatus() map[string]*Status {
-	m := make(map[string]*Status)
+func (s *statusReporterStruct) ReportStatus() map[string]Status {
+	m := make(map[string]Status)
 	for key, val := range s.statusReporters {
 		m[key] = val.GetStatus()
 	}
 	return m
-}
-
-// Merge will set s to contain both entries of s and s2
-// It returns s
-func (s *Status) Merge(s2 *Status) *Status {
-	for k, v := range s2.Field {
-		s.Field[k] = v
-	}
-	return s
 }
