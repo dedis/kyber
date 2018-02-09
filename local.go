@@ -364,6 +364,7 @@ func newTCPServer(s network.Suite, port int, path string) *Server {
 	}
 	id.Address = network.NewAddress(id.Address.ConnType(), "127.0.0.1:"+id.Address.Port())
 	router := network.NewRouter(id, tcpHost)
+	router.UnauthOk = true
 	h := newServer(s, path, router, priv)
 	go h.Start()
 	for !h.Listening() {

@@ -23,7 +23,9 @@ func NewLocalRouterWithManager(lm *LocalManager, sid *ServerIdentity, s Suite) (
 	if err != nil {
 		return nil, err
 	}
-	return NewRouter(sid, h), nil
+	r := NewRouter(sid, h)
+	r.UnauthOk = true
+	return r, nil
 }
 
 // LocalManager keeps a reference to all opened local connections.

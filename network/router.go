@@ -53,6 +53,9 @@ type Router struct {
 	// If paused is not nil, then handleConn will stop processing. When unpaused
 	// it will break the connection. This is for testing node failure cases.
 	paused chan bool
+	// This field should only be set during testing. It disables an important
+	// log message meant to discourage TCP connections.
+	UnauthOk bool
 }
 
 // NewRouter returns a new Router attached to a ServerIdentity and the host we want to
@@ -422,7 +425,9 @@ func (r *Router) receiveServerIdentity(c Conn) (*ServerIdentity, error) {
 			log.Lvl4(r.address, "Public key from CommonName and ServerIdentity match:", pub)
 		} else {
 			// We get here for TCPConn && !tls.Conn. Make them wish they were using TLS...
-			log.Warn("Public key", dst.Public, "from ServerIdentity not authenticated.")
+			if !r.UnauthOk {
+				log.Warn("Public key", dst.Public, "from ServerIdentity not authenticated.")
+			}
 		}
 	}
 
