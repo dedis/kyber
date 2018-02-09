@@ -35,9 +35,6 @@ func NewTCPRouter(sid *ServerIdentity, suite Suite) (*Router, error) {
 
 // TCPConn implements the Conn interface using plain, unencrypted TCP.
 type TCPConn struct {
-	// The name of the endpoint we are connected to.
-	endpoint Address
-
 	// The connection used
 	conn net.Conn
 
@@ -64,9 +61,8 @@ func NewTCPConn(addr Address, suite Suite) (conn *TCPConn, err error) {
 		c, err = net.Dial("tcp", netAddr)
 		if err == nil {
 			conn = &TCPConn{
-				endpoint: addr,
-				conn:     c,
-				suite:    suite,
+				conn:  c,
+				suite: suite,
 			}
 			return
 		}
@@ -111,7 +107,7 @@ func (c *TCPConn) receiveRaw() ([]byte, error) {
 		return nil, handleError(err)
 	}
 	if total > MaxPacketSize {
-		return nil, fmt.Errorf(c.endpoint.String()+" sends too big packet %v>%v", total, MaxPacketSize)
+		return nil, fmt.Errorf(c.conn.RemoteAddr().String()+" sends too big packet %v>%v", total, MaxPacketSize)
 	}
 
 	b := make([]byte, total)
@@ -183,7 +179,7 @@ func (c *TCPConn) sendRaw(b []byte) error {
 // Remote returns the name of the peer at the end point of
 // the connection.
 func (c *TCPConn) Remote() Address {
-	return c.endpoint
+	return Address(c.conn.RemoteAddr().String())
 }
 
 // Local returns the local address and port.
@@ -324,9 +320,8 @@ func (t *TCPListener) listen(fn func(Conn)) error {
 			continue
 		}
 		c := TCPConn{
-			endpoint: NewTCPAddress(conn.RemoteAddr().String()),
-			conn:     conn,
-			suite:    t.suite,
+			conn:  conn,
+			suite: t.suite,
 		}
 		fn(&c)
 	}

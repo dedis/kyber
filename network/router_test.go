@@ -10,13 +10,13 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func NewTestRouterTCP(port int) (*Router, error) {
-	h, err := NewTestTCPHost(port)
+func NewTestRouterTLS(port int) (*Router, error) {
+	h, err := NewTestTLSHost(port)
 	if err != nil {
 		return nil, err
 	}
-	id := NewTestServerIdentity(h.TCPListener.Address())
-	return NewRouter(id, h), nil
+	h.sid.Address = h.TCPListener.Address()
+	return NewRouter(h.sid, h), nil
 }
 
 func NewTestRouterLocal(port int) (*Router, error) {
@@ -33,7 +33,7 @@ type routerFactory func(port int) (*Router, error)
 // Test if router fits the interface such as calling Run(), then Stop(),
 // should return
 func TestRouterTCP(t *testing.T) {
-	testRouter(t, NewTestRouterTCP)
+	testRouter(t, NewTestRouterTLS)
 }
 func TestRouterLocal(t *testing.T) {
 	testRouter(t, NewTestRouterLocal)
@@ -66,8 +66,8 @@ func testRouter(t *testing.T, fac routerFactory) {
 // Test connection of multiple Hosts and sending messages back and forth
 // also tests for the counterIO interface that it works well
 func TestRouterErrorHandling(t *testing.T) {
-	h1, err1 := NewTestRouterTCP(2109)
-	h2, err2 := NewTestRouterTCP(2110)
+	h1, err1 := NewTestRouterTLS(2109)
+	h2, err2 := NewTestRouterTLS(2110)
 	if err1 != nil || err2 != nil {
 		t.Fatal("Could not setup hosts")
 	}
@@ -118,9 +118,9 @@ func TestRouterErrorHandling(t *testing.T) {
 	}
 }
 func testRouterRemoveConnection(t *testing.T) {
-	r1, err := NewTestRouterTCP(2008)
+	r1, err := NewTestRouterTLS(2008)
 	require.Nil(t, err)
-	r2, err := NewTestRouterTCP(2009)
+	r2, err := NewTestRouterTLS(2009)
 	require.Nil(t, err)
 
 	defer r1.Stop()
@@ -143,7 +143,7 @@ func testRouterRemoveConnection(t *testing.T) {
 
 // Test the automatic connection upon request
 func TestRouterAutoConnectionTCP(t *testing.T) {
-	testRouterAutoConnection(t, NewTestRouterTCP)
+	testRouterAutoConnection(t, NewTestRouterTLS)
 }
 func TestRouterAutoConnectionLocal(t *testing.T) {
 	testRouterAutoConnection(t, NewTestRouterLocal)
@@ -214,8 +214,8 @@ func testRouterAutoConnection(t *testing.T, fac routerFactory) {
 // Test connection of multiple Hosts and sending messages back and forth
 // also tests for the counterIO interface that it works well
 func TestRouterMessaging(t *testing.T) {
-	h1, err1 := NewTestRouterTCP(2009)
-	h2, err2 := NewTestRouterTCP(2010)
+	h1, err1 := NewTestRouterTLS(2009)
+	h2, err2 := NewTestRouterTLS(2010)
 	if err1 != nil || err2 != nil {
 		t.Fatal("Could not setup hosts")
 	}
@@ -256,7 +256,7 @@ func TestRouterMessaging(t *testing.T) {
 }
 
 func TestRouterLotsOfConnTCP(t *testing.T) {
-	testRouterLotsOfConn(t, NewTestRouterTCP, 5)
+	testRouterLotsOfConn(t, NewTestRouterTLS, 5)
 }
 
 func TestRouterLotsOfConnLocal(t *testing.T) {
@@ -360,7 +360,7 @@ func testRouterLotsOfConn(t *testing.T, fac routerFactory, nbrRouter int) {
 
 // Test sending data back and forth using the sendProtocolMsg
 func TestRouterSendMsgDuplexTCP(t *testing.T) {
-	testRouterSendMsgDuplex(t, NewTestRouterTCP)
+	testRouterSendMsgDuplex(t, NewTestRouterTLS)
 }
 
 func TestRouterSendMsgDuplexLocal(t *testing.T) {
@@ -407,8 +407,8 @@ func testRouterSendMsgDuplex(t *testing.T, fac routerFactory) {
 func TestRouterExchange(t *testing.T) {
 	log.OutputToBuf()
 	defer log.OutputToOs()
-	router1, err := NewTestRouterTCP(7878)
-	router2, err2 := NewTestRouterTCP(8787)
+	router1, err := NewTestRouterTLS(7878)
+	router2, err2 := NewTestRouterTLS(8787)
 	if err != nil || err2 != nil {
 		t.Fatal("Could not setup host", err, err2)
 	}
@@ -458,9 +458,9 @@ func TestRouterExchange(t *testing.T) {
 }
 
 func TestRouterRxTx(t *testing.T) {
-	router1, err := NewTestRouterTCP(0)
+	router1, err := NewTestRouterTLS(0)
 	log.ErrFatal(err)
-	router2, err := NewTestRouterTCP(0)
+	router2, err := NewTestRouterTLS(0)
 	log.ErrFatal(err)
 	go router1.Start()
 	go router2.Start()

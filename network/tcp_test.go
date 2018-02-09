@@ -415,11 +415,11 @@ func TestTCPRouter(t *testing.T) {
 
 // Test closing and opening of Host on same address
 func TestTCPHostClose(t *testing.T) {
-	h1, err := NewTestTCPHost(2001)
+	h1, err := NewTestTLSHost(2001)
 	if err != nil {
 		t.Fatal("Error setup TestTCPHost")
 	}
-	h2, err2 := NewTestTCPHost(2002)
+	h2, err2 := NewTestTLSHost(2002)
 	if err2 != nil {
 		t.Fatal("Error setup TestTCPHost2")
 	}
@@ -442,7 +442,7 @@ func TestTCPHostClose(t *testing.T) {
 		t.Fatal("Couldn't close:", err)
 	}
 	log.Lvl3("Finished first connection, starting 2nd")
-	h3, err3 := NewTestTCPHost(2003)
+	h3, err3 := NewTestTLSHost(2003)
 	if err3 != nil {
 		t.Fatal("Could not setup host", err)
 	}
@@ -490,10 +490,11 @@ func TestHandleError(t *testing.T) {
 	require.Equal(t, ErrUnknown, handleError(&de))
 }
 
-func NewTestTCPHost(port int) (*TCPHost, error) {
-	addr := NewTCPAddress("127.0.0.1:" + strconv.Itoa(port))
+func NewTestTLSHost(port int) (*TCPHost, error) {
+	addr := NewTLSAddress("127.0.0.1:" + strconv.Itoa(port))
 	kp := key.NewKeyPair(tSuite)
 	e := NewServerIdentity(kp.Public, addr)
+	e.SetPrivate(kp.Private)
 	return NewTCPHost(e, tSuite)
 }
 

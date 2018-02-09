@@ -1,10 +1,12 @@
 package network
 
 import (
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"sync"
 
+	"github.com/dedis/kyber/util/encoding"
 	"github.com/dedis/onet/log"
 )
 
@@ -397,13 +399,33 @@ func (r *Router) receiveServerIdentity(c Conn) (*ServerIdentity, error) {
 	if nm.MsgType != ServerIdentityType {
 		return nil, fmt.Errorf("Received wrong type during negotiation %s", nm.MsgType.String())
 	}
+
 	// Set the ServerIdentity for this connection
 	dst := nm.Msg.(*ServerIdentity)
 
-	if err != nil {
-		return nil, err
+	// See if we have a cryptographically proven pubkey for this peer. If so,
+	// check it against dst.Public.
+	if tcpConn, ok := c.(*TCPConn); ok {
+		if tlsConn, ok := tcpConn.conn.(*tls.Conn); ok {
+			cs := tlsConn.ConnectionState()
+			if len(cs.PeerCertificates) == 0 {
+				return nil, errors.New("TLS connection with no peer certs?")
+			}
+			pub, err := encoding.StringHexToPoint(tcpConn.suite, cs.PeerCertificates[0].Subject.CommonName)
+			if err != nil {
+				return nil, err
+			}
+
+			if !pub.Equal(dst.Public) {
+				return nil, errors.New("mismatch between certificate CommonName and ServerIdentity.Public")
+			}
+			log.Lvl4(r.address, "Public key from CommonName and ServerIdentity match:", pub)
+		} else {
+			// We get here for TCPConn && !tls.Conn. Make them wish they were using TLS...
+			log.Warn("Public key", dst.Public, "from ServerIdentity not authenticated.")
+		}
 	}
-	log.Lvl4(r.address, "Identity received from", dst.Address)
+
 	return dst, nil
 }
 

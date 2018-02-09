@@ -72,7 +72,7 @@ func (s ServiceID) IsNil() bool {
 // NilServiceID is the empty ServiceID
 var NilServiceID = ServiceID(uuid.Nil)
 
-// GenericConfig is a config that can withhold any type of specific configs for
+// GenericConfig is a config that can hold any type of specific configs for
 // protocols. It is passed down to the service NewProtocol function.
 type GenericConfig struct {
 	Data []byte

@@ -53,19 +53,24 @@ func TestTLS(t *testing.T) {
 	<-ready
 	<-ready
 
+	// We want these cleanups to happen if we leave by the require failing
+	// or by the end of the function.
+	defer func() {
+		r1.Stop()
+		r2.Stop()
+
+		for i := 0; i < 2; i++ {
+			select {
+			case <-stop:
+			case <-time.After(100 * time.Millisecond):
+				t.Fatal("Could not stop router", i)
+			}
+		}
+	}()
+
 	// now send a message from r2 to r1
 	err = r2.Send(sid1, &hello{"Hello"})
 	require.Nil(t, err, "Could not router.Send")
 
 	<-rcv
-	r1.Stop()
-	r2.Stop()
-
-	for i := 0; i < 2; i++ {
-		select {
-		case <-stop:
-		case <-time.After(100 * time.Millisecond):
-			t.Fatal("Could not stop router", i)
-		}
-	}
 }
