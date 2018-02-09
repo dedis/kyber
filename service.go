@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"strconv"
 
 	"sync"
 
@@ -251,6 +252,7 @@ func newServiceManager(svr *Server, o *Overlay, dbPath string, delDb bool) *serv
 		svr.websocket.registerService(name, s)
 	}
 	log.Lvl3(svr.Address(), "instantiated all services")
+	svr.statusReporterStruct.RegisterStatusReporter("Db", s)
 	return s
 }
 
@@ -301,6 +303,35 @@ func (s *serviceManager) closeDatabase() error {
 		}
 	}
 	return nil
+}
+
+// GetStatus is a function that returns the status report of the server.
+func (s *serviceManager) GetStatus() Status {
+	if s.db == nil {
+		return Status(map[string]string{"Open": "false"})
+	}
+	st := s.db.Stats()
+	return Status(map[string]string{
+		"Open":             "true",
+		"FreePageN":        strconv.Itoa(st.FreePageN),
+		"PendingPageN":     strconv.Itoa(st.PendingPageN),
+		"FreeAlloc":        strconv.Itoa(st.FreeAlloc),
+		"FreelistInuse":    strconv.Itoa(st.FreelistInuse),
+		"TxN":              strconv.Itoa(st.TxN),
+		"OpenTxN":          strconv.Itoa(st.OpenTxN),
+		"Tx.PageCount":     strconv.Itoa(st.TxStats.PageCount),
+		"Tx.PageAlloc":     strconv.Itoa(st.TxStats.PageAlloc),
+		"Tx.CursorCount":   strconv.Itoa(st.TxStats.CursorCount),
+		"Tx.NodeCount":     strconv.Itoa(st.TxStats.NodeCount),
+		"Tx.NodeDeref":     strconv.Itoa(st.TxStats.NodeDeref),
+		"Tx.Rebalance":     strconv.Itoa(st.TxStats.Rebalance),
+		"Tx.RebalanceTime": st.TxStats.RebalanceTime.String(),
+		"Tx.Split":         strconv.Itoa(st.TxStats.Split),
+		"Tx.Spill":         strconv.Itoa(st.TxStats.Spill),
+		"Tx.SpillTime":     st.TxStats.SpillTime.String(),
+		"Tx.Write":         strconv.Itoa(st.TxStats.Write),
+		"Tx.WriteTime":     st.TxStats.WriteTime.String(),
+	})
 }
 
 // registerProcessor the processor to the service manager and tells the host to dispatch

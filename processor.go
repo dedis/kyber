@@ -110,7 +110,7 @@ func (p *ServiceProcessor) NewProtocol(tn *TreeNodeInstance, conf *GenericConfig
 	return nil, nil
 }
 
-// ProcessClientRequest takes a request from a client, calculates the reply
+// ProcessClientRequest takes a request from a websocket client, calculates the reply
 // and sends it back. It uses the path to find the appropriate handler-
 // function. It implements the Server interface.
 func (p *ServiceProcessor) ProcessClientRequest(path string, buf []byte) ([]byte, error) {

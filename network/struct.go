@@ -115,12 +115,15 @@ type ServerIdentityToml struct {
 // of IP-addresses where to find that entity. The Id is based on a
 // version5-UUID which can include a URL that is based on it's public key.
 func NewServerIdentity(public kyber.Point, address Address) *ServerIdentity {
-	url := NamespaceURL + "id/" + public.String()
-	return &ServerIdentity{
+	si := &ServerIdentity{
 		Public:  public,
 		Address: address,
-		ID:      ServerIdentityID(uuid.NewV5(uuid.NamespaceURL, url)),
 	}
+	if public != nil {
+		url := NamespaceURL + "id/" + public.String()
+		si.ID = ServerIdentityID(uuid.NewV5(uuid.NamespaceURL, url))
+	}
+	return si
 }
 
 // Equal tests on same public key

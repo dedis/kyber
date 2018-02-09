@@ -72,7 +72,7 @@ func newServer(s network.Suite, dbPath string, r *network.Router, pkey kyber.Sca
 	c.overlay = NewOverlay(c)
 	c.websocket = NewWebSocket(r.ServerIdentity)
 	c.serviceManager = newServiceManager(c, c.overlay, dbPath, delDb)
-	c.statusReporterStruct.RegisterStatusReporter("Status", c)
+	c.statusReporterStruct.RegisterStatusReporter("Generic", c)
 	for name, inst := range protocols.instantiators {
 		log.Lvl4("Registering global protocol", name)
 		c.ProtocolRegister(name, inst)
@@ -96,10 +96,10 @@ func (c *Server) Suite() network.Suite {
 }
 
 // GetStatus is a function that returns the status report of the server.
-func (c *Server) GetStatus() *Status {
+func (c *Server) GetStatus() Status {
 	a := c.serviceManager.availableServices()
 	sort.Strings(a)
-	return &Status{map[string]string{
+	return Status(map[string]string{
 		"Available_Services": strings.Join(a, ","),
 		"TX_bytes":           strconv.FormatUint(c.Router.Tx(), 10),
 		"RX_bytes":           strconv.FormatUint(c.Router.Rx(), 10),
@@ -111,7 +111,7 @@ func (c *Server) GetStatus() *Status {
 		"Port":        c.ServerIdentity.Address.Port(),
 		"Description": c.ServerIdentity.Description,
 		"ConnType":    string(c.ServerIdentity.Address.ConnType()),
-	}}
+	})
 }
 
 // Close closes the overlay and the Router
