@@ -326,10 +326,7 @@ func (d *DistKeyGenerator) DistKeyShare() (*DistKeyShare, error) {
 			return true
 		}
 		pub, err = pub.Add(poly)
-		if err != nil {
-			return false
-		}
-		return true
+		return err == nil
 	})
 
 	if err != nil {

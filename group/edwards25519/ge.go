@@ -291,8 +291,7 @@ func slide(r *[256]int8, a *[32]byte) {
 
 	// Explode the exponent a into a little-endian array, one bit per byte
 	for i := range a {
-		var ai int8
-		ai = int8(a[i])
+		ai := int8(a[i])
 		for j := 0; j < 8; j++ {
 			r[i*8+j] = ai & 1
 			ai >>= 1

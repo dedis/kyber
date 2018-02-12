@@ -59,7 +59,6 @@ func (x *xof) Reseed() {
 	y := New(x.key)
 	// Steal the XOF implementation, and put it inside of x.
 	x.impl = y.(*xof).impl
-	return
 }
 
 func (x *xof) XORKeyStream(dst, src []byte) {

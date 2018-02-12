@@ -84,7 +84,7 @@ func TestIntClone(t *testing.T) {
 	clone.Add(clone, clone)
 	b1, _ := clone.MarshalBinary()
 	b2, _ := base.MarshalBinary()
-	if bytes.Compare(b1, b2) == 0 {
+	if bytes.Equal(b1, b2) {
 		t.Error("Should not be equal")
 	}
 }
