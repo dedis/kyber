@@ -184,7 +184,7 @@ func (c *TCPConn) Remote() Address {
 
 // Local returns the local address and port.
 func (c *TCPConn) Local() Address {
-	return NewTCPAddress(c.conn.LocalAddr().String())
+	return NewAddress(PlainTCP, c.conn.LocalAddr().String())
 }
 
 // Type returns PlainTCP.
@@ -411,10 +411,4 @@ func (t *TCPHost) Connect(si *ServerIdentity) (Conn, error) {
 		return nil, errors.New("This address is not correctly formatted: " + si.Address.String())
 	}
 	return nil, fmt.Errorf("TCPHost %s can't handle this type of connection: %s", si.Address, si.Address.ConnType())
-}
-
-// NewTCPAddress returns a new Address that has type PlainTCP with the given
-// address addr.
-func NewTCPAddress(addr string) Address {
-	return NewAddress(PlainTCP, addr)
 }

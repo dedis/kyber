@@ -335,7 +335,7 @@ func NewPrivIdentity(suite network.Suite, port int) (kyber.Scalar, *network.Serv
 // address.
 func newTCPServer(s network.Suite, port int, path string) *Server {
 	priv, id := NewPrivIdentity(s, port)
-	addr := network.NewTCPAddress(id.Address.NetworkAddress())
+	addr := network.NewAddress(network.PlainTCP, id.Address.NetworkAddress())
 	id2 := network.NewServerIdentity(id.Public, addr)
 	var tcpHost *network.TCPHost
 	// For the websocket we need a port at the address one higher than the

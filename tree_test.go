@@ -586,7 +586,7 @@ func genLocalhostPeerNames(n, p int) []network.Address {
 func genLocalDiffPeerNames(n, p int) []network.Address {
 	names := make([]network.Address, n)
 	for i := range names {
-		names[i] = network.NewTCPAddress("127.0.0." + strconv.Itoa(i) + ":2000")
+		names[i] = network.NewAddress(network.PlainTCP, "127.0.0."+strconv.Itoa(i)+":2000")
 	}
 	return names
 }
