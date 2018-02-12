@@ -183,6 +183,36 @@ func isDedisSig(in asn1.ObjectIdentifier) bool {
 	return true
 }
 
+// We want to copy a tls.Config, but it has a sync.Once in it that we
+// should not copy. This is ripped from the Go source, where they
+// needed to solve the same problem.
+//
+// See https://github.com/golang/go/issues/12099
+func cloneTLSClientConfig(cfg *tls.Config) *tls.Config {
+	if cfg == nil {
+		return &tls.Config{}
+	}
+	return &tls.Config{
+		Rand:                     cfg.Rand,
+		Time:                     cfg.Time,
+		Certificates:             cfg.Certificates,
+		NameToCertificate:        cfg.NameToCertificate,
+		GetCertificate:           cfg.GetCertificate,
+		RootCAs:                  cfg.RootCAs,
+		NextProtos:               cfg.NextProtos,
+		ServerName:               cfg.ServerName,
+		ClientAuth:               cfg.ClientAuth,
+		ClientCAs:                cfg.ClientCAs,
+		InsecureSkipVerify:       cfg.InsecureSkipVerify,
+		CipherSuites:             cfg.CipherSuites,
+		PreferServerCipherSuites: cfg.PreferServerCipherSuites,
+		ClientSessionCache:       cfg.ClientSessionCache,
+		MinVersion:               cfg.MinVersion,
+		MaxVersion:               cfg.MaxVersion,
+		CurvePreferences:         cfg.CurvePreferences,
+	}
+}
+
 // NewTLSListener makes a new TCPListner that is configured for TLS.
 // TODO: Why can't we just use NewTCPListener like usual, but detect
 // the ConnType from the ServerIdentity?
@@ -201,7 +231,7 @@ func NewTLSListener(si *ServerIdentity, suite Suite) (*TCPListener, error) {
 	// gives us a chance to set the nonce that will be sent down to them.
 	cfg.GetConfigForClient = func(*tls.ClientHelloInfo) (*tls.Config, error) {
 		// Copy the global config, set the nonce in the copy.
-		cfg2 := *cfg
+		cfg2 := cloneTLSClientConfig(cfg)
 
 		// Go's TLS server calls cfg.ClientCAs.Subjects() in order to
 		// form the data the client will eventually find in
@@ -213,7 +243,7 @@ func NewTLSListener(si *ServerIdentity, suite Suite) (*TCPListener, error) {
 		cfg2.ClientCAs.AddCert(&x509.Certificate{
 			RawSubject: nonce,
 		})
-		return &cfg2, nil
+		return cfg2, nil
 	}
 
 	// This is "any client cert" because we do not want crypto/tls
