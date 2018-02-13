@@ -107,7 +107,8 @@ func (c *TCPConn) receiveRaw() ([]byte, error) {
 		return nil, handleError(err)
 	}
 	if total > MaxPacketSize {
-		return nil, fmt.Errorf(c.conn.RemoteAddr().String()+" sends too big packet %v>%v", total, MaxPacketSize)
+		return nil, fmt.Errorf("%v sends too big packet: %v>%v",
+			c.conn.RemoteAddr().String(), total, MaxPacketSize)
 	}
 
 	b := make([]byte, total)

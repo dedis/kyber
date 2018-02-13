@@ -49,7 +49,7 @@ import (
 // mutual authentication, but TLS does not support sending application data before the handshake,
 // we need to find places in the normal TLS 1.2 handshake where we can "tunnel" the nonce
 // through. On the TLS client side, we use ClientHelloInfo.ServerName. On the
-// the TLS server side, we use the.
+// the TLS server side, we use the ClientCAs field.
 //
 // There is a risk that with a less customizable TLS implementation than
 // Go's, it would not be possible to send the nonces through like this. However,
@@ -62,12 +62,12 @@ import (
 
 // certMaker holds the data necessary to make a certificate on the fly
 // and give it to crypto/tls via the GetCertificate and
-// GetClientCertificate callbacks.
+// GetClientCertificate callbacks in the tls.Config structure.
 type certMaker struct {
 	si      *ServerIdentity
 	suite   Suite
 	subj    pkix.Name
-	subjDer []byte
+	subjDer []byte // the subject encoded in ASN.1 DER format
 	k       *ecdsa.PrivateKey
 }
 
@@ -119,13 +119,15 @@ func (cm *certMaker) get(nonce []byte) (*tls.Certificate, error) {
 	// will be able to easily do so with their own x509 + kyber implementation.
 	buf := bytes.NewBuffer(nonce)
 	buf.Write(cm.subjDer)
-	sig, err := schnorr.Sign(cm.suite, cm.si.private, buf.Bytes())
+	sig, err := schnorr.Sign(cm.suite, cm.si.GetPrivate(), buf.Bytes())
 	if err != nil {
 		return nil, err
 	}
 
-	// The serial number is non-security critical how we are using it here,
-	// so just make it a big random number.
+	// Even though the serial number is not used in the DEDIS signature,
+	// we set it to a big random number. This is what TLS clients expect:
+	// that two certs from the same issuer with different public keys will
+	// have different serial numbers.
 	serial := new(big.Int)
 	r := random.Bits(128, true, random.New())
 	serial.SetBytes(r)
@@ -170,18 +172,6 @@ func (cm *certMaker) get(nonce []byte) (*tls.Certificate, error) {
 
 // See https://github.com/dedis/Coding/tree/master/mib/cothority.mib
 var oidDedisSig = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 51281, 1, 1}
-
-func isDedisSig(in asn1.ObjectIdentifier) bool {
-	if len(in) != len(oidDedisSig) {
-		return false
-	}
-	for i := range in {
-		if in[i] != oidDedisSig[i] {
-			return false
-		}
-	}
-	return true
-}
 
 // We want to copy a tls.Config, but it has a sync.Once in it that we
 // should not copy. This is ripped from the Go source, where they
@@ -316,7 +306,7 @@ func makeVerifier(suite Suite, them *ServerIdentity) (verifier, []byte) {
 		// Check that our extension exists.
 		var sig []byte
 		for _, x := range cert.Extensions {
-			if isDedisSig(x.Id) {
+			if oidDedisSig.Equal(x.Id) {
 				sig = x.Value
 				break
 			}

@@ -177,8 +177,7 @@ func validHostname(s string) bool {
 // ConnType must be one of the constants defined in this file,
 // NetworkAddress must contain the IP address + Port number.
 // The IP address is validated by net.ParseIP & the port must be included in the
-// range [0;65536].
-// Ex. tls:192.168.1.10:5678
+// range [0;65536]. For example, "tls://192.168.1.10:5678".
 func (a Address) Valid() bool {
 	vals := strings.Split(string(a), typeAddressSep)
 	if len(vals) != 2 {

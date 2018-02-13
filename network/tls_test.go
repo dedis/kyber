@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/dedis/kyber/util/key"
-	"github.com/dedis/onet/log"
 	"github.com/stretchr/testify/require"
 )
 
@@ -40,8 +39,6 @@ var aHello = &hello{
 }
 
 func TestTLS(t *testing.T) {
-	log.SetDebugVisible(3)
-
 	r1, err := NewTestRouterTLS(0)
 	require.Nil(t, err, "new tcp router")
 	r2, err := NewTestRouterTLS(0)
