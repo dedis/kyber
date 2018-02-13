@@ -42,6 +42,11 @@ func NewWebSocket(si *network.ServerIdentity) *WebSocket {
 	webHost, err := getWebAddress(si, true)
 	log.ErrFatal(err)
 	w.mux = http.NewServeMux()
+	w.mux.HandleFunc("/ok", func(w http.ResponseWriter, r *http.Request) {
+		log.Lvl2("ok?", r.RemoteAddr)
+		ok := []byte("ok\n")
+		w.Write(ok)
+	})
 	w.server = &graceful.Server{
 		Timeout: 100 * time.Millisecond,
 		Server: &http.Server{
@@ -99,10 +104,19 @@ type wsHandler struct {
 // Wrapper-function so that http.Requests get 'upgraded' to websockets
 // and handled correctly.
 func (t wsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	rx := 0
+	tx := 0
+	n := 0
+	ok := false
+
+	defer func() {
+		log.Lvl2("ws close", r.RemoteAddr, "n", n, "rx", rx, "tx", tx, "ok", ok)
+	}()
+
 	u := websocket.Upgrader{
 		EnableCompression: true,
 		// As the website will not be served from ourselves, we
-		// need to accept _all_ origins. Cross-site scriptiong is
+		// need to accept _all_ origins. Cross-site scripting is
 		// required.
 		CheckOrigin: func(*http.Request) bool {
 			return true
@@ -124,13 +138,16 @@ func (t wsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			err = rerr
 			break
 		}
+		rx += len(buf)
+		n++
 
 		s := t.service
 		var reply []byte
 		path := strings.TrimPrefix(r.URL.Path, "/"+t.serviceName+"/")
-		log.Lvl3("Got request for", t.serviceName, path)
+		log.Lvl2("ws request", r.RemoteAddr, t.serviceName, path)
 		reply, err = s.ProcessClientRequest(path, buf)
 		if err == nil {
+			tx += len(reply)
 			err := ws.WriteMessage(mt, reply)
 			if err != nil {
 				log.Error(err)
@@ -142,6 +159,7 @@ func (t wsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ws.WriteControl(websocket.CloseMessage,
 		websocket.FormatCloseMessage(4000, err.Error()),
 		time.Now().Add(time.Millisecond*500))
+	ok = true
 	return
 }
 
