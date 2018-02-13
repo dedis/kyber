@@ -46,7 +46,6 @@ func TestProxy(t *testing.T) {
 		t.Errorf("Can not connect to proxy : %s", err)
 		return
 	}
-	println("here")
 
 	meas := NewTimeMeasure("setup")
 	meas.Record()
