@@ -34,7 +34,6 @@ func (x *xof) Reseed() {
 	x.Read(x.key)
 	x.sh = sha3.NewShake256()
 	x.sh.Write(x.key)
-	return
 }
 
 func (x *xof) Read(dst []byte) (int, error) {
