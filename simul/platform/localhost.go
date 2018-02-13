@@ -149,7 +149,6 @@ func (d *Localhost) Deploy(rc *RunConfig) error {
 	// add one to the channel length to indicate it's done
 	d.errChan = make(chan error, d.servers+1)
 	return nil
-
 }
 
 // Start will execute one cothority-binary for each server
