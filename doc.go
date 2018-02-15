@@ -69,7 +69,6 @@ of a wide variety of statements such as,
 or I know the secret y associated with public key Y",
 without revealing anything about either secret
 or even which branch of the "or" clause is true.
-(Requires build tag "experimental".)
 
 - sign: The sign directory contains different signature schemes.
 
@@ -90,7 +89,7 @@ unique, compact and efficiently verifiable signature using the Schnorr signature
 which can be used to implement (for example) voting or auction schemes
 that keep the sources of individual votes or bids private
 without anyone having to trust more than one of the shuffler(s) to shuffle
-votes/bids honestly. (Requires build tag "experimental".)
+votes/bids honestly.
 
 Disclaimer
 

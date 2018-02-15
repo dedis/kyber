@@ -1,10 +1,10 @@
-// +build experimental
-
 package proof
 
 import (
 	"bytes"
+	"crypto/cipher"
 	"fmt"
+	"io"
 
 	"github.com/dedis/kyber"
 )
@@ -15,14 +15,27 @@ type hashProver struct {
 	proof   bytes.Buffer
 	msg     bytes.Buffer
 	pubrand kyber.XOF
-	prirand kyber.XOF
+	prirand io.Reader
+}
+
+// cipherStreamReader adds a Read method onto a cipher.Stream,
+// so that it can be used as an io.Reader.
+type cipherStreamReader struct {
+	cipher.Stream
+}
+
+func (s *cipherStreamReader) Read(in []byte) (int, error) {
+	x := make([]byte, len(in))
+	s.XORKeyStream(x, x)
+	copy(in, x)
+	return len(in), nil
 }
 
 func newHashProver(suite Suite, protoName string) *hashProver {
 	var sc hashProver
 	sc.suite = suite
 	sc.pubrand = suite.XOF([]byte(protoName))
-	sc.prirand = suite.RandomStream().(kyber.XOF)
+	sc.prirand = &cipherStreamReader{suite.RandomStream()}
 	return &sc
 }
 
@@ -117,10 +130,9 @@ func (c *hashVerifier) PubRand(data ...interface{}) error {
 // will verify successfully only if the verifier uses the same protocolName.
 //
 // The caller must provide a source of random entropy for the proof;
-// this can be random.Stream to use fresh random bits,
-// or a pseudorandom stream based on a secret seed
-// to create deterministically reproducible proofs.
-//
+// this can be random.New() to use fresh random bits, or a
+// pseudorandom stream based on a secret seed to create
+// deterministically reproducible proofs.
 func HashProve(suite Suite, protocolName string, prover Prover) ([]byte, error) {
 	ctx := newHashProver(suite, protocolName)
 	if e := (func(ProverContext) error)(prover)(ctx); e != nil {
