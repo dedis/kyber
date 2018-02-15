@@ -1,5 +1,3 @@
-// +build experimental
-
 package proof
 
 // Prover represents the prover role in an arbitrary Sigma-protocol.
