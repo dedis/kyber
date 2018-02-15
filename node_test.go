@@ -280,38 +280,6 @@ func (p *ProtocolChannels) Release() {
 	p.Done()
 }
 
-type ServiceChannels struct {
-	ctx  *Context
-	path string
-	tree Tree
-}
-
-// implement services interface
-func (c *ServiceChannels) ProcessClientRequest(si *network.ServerIdentity, r interface{}) {
-
-	tni := c.ctx.NewTreeNodeInstance(&c.tree, c.tree.Root, ProtocolChannelsName)
-	pi, err := NewProtocolChannels(tni)
-	if err != nil {
-		return
-	}
-
-	if err := c.ctx.RegisterProtocolInstance(pi); err != nil {
-		return
-	}
-	pi.Start()
-}
-
-func (c *ServiceChannels) NewProtocol(tn *TreeNodeInstance, conf *GenericConfig) (ProtocolInstance, error) {
-	log.Lvl1("Cosi Service received New Protocol event")
-	return NewProtocolChannels(tn)
-}
-
-func (c *ServiceChannels) Process(e *network.Envelope) {
-	return
-}
-
-// End: protocol/service channels
-
 type ProtocolHandlers struct {
 	*TreeNodeInstance
 }

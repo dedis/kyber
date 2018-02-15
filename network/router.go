@@ -104,13 +104,13 @@ func (r *Router) Start() {
 			return
 		}
 		if err := r.registerConnection(dst, c); err != nil {
-			log.Lvl3(r.address, "does not accept incoming connection to", c.Remote(), "because it's closed")
+			log.Lvl3(r.address, "does not accept incoming connection from", c.Remote(), "because it's closed")
 			return
 		}
 		// start handleConn in a go routine that waits for incoming messages and
 		// dispatches them.
 		if err := r.launchHandleRoutine(dst, c); err != nil {
-			log.Lvl3(r.address, "does not accept incoming connection to", c.Remote(), "because it's closed")
+			log.Lvl3(r.address, "does not accept incoming connection from", c.Remote(), "because it's closed")
 			return
 		}
 	})
@@ -246,10 +246,12 @@ func (r *Router) handleConn(remote *ServerIdentity, c Conn) {
 		if err := c.Close(); err != nil {
 			log.Lvl5(r.address, "having error closing conn to", remote.Address, ":", err)
 		}
-		r.traffic.updateRx(c.Rx())
-		r.traffic.updateTx(c.Tx())
+		rx, tx := c.Rx(), c.Tx()
+		r.traffic.updateRx(rx)
+		r.traffic.updateTx(tx)
 		r.wg.Done()
 		r.removeConnection(remote, c)
+		log.Lvl2("onet close", c.Remote(), "rx", rx, "tx", tx)
 	}()
 	address := c.Remote()
 	log.Lvl3(r.address, "Handling new connection from", remote.Address)

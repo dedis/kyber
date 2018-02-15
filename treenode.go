@@ -304,9 +304,7 @@ func (n *TreeNodeInstance) closeDispatch() error {
 	log.Lvl3("Closing node", n.Info())
 	n.msgDispatchQueueMutex.Lock()
 	n.closing = true
-	if len(n.msgDispatchQueueWait) == 0 {
-		n.msgDispatchQueueWait <- true
-	}
+	n.notifyDispatch()
 	n.msgDispatchQueueMutex.Unlock()
 	pni := n.ProtocolInstance()
 	if pni == nil {
@@ -400,11 +398,22 @@ func (n *TreeNodeInstance) ProcessProtocolMsg(msg *ProtocolMsg) {
 	log.Lvl4(n.Info(), "Received message")
 	n.msgDispatchQueueMutex.Lock()
 	n.msgDispatchQueue = append(n.msgDispatchQueue, msg)
-	log.Lvl4(n.Info(), "DispatchQueue-length is", len(n.msgDispatchQueue))
-	if len(n.msgDispatchQueue) == 1 && len(n.msgDispatchQueueWait) == 0 {
-		n.msgDispatchQueueWait <- true
-	}
+	n.notifyDispatch()
 	n.msgDispatchQueueMutex.Unlock()
+}
+
+func (n *TreeNodeInstance) waitDispatch() {
+	<-n.msgDispatchQueueWait
+}
+
+func (n *TreeNodeInstance) notifyDispatch() {
+	select {
+	case n.msgDispatchQueueWait <- true:
+		return
+	default:
+		// Channel write would block: already been notified.
+		// So, nothing to do here.
+	}
 }
 
 func (n *TreeNodeInstance) dispatchMsgReader() {
@@ -429,7 +438,7 @@ func (n *TreeNodeInstance) dispatchMsgReader() {
 		} else {
 			n.msgDispatchQueueMutex.Unlock()
 			log.Lvl4(n.Info(), "Waiting for message")
-			<-n.msgDispatchQueueWait
+			n.waitDispatch()
 		}
 	}
 }
