@@ -149,7 +149,7 @@ func (t wsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		var reply []byte
 		path := strings.TrimPrefix(r.URL.Path, "/"+t.serviceName+"/")
 		log.Lvl2("ws request", r.RemoteAddr, t.serviceName, path)
-		reply, err = s.ProcessClientRequest(path, buf)
+		reply, err = s.ProcessClientRequest(r, path, buf)
 		if err == nil {
 			tx += len(reply)
 			err := ws.WriteMessage(mt, reply)

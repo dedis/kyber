@@ -66,7 +66,7 @@ func TestServiceProcessor_ProcessClientRequest(t *testing.T) {
 
 	buf, err := protobuf.Encode(&testMsg{11})
 	log.ErrFatal(err)
-	rep, err := p.ProcessClientRequest("testMsg", buf)
+	rep, err := p.ProcessClientRequest(nil, "testMsg", buf)
 	require.Equal(t, nil, err)
 	val := &testMsg{}
 	log.ErrFatal(protobuf.Decode(rep, val))
@@ -76,12 +76,12 @@ func TestServiceProcessor_ProcessClientRequest(t *testing.T) {
 
 	buf, err = protobuf.Encode(&testMsg{42})
 	log.ErrFatal(err)
-	rep, err = p.ProcessClientRequest("testMsg", buf)
+	rep, err = p.ProcessClientRequest(nil, "testMsg", buf)
 	assert.NotNil(t, err)
 
 	buf, err = protobuf.Encode(&testMsg2{42})
 	log.ErrFatal(err)
-	rep, err = p.ProcessClientRequest("testMsg2", buf)
+	rep, err = p.ProcessClientRequest(nil, "testMsg2", buf)
 	assert.NotNil(t, err)
 }
 

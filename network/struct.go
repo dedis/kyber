@@ -63,8 +63,6 @@ type Envelope struct {
 	Msg Message
 	// which constructors are used
 	Constructors protobuf.Constructors
-	// possible error during unmarshalling so that upper layer can know it
-	err error
 }
 
 // ServerIdentity is used to represent a Server in the whole internet.

@@ -2,6 +2,7 @@ package onet
 
 import (
 	"errors"
+	"net/http"
 	"reflect"
 
 	"strings"
@@ -113,7 +114,7 @@ func (p *ServiceProcessor) NewProtocol(tn *TreeNodeInstance, conf *GenericConfig
 // ProcessClientRequest takes a request from a websocket client, calculates the reply
 // and sends it back. It uses the path to find the appropriate handler-
 // function. It implements the Server interface.
-func (p *ServiceProcessor) ProcessClientRequest(path string, buf []byte) ([]byte, error) {
+func (p *ServiceProcessor) ProcessClientRequest(req *http.Request, path string, buf []byte) ([]byte, error) {
 	mh, ok := p.handlers[path]
 	reply, err := func() (interface{}, error) {
 		if !ok {

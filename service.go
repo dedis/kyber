@@ -3,6 +3,7 @@ package onet
 import (
 	"errors"
 	"fmt"
+	"net/http"
 	"os"
 	"path"
 	"strconv"
@@ -37,7 +38,7 @@ type Service interface {
 	// service. It returns a message that will be sent back to the
 	// client. The returned error will be formatted as a websocket
 	// error code 4000, using the string form of the error as the message.
-	ProcessClientRequest(handler string, msg []byte) (reply []byte, err error)
+	ProcessClientRequest(req *http.Request, handler string, msg []byte) (reply []byte, err error)
 	// Processor makes a Service being able to handle any kind of packets
 	// directly from the network. It is used for inter service communications,
 	// which are mostly single packets with no or little interactions needed. If

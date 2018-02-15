@@ -3,6 +3,7 @@ package onet
 import (
 	"bytes"
 	"errors"
+	"net/http"
 	"testing"
 	"time"
 
@@ -450,7 +451,7 @@ type simpleService struct {
 	ctx *Context
 }
 
-func (s *simpleService) ProcessClientRequest(path string, buf []byte) ([]byte, error) {
+func (s *simpleService) ProcessClientRequest(req *http.Request, path string, buf []byte) ([]byte, error) {
 	msg := &SimpleRequest{}
 	err := protobuf.DecodeWithConstructors(buf, msg, network.DefaultConstructors(tSuite))
 	if err != nil {
@@ -536,7 +537,7 @@ type DummyService struct {
 	Config   DummyConfig
 }
 
-func (ds *DummyService) ProcessClientRequest(path string, buf []byte) ([]byte, error) {
+func (ds *DummyService) ProcessClientRequest(req *http.Request, path string, buf []byte) ([]byte, error) {
 	log.Lvl2("Got called with path", path, buf)
 	msg := &DummyMsg{}
 	err := protobuf.Decode(buf, msg)
@@ -606,7 +607,7 @@ func newDummyService2(c *Context) (Service, error) {
 	return &dummyService2{Context: c}, nil
 }
 
-func (ds *dummyService2) ProcessClientRequest(path string, buf []byte) ([]byte, error) {
+func (ds *dummyService2) ProcessClientRequest(req *http.Request, path string, buf []byte) ([]byte, error) {
 	panic("should not be called")
 }
 

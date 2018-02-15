@@ -1,6 +1,7 @@
 package onet
 
 import (
+	"net/http"
 	"testing"
 
 	"fmt"
@@ -180,7 +181,7 @@ const dummyService3Name = "dummyService3"
 type DummyService3 struct {
 }
 
-func (ds *DummyService3) ProcessClientRequest(path string, buf []byte) ([]byte, error) {
+func (ds *DummyService3) ProcessClientRequest(req *http.Request, path string, buf []byte) ([]byte, error) {
 	log.Lvl2("Got called with path", path, buf)
 	return []byte(path), nil
 }
