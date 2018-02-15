@@ -73,6 +73,10 @@ func (w *WebSocket) start() {
 // registerService stores a service to the given path. All requests to that
 // path and it's sub-endpoints will be forwarded to ProcessClientRequest.
 func (w *WebSocket) registerService(service string, s Service) error {
+	if service == "ok" {
+		return errors.New("service name \"ok\" is not allowed")
+	}
+
 	w.services[service] = s
 	h := &wsHandler{
 		service:     s,
