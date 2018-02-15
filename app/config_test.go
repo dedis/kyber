@@ -39,7 +39,7 @@ func TestReadGroupDescToml(t *testing.T) {
 		t.Fatal("Should have 2 ServerIdentities")
 	}
 	nikkoAddr := group.Roster.List[0].Address
-	if !nikkoAddr.Valid() || nikkoAddr != network.NewTCPAddress("5.135.161.91:2000") {
+	if !nikkoAddr.Valid() || nikkoAddr != network.NewAddress(network.PlainTCP, "5.135.161.91:2000") {
 		t.Fatal("Address not valid " + group.Roster.List[0].Address.String())
 	}
 	if len(group.Description) != 2 {

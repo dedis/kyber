@@ -49,7 +49,7 @@ func TestTCPHugeConnections(t *testing.T) {
 	var err error
 	// Create all hosts and open the connections
 	for i := 0; i < nbrHosts; i++ {
-		addr := NewTCPAddress("localhost:" + strconv.Itoa(2000+i))
+		addr := NewAddress(PlainTCP, "localhost:"+strconv.Itoa(2000+i))
 		ids[i] = NewTestServerIdentity(addr)
 		hosts[i], err = NewTCPListener(addr, tSuite)
 		if err != nil {

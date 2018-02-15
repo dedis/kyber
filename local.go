@@ -331,18 +331,19 @@ func NewPrivIdentity(suite network.Suite, port int) (kyber.Scalar, *network.Serv
 	return kp.Private, id
 }
 
-// NewTCPServer creates a new server with a tcpRouter with "localserver:"+port as an
+// NewTCPServer creates a new server with a tcpRouter with "localhost:"+port as an
 // address.
 func newTCPServer(s network.Suite, port int, path string) *Server {
 	priv, id := NewPrivIdentity(s, port)
-	addr := network.NewTCPAddress(id.Address.NetworkAddress())
+	addr := network.NewAddress(network.PlainTCP, id.Address.NetworkAddress())
+	id2 := network.NewServerIdentity(id.Public, addr)
 	var tcpHost *network.TCPHost
 	// For the websocket we need a port at the address one higher than the
 	// TCPHost. Let TCPHost chose a port, then check if the port+1 is also
 	// available. Else redo the search.
 	for {
 		var err error
-		tcpHost, err = network.NewTCPHost(addr, s)
+		tcpHost, err = network.NewTCPHost(id2, s)
 		if err != nil {
 			panic(err)
 		}
@@ -363,6 +364,7 @@ func newTCPServer(s network.Suite, port int, path string) *Server {
 	}
 	id.Address = network.NewAddress(id.Address.ConnType(), "127.0.0.1:"+id.Address.Port())
 	router := network.NewRouter(id, tcpHost)
+	router.UnauthOk = true
 	h := newServer(s, path, router, priv)
 	go h.Start()
 	for !h.Listening() {

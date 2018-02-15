@@ -17,7 +17,6 @@ func TestConnType(t *testing.T) {
 	}{
 		{"tcp", PlainTCP},
 		{"tls", TLS},
-		{"purb", PURB},
 		{"tcp4", InvalidConnType},
 		{"_tls", InvalidConnType},
 	}
@@ -63,7 +62,6 @@ func TestAddress(t *testing.T) {
 		{"tls://10.0.0.4:2000", true, TLS, "10.0.0.4:2000", "10.0.0.4", "2000", false, "10.0.0.4", "10.0.0.4:2000"},
 		{"tcp://10.0.0.4:2000", true, PlainTCP, "10.0.0.4:2000", "10.0.0.4", "2000", false, "10.0.0.4", "10.0.0.4:2000"},
 		{"tcp://67.43.129.85:2000", true, PlainTCP, "67.43.129.85:2000", "67.43.129.85", "2000", true, "67.43.129.85", "67.43.129.85:2000"},
-		{"purb://10.0.0.4:2000", true, PURB, "10.0.0.4:2000", "10.0.0.4", "2000", false, "10.0.0.4", "10.0.0.4:2000"},
 		{"tls://[::]:1000", true, TLS, "[::]:1000", "::", "1000", true, "::", "[::]:1000"},
 		{"tls4://10.0.0.4:2000", false, InvalidConnType, "", "", "", false, "", ""},
 		{"tls://1000.0.0.4:2000", false, InvalidConnType, "", "", "", false, "", ""},

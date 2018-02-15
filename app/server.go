@@ -72,7 +72,7 @@ func InteractiveConfig(suite network.Suite, binaryName string) {
 		portStr = port
 	}
 
-	serverBinding = network.NewTCPAddress(net.JoinHostPort(hostStr, portStr))
+	serverBinding = network.NewAddress(network.TLS, net.JoinHostPort(hostStr, portStr))
 	if !serverBinding.Valid() {
 		log.Error("Unable to validate address given", serverBinding)
 		return
@@ -99,7 +99,7 @@ func InteractiveConfig(suite network.Suite, binaryName string) {
 				log.Error("Could not parse your public IP address", err)
 				failedPublic = true
 			} else {
-				publicAddress = network.NewTCPAddress(strings.TrimSpace(string(buff)) + ":" + portStr)
+				publicAddress = network.NewAddress(network.TLS, strings.TrimSpace(string(buff))+":"+portStr)
 			}
 		}
 	} else {
@@ -240,7 +240,7 @@ func askReachableAddress(port string) network.Address {
 		// add the port
 		ipStr = ipStr + ":" + port
 	}
-	return network.NewTCPAddress(ipStr)
+	return network.NewAddress(network.TLS, ipStr)
 }
 
 // tryConnect binds to the given IP address and ask an internet service to

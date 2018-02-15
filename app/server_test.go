@@ -1,10 +1,9 @@
 package app
 
 import (
-	"testing"
-
 	"io/ioutil"
 	"os"
+	"testing"
 
 	"github.com/dedis/kyber/suites"
 	"github.com/dedis/onet/log"

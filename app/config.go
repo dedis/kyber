@@ -62,7 +62,7 @@ func ParseCothority(file string) (*CothorityConfig, *onet.Server, error) {
 	}
 
 	// Try to decode the Hex values
-	secret, err := encoding.StringHexToScalar(suite, hc.Private)
+	private, err := encoding.StringHexToScalar(suite, hc.Private)
 	if err != nil {
 		return nil, nil, fmt.Errorf("parsing private key: %v", err)
 	}
@@ -71,8 +71,9 @@ func ParseCothority(file string) (*CothorityConfig, *onet.Server, error) {
 		return nil, nil, fmt.Errorf("parsing public key: %v", err)
 	}
 	si := network.NewServerIdentity(point, hc.Address)
+	si.SetPrivate(private)
 	si.Description = hc.Description
-	server := onet.NewServerTCP(si, secret, suite)
+	server := onet.NewServerTCP(si, suite)
 	return hc, server, nil
 }
 

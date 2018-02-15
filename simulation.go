@@ -115,7 +115,8 @@ func LoadSimulationConfig(s, dir, ca string) ([]*SimulationConfig, error) {
 		}
 		for _, e := range sc.Roster.List {
 			if strings.Contains(e.Address.String(), ca) {
-				server := NewServerTCP(e, scf.PrivateKeys[e.Address], suite)
+				e.SetPrivate(scf.PrivateKeys[e.Address])
+				server := NewServerTCP(e, suite)
 				scNew := *sc
 				scNew.Server = server
 				scNew.Overlay = server.overlay
@@ -134,7 +135,7 @@ func LoadSimulationConfig(s, dir, ca string) ([]*SimulationConfig, error) {
 		for i := range sc.Roster.List {
 			_, port, _ := net.SplitHostPort(sc.Roster.List[i].Address.NetworkAddress())
 			// put 127.0.0.1 because 127.0.0.X is not reachable on Mac OS X
-			sc.Roster.List[i].Address = network.NewAddress(network.PlainTCP, "127.0.0.1:"+port)
+			sc.Roster.List[i].Address = network.NewAddress(network.TLS, "127.0.0.1:"+port)
 		}
 	}
 	return ret, nil
@@ -209,7 +210,7 @@ type SimulationBFTree struct {
 
 // CreateRoster creates an Roster with the host-names in 'addresses'.
 // It creates 's.Hosts' entries, starting from 'port' for each round through
-// 'addresses'. The network.Address(es) created are of type PlainTCP.
+// 'addresses'. The network.Address(es) created are of type TLS.
 func (s *SimulationBFTree) CreateRoster(sc *SimulationConfig, addresses []string, port int) {
 	start := time.Now()
 	suite, err := suites.Find(s.Suite)
@@ -262,13 +263,14 @@ func (s *SimulationBFTree) CreateRoster(sc *SimulationConfig, addresses []string
 				}
 			}
 			address += strconv.Itoa(port)
-			add = network.NewTCPAddress(address)
+			add = network.NewTLSAddress(address)
 			log.Lvl4("Found free port", address)
 		} else {
 			address += strconv.Itoa(port + (c/nbrAddr)*2)
-			add = network.NewTCPAddress(address)
+			add = network.NewTLSAddress(address)
 		}
 		entities[c] = network.NewServerIdentity(key.Public.Clone(), add)
+		entities[c].SetPrivate(key.Private)
 		sc.PrivateKeys[entities[c].Address] = key.Private.Clone()
 	}
 

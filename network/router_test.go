@@ -15,8 +15,10 @@ func NewTestRouterTCP(port int) (*Router, error) {
 	if err != nil {
 		return nil, err
 	}
-	id := NewTestServerIdentity(h.addr)
-	return NewRouter(id, h), nil
+	h.sid.Address = h.TCPListener.Address()
+	r := NewRouter(h.sid, h)
+	r.UnauthOk = true
+	return r, nil
 }
 
 func NewTestRouterLocal(port int) (*Router, error) {
