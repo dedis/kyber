@@ -64,7 +64,8 @@ var debugVisible = 1
 var showTime = false
 
 // If useColors is true, debug-output will be colored (defaults to monochrome
-// output).
+// output). It also controls padding, since colorful output is higly correlated
+// with humans who like their log lines padded.
 var useColors = false
 
 // outputLines can be false to suppress outputting of lines in tests.
@@ -96,13 +97,18 @@ func lvl(lvl, skip int, args ...interface{}) {
 		line = 0
 	}
 
-	if len(name) > NamePadding && NamePadding > 0 {
-		NamePadding = len(name)
+	fmtstr := ""
+	if useColors {
+		if len(name) > NamePadding && NamePadding > 0 {
+			NamePadding = len(name)
+		}
+		if len(lineStr) > LinePadding && LinePadding > 0 {
+			LinePadding = len(name)
+		}
+		fmtstr = fmt.Sprintf("%%%ds: %%%dd", NamePadding, LinePadding)
+	} else {
+		fmtstr = fmt.Sprintf("%%s: %%d")
 	}
-	if len(lineStr) > LinePadding && LinePadding > 0 {
-		LinePadding = len(name)
-	}
-	fmtstr := fmt.Sprintf("%%%ds: %%%dd", NamePadding, LinePadding)
 	caller := fmt.Sprintf(fmtstr, name, line)
 	if StaticMsg != "" {
 		caller += "@" + StaticMsg

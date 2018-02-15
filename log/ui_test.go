@@ -26,9 +26,9 @@ func TestInfo(t *testing.T) {
 func TestLvl(t *testing.T) {
 	SetDebugVisible(1)
 	Info("TestLvl")
-	assert.True(t, containsStdOut("I : (                             log.TestLvl:   0) - TestLvl\n"))
+	assert.True(t, containsStdOut("I : (log.TestLvl: 0) - TestLvl\n"))
 	Print("TestLvl")
-	assert.True(t, containsStdOut("I : (                             log.TestLvl:   0) - TestLvl\n"))
+	assert.True(t, containsStdOut("I : (log.TestLvl: 0) - TestLvl\n"))
 	Warn("TestLvl")
-	assert.True(t, containsStdErr("W : (                             log.TestLvl:   0) - TestLvl\n"))
+	assert.True(t, containsStdErr("W : (log.TestLvl: 0) - TestLvl\n"))
 }
