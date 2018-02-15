@@ -401,5 +401,10 @@ const nonceSize = 256 / 8
 func mkNonce(s Suite) []byte {
 	var buf [nonceSize]byte
 	random.Bytes(buf[:], s.RandomStream())
+	// In order for the nonce to safely pass through cfg.ServerName,
+	// it needs to avoid the characters , [ ] and %.
+	for bytes.ContainsAny(buf[:], ".[]%") {
+		random.Bytes(buf[:], s.RandomStream())
+	}
 	return buf[:]
 }
