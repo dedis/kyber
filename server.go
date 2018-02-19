@@ -96,10 +96,10 @@ func (c *Server) Suite() network.Suite {
 }
 
 // GetStatus is a function that returns the status report of the server.
-func (c *Server) GetStatus() Status {
+func (c *Server) GetStatus() *Status {
 	a := c.serviceManager.availableServices()
 	sort.Strings(a)
-	return Status(map[string]string{
+	return &Status{Field: map[string]string{
 		"Available_Services": strings.Join(a, ","),
 		"TX_bytes":           strconv.FormatUint(c.Router.Tx(), 10),
 		"RX_bytes":           strconv.FormatUint(c.Router.Rx(), 10),
@@ -111,7 +111,7 @@ func (c *Server) GetStatus() Status {
 		"Port":        c.ServerIdentity.Address.Port(),
 		"Description": c.ServerIdentity.Description,
 		"ConnType":    string(c.ServerIdentity.Address.ConnType()),
-	})
+	}}
 }
 
 // Close closes the overlay and the Router

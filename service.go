@@ -307,12 +307,12 @@ func (s *serviceManager) closeDatabase() error {
 }
 
 // GetStatus is a function that returns the status report of the server.
-func (s *serviceManager) GetStatus() Status {
+func (s *serviceManager) GetStatus() *Status {
 	if s.db == nil {
-		return Status(map[string]string{"Open": "false"})
+		return &Status{Field: map[string]string{"Open": "false"}}
 	}
 	st := s.db.Stats()
-	return Status(map[string]string{
+	return &Status{Field: map[string]string{
 		"Open":             "true",
 		"FreePageN":        strconv.Itoa(st.FreePageN),
 		"PendingPageN":     strconv.Itoa(st.PendingPageN),
@@ -332,7 +332,7 @@ func (s *serviceManager) GetStatus() Status {
 		"Tx.SpillTime":     st.TxStats.SpillTime.String(),
 		"Tx.Write":         strconv.Itoa(st.TxStats.Write),
 		"Tx.WriteTime":     st.TxStats.WriteTime.String(),
-	})
+	}}
 }
 
 // registerProcessor the processor to the service manager and tells the host to dispatch
