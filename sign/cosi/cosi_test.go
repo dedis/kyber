@@ -9,6 +9,7 @@ import (
 
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/group/edwards25519"
+	"github.com/dedis/kyber/sign/eddsa"
 	"github.com/dedis/kyber/util/key"
 	"github.com/dedis/kyber/xof/blake"
 )
@@ -116,6 +117,11 @@ func testCoSi(t *testing.T, n, f int) {
 			p = NewThresholdPolicy(n - f)
 		}
 		if err := Verify(testSuite, publics, message, sig, p); err != nil {
+			t.Fatal(err)
+		}
+		// cosi signature should follow the same format as EdDSA except it has no mask
+		maskLen := len(masks[i].Mask())
+		if err := eddsa.Verify(masks[i].AggregatePublic, message, sig[0:len(sig)-maskLen]); err != nil {
 			t.Fatal(err)
 		}
 	}

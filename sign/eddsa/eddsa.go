@@ -127,7 +127,7 @@ func (e *EdDSA) Sign(msg []byte) ([]byte, error) {
 // sig is a valid signature for msg created by key public, or an error otherwise.
 func Verify(public kyber.Point, msg, sig []byte) error {
 	if len(sig) != 64 {
-		return errors.New("signature length invalid")
+		return fmt.Errorf("signature length invalid, expect 64 but got %v", len(sig))
 	}
 
 	R := group.Point()
