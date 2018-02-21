@@ -7,6 +7,8 @@ import (
 	"bytes"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"runtime"
 
 	"github.com/dedis/onet/log"
 )
@@ -71,10 +73,29 @@ func SSHRunStdout(username, host, command string) error {
 // argument. The command which will be executed is of the following form:
 // $ go build -v buildArgs... -o out path
 func Build(path, out, goarch, goos string, buildArgs ...string) (string, error) {
+	// When cross-compiling:
+	// Run "go install" for the stdlib, to speed up future builds.
+	// The first time we run this it builds and installs. Afterwards,
+	// this finishes quickly and the later "go build" is faster.
+	if goarch != runtime.GOARCH || goos != runtime.GOOS {
+		cmd := exec.Command("go", []string{"env", "GOROOT"}...)
+		gosrcB, err := cmd.Output()
+		if err == nil {
+			gosrcB := bytes.TrimRight(gosrcB, "\n\r")
+			gosrc := filepath.Join(string(gosrcB), "src")
+			cmd = exec.Command("go", []string{"install", "./..."}...)
+			log.Lvl4("Installing cross-compilation stdlib in", gosrc)
+			cmd.Env = append([]string{"GOOS=" + goos, "GOARCH=" + goarch}, os.Environ()...)
+			cmd.Dir = gosrc
+			log.Lvl4("Command:", cmd.Args, "in directory", gosrc)
+			// Ignore errors from here; perhaps we didn't have rights to write.
+			cmd.Run()
+		}
+	}
+
 	var cmd *exec.Cmd
 	var b bytes.Buffer
 	buildBuffer := bufio.NewWriter(&b)
-
 	wd, _ := os.Getwd()
 	log.Lvl4("In directory", wd)
 	var args []string
