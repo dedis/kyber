@@ -17,7 +17,7 @@ func newGFp(x int64) (out *gfP) {
 }
 
 func (e *gfP) String() string {
-	return fmt.Sprintf("%16.16x%16.16x%16.16x%16.16x", e[3], e[2], e[1], e[0])
+	return fmt.Sprintf("%16.16x %16.16x %16.16x %16.16x", e[3], e[2], e[1], e[0])
 }
 
 func (e *gfP) Set(f *gfP) {

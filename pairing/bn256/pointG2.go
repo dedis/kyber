@@ -2,11 +2,11 @@ package bn256
 
 import (
 	"crypto/cipher"
+	"crypto/subtle"
 	"errors"
 	"io"
 
 	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/util/random"
 )
 
 type pointG2 struct {
@@ -20,29 +20,29 @@ func newPointG2() *pointG2 {
 
 // Equal ...
 func (p *pointG2) Equal(q kyber.Point) bool {
-	x := q.(*pointG2).g
-	p.g.Neg(x)      // p = -q
-	p.g.Add(p.g, x) // p = -q + q
-	return p.g.IsInfinity()
+	x, _ := p.MarshalBinary()
+	y, _ := q.MarshalBinary()
+	return subtle.ConstantTimeCompare(x, y) == 1
 }
 
 // Null ...
 func (p *pointG2) Null() kyber.Point {
-	q := newPointG2()
-	q.g.SetInfinity()
-	return q
+	p.g.SetInfinity()
+	return p
 }
 
 // Base ...
 func (p *pointG2) Base() kyber.Point {
-	q := newPointG2()
-	q.g.Set(twistGen)
-	return q
+	p.g.Set(twistGen)
+	return p
 }
 
 // Pick ...
 func (p *pointG2) Pick(rand cipher.Stream) kyber.Point {
-	return p.Embed(nil, rand)
+	s := newScalar().Pick(rand)
+	p.Base()
+	p.g.Mul(p.g, s.(*scalar).x)
+	return p
 }
 
 // Set ...
@@ -67,45 +67,20 @@ func (p *pointG2) Clone() kyber.Point {
 
 // EmbedLen ...
 func (p *pointG2) EmbedLen() int {
-	// TODO: check if this makes sense
-	return 256/8 - 1 - 1
+	// TODO check if/how G2 points can support data embedding
+	return 0
 }
 
 // Embed ...
 func (p *pointG2) Embed(data []byte, rand cipher.Stream) kyber.Point {
-	// TODO: check if/how G2 points can support embedding
-	l := p.EmbedLen()
-	if len(data) < l {
-		l = len(data)
-	}
-	for {
-		// fill in random bytes
-		buf := make([]byte, p.MarshalSize())
-		random.Bytes(buf, rand)
-		if data != nil {
-			buf[0] = byte(l)       // encode length in the low 8 bits
-			copy(buf[1:1+l], data) // copy data
-		}
-
-		if p.UnmarshalBinary(buf) == nil {
-			break // found a valid point
-		}
-	}
-	return p
+	// TODO check if/how G2 points can support data embedding
+	return nil
 }
 
 // Data ...
 func (p *pointG2) Data() ([]byte, error) {
-	// TODO: check if this works for G2 points
-	buf, err := p.MarshalBinary()
-	if err != nil {
-		return nil, err
-	}
-	l := int(buf[0]) // get length byte
-	if l > p.EmbedLen() {
-		return nil, errors.New("bn256: invalid length of embedded data")
-	}
-	return buf[1 : 1+l], nil
+	// TODO check if/how G2 points can support data embedding
+	return nil, nil
 }
 
 // Add ...
@@ -117,7 +92,7 @@ func (p *pointG2) Add(a, b kyber.Point) kyber.Point {
 }
 
 // Sub ...
-func (p *pointG2) Sub(a, b, kyber.Point) kyber.Point {
+func (p *pointG2) Sub(a, b kyber.Point) kyber.Point {
 	x := a.(*pointG2).g
 	y := b.(*pointG2).g
 	p.g.Neg(x)      // p = -b
@@ -189,7 +164,8 @@ func (p *pointG2) UnmarshalBinary(buf []byte) error {
 
 	if len(buf) > 0 && buf[0] == 0x00 {
 		p.g.SetInfinity()
-		return buf[1:], nil
+		//return buf[1:], nil
+		return nil
 	} else if len(buf) > 0 && buf[0] != 0x01 {
 		return errors.New("bn256: malformed point")
 	} else if len(buf) < p.MarshalSize() {

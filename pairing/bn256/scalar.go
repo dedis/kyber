@@ -2,6 +2,7 @@ package bn256
 
 import (
 	"crypto/cipher"
+	"crypto/subtle"
 	"errors"
 	"io"
 	"math/big"
@@ -21,7 +22,8 @@ func newScalar() kyber.Scalar {
 
 // Equal ...
 func (s *scalar) Equal(a kyber.Scalar) bool {
-	return s.x.Cmp(a.(*scalar).x) == 0
+	x := a.(*scalar).x
+	return subtle.ConstantTimeCompare(s.x.Bytes(), x.Bytes()) == 1
 }
 
 // Set ...
@@ -33,7 +35,7 @@ func (s *scalar) Set(a kyber.Scalar) kyber.Scalar {
 
 // Clone ...
 func (s *scalar) Clone() kyber.Scalar {
-	a := NewScalar()
+	a := newScalar()
 	a.Set(s)
 	return a
 }
@@ -146,6 +148,7 @@ func (s *scalar) MarshalTo(w io.Writer) (int, error) {
 func (s *scalar) UnmarshalBinary(buf []byte) error {
 	n := s.MarshalSize()
 	s.x.SetBytes(buf[:n])
+	s.x.Mod(s.x, Order)
 	return nil
 }
 
