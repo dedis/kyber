@@ -15,7 +15,7 @@ import (
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/group/internal/marshalling"
 	"github.com/dedis/kyber/util/random"
-	"github.com/dedis/kyber/xof/blake"
+	"github.com/dedis/kyber/xof/blake2xb"
 )
 
 type QrSuite struct {
@@ -28,7 +28,7 @@ func (s QrSuite) Hash() hash.Hash {
 }
 
 func (s QrSuite) XOF(key []byte) kyber.XOF {
-	return blake.New(key)
+	return blake2xb.New(key)
 }
 
 func (s QrSuite) RandomStream() cipher.Stream {
@@ -48,7 +48,7 @@ func (s *QrSuite) New(t reflect.Type) interface{} {
 }
 
 // NewBlakeSHA256QR512 returns a cipher suite based on package
-// github.com/dedis/kyber/xof/blake, SHA-256, and a residue group of
+// github.com/dedis/kyber/xof/blake2xb, SHA-256, and a residue group of
 // quadratic residues modulo a 512-bit prime.
 //
 // This group size should be used only for testing and experimentation.

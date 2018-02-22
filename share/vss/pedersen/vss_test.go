@@ -7,12 +7,12 @@ import (
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/group/edwards25519"
 	"github.com/dedis/kyber/sign/schnorr"
-	"github.com/dedis/kyber/xof/blake"
+	"github.com/dedis/kyber/xof/blake2xb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-var rng = blake.New(nil)
+var rng = blake2xb.New(nil)
 
 var suite = edwards25519.NewBlakeSHA256Ed25519WithRand(rng)
 

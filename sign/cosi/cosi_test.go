@@ -11,7 +11,7 @@ import (
 	"github.com/dedis/kyber/group/edwards25519"
 	"github.com/dedis/kyber/sign/eddsa"
 	"github.com/dedis/kyber/util/key"
-	"github.com/dedis/kyber/xof/blake"
+	"github.com/dedis/kyber/xof/blake2xb"
 )
 
 // Specify cipher suite using AES-128, SHA512, and the Edwards25519 curve.
@@ -25,7 +25,7 @@ func (m *cosiSuite) Hash() hash.Hash {
 }
 func (m *cosiSuite) RandomStream() cipher.Stream { return m.r }
 
-var testSuite = &cosiSuite{edwards25519.NewBlakeSHA256Ed25519(), blake.New(nil)}
+var testSuite = &cosiSuite{edwards25519.NewBlakeSHA256Ed25519(), blake2xb.New(nil)}
 
 func TestCoSi(t *testing.T) {
 	testCoSi(t, 2, 0)

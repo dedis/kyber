@@ -25,5 +25,5 @@ util/key
 util/random
 util/test
 xof
-xof/blake
+xof/blake2xb
 xof/keccak

@@ -6,14 +6,14 @@ import (
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/group/edwards25519"
 	"github.com/dedis/kyber/proof"
-	"github.com/dedis/kyber/xof/blake"
+	"github.com/dedis/kyber/xof/blake2xb"
 )
 
 var k = 5
 var N = 10
 
 func TestShuffle(t *testing.T) {
-	s := edwards25519.NewBlakeSHA256Ed25519WithRand(blake.New(nil))
+	s := edwards25519.NewBlakeSHA256Ed25519WithRand(blake2xb.New(nil))
 	shuffleTest(s, k, N)
 }
 
