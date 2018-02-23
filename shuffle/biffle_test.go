@@ -6,11 +6,11 @@ import (
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/group/edwards25519"
 	"github.com/dedis/kyber/proof"
-	"github.com/dedis/kyber/xof/blake"
+	"github.com/dedis/kyber/xof/blake2xb"
 )
 
 func TestBiffle(t *testing.T) {
-	rand := blake.New(nil)
+	rand := blake2xb.New(nil)
 	s := edwards25519.NewBlakeSHA256Ed25519WithRand(rand)
 	biffleTest(s, N)
 }

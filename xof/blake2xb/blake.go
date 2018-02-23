@@ -1,6 +1,6 @@
-// Package blake provides an implementation of kyber.XOF based on the
-// Blake2bx construction.
-package blake
+// Package blake2xb provides an implementation of kyber.XOF based on the
+// Blake2xb construction.
+package blake2xb
 
 import (
 	"github.com/dedis/kyber"

@@ -7,14 +7,14 @@ import (
 
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/group/edwards25519"
-	"github.com/dedis/kyber/xof/blake"
+	"github.com/dedis/kyber/xof/blake2xb"
 )
 
 func ExampleEncrypt_one() {
 	// Crypto setup: Get a suite which returns a predictable
 	// random number stream for this example.
 	// In production, simply use edwards25519.NewBlakeSHA256Ed25519()
-	suite := edwards25519.NewBlakeSHA256Ed25519WithRand(blake.New(nil))
+	suite := edwards25519.NewBlakeSHA256Ed25519WithRand(blake2xb.New(nil))
 
 	// Create a public/private keypair (X[mine],x)
 	X := make([]kyber.Point, 1)
@@ -52,7 +52,7 @@ func ExampleEncrypt_anonSet() {
 	// Crypto setup: Get a suite which returns a predictable
 	// random number stream for this example.
 	// In production, simply use edwards25519.NewBlakeSHA256Ed25519()
-	suite := edwards25519.NewBlakeSHA256Ed25519WithRand(blake.New(nil))
+	suite := edwards25519.NewBlakeSHA256Ed25519WithRand(blake2xb.New(nil))
 
 	// Create an anonymity set of random "public keys"
 	X := make([]kyber.Point, 3)

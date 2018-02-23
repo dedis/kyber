@@ -6,7 +6,7 @@ import (
 
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/group/edwards25519"
-	"github.com/dedis/kyber/xof/blake"
+	"github.com/dedis/kyber/xof/blake2xb"
 )
 
 // This example shows how to build classic ElGamal-style digital signatures
@@ -14,7 +14,7 @@ import (
 func Example_hashProve1() {
 
 	// Crypto setup
-	rand := blake.New([]byte("example"))
+	rand := blake2xb.New([]byte("example"))
 	suite := edwards25519.NewBlakeSHA256Ed25519WithRand(rand)
 	B := suite.Point().Base() // standard base point
 
@@ -79,7 +79,7 @@ func Example_hashProve1() {
 func Example_hashProve2() {
 
 	// Crypto setup
-	rand := blake.New([]byte("example"))
+	rand := blake2xb.New([]byte("example"))
 	suite := edwards25519.NewBlakeSHA256Ed25519WithRand(rand)
 	B := suite.Point().Base() // standard base point
 
