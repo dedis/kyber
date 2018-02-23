@@ -153,10 +153,10 @@ func Simulate(suite, serverAddress, simul, monitorAddress string) error {
 		// that the tree is easy to close.
 		closeTree := rootSC.Roster.GenerateBinaryTree()
 		pi, err := rootSC.Overlay.CreateProtocol("CloseAll", closeTree, onet.NilServiceID)
-		pi.Start()
 		if err != nil {
 			return err
 		}
+		pi.Start()
 	}
 
 	log.Lvl3(serverAddress, scs[0].Server.ServerIdentity, "is waiting for all servers to close")
