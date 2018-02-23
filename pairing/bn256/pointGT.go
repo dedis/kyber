@@ -27,9 +27,8 @@ func (p *pointGT) Equal(q kyber.Point) bool {
 
 // Null ...
 func (p *pointGT) Null() kyber.Point {
-	//p.g.Set(gfP12Neutral)
-	//return p
-	return nil
+	p.g.Set(gfP12Inf)
+	return p
 }
 
 // Base ...
@@ -218,6 +217,7 @@ func (p *pointGT) MarshalSize() int {
 	return 12 * p.ElementSize()
 }
 
+// ElementSize ...
 func (p *pointGT) ElementSize() int {
 	return 256 / 8
 }
