@@ -227,25 +227,9 @@ func (p *pointGT) String() string {
 	return "bn256.GT" + p.g.String()
 }
 
-// Pair ...
-func (p *pointGT) Pair(g1, g2 kyber.Point) kyber.Point {
-	a := g1.(*pointG1).g
-	b := g2.(*pointG2).g
-	p.g.Set(optimalAte(b, a))
-	return p
-}
-
 // Finalize ...
 func (p *pointGT) Finalize() kyber.Point {
 	buf := finalExponentiation(p.g)
 	p.g.Set(buf)
-	return p
-}
-
-// Miller ...
-func (p *pointGT) Miller(g1, g2 kyber.Point) kyber.Point {
-	a := g1.(*pointG1).g
-	b := g2.(*pointG2).g
-	p.g.Set(miller(b, a))
 	return p
 }
