@@ -9,10 +9,6 @@ import (
 	"github.com/dedis/kyber"
 )
 
-///////////////////////////////////////////////////////////////////////////////
-// Point G1
-///////////////////////////////////////////////////////////////////////////////
-
 type pointG1 struct {
 	g *curvePoint
 }
@@ -22,26 +18,22 @@ func newPointG1() *pointG1 {
 	return p
 }
 
-// Equal ...
 func (p *pointG1) Equal(q kyber.Point) bool {
 	x, _ := p.MarshalBinary()
 	y, _ := q.MarshalBinary()
 	return subtle.ConstantTimeCompare(x, y) == 1
 }
 
-// Null ...
 func (p *pointG1) Null() kyber.Point {
 	p.g.SetInfinity()
 	return p
 }
 
-// Base ...
 func (p *pointG1) Base() kyber.Point {
 	p.g.Set(curveGen)
 	return p
 }
 
-// Pick ...
 func (p *pointG1) Pick(rand cipher.Stream) kyber.Point {
 	s := newScalar().Pick(rand)
 	p.Base()
@@ -49,14 +41,12 @@ func (p *pointG1) Pick(rand cipher.Stream) kyber.Point {
 	return p
 }
 
-// Set ...
 func (p *pointG1) Set(q kyber.Point) kyber.Point {
 	x := q.(*pointG1).g
 	p.g.Set(x)
 	return p
 }
 
-// Clone ...
 func (p *pointG1) Clone() kyber.Point {
 	q := newPointG1()
 	buf, err := p.MarshalBinary()
@@ -69,25 +59,21 @@ func (p *pointG1) Clone() kyber.Point {
 	return q
 }
 
-// EmbedLen ...
 func (p *pointG1) EmbedLen() int {
 	// TODO check if/how G1 points can support data embedding
 	return 0
 }
 
-// Embed ...
 func (p *pointG1) Embed(data []byte, rand cipher.Stream) kyber.Point {
 	// TODO check if/how G1 points can support data embedding
 	return nil
 }
 
-// Data ...
 func (p *pointG1) Data() ([]byte, error) {
 	// TODO check if/how G1 points can support data embedding
 	return nil, nil
 }
 
-// Add ...
 func (p *pointG1) Add(a, b kyber.Point) kyber.Point {
 	x := a.(*pointG1).g
 	y := b.(*pointG1).g
@@ -95,7 +81,6 @@ func (p *pointG1) Add(a, b kyber.Point) kyber.Point {
 	return p
 }
 
-// Sub ...
 func (p *pointG1) Sub(a, b kyber.Point) kyber.Point {
 	x := a.(*pointG1).g
 	y := b.(*pointG1).g
@@ -104,14 +89,12 @@ func (p *pointG1) Sub(a, b kyber.Point) kyber.Point {
 	return p
 }
 
-// Neg ...
 func (p *pointG1) Neg(q kyber.Point) kyber.Point {
 	x := q.(*pointG1).g
 	p.g.Neg(x)
 	return p
 }
 
-// Mul ...
 func (p *pointG1) Mul(s kyber.Scalar, q kyber.Point) kyber.Point {
 	if q == nil {
 		q = newPointG1().Base()
@@ -122,7 +105,6 @@ func (p *pointG1) Mul(s kyber.Scalar, q kyber.Point) kyber.Point {
 	return p
 }
 
-// MarshalBinary ...
 func (p *pointG1) MarshalBinary() ([]byte, error) {
 	n := p.ElementSize()
 	p.g.MakeAffine()
@@ -138,7 +120,6 @@ func (p *pointG1) MarshalBinary() ([]byte, error) {
 	return ret, nil
 }
 
-// MarshalTo ...
 func (p *pointG1) MarshalTo(w io.Writer) (int, error) {
 	buf, err := p.MarshalBinary()
 	if err != nil {
@@ -147,7 +128,6 @@ func (p *pointG1) MarshalTo(w io.Writer) (int, error) {
 	return w.Write(buf)
 }
 
-// UnmarshalBinary ...
 func (p *pointG1) UnmarshalBinary(buf []byte) error {
 	n := p.ElementSize()
 	if len(buf) < p.MarshalSize() {
@@ -182,7 +162,6 @@ func (p *pointG1) UnmarshalBinary(buf []byte) error {
 	return nil
 }
 
-// UnmarshalFrom ...
 func (p *pointG1) UnmarshalFrom(r io.Reader) (int, error) {
 	buf := make([]byte, p.MarshalSize())
 	n, err := io.ReadFull(r, buf)
@@ -192,24 +171,17 @@ func (p *pointG1) UnmarshalFrom(r io.Reader) (int, error) {
 	return n, p.UnmarshalBinary(buf)
 }
 
-// MarshalSize ...
 func (p *pointG1) MarshalSize() int {
 	return 2 * p.ElementSize()
 }
 
-// ElementSize ...
 func (p *pointG1) ElementSize() int {
 	return 256 / 8
 }
 
-// String ...
 func (p *pointG1) String() string {
 	return "bn256.G1" + p.g.String()
 }
-
-///////////////////////////////////////////////////////////////////////////////
-// Point G2
-///////////////////////////////////////////////////////////////////////////////
 
 type pointG2 struct {
 	g *twistPoint
@@ -220,26 +192,22 @@ func newPointG2() *pointG2 {
 	return p
 }
 
-// Equal ...
 func (p *pointG2) Equal(q kyber.Point) bool {
 	x, _ := p.MarshalBinary()
 	y, _ := q.MarshalBinary()
 	return subtle.ConstantTimeCompare(x, y) == 1
 }
 
-// Null ...
 func (p *pointG2) Null() kyber.Point {
 	p.g.SetInfinity()
 	return p
 }
 
-// Base ...
 func (p *pointG2) Base() kyber.Point {
 	p.g.Set(twistGen)
 	return p
 }
 
-// Pick ...
 func (p *pointG2) Pick(rand cipher.Stream) kyber.Point {
 	s := newScalar().Pick(rand)
 	p.Base()
@@ -247,14 +215,12 @@ func (p *pointG2) Pick(rand cipher.Stream) kyber.Point {
 	return p
 }
 
-// Set ...
 func (p *pointG2) Set(q kyber.Point) kyber.Point {
 	x := q.(*pointG2).g
 	p.g.Set(x)
 	return p
 }
 
-// Clone ...
 func (p *pointG2) Clone() kyber.Point {
 	q := newPointG2()
 	buf, err := p.MarshalBinary()
@@ -267,25 +233,21 @@ func (p *pointG2) Clone() kyber.Point {
 	return q
 }
 
-// EmbedLen ...
 func (p *pointG2) EmbedLen() int {
 	// TODO check if/how G2 points can support data embedding
 	return 0
 }
 
-// Embed ...
 func (p *pointG2) Embed(data []byte, rand cipher.Stream) kyber.Point {
 	// TODO check if/how G2 points can support data embedding
 	return nil
 }
 
-// Data ...
 func (p *pointG2) Data() ([]byte, error) {
 	// TODO check if/how G2 points can support data embedding
 	return nil, nil
 }
 
-// Add ...
 func (p *pointG2) Add(a, b kyber.Point) kyber.Point {
 	x := a.(*pointG2).g
 	y := b.(*pointG2).g
@@ -293,7 +255,6 @@ func (p *pointG2) Add(a, b kyber.Point) kyber.Point {
 	return p
 }
 
-// Sub ...
 func (p *pointG2) Sub(a, b kyber.Point) kyber.Point {
 	x := a.(*pointG2).g
 	y := b.(*pointG2).g
@@ -302,14 +263,12 @@ func (p *pointG2) Sub(a, b kyber.Point) kyber.Point {
 	return p
 }
 
-// Neg ...
 func (p *pointG2) Neg(q kyber.Point) kyber.Point {
 	x := q.(*pointG2).g
 	p.g.Neg(x)
 	return p
 }
 
-// Mul ...
 func (p *pointG2) Mul(s kyber.Scalar, q kyber.Point) kyber.Point {
 	if q == nil {
 		q = newPointG2().Base()
@@ -320,7 +279,6 @@ func (p *pointG2) Mul(s kyber.Scalar, q kyber.Point) kyber.Point {
 	return p
 }
 
-// MarshalBinary ...
 func (p *pointG2) MarshalBinary() ([]byte, error) {
 	n := p.ElementSize()
 	if p.g == nil {
@@ -348,7 +306,6 @@ func (p *pointG2) MarshalBinary() ([]byte, error) {
 	return ret, nil
 }
 
-// MarshalTo ...
 func (p *pointG2) MarshalTo(w io.Writer) (int, error) {
 	buf, err := p.MarshalBinary()
 	if err != nil {
@@ -357,7 +314,6 @@ func (p *pointG2) MarshalTo(w io.Writer) (int, error) {
 	return w.Write(buf)
 }
 
-// UnmarshalBinary ...
 func (p *pointG2) UnmarshalBinary(buf []byte) error {
 	n := p.ElementSize()
 	if p.g == nil {
@@ -399,7 +355,6 @@ func (p *pointG2) UnmarshalBinary(buf []byte) error {
 	return nil
 }
 
-// UnmarshalFrom ...
 func (p *pointG2) UnmarshalFrom(r io.Reader) (int, error) {
 	buf := make([]byte, p.MarshalSize())
 	n, err := io.ReadFull(r, buf)
@@ -409,24 +364,17 @@ func (p *pointG2) UnmarshalFrom(r io.Reader) (int, error) {
 	return n, p.UnmarshalBinary(buf)
 }
 
-// MarshalSize ...
 func (p *pointG2) MarshalSize() int {
 	return 4*p.ElementSize() + 1
 }
 
-// ElementSize
 func (p *pointG2) ElementSize() int {
 	return 256 / 8
 }
 
-// String ...
 func (p *pointG2) String() string {
 	return "bn256.G2" + p.g.String()
 }
-
-///////////////////////////////////////////////////////////////////////////////
-// Point GT
-///////////////////////////////////////////////////////////////////////////////
 
 type pointGT struct {
 	g *gfP12
@@ -437,26 +385,22 @@ func newPointGT() *pointGT {
 	return p
 }
 
-// Equal ...
 func (p *pointGT) Equal(q kyber.Point) bool {
 	x, _ := p.MarshalBinary()
 	y, _ := q.MarshalBinary()
 	return subtle.ConstantTimeCompare(x, y) == 1
 }
 
-// Null ...
 func (p *pointGT) Null() kyber.Point {
 	p.g.Set(gfP12Inf)
 	return p
 }
 
-// Base ...
 func (p *pointGT) Base() kyber.Point {
 	p.g.Set(gfP12Gen)
 	return p
 }
 
-// Pick ...
 func (p *pointGT) Pick(rand cipher.Stream) kyber.Point {
 	s := newScalar().Pick(rand)
 	p.Base()
@@ -464,14 +408,12 @@ func (p *pointGT) Pick(rand cipher.Stream) kyber.Point {
 	return p
 }
 
-// Set ...
 func (p *pointGT) Set(q kyber.Point) kyber.Point {
 	x := q.(*pointGT).g
 	p.g.Set(x)
 	return p
 }
 
-// Clone ...
 func (p *pointGT) Clone() kyber.Point {
 	q := newPointGT()
 	buf, err := p.MarshalBinary()
@@ -484,25 +426,21 @@ func (p *pointGT) Clone() kyber.Point {
 	return q
 }
 
-// EmbedLen ...
 func (p *pointGT) EmbedLen() int {
 	// TODO check if/how GT points can support data embedding
 	return 0
 }
 
-// Embed ...
 func (p *pointGT) Embed(data []byte, rand cipher.Stream) kyber.Point {
 	// TODO check if/how GT points can support data embedding
 	return nil
 }
 
-// Data ...
 func (p *pointGT) Data() ([]byte, error) {
 	// TODO check if/how GT points can support data embedding
 	return nil, nil
 }
 
-// Add ...
 func (p *pointGT) Add(a, b kyber.Point) kyber.Point {
 	x := a.(*pointGT).g
 	y := b.(*pointGT).g
@@ -510,7 +448,6 @@ func (p *pointGT) Add(a, b kyber.Point) kyber.Point {
 	return p
 }
 
-// Sub ...
 func (p *pointGT) Sub(a, b kyber.Point) kyber.Point {
 	x := a.(*pointGT).g
 	y := b.(*pointGT).g
@@ -519,14 +456,12 @@ func (p *pointGT) Sub(a, b kyber.Point) kyber.Point {
 	return p
 }
 
-// Neg ...
 func (p *pointGT) Neg(q kyber.Point) kyber.Point {
 	x := q.(*pointGT).g
 	p.g.Conjugate(x)
 	return p
 }
 
-// Mul ...
 func (p *pointGT) Mul(s kyber.Scalar, q kyber.Point) kyber.Point {
 	if q == nil {
 		q = newPointGT().Base()
@@ -537,7 +472,6 @@ func (p *pointGT) Mul(s kyber.Scalar, q kyber.Point) kyber.Point {
 	return p
 }
 
-// MarshalBinary ...
 func (p *pointGT) MarshalBinary() ([]byte, error) {
 	n := p.ElementSize()
 	ret := make([]byte, p.MarshalSize())
@@ -571,7 +505,6 @@ func (p *pointGT) MarshalBinary() ([]byte, error) {
 	return ret, nil
 }
 
-// MarshalTo ...
 func (p *pointGT) MarshalTo(w io.Writer) (int, error) {
 	buf, err := p.MarshalBinary()
 	if err != nil {
@@ -580,7 +513,6 @@ func (p *pointGT) MarshalTo(w io.Writer) (int, error) {
 	return w.Write(buf)
 }
 
-// UnmarshalBinary ...
 func (p *pointGT) UnmarshalBinary(buf []byte) error {
 	n := p.ElementSize()
 	if len(buf) < p.MarshalSize() {
@@ -621,7 +553,6 @@ func (p *pointGT) UnmarshalBinary(buf []byte) error {
 	return nil
 }
 
-// UnmarshalFrom ...
 func (p *pointGT) UnmarshalFrom(r io.Reader) (int, error) {
 	buf := make([]byte, p.MarshalSize())
 	n, err := io.ReadFull(r, buf)
@@ -631,24 +562,38 @@ func (p *pointGT) UnmarshalFrom(r io.Reader) (int, error) {
 	return n, p.UnmarshalBinary(buf)
 }
 
-// MarshalSize ...
 func (p *pointGT) MarshalSize() int {
 	return 12 * p.ElementSize()
 }
 
-// ElementSize ...
 func (p *pointGT) ElementSize() int {
 	return 256 / 8
 }
 
-// String ...
 func (p *pointGT) String() string {
 	return "bn256.GT" + p.g.String()
 }
 
-// Finalize ...
 func (p *pointGT) Finalize() kyber.Point {
 	buf := finalExponentiation(p.g)
 	p.g.Set(buf)
+	return p
+}
+
+// Miller ...
+func Miller(p1, p2 kyber.Point) kyber.Point {
+	p := newPointGT()
+	a := p1.(*pointG1).g
+	b := p2.(*pointG2).g
+	p.g.Set(miller(b, a))
+	return p
+}
+
+// Pair ...
+func Pair(p1, p2 kyber.Point) kyber.Point {
+	p := newPointGT()
+	a := p1.(*pointG1).g
+	b := p2.(*pointG2).g
+	p.g.Set(optimalAte(b, a))
 	return p
 }

@@ -20,38 +20,32 @@ func newScalar() kyber.Scalar {
 	return s.Zero()
 }
 
-// Equal ...
 func (s *scalar) Equal(a kyber.Scalar) bool {
 	x := a.(*scalar).x
 	return subtle.ConstantTimeCompare(s.x.Bytes(), x.Bytes()) == 1
 }
 
-// Set ...
 func (s *scalar) Set(a kyber.Scalar) kyber.Scalar {
 	buf, _ := a.(*scalar).MarshalBinary()
 	s.UnmarshalBinary(buf)
 	return s
 }
 
-// Clone ...
 func (s *scalar) Clone() kyber.Scalar {
 	a := newScalar()
 	a.Set(s)
 	return a
 }
 
-// SetInt64 ...
 func (s *scalar) SetInt64(v int64) kyber.Scalar {
 	s.x.SetInt64(v)
 	return s
 }
 
-// Zero ...
 func (s *scalar) Zero() kyber.Scalar {
 	return s.SetInt64(0)
 }
 
-// Add ...
 func (s *scalar) Add(a, b kyber.Scalar) kyber.Scalar {
 	ax := a.(*scalar).x
 	bx := b.(*scalar).x
@@ -60,7 +54,6 @@ func (s *scalar) Add(a, b kyber.Scalar) kyber.Scalar {
 	return s
 }
 
-// Sub ...
 func (s *scalar) Sub(a, b kyber.Scalar) kyber.Scalar {
 	ax := a.(*scalar).x
 	bx := b.(*scalar).x
@@ -69,7 +62,6 @@ func (s *scalar) Sub(a, b kyber.Scalar) kyber.Scalar {
 	return s
 }
 
-// Neg ...
 func (s *scalar) Neg(a kyber.Scalar) kyber.Scalar {
 	ax := a.(*scalar).x
 	s.x.Neg(ax)
@@ -77,12 +69,10 @@ func (s *scalar) Neg(a kyber.Scalar) kyber.Scalar {
 	return s
 }
 
-// One ...
 func (s *scalar) One() kyber.Scalar {
 	return s.SetInt64(1)
 }
 
-// Mul ...
 func (s *scalar) Mul(a, b kyber.Scalar) kyber.Scalar {
 	ax := a.(*scalar).x
 	bx := b.(*scalar).x
@@ -91,7 +81,6 @@ func (s *scalar) Mul(a, b kyber.Scalar) kyber.Scalar {
 	return s
 }
 
-// Div ...
 func (s *scalar) Div(a, b kyber.Scalar) kyber.Scalar {
 	ax := a.(*scalar).x
 	bx := b.(*scalar).x
@@ -100,14 +89,12 @@ func (s *scalar) Div(a, b kyber.Scalar) kyber.Scalar {
 	return s
 }
 
-// Inv ...
 func (s *scalar) Inv(a kyber.Scalar) kyber.Scalar {
 	ax := a.(*scalar).x
 	s.x.ModInverse(ax, Order)
 	return s
 }
 
-// Pick ...
 func (s *scalar) Pick(rand cipher.Stream) kyber.Scalar {
 	buf := make([]byte, s.MarshalSize())
 	random.Bytes(buf, rand)
@@ -115,36 +102,30 @@ func (s *scalar) Pick(rand cipher.Stream) kyber.Scalar {
 	return s
 }
 
-// SetBytes ...
 func (s *scalar) SetBytes(buf []byte) kyber.Scalar {
 	s.UnmarshalBinary(buf)
 	return s
 }
 
-// Bytes ...
 func (s *scalar) Bytes() []byte {
 	return s.x.Bytes()
 }
 
-// SetVarTime ...
 func (s *scalar) SetVarTime(varTime bool) error {
 	return errors.New("bn256: no constant-time implementation available")
 }
 
-// MarshalBinary ...
 func (s *scalar) MarshalBinary() ([]byte, error) {
 	n := s.MarshalSize()
 	buf := s.x.Bytes()
 	return buf[:n], nil
 }
 
-// MarshalTo ...
 func (s *scalar) MarshalTo(w io.Writer) (int, error) {
 	buf, _ := s.MarshalBinary()
 	return w.Write(buf)
 }
 
-// UnmarshalBinary ...
 func (s *scalar) UnmarshalBinary(buf []byte) error {
 	n := s.MarshalSize()
 	s.x.SetBytes(buf[:n])
@@ -152,7 +133,6 @@ func (s *scalar) UnmarshalBinary(buf []byte) error {
 	return nil
 }
 
-// UnmarshalFrom ...
 func (s *scalar) UnmarshalFrom(r io.Reader) (int, error) {
 	buf := make([]byte, s.MarshalSize())
 	n, err := io.ReadFull(r, buf)
@@ -162,12 +142,10 @@ func (s *scalar) UnmarshalFrom(r io.Reader) (int, error) {
 	return n, s.UnmarshalBinary(buf)
 }
 
-// MarshalSize ...
 func (s *scalar) MarshalSize() int {
 	return len(Order.Bytes())
 }
 
-// String ...
 func (s *scalar) String() string {
 	return "bn256.Scalar(" + s.x.String() + ")"
 }
