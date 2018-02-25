@@ -55,9 +55,9 @@ func (s *SuiteBN256) GT() kyber.Group {
 	return s.gt
 }
 
-// Pair
-func (g *SuiteBN256) Pair(g1 kyber.Point, g2 kyber.Point) kyber.Point {
-	return Pair(g1, g2)
+// Pair ...
+func (s *SuiteBN256) Pair(p1 kyber.Point, p2 kyber.Point) kyber.Point {
+	return s.GT().Point().(*pointGT).Pair(p1, p2)
 }
 
 // Hash ...

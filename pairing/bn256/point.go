@@ -580,18 +580,14 @@ func (p *pointGT) Finalize() kyber.Point {
 	return p
 }
 
-// Miller ...
-func Miller(p1, p2 kyber.Point) kyber.Point {
-	p := newPointGT()
+func (p *pointGT) Miller(p1, p2 kyber.Point) kyber.Point {
 	a := p1.(*pointG1).g
 	b := p2.(*pointG2).g
 	p.g.Set(miller(b, a))
 	return p
 }
 
-// Pair ...
-func Pair(p1, p2 kyber.Point) kyber.Point {
-	p := newPointGT()
+func (p *pointGT) Pair(p1, p2 kyber.Point) kyber.Point {
 	a := p1.(*pointG1).g
 	b := p2.(*pointG2).g
 	p.g.Set(optimalAte(b, a))
