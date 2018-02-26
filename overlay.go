@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
@@ -21,7 +22,7 @@ type Overlay struct {
 	entityLists    map[RosterID]*Roster
 	entityListLock sync.Mutex
 	// cache for relating token(~Node) to TreeNode
-	cache *TreeNodeCache
+	cache *treeNodeCache
 
 	// TreeNodeInstance part
 	instances         map[TokenID]*TreeNodeInstance
@@ -57,7 +58,7 @@ func NewOverlay(c *Server) *Overlay {
 		server:             c,
 		trees:              make(map[TreeID]*Tree),
 		entityLists:        make(map[RosterID]*Roster),
-		cache:              NewTreeNodeCache(),
+		cache:              newTreeNodeCache(),
 		instances:          make(map[TokenID]*TreeNodeInstance),
 		instancesInfo:      make(map[TokenID]bool),
 		protocolInstances:  make(map[TokenID]ProtocolInstance),
@@ -74,6 +75,11 @@ func NewOverlay(c *Server) *Overlay {
 		SendRosterMsgID,    // send a roster back to request
 		ConfigMsgID)        // fetch config information
 	return o
+}
+
+// stop stops goroutines associated with this overlay.
+func (o *Overlay) stop() {
+	o.cache.stop()
 }
 
 // Process implements the Processor interface so it process the messages that it
@@ -322,7 +328,7 @@ func (o *Overlay) TreeNodeFromToken(t *Token) (*TreeNode, error) {
 		return nil, errors.New("didn't find treenode")
 	}
 	// Since we found treeNode, cache it so later reuse
-	o.cache.Cache(tree, tn)
+	o.cache.Set(tree, tn)
 	return tn, nil
 }
 
@@ -663,64 +669,104 @@ type pendingMsg struct {
 	MessageProxy
 }
 
-// TreeNodeCache is a cache that maps from token to treeNode. Since the mapping
+// treeNodeCache is a cache that maps from token to treeNode. Since the mapping
 // is not 1-1 (many Token can point to one TreeNode, but one token leads to one
 // TreeNode), we have to do certain
 // lookup, but that's better than searching the tree each time.
-type TreeNodeCache struct {
-	Entries map[TreeID]map[TreeNodeID]*TreeNode
+type treeNodeCache struct {
+	Entries  map[TreeID]cacheEntry
+	stopCh   chan (struct{})
+	stopOnce sync.Once
 	sync.Mutex
 }
 
-// NewTreeNodeCache Returns a new TreeNodeCache
-func NewTreeNodeCache() *TreeNodeCache {
-	return &TreeNodeCache{
-		Entries: make(map[TreeID]map[TreeNodeID]*TreeNode),
+type cacheEntry struct {
+	treeNodeMap map[TreeNodeID]*TreeNode
+	expiration  time.Time
+}
+
+var cacheTime = 5 * time.Minute
+var cleanEvery = 1 * time.Minute
+
+func newTreeNodeCache() *treeNodeCache {
+	tnc := &treeNodeCache{
+		Entries: make(map[TreeID]cacheEntry),
+		stopCh:  make(chan struct{}),
+	}
+	go tnc.cleaner()
+	return tnc
+}
+
+func (tnc *treeNodeCache) stop() {
+	tnc.stopOnce.Do(func() { close(tnc.stopCh) })
+}
+
+func (tnc *treeNodeCache) cleaner() {
+	for {
+		select {
+		case <-time.After(cleanEvery):
+			tnc.clean()
+		case <-tnc.stopCh:
+			return
+		}
 	}
 }
 
-// Cache a TreeNode that relates to the Tree
-// It will also cache the parent and children of the treenode since that's most
-// likely what we are going to query.
-func (tnc *TreeNodeCache) Cache(tree *Tree, treeNode *TreeNode) {
+func (tnc *treeNodeCache) clean() {
 	tnc.Lock()
-	defer tnc.Unlock()
-	mm, ok := tnc.Entries[tree.ID]
+	now := time.Now()
+	for k := range tnc.Entries {
+		if now.After(tnc.Entries[k].expiration) {
+			delete(tnc.Entries, k)
+		}
+	}
+	tnc.Unlock()
+}
+
+// Set sets an entry in the cache. It will also cache the parent and
+// children of the treenode since that's most likely what we are going
+// to query.
+func (tnc *treeNodeCache) Set(tree *Tree, treeNode *TreeNode) {
+	tnc.Lock()
+	ce, ok := tnc.Entries[tree.ID]
 	if !ok {
-		mm = make(map[TreeNodeID]*TreeNode)
+		ce = cacheEntry{
+			treeNodeMap: make(map[TreeNodeID]*TreeNode),
+			expiration:  time.Now().Add(cacheTime),
+		}
 	}
 	// add treenode
-	mm[treeNode.ID] = treeNode
+	ce.treeNodeMap[treeNode.ID] = treeNode
 	// add parent if not root
 	if treeNode.Parent != nil {
-		mm[treeNode.Parent.ID] = treeNode.Parent
+		ce.treeNodeMap[treeNode.Parent.ID] = treeNode.Parent
 	}
 	// add children
 	for _, c := range treeNode.Children {
-		mm[c.ID] = c
+		ce.treeNodeMap[c.ID] = c
 	}
 	// add cache
-	tnc.Entries[tree.ID] = mm
+	tnc.Entries[tree.ID] = ce
+	tnc.Unlock()
 }
 
 // GetFromToken returns the TreeNode that the token is pointing at, or
 // nil if there is none for this token.
-func (tnc *TreeNodeCache) GetFromToken(tok *Token) *TreeNode {
+func (tnc *treeNodeCache) GetFromToken(tok *Token) *TreeNode {
 	tnc.Lock()
 	defer tnc.Unlock()
 	if tok == nil {
 		return nil
 	}
-	mm, ok := tnc.Entries[tok.TreeID]
-	if !ok {
-		// no tree cached for this token :...
+	ce, ok := tnc.Entries[tok.TreeID]
+	if !ok || time.Now().After(ce.expiration) {
+		// no tree cached for this token
 		return nil
 	}
-	tn, ok := mm[tok.TreeNodeID]
+
+	tn, ok := ce.treeNodeMap[tok.TreeNodeID]
 	if !ok {
-		// no treeNode cached for this token...
-		// XXX Should we search the tree ? Then we need to keep reference to the
-		// tree ...
+		// no treeNode cached for this token
 		return nil
 	}
 	return tn
