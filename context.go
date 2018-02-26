@@ -15,7 +15,6 @@ type Context struct {
 	serviceID  ServiceID
 	manager    *serviceManager
 	bucketName string
-	network.Dispatcher
 }
 
 // defaultContext is the implementation of the Context interface. It is
@@ -27,7 +26,6 @@ func newContext(c *Server, o *Overlay, servID ServiceID, manager *serviceManager
 		serviceID:  servID,
 		manager:    manager,
 		bucketName: ServiceFactory.Name(servID),
-		Dispatcher: network.NewBlockingDispatcher(),
 	}
 }
 
