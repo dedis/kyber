@@ -9,8 +9,9 @@ import (
 
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/group/edwards25519"
+	"github.com/dedis/kyber/sign/eddsa"
 	"github.com/dedis/kyber/util/key"
-	"github.com/dedis/kyber/xof/blake"
+	"github.com/dedis/kyber/xof/blake2xb"
 )
 
 // Specify cipher suite using AES-128, SHA512, and the Edwards25519 curve.
@@ -24,7 +25,7 @@ func (m *cosiSuite) Hash() hash.Hash {
 }
 func (m *cosiSuite) RandomStream() cipher.Stream { return m.r }
 
-var testSuite = &cosiSuite{edwards25519.NewBlakeSHA256Ed25519(), blake.New(nil)}
+var testSuite = &cosiSuite{edwards25519.NewBlakeSHA256Ed25519(), blake2xb.New(nil)}
 
 func TestCoSi(t *testing.T) {
 	testCoSi(t, 2, 0)
@@ -116,6 +117,11 @@ func testCoSi(t *testing.T, n, f int) {
 			p = NewThresholdPolicy(n - f)
 		}
 		if err := Verify(testSuite, publics, message, sig, p); err != nil {
+			t.Fatal(err)
+		}
+		// cosi signature should follow the same format as EdDSA except it has no mask
+		maskLen := len(masks[i].Mask())
+		if err := eddsa.Verify(masks[i].AggregatePublic, message, sig[0:len(sig)-maskLen]); err != nil {
 			t.Fatal(err)
 		}
 	}

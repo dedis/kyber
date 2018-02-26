@@ -7,11 +7,11 @@ import (
 
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/group/edwards25519"
-	"github.com/dedis/kyber/xof/blake"
+	"github.com/dedis/kyber/xof/blake2xb"
 )
 
 func TestRep(t *testing.T) {
-	rand := blake.New([]byte("seed"))
+	rand := blake2xb.New([]byte("seed"))
 	suite := edwards25519.NewBlakeSHA256Ed25519WithRand(rand)
 
 	x := suite.Scalar().Pick(rand)
@@ -86,7 +86,7 @@ func Example_rep2() {
 	fmt.Println(pred.String())
 
 	// Crypto setup
-	rand := blake.New([]byte("example"))
+	rand := blake2xb.New([]byte("example"))
 	suite := edwards25519.NewBlakeSHA256Ed25519WithRand(rand)
 	B := suite.Point().Base() // standard base point
 
@@ -198,7 +198,7 @@ func Example_or2() {
 	fmt.Println("Predicate: " + pred.String())
 
 	// Crypto setup
-	rand := blake.New([]byte("example"))
+	rand := blake2xb.New([]byte("example"))
 	suite := edwards25519.NewBlakeSHA256Ed25519WithRand(rand)
 	B := suite.Point().Base() // standard base point
 

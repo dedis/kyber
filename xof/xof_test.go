@@ -6,14 +6,14 @@ import (
 	"testing"
 
 	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/xof/blake"
+	"github.com/dedis/kyber/xof/blake2xb"
 	"github.com/dedis/kyber/xof/keccak"
 	"github.com/stretchr/testify/require"
 )
 
 type blakeF struct{}
 
-func (b *blakeF) XOF(seed []byte) kyber.XOF { return blake.New(seed) }
+func (b *blakeF) XOF(seed []byte) kyber.XOF { return blake2xb.New(seed) }
 
 type keccakF struct{}
 

@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/dedis/kyber/group/edwards25519"
-	"github.com/dedis/kyber/xof/blake"
+	"github.com/dedis/kyber/xof/blake2xb"
 )
 
 /*
@@ -16,7 +16,7 @@ simply by changing the first line that picks the suite.
 */
 func Example_diffieHellman() {
 	// A pseudo RNG which makes this code repeatable for testing.
-	rng := blake.New(nil)
+	rng := blake2xb.New(nil)
 
 	// Crypto setup: NIST-standardized P256 curve with AES-128 and SHA-256
 	// For production code, simply use edwards25519.NewBlakeSHA256Ed25519().
