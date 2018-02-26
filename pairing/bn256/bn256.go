@@ -10,7 +10,7 @@ import (
 	"github.com/dedis/fixbuf"
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/util/random"
-	"github.com/dedis/kyber/xof/blake"
+	"github.com/dedis/kyber/xof/blake2xb"
 )
 
 // SuiteBN256 implements the PBCSuite interface for the BN256 bilinear pairing.
@@ -67,7 +67,7 @@ func (s *SuiteBN256) Hash() hash.Hash {
 
 // XOF ...
 func (s *SuiteBN256) XOF(seed []byte) kyber.XOF {
-	return blake.New(seed)
+	return blake2xb.New(seed)
 }
 
 // Read ...
