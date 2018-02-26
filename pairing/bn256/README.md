@@ -1,11 +1,11 @@
 bn256
 -----
 
-Package bn256 implements a particular bilinear group at the 128-bit
-security level. The basis for this package is the code from
-https://github.com/cloudflare/bn256 which itself is a modification It is a
-modification of the official version at https://golang.org/x/crypto/bn256 but
-all operations are ~10 times faster.
+Package bn256 implements a particular bilinear group at the 128-bit security
+level. The basis for this package is the code from
+https://github.com/cloudflare/bn256 which itself is a modification of the
+official version at https://golang.org/x/crypto/bn256 but all operations are ~10
+times faster.
 
 Bilinear groups are the basis of many of the new cryptographic protocols that
 have been proposed over the past decade. They consist of a triplet of groups
