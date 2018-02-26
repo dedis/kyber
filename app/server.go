@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"os"
 	"path"
-	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -18,7 +17,6 @@ import (
 	"github.com/dedis/onet/cfgpath"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
-	"github.com/shirou/gopsutil/mem"
 )
 
 // DefaultServerConfig is the default server configuration file-name.
@@ -44,7 +42,6 @@ const portscan = "https://dedis.ch/portscan.php"
 // In case of an error this method Fatals.
 func InteractiveConfig(suite network.Suite, binaryName string) {
 	log.Info("Setting up a cothority-server.")
-	checkAvailableMemory()
 	str := Inputf(strconv.Itoa(DefaultPort), "Please enter the [address:]PORT for incoming requests")
 	// let's dissect the port / IP
 	var hostStr string
@@ -310,25 +307,6 @@ func tryConnect(ip, binding network.Address) error {
 		return fmt.Errorf("Portscan returned: %s", res)
 	}
 	return nil
-}
-
-// checkAvailableMemory detects the system's memory and warns if there is not
-// enough. Works only with darwin or linux
-func checkAvailableMemory() {
-	log.Info("checking system memory")
-	if runtime.GOOS == "darwin" || runtime.GOOS == "linux" {
-		v, err := mem.VirtualMemory()
-		if err != nil {
-			log.Error("Could not get systems memory:", err)
-		}
-		//v.Total is the total memory in bytes
-		memoryInMB := (v.Total / 1024) / 1024
-		if memoryInMB <= 512 {
-			log.Error("System has less than 512MB of memory ")
-		} else if memoryInMB <= 1024 {
-			log.Warn("System has less than 1024MB of memory, another GB would be nice")
-		}
-	}
 }
 
 // RunServer starts a conode with the given config file name. It can
