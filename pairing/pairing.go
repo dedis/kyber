@@ -2,8 +2,8 @@ package pairing
 
 import "github.com/dedis/kyber"
 
-// PairingSuite ...
-type PairingSuite interface {
+// PBCSuite ...
+type PBCSuite interface {
 	G1() kyber.Group
 	G2() kyber.Group
 	GT() kyber.Group

@@ -13,7 +13,7 @@ import (
 	"github.com/dedis/kyber/xof/blake"
 )
 
-// SuiteBN256 implements the PairingSuite interface for the BN256 bilinear pairing.
+// SuiteBN256 implements the PBCSuite interface for the BN256 bilinear pairing.
 type SuiteBN256 struct {
 	g1 *groupG1
 	g2 *groupG2
