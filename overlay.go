@@ -327,7 +327,7 @@ func (o *Overlay) TreeNodeFromToken(t *Token) (*TreeNode, error) {
 	if tn == nil {
 		return nil, errors.New("didn't find treenode")
 	}
-	// Since we found treeNode, cache it so later reuse
+	// Since we found treeNode, cache it.
 	o.cache.Set(tree, tn)
 	return tn, nil
 }
@@ -669,12 +669,12 @@ type pendingMsg struct {
 	MessageProxy
 }
 
-// treeNodeCache is a cache that maps from token to treeNode. Since the mapping
-// is not 1-1 (many Token can point to one TreeNode, but one token leads to one
-// TreeNode), we have to do certain
-// lookup, but that's better than searching the tree each time.
+// treeNodeCache is a cache that maps from token to treeNode. Since
+// the mapping is not 1-1 (many Tokens can point to one TreeNode, but
+// one token leads to one TreeNode), we have to do certain lookup, but
+// that's better than searching the tree each time.
 type treeNodeCache struct {
-	Entries  map[TreeID]cacheEntry
+	Entries  map[TreeID]*cacheEntry
 	stopCh   chan (struct{})
 	stopOnce sync.Once
 	sync.Mutex
@@ -690,7 +690,7 @@ var cleanEvery = 1 * time.Minute
 
 func newTreeNodeCache() *treeNodeCache {
 	tnc := &treeNodeCache{
-		Entries: make(map[TreeID]cacheEntry),
+		Entries: make(map[TreeID]*cacheEntry),
 		stopCh:  make(chan struct{}),
 	}
 	go tnc.cleaner()
@@ -730,7 +730,7 @@ func (tnc *treeNodeCache) Set(tree *Tree, treeNode *TreeNode) {
 	tnc.Lock()
 	ce, ok := tnc.Entries[tree.ID]
 	if !ok {
-		ce = cacheEntry{
+		ce = &cacheEntry{
 			treeNodeMap: make(map[TreeNodeID]*TreeNode),
 			expiration:  time.Now().Add(cacheTime),
 		}
@@ -763,6 +763,7 @@ func (tnc *treeNodeCache) GetFromToken(tok *Token) *TreeNode {
 		// no tree cached for this token
 		return nil
 	}
+	ce.expiration = time.Now().Add(cacheTime)
 
 	tn, ok := ce.treeNodeMap[tok.TreeNodeID]
 	if !ok {
