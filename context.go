@@ -14,7 +14,7 @@ type Context struct {
 	server     *Server
 	serviceID  ServiceID
 	manager    *serviceManager
-	bucketName string
+	bucketName []byte
 }
 
 // defaultContext is the implementation of the Context interface. It is
@@ -25,7 +25,7 @@ func newContext(c *Server, o *Overlay, servID ServiceID, manager *serviceManager
 		server:     c,
 		serviceID:  servID,
 		manager:    manager,
-		bucketName: ServiceFactory.Name(servID),
+		bucketName: []byte(ServiceFactory.Name(servID)),
 	}
 }
 
@@ -123,23 +123,23 @@ var testContextData = struct {
 // and saved in the database under the bucket named after the service name.
 //
 // The data will be stored in a different bucket for every service.
-func (c *Context) Save(key string, data interface{}) error {
+func (c *Context) Save(key []byte, data interface{}) error {
 	buf, err := network.Marshal(data)
 	if err != nil {
 		return err
 	}
 	return c.manager.db.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte(c.bucketName))
-		return b.Put([]byte(key), buf)
+		b := tx.Bucket(c.bucketName)
+		return b.Put(key, buf)
 	})
 }
 
 // Load takes an key and returns the network.Unmarshaled data.
 // Returns a nil value if the key does not exist.
-func (c *Context) Load(key string) (interface{}, error) {
+func (c *Context) Load(key []byte) (interface{}, error) {
 	var buf []byte
 	c.manager.db.View(func(tx *bolt.Tx) error {
-		v := tx.Bucket([]byte(c.bucketName)).Get([]byte(key))
+		v := tx.Bucket(c.bucketName).Get(key)
 		if v == nil {
 			return nil
 		}
@@ -164,10 +164,10 @@ func (c *Context) Load(key string) (interface{}, error) {
 // This function should only be used if the Load and Save functions are not sufficient.
 // Additionally, the user should not create buckets directly on the DB but always
 // call this function to create new buckets to avoid bucket name conflicts.
-func (c *Context) GetAdditionalBucket(name string) (*bolt.DB, string) {
-	fullName := c.bucketName + "_" + name
+func (c *Context) GetAdditionalBucket(name []byte) (*bolt.DB, []byte) {
+	fullName := append(append(c.bucketName, byte('_')), name...)
 	err := c.manager.db.Update(func(tx *bolt.Tx) error {
-		_, err := tx.CreateBucketIfNotExists([]byte(fullName))
+		_, err := tx.CreateBucketIfNotExists(fullName)
 		if err != nil {
 			return fmt.Errorf("create bucket: %s", err)
 		}

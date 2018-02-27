@@ -53,12 +53,12 @@ func TestContextSaveLoad(t *testing.T) {
 }
 
 func testLoadSave(t *testing.T, c *Context) {
-	key := "test"
+	key := []byte("test")
 	cd := &ContextData{42, "meaning of life"}
 	network.RegisterMessage(ContextData{})
 	require.Nil(t, c.Save(key, cd))
 
-	msg, err := c.Load(key + "_")
+	msg, err := c.Load(append(key, byte('_')))
 	if err != nil || msg != nil {
 		log.Fatal("this should not exist")
 	}
@@ -74,7 +74,7 @@ func testLoadSave(t *testing.T, c *Context) {
 }
 
 func testSaveFailure(t *testing.T, c *Context) {
-	key := "test"
+	key := []byte("test")
 	cd := &ContextData{42, "meaning of life"}
 	// should fail because ContextData is not registered
 	if c.Save(key, cd) == nil {
@@ -88,13 +88,13 @@ func TestContext_GetAdditionalBucket(t *testing.T) {
 	defer os.RemoveAll(tmp)
 
 	c := createContext(t, tmp)
-	db, name := c.GetAdditionalBucket("new")
+	db, name := c.GetAdditionalBucket([]byte("new"))
 	require.NotNil(t, db)
-	require.Equal(t, "testService_new", name)
+	require.Equal(t, []byte("testService_new"), name)
 	// Need to accept a second run with an existing bucket
-	db, name = c.GetAdditionalBucket("new")
+	db, name = c.GetAdditionalBucket([]byte("new"))
 	require.NotNil(t, db)
-	require.Equal(t, "testService_new", name)
+	require.Equal(t, []byte("testService_new"), name)
 }
 
 func TestContext_Path(t *testing.T) {
