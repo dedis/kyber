@@ -116,6 +116,7 @@ func (c *Server) GetStatus() *Status {
 
 // Close closes the overlay and the Router
 func (c *Server) Close() error {
+	c.overlay.stop()
 	c.websocket.stop()
 	c.overlay.Close()
 	err := c.serviceManager.closeDatabase()

@@ -12,7 +12,6 @@ import (
 	"github.com/dedis/kyber/util/key"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
-	"gopkg.in/satori/go.uuid.v1"
 )
 
 // LocalTest represents all that is needed for a local test-run
@@ -236,11 +235,8 @@ func (l *LocalTest) NewTreeNodeInstance(tn *TreeNode, protName string) (*TreeNod
 		return nil, errors.New("Didn't find protocol: " + protName)
 	}
 	tok := &Token{
-		ProtoID:    protID,
-		RosterID:   tree.Roster.ID,
 		TreeID:     tree.ID,
 		TreeNodeID: tn.ID,
-		RoundID:    RoundID(uuid.NewV4()),
 	}
 	io := o.protoIO.getByName(protName)
 	node := newTreeNodeInstance(o, tok, tn, io)
