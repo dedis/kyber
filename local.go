@@ -23,8 +23,6 @@ type LocalTest struct {
 	Overlays map[network.ServerIdentityID]*Overlay
 	// A map of ServerIdentity.Id to Services
 	Services map[network.ServerIdentityID]map[ServiceID]Service
-	// A map of Roster.Id to Rosters
-	Rosters map[RosterID]*Roster
 	// A map of Tree.Id to Trees
 	Trees map[TreeID]*Tree
 	// All single nodes
@@ -60,7 +58,6 @@ func NewLocalTest(s network.Suite) *LocalTest {
 		Servers:  make(map[network.ServerIdentityID]*Server),
 		Overlays: make(map[network.ServerIdentityID]*Overlay),
 		Services: make(map[network.ServerIdentityID]map[ServiceID]Service),
-		Rosters:  make(map[RosterID]*Roster),
 		Trees:    make(map[TreeID]*Tree),
 		Nodes:    make([]*TreeNodeInstance, 0, 1),
 		mode:     Local,
@@ -166,12 +163,7 @@ func (l *LocalTest) GenRosterFromHost(servers ...*Server) *Roster {
 	for i := range servers {
 		entities = append(entities, servers[i].ServerIdentity)
 	}
-	list := NewRoster(entities)
-	if list == nil {
-		return nil
-	}
-	l.Rosters[list.ID] = list
-	return list
+	return NewRoster(entities)
 }
 
 func (l *LocalTest) panicClosed() {
