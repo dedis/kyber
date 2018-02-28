@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dedis/onet/log"
+	"gopkg.in/dedis/onet.v2/log"
 )
 
 var testfile = `Machines = 8

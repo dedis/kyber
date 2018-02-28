@@ -6,7 +6,7 @@ import (
 
 	"io/ioutil"
 
-	"github.com/dedis/onet/log"
+	"gopkg.in/dedis/onet.v2/log"
 )
 
 func TestLocal(t *testing.T) {

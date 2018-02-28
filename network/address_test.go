@@ -5,9 +5,9 @@ import (
 
 	"net"
 
-	"github.com/dedis/onet/log"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gopkg.in/dedis/onet.v2/log"
 )
 
 func TestConnType(t *testing.T) {

@@ -9,7 +9,7 @@ import (
 
 	"sync"
 
-	"github.com/dedis/onet/log"
+	"gopkg.in/dedis/onet.v2/log"
 )
 
 var global struct {

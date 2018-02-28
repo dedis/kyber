@@ -6,7 +6,7 @@ import (
 	"path"
 	"runtime"
 
-	"github.com/dedis/onet/log"
+	"gopkg.in/dedis/onet.v2/log"
 )
 
 // GetConfigPath returns the location for which the configuration files are stored.

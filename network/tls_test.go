@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dedis/kyber/util/key"
 	"github.com/stretchr/testify/require"
+	"gopkg.in/dedis/kyber.v2/util/key"
 )
 
 func NewTestTLSHost(port int) (*TCPHost, error) {

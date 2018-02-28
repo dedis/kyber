@@ -7,9 +7,9 @@ import (
 
 	"strings"
 
-	"github.com/dedis/onet/log"
-	"github.com/dedis/onet/network"
 	"github.com/dedis/protobuf"
+	"gopkg.in/dedis/onet.v2/log"
+	"gopkg.in/dedis/onet.v2/network"
 )
 
 // ServiceProcessor allows for an easy integration of external messages

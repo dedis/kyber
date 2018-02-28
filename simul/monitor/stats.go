@@ -11,8 +11,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/dedis/onet/log"
 	"github.com/montanaflynn/stats"
+	"gopkg.in/dedis/onet.v2/log"
 )
 
 // Stats contains all structures that are related to the computations of stats

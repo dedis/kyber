@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/dedis/kyber/util/encoding"
-	"github.com/dedis/onet/log"
+	"gopkg.in/dedis/kyber.v2/util/encoding"
+	"gopkg.in/dedis/onet.v2/log"
 )
 
 // Router handles all networking operations such as:

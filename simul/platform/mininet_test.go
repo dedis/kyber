@@ -14,8 +14,8 @@ import (
 	"os"
 	"path"
 
-	"github.com/dedis/onet/log"
 	"github.com/stretchr/testify/assert"
+	"gopkg.in/dedis/onet.v2/log"
 )
 
 func TestMiniNet_getHostList(t *testing.T) {

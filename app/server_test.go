@@ -5,8 +5,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/dedis/kyber/suites"
-	"github.com/dedis/onet/log"
+	"gopkg.in/dedis/kyber.v2/suites"
+	"gopkg.in/dedis/onet.v2/log"
 )
 
 func TestInteractiveConfig(t *testing.T) {

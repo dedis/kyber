@@ -21,8 +21,8 @@ import (
 	"io/ioutil"
 
 	"github.com/BurntSushi/toml"
-	"github.com/dedis/onet/app"
-	"github.com/dedis/onet/log"
+	"gopkg.in/dedis/onet.v2/app"
+	"gopkg.in/dedis/onet.v2/log"
 )
 
 // Platform interface that has to be implemented to add another simulation-
@@ -71,7 +71,7 @@ func NewPlatform(t string) Platform {
 		p = &MiniNet{}
 		_, err := os.Stat("server_list")
 		if os.IsNotExist(err) {
-			path := build.Default.GOPATH + "/src/github.com/dedis/onet/simul/platform/mininet/"
+			path := build.Default.GOPATH + "/src/gopkg.in/dedis/onet.v2/simul/platform/mininet/"
 			var command string
 			if app.InputYN(true, "Do you want to run mininet on ICCluster?") {
 				command = path + "setup_iccluster.sh"

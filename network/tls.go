@@ -14,10 +14,10 @@ import (
 	"net"
 	"time"
 
-	"github.com/dedis/kyber/sign/schnorr"
-	"github.com/dedis/kyber/util/encoding"
-	"github.com/dedis/kyber/util/random"
-	"github.com/dedis/onet/log"
+	"gopkg.in/dedis/kyber.v2/sign/schnorr"
+	"gopkg.in/dedis/kyber.v2/util/encoding"
+	"gopkg.in/dedis/kyber.v2/util/random"
+	"gopkg.in/dedis/onet.v2/log"
 )
 
 // About our TLS strategy:

@@ -11,10 +11,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/dedis/onet/log"
-	"github.com/dedis/onet/network"
 	"github.com/dedis/protobuf"
 	"github.com/gorilla/websocket"
+	"gopkg.in/dedis/onet.v2/log"
+	"gopkg.in/dedis/onet.v2/network"
 	"gopkg.in/tylerb/graceful.v1"
 )
 

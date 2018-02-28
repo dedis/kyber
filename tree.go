@@ -6,9 +6,9 @@ import (
 
 	"math/rand"
 
-	"github.com/dedis/kyber"
-	"github.com/dedis/onet/log"
-	"github.com/dedis/onet/network"
+	"gopkg.in/dedis/kyber.v2"
+	"gopkg.in/dedis/onet.v2/log"
+	"gopkg.in/dedis/onet.v2/network"
 	"gopkg.in/satori/go.uuid.v1"
 )
 
@@ -510,34 +510,32 @@ func (ro *Roster) GenerateBigNaryTree(N, nodes int) *Tree {
 	return NewTree(ro, root)
 }
 
-// GenerateNaryTreeWithRoot creates a tree where each node has N children.
-// The root is given as an ServerIdentity. If root doesn't exist in the
-// roster, `nil` will be returned.
-// This method creates a new roster and puts the indicated root at
-// the first position.
-// If root == nil, the first element of the roster will be taken as root.
-func (ro *Roster) GenerateNaryTreeWithRoot(N int, root *network.ServerIdentity) *Tree {
+// NewRosterWithRoot returns a copy of the roster but with the given ServerIdentity
+// at the first entry in the roster.
+func (ro *Roster) NewRosterWithRoot(root *network.ServerIdentity) *Roster {
 	list := make([]*network.ServerIdentity, len(ro.List))
 	copy(list, ro.List)
 	roster := NewRoster(list)
-	if root != nil {
-		rootIndex, _ := roster.Search(root.ID)
-		if rootIndex < 0 {
-			return nil
-		}
-		roster.List[0], roster.List[rootIndex] = roster.List[rootIndex], roster.List[0]
+	rootIndex, _ := roster.Search(root.ID)
+	if rootIndex < 0 {
+		return nil
 	}
-	return roster.GenerateNaryTreeWithRootOnCurrent(N, root)
+	roster.List[0], roster.List[rootIndex] = roster.List[rootIndex], roster.List[0]
+	return roster
 }
 
-// GenerateNaryTreeWithRootOnCurrent creates a tree where each node has N children.
+// GenerateNaryTreeWithRoot creates a tree where each node has N children.
 // The root is given as an ServerIdentity. If root doesn't exist in the
 // roster, `nil` will be returned.
 // The generation of the tree is done in a simple for-loop, so that the
 // original roster can be used for tree creation, even if the root is not
 // at position 0.
 // If root == nil, the first element of the roster will be taken as root.
-func (ro *Roster) GenerateNaryTreeWithRootOnCurrent(N int, root *network.ServerIdentity) *Tree {
+//
+// If you need the root node to be at the first position of the roster, then
+// you need to create a new roster using roster.NewRosterWithRoot. Else this method
+// does not change the underlying roster or create a new one.
+func (ro *Roster) GenerateNaryTreeWithRoot(N int, root *network.ServerIdentity) *Tree {
 	// Fetch the root node, set to the first element of the roster if
 	// root == nil.
 	rootIndex := 0
@@ -576,7 +574,7 @@ func (ro *Roster) GenerateNaryTreeWithRootOnCurrent(N int, root *network.ServerI
 // GenerateNaryTree creates a tree where each node has N children.
 // The first element of the Roster will be the root element.
 func (ro *Roster) GenerateNaryTree(N int) *Tree {
-	return ro.GenerateNaryTreeWithRootOnCurrent(N, nil)
+	return ro.GenerateNaryTreeWithRoot(N, nil)
 }
 
 // GenerateBinaryTree creates a binary tree out of the Roster

@@ -3,8 +3,8 @@ package network
 import (
 	"testing"
 
-	"github.com/dedis/kyber/util/key"
-	"github.com/dedis/onet/log"
+	"gopkg.in/dedis/kyber.v2/util/key"
+	"gopkg.in/dedis/onet.v2/log"
 )
 
 func TestServerIdentity(t *testing.T) {

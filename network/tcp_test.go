@@ -10,10 +10,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dedis/kyber/util/key"
-	"github.com/dedis/onet/log"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gopkg.in/dedis/kyber.v2/util/key"
+	"gopkg.in/dedis/onet.v2/log"
 )
 
 func init() {

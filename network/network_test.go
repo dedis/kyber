@@ -3,9 +3,9 @@ package network
 import (
 	"testing"
 
-	_ "github.com/dedis/kyber/group/edwards25519"
-	"github.com/dedis/kyber/suites"
-	"github.com/dedis/onet/log"
+	_ "gopkg.in/dedis/kyber.v2/group/edwards25519"
+	"gopkg.in/dedis/kyber.v2/suites"
+	"gopkg.in/dedis/onet.v2/log"
 )
 
 var tSuite = suites.MustFind("Ed25519")

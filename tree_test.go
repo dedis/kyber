@@ -8,10 +8,10 @@ import (
 
 	"strings"
 
-	"github.com/dedis/kyber/util/key"
-	"github.com/dedis/onet/log"
-	"github.com/dedis/onet/network"
 	"github.com/stretchr/testify/assert"
+	"gopkg.in/dedis/kyber.v2/util/key"
+	"gopkg.in/dedis/onet.v2/log"
+	"gopkg.in/dedis/onet.v2/network"
 )
 
 var prefix = "127.0.0.1:"
@@ -442,13 +442,13 @@ func TestRoster_GenerateNaryTree(t *testing.T) {
 	}
 }
 
-func TestRoster_GenerateNaryTreeWithRoot(t *testing.T) {
+func TestRoster_GenerateNaryTreeWithRoot_NewRoster(t *testing.T) {
 	names := genLocalhostPeerNames(10, 2000)
 	peerList := genRoster(tSuite, names)
 	tree := NewRoster(peerList.List[1:10]).GenerateNaryTreeWithRoot(2, peerList.List[0])
 	assert.Nil(t, tree)
 	for _, e := range peerList.List {
-		tree := peerList.GenerateNaryTreeWithRoot(4, e)
+		tree := peerList.NewRosterWithRoot(e).GenerateNaryTree(4)
 		for i := 0; i <= 9; i++ {
 			if !strings.Contains(peerList.List[i].Address.String(),
 				strconv.Itoa(2000+i)) {
@@ -470,13 +470,13 @@ func TestRoster_GenerateNaryTreeWithRoot(t *testing.T) {
 	}
 }
 
-func TestRoster_GenerateNaryTreeWithRootOnCurrent(t *testing.T) {
+func TestRoster_GenerateNaryTreeWithRoot(t *testing.T) {
 	names := genLocalhostPeerNames(10, 2000)
 	peerList := genRoster(tSuite, names)
 	tree := NewRoster(peerList.List[1:10]).GenerateNaryTreeWithRoot(2, peerList.List[0])
 	assert.Nil(t, tree)
 	for _, e := range peerList.List {
-		tree := peerList.GenerateNaryTreeWithRootOnCurrent(4, e)
+		tree := peerList.GenerateNaryTreeWithRoot(4, e)
 		for i := 0; i <= 9; i++ {
 			if !strings.Contains(peerList.List[i].Address.String(),
 				strconv.Itoa(2000+i)) {
