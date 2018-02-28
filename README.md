@@ -19,7 +19,8 @@ model:
 
 * crypto.v0 was the previous semi-stable version. See
   [migration notes](https://github.com/dedis/kyber/wiki/Migration-from-gopkg.in-dedis-crypto.v0).
-* kyber.v1 is the stable version
+* kyber.v1 never existed, in order to keep kyber, onet and cothorithy versions linked
+* kyber.v2 is the stable version
 * the master branch of kyber is the development version
 
 So if you depend on the master branch, you can expect breakages from time
@@ -27,7 +28,7 @@ to time. If you need something that doesn't change in a backward-compatible
 way you should do:
 
 ```
-   import "gopkg.in/dedis/kyber.v1"
+   import "gopkg.in/dedis/kyber.v2"
 ```
 
 Installing
