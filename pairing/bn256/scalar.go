@@ -112,7 +112,6 @@ func (s *scalar) Bytes() []byte {
 
 func (s *scalar) SetVarTime(varTime bool) error {
 	panic("bn256: unsupported operation")
-	return nil
 }
 
 func (s *scalar) MarshalBinary() ([]byte, error) {

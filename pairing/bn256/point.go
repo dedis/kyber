@@ -61,17 +61,14 @@ func (p *pointG1) Clone() kyber.Point {
 
 func (p *pointG1) EmbedLen() int {
 	panic("bn256.G1: unsupported operation")
-	return 0
 }
 
 func (p *pointG1) Embed(data []byte, rand cipher.Stream) kyber.Point {
 	panic("bn256.G1: unsupported operation")
-	return nil
 }
 
 func (p *pointG1) Data() ([]byte, error) {
 	panic("bn256.G1: unsupported operation")
-	return nil, nil
 }
 
 func (p *pointG1) Add(a, b kyber.Point) kyber.Point {
@@ -235,17 +232,14 @@ func (p *pointG2) Clone() kyber.Point {
 
 func (p *pointG2) EmbedLen() int {
 	panic("bn256.G2: unsupported operation")
-	return 0
 }
 
 func (p *pointG2) Embed(data []byte, rand cipher.Stream) kyber.Point {
 	panic("bn256.G2: unsupported operation")
-	return nil
 }
 
 func (p *pointG2) Data() ([]byte, error) {
 	panic("bn256.G2: unsupported operation")
-	return nil, nil
 }
 
 func (p *pointG2) Add(a, b kyber.Point) kyber.Point {
@@ -428,17 +422,14 @@ func (p *pointGT) Clone() kyber.Point {
 
 func (p *pointGT) EmbedLen() int {
 	panic("bn256.GT: unsupported operation")
-	return 0
 }
 
 func (p *pointGT) Embed(data []byte, rand cipher.Stream) kyber.Point {
 	panic("bn256.GT: unsupported operation")
-	return nil
 }
 
 func (p *pointGT) Data() ([]byte, error) {
 	panic("bn256.GT: unsupported operation")
-	return nil, nil
 }
 
 func (p *pointGT) Add(a, b kyber.Point) kyber.Point {
