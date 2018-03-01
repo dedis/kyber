@@ -13,7 +13,7 @@ import (
 	"github.com/dedis/kyber/xof/blake2xb"
 )
 
-// SuiteBN256 implements the PBCSuite interface for the BN256 bilinear pairing.
+// SuiteBN256 implements the pairing.Suite interface for the BN256 bilinear pairing.
 type SuiteBN256 struct {
 	g1 *groupG1
 	g2 *groupG2
@@ -30,7 +30,8 @@ func NewSuiteBN256() *SuiteBN256 {
 	return s
 }
 
-// NewSuiteBN256Rand generates and returns a new BN256 suite seeded by the given cipher stream.
+// NewSuiteBN256Rand generates and returns a new BN256 suite seeded by the
+// given cipher stream.
 func NewSuiteBN256Rand(rand cipher.Stream) *SuiteBN256 {
 	s := &SuiteBN256{}
 	s.g1 = &groupG1{}
@@ -55,7 +56,8 @@ func (s *SuiteBN256) GT() kyber.Group {
 	return s.gt
 }
 
-// Pair computes takes the points p1 and p2 in groups G1 and G2, respectively, and computes the pairing in GT.
+// Pair computes takes the points p1 and p2 in groups G1 and G2, respectively,
+// and computes the pairing in GT.
 func (s *SuiteBN256) Pair(p1 kyber.Point, p2 kyber.Point) kyber.Point {
 	return s.GT().Point().(*pointGT).Pair(p1, p2)
 }

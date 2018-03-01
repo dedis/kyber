@@ -9,7 +9,6 @@ import (
 )
 
 func TestG1(t *testing.T) {
-
 	suite := NewSuiteBN256()
 	k := suite.G1().Scalar().Pick(random.New())
 	pa := suite.G1().Point().Mul(k, nil)
@@ -27,7 +26,6 @@ func TestG1(t *testing.T) {
 }
 
 func TestG1Marshal(t *testing.T) {
-
 	suite := NewSuiteBN256()
 	k := suite.G1().Scalar().Pick(random.New())
 	pa := suite.G1().Point().Mul(k, nil)
@@ -51,7 +49,6 @@ func TestG1Marshal(t *testing.T) {
 }
 
 func TestG2(t *testing.T) {
-
 	suite := NewSuiteBN256()
 	k := suite.G2().Scalar().Pick(random.New())
 	pa := suite.G2().Point().Mul(k, nil)
@@ -70,7 +67,6 @@ func TestG2(t *testing.T) {
 }
 
 func TestG2Marshal(t *testing.T) {
-
 	suite := NewSuiteBN256()
 	k := suite.G2().Scalar().Pick(random.New())
 	pa := suite.G2().Point().Mul(k, nil)
@@ -94,7 +90,6 @@ func TestG2Marshal(t *testing.T) {
 }
 
 func TestGT(t *testing.T) {
-
 	suite := NewSuiteBN256()
 	k := suite.GT().Scalar().Pick(random.New())
 	pa := suite.GT().Point().Mul(k, nil)
@@ -120,7 +115,6 @@ func TestGT(t *testing.T) {
 }
 
 func TestGTMarshal(t *testing.T) {
-
 	suite := NewSuiteBN256()
 	k := suite.GT().Scalar().Pick(random.New())
 	pa := suite.GT().Point().Mul(k, nil)
@@ -144,7 +138,6 @@ func TestGTMarshal(t *testing.T) {
 }
 
 func TestBilinearity(t *testing.T) {
-
 	suite := NewSuiteBN256()
 	a := suite.G1().Scalar().Pick(random.New())
 	pa := suite.G1().Point().Mul(a, nil)
@@ -162,7 +155,6 @@ func TestBilinearity(t *testing.T) {
 }
 
 func TestTripartiteDiffieHellman(t *testing.T) {
-
 	suite := NewSuiteBN256()
 	a := suite.G1().Scalar().Pick(random.New())
 	b := suite.G1().Scalar().Pick(random.New())

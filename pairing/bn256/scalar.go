@@ -3,7 +3,6 @@ package bn256
 import (
 	"crypto/cipher"
 	"crypto/subtle"
-	"errors"
 	"io"
 	"math/big"
 
@@ -112,7 +111,8 @@ func (s *scalar) Bytes() []byte {
 }
 
 func (s *scalar) SetVarTime(varTime bool) error {
-	return errors.New("bn256: no constant-time implementation available")
+	panic("bn256: unsupported operation")
+	return nil
 }
 
 func (s *scalar) MarshalBinary() ([]byte, error) {
