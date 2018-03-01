@@ -1,5 +1,5 @@
-[![Docs](https://img.shields.io/badge/docs-current-brightgreen.svg)](https://godoc.org/gopkg.in/dedis/kyber.v1)
-[![Build Status](https://travis-ci.org/dedis/kyber.svg?branch=v1)](https://travis-ci.org/dedis/kyber)
+[![Docs](https://img.shields.io/badge/docs-current-brightgreen.svg)](https://godoc.org/gopkg.in/dedis/kyber.v2)
+[![Build Status](https://travis-ci.org/dedis/kyber.svg?branch=v2)](https://travis-ci.org/dedis/kyber)
 
 DEDIS Advanced Crypto Library for Go
 ====================================
@@ -8,7 +8,7 @@ This package provides a toolbox of advanced cryptographic primitives for Go,
 targeting applications like [Cothority](https://github.com/dedis/cothority)
 that need more than straightforward signing and encryption.
 Please see the
-[Godoc documentation for this package](http://godoc.org/gopkg.in/dedis/kyber.v1)
+[Godoc documentation for this package](http://godoc.org/gopkg.in/dedis/kyber.v2)
 for details on the library's purpose and API functionality.
 
 How to Get the Stable Version
@@ -17,12 +17,13 @@ How to Get the Stable Version
 The stable version of Kyber should be imported using:
 
 ```
-   import "gopkg.in/dedis/kyber.v1"
+   import "gopkg.in/dedis/kyber.v2"
 ```
 
 Other versions:
 * gopkg.in/dedis/crypto.v0 was the previous semi-stable version. See
   [migration notes](https://github.com/dedis/kyber/wiki/Migration-from-gopkg.in-dedis-crypto.v0).
+* kyber.v1 never existed, in order to keep kyber, onet and cothorithy versions linked
 * the master branch of kyber is the development version
 
 Installing
@@ -34,8 +35,8 @@ The basic crypto library requires only Go and a few
 third-party Go-language dependencies that can be installed automatically
 as follows:
 
-	go get gopkg.in/dedis/kyber.v1
-	cd $(go env GOPATH)/src/gopkg.in/dedis/kyber.v1
+	go get gopkg.in/dedis/kyber.v2
+	cd $(go env GOPATH)/src/gopkg.in/dedis/kyber.v2
 	go get -t ./... # install 3rd-party dependencies
 
 You should then be able to test its basic function as follows:
@@ -65,7 +66,7 @@ And you can test the vartime packages with:
 When a given implementation provides both constant time and variable time
 operations, the constant time operations are used in preference to the variable
 time ones, in order to reduce the risk of timing side-channel attack.
-See [AllowsVarTime](https://godoc.org/gopkg.in/dedis/kyber.v1#AllowsVarTime) for how
+See [AllowsVarTime](https://godoc.org/gopkg.in/dedis/kyber.v2#AllowsVarTime) for how
 to opt-in to variable time implementations when it is safe to do so.
 
 A note on deriving shared secrets
