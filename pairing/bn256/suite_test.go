@@ -1,10 +1,10 @@
 package bn256
 
 import (
-	"bytes"
 	"testing"
 
 	"github.com/dedis/kyber/util/random"
+	"github.com/stretchr/testify/require"
 	"golang.org/x/crypto/bn256"
 )
 
@@ -13,16 +13,12 @@ func TestG1(t *testing.T) {
 	k := suite.G1().Scalar().Pick(random.New())
 	pa := suite.G1().Point().Mul(k, nil)
 	ma, err := pa.MarshalBinary()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	pb := new(bn256.G1).ScalarBaseMult(k.(*scalar).x)
 	mb := pb.Marshal()
 
-	if !bytes.Equal(ma, mb) {
-		t.Fatal("bytes are different")
-	}
+	require.Equal(t, ma, mb)
 }
 
 func TestG1Marshal(t *testing.T) {
@@ -30,22 +26,16 @@ func TestG1Marshal(t *testing.T) {
 	k := suite.G1().Scalar().Pick(random.New())
 	pa := suite.G1().Point().Mul(k, nil)
 	ma, err := pa.MarshalBinary()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	pb := suite.G1().Point()
-	if err := pb.UnmarshalBinary(ma); err != nil {
-		t.Fatal(err)
-	}
-	mb, err := pb.MarshalBinary()
-	if err != nil {
-		t.Fatal(err)
-	}
+	err = pb.UnmarshalBinary(ma)
+	require.Nil(t, err)
 
-	if !bytes.Equal(ma, mb) {
-		t.Fatal("bytes are different")
-	}
+	mb, err := pb.MarshalBinary()
+	require.Nil(t, err)
+
+	require.Equal(t, ma, mb)
 }
 
 func TestG2(t *testing.T) {
@@ -53,17 +43,13 @@ func TestG2(t *testing.T) {
 	k := suite.G2().Scalar().Pick(random.New())
 	pa := suite.G2().Point().Mul(k, nil)
 	ma, err := pa.MarshalBinary()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	pb := new(bn256.G2).ScalarBaseMult(k.(*scalar).x)
 	mb := pb.Marshal()
 	mb = append([]byte{0x01}, mb...)
 
-	if !bytes.Equal(ma, mb) {
-		t.Fatal("bytes are different")
-	}
+	require.Equal(t, ma, mb)
 }
 
 func TestG2Marshal(t *testing.T) {
@@ -71,22 +57,16 @@ func TestG2Marshal(t *testing.T) {
 	k := suite.G2().Scalar().Pick(random.New())
 	pa := suite.G2().Point().Mul(k, nil)
 	ma, err := pa.MarshalBinary()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	pb := suite.G2().Point()
-	if err := pb.UnmarshalBinary(ma); err != nil {
-		t.Fatal(err)
-	}
-	mb, err := pb.MarshalBinary()
-	if err != nil {
-		t.Fatal(err)
-	}
+	err = pb.UnmarshalBinary(ma)
+	require.Nil(t, err)
 
-	if !bytes.Equal(ma, mb) {
-		t.Fatal("bytes are different")
-	}
+	mb, err := pb.MarshalBinary()
+	require.Nil(t, err)
+
+	require.Equal(t, ma, mb)
 }
 
 func TestGT(t *testing.T) {
@@ -94,14 +74,11 @@ func TestGT(t *testing.T) {
 	k := suite.GT().Scalar().Pick(random.New())
 	pa := suite.GT().Point().Mul(k, nil)
 	ma, err := pa.MarshalBinary()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	mx, err := suite.GT().Point().Base().MarshalBinary()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
+
 	pb, ok := new(bn256.GT).Unmarshal(mx)
 	if !ok {
 		t.Fatal("unmarshal not ok")
@@ -109,9 +86,7 @@ func TestGT(t *testing.T) {
 	pb.ScalarMult(pb, k.(*scalar).x)
 	mb := pb.Marshal()
 
-	if !bytes.Equal(ma, mb) {
-		t.Fatal("bytes are different")
-	}
+	require.Equal(t, ma, mb)
 }
 
 func TestGTMarshal(t *testing.T) {
@@ -119,22 +94,16 @@ func TestGTMarshal(t *testing.T) {
 	k := suite.GT().Scalar().Pick(random.New())
 	pa := suite.GT().Point().Mul(k, nil)
 	ma, err := pa.MarshalBinary()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	pb := suite.GT().Point()
-	if err := pb.UnmarshalBinary(ma); err != nil {
-		t.Fatal(err)
-	}
-	mb, err := pb.MarshalBinary()
-	if err != nil {
-		t.Fatal(err)
-	}
+	err = pb.UnmarshalBinary(ma)
+	require.Nil(t, err)
 
-	if !bytes.Equal(ma, mb) {
-		t.Fatal("bytes are different")
-	}
+	mb, err := pb.MarshalBinary()
+	require.Nil(t, err)
+
+	require.Equal(t, ma, mb)
 }
 
 func TestBilinearity(t *testing.T) {
@@ -149,9 +118,7 @@ func TestBilinearity(t *testing.T) {
 	pd = suite.GT().Point().Mul(a, pd)
 	pd = suite.GT().Point().Mul(b, pd)
 
-	if !pc.Equal(pd) {
-		t.Fatalf("bad pairing result")
-	}
+	require.Equal(t, pc, pd)
 }
 
 func TestTripartiteDiffieHellman(t *testing.T) {
@@ -172,7 +139,6 @@ func TestTripartiteDiffieHellman(t *testing.T) {
 	k3 := suite.Pair(pa, qb)
 	k3 = suite.GT().Point().Mul(c, k3)
 
-	if !k1.Equal(k2) || !k2.Equal(k3) {
-		t.Fatalf("bad DH exchange")
-	}
+	require.Equal(t, k1, k2)
+	require.Equal(t, k2, k3)
 }

@@ -56,8 +56,8 @@ func (s *SuiteBN256) GT() kyber.Group {
 	return s.gt
 }
 
-// Pair computes takes the points p1 and p2 in groups G1 and G2, respectively,
-// and computes the pairing in GT.
+// Pair takes the points p1 and p2 in groups G1 and G2, respectively, as input
+// and computes their pairing in GT.
 func (s *SuiteBN256) Pair(p1 kyber.Point, p2 kyber.Point) kyber.Point {
 	return s.GT().Point().(*pointGT).Pair(p1, p2)
 }
