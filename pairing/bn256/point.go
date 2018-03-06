@@ -79,11 +79,8 @@ func (p *pointG1) Add(a, b kyber.Point) kyber.Point {
 }
 
 func (p *pointG1) Sub(a, b kyber.Point) kyber.Point {
-	x := a.(*pointG1).g
-	y := b.(*pointG1).g
-	p.g.Neg(x)      // p = -b
-	p.g.Add(p.g, y) // p = p + a = -b + a
-	return p
+	q := newPointG1()
+	return p.Add(a, q.Neg(b))
 }
 
 func (p *pointG1) Neg(q kyber.Point) kyber.Point {
@@ -250,11 +247,8 @@ func (p *pointG2) Add(a, b kyber.Point) kyber.Point {
 }
 
 func (p *pointG2) Sub(a, b kyber.Point) kyber.Point {
-	x := a.(*pointG2).g
-	y := b.(*pointG2).g
-	p.g.Neg(x)      // p = -b
-	p.g.Add(p.g, y) // p = p + a = -b + a
-	return p
+	q := newPointG2()
+	return p.Add(a, q.Neg(b))
 }
 
 func (p *pointG2) Neg(q kyber.Point) kyber.Point {
@@ -440,11 +434,8 @@ func (p *pointGT) Add(a, b kyber.Point) kyber.Point {
 }
 
 func (p *pointGT) Sub(a, b kyber.Point) kyber.Point {
-	x := a.(*pointGT).g
-	y := b.(*pointGT).g
-	p.g.Neg(x)      // p = -b
-	p.g.Add(p.g, y) // p = p + a = -b + a
-	return p
+	q := newPointGT()
+	return p.Add(a, q.Neg(b))
 }
 
 func (p *pointGT) Neg(q kyber.Point) kyber.Point {

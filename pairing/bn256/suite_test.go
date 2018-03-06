@@ -38,6 +38,30 @@ func TestG1Marshal(t *testing.T) {
 	require.Equal(t, ma, mb)
 }
 
+func TestG1Ops(t *testing.T) {
+	suite := NewSuiteBN256()
+	a := suite.G1().Point().Pick(random.New())
+	b := suite.G1().Point().Pick(random.New())
+	c := a.Clone()
+
+	a.Neg(a)
+	a.Neg(a)
+	if !a.Equal(c) {
+		t.Fatal("bn256.G1: neg failed")
+	}
+
+	a.Add(a, b)
+	a.Sub(a, b)
+	if !a.Equal(c) {
+		t.Fatal("bn256.G1: add sub failed")
+	}
+
+	a.Add(a, suite.G1().Point().Null())
+	if !a.Equal(c) {
+		t.Fatal("bn256.G1: add with neutral element failed")
+	}
+}
+
 func TestG2(t *testing.T) {
 	suite := NewSuiteBN256()
 	k := suite.G2().Scalar().Pick(random.New())
@@ -67,6 +91,30 @@ func TestG2Marshal(t *testing.T) {
 	require.Nil(t, err)
 
 	require.Equal(t, ma, mb)
+}
+
+func TestG2Ops(t *testing.T) {
+	suite := NewSuiteBN256()
+	a := suite.G2().Point().Pick(random.New())
+	b := suite.G2().Point().Pick(random.New())
+	c := a.Clone()
+
+	a.Neg(a)
+	a.Neg(a)
+	if !a.Equal(c) {
+		t.Fatal("bn256.G2: neg failed")
+	}
+
+	a.Add(a, b)
+	a.Sub(a, b)
+	if !a.Equal(c) {
+		t.Fatal("bn256.G2: add sub failed")
+	}
+
+	a.Add(a, suite.G2().Point().Null())
+	if !a.Equal(c) {
+		t.Fatal("bn256.G2: add with neutral element failed")
+	}
 }
 
 func TestGT(t *testing.T) {
@@ -104,6 +152,30 @@ func TestGTMarshal(t *testing.T) {
 	require.Nil(t, err)
 
 	require.Equal(t, ma, mb)
+}
+
+func TestGTOps(t *testing.T) {
+	suite := NewSuiteBN256()
+	a := suite.GT().Point().Pick(random.New())
+	b := suite.GT().Point().Pick(random.New())
+	c := a.Clone()
+
+	a.Neg(a)
+	a.Neg(a)
+	if !a.Equal(c) {
+		t.Fatal("bn256.GT: neg failed")
+	}
+
+	a.Add(a, b)
+	a.Sub(a, b)
+	if !a.Equal(c) {
+		t.Fatal("bn256.GT: add sub failed")
+	}
+
+	a.Add(a, suite.GT().Point().Null())
+	if !a.Equal(c) {
+		t.Fatal("bn256.GT: add with neutral element failed")
+	}
 }
 
 func TestBilinearity(t *testing.T) {
