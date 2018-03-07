@@ -13,7 +13,7 @@ import (
 	"github.com/dedis/kyber/xof/blake2xb"
 )
 
-// SuiteBN256 implements the pairing.Suite interface for the BN256 bilinear pairing.
+// SuiteBN256 implements the PairingSuite interface for the BN256 bilinear pairing.
 type SuiteBN256 struct {
 	g1 *groupG1
 	g2 *groupG2
@@ -72,19 +72,40 @@ func (s *SuiteBN256) XOF(seed []byte) kyber.XOF {
 	return blake2xb.New(seed)
 }
 
-// Read is the default implementation of Encoding interface Read.
+// Read is the default implementation of kyber.Encoding interface Read.
 func (s *SuiteBN256) Read(r io.Reader, objs ...interface{}) error {
 	return fixbuf.Read(r, s, objs...)
 }
 
-// Write is the default implementation of Encoding interface Write.
+// Write is the default implementation of kyber.Encoding interface Write.
 func (s *SuiteBN256) Write(w io.Writer, objs ...interface{}) error {
 	return fixbuf.Write(w, objs)
 }
 
+// Not used other than for reflect.TypeOf()
+var aScalar scalar
+var aPointG1 pointG1
+var aPointG2 pointG2
+var aPointGT pointGT
+
+var tScalar = reflect.TypeOf(&aScalar).Elem()
+var tPointG1 = reflect.TypeOf(&aPointG1).Elem()
+var tPointG2 = reflect.TypeOf(&aPointG2).Elem()
+var tPointGT = reflect.TypeOf(&aPointGT).Elem()
+
 // New implements the kyber.Encoding interface.
 func (s *SuiteBN256) New(t reflect.Type) interface{} {
-	return nil // TODO
+	switch t {
+	case tScalar:
+		return s.G1().Scalar()
+	case tPointG1:
+		return s.G1().Point()
+	case tPointG2:
+		return s.G2().Point()
+	case tPointGT:
+		return s.GT().Point()
+	}
+	return nil
 }
 
 // RandomStream returns a cipher.Stream which corresponds to a key stream from

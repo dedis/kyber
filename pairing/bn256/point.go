@@ -64,6 +64,12 @@ func (p *pointG1) EmbedLen() int {
 }
 
 func (p *pointG1) Embed(data []byte, rand cipher.Stream) kyber.Point {
+	// XXX: An approach to implement this is:
+	// - Encode data as the x-coordinate of a point on y²=x³+3 where len(data)
+	//   is stored in the least significant byte of x and the rest is being
+	//   filled with random values, i.e., x = rand || data || len(data).
+	// - Use the Tonelli-Shanks algorithm to compute the y-coordinate.
+	// - Convert the new point to Jacobian coordinates and set it as p.
 	panic("bn256.G1: unsupported operation")
 }
 

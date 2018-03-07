@@ -2,8 +2,10 @@ package pairing
 
 import "github.com/dedis/kyber"
 
-// Suite ...
-type Suite interface {
+// PairingSuite interface represents a triplet of elliptic curve groups (G₁, G₂
+// and GT) such that there exists a function e(g₁ˣ,g₂ʸ)=gTˣʸ (where gₓ is a
+// generator of the respective group) which is called a pairing.
+type PairingSuite interface {
 	G1() kyber.Group
 	G2() kyber.Group
 	GT() kyber.Group
