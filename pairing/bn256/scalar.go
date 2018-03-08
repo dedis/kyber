@@ -3,6 +3,7 @@ package bn256
 import (
 	"crypto/cipher"
 	"crypto/subtle"
+	"errors"
 	"io"
 	"math/big"
 
@@ -20,8 +21,15 @@ func newScalar() kyber.Scalar {
 }
 
 func (s *scalar) Equal(a kyber.Scalar) bool {
-	x := a.(*scalar).x
-	return subtle.ConstantTimeCompare(s.x.Bytes(), x.Bytes()) == 1
+	sm, err := s.MarshalBinary()
+	if err != nil {
+		return false
+	}
+	am, err := a.MarshalBinary()
+	if err != nil {
+		return false
+	}
+	return subtle.ConstantTimeCompare(sm, am) == 1
 }
 
 func (s *scalar) Set(a kyber.Scalar) kyber.Scalar {
@@ -107,7 +115,8 @@ func (s *scalar) SetBytes(buf []byte) kyber.Scalar {
 }
 
 func (s *scalar) Bytes() []byte {
-	return s.x.Bytes()
+	sm, _ := s.MarshalBinary()
+	return sm
 }
 
 func (s *scalar) SetVarTime(varTime bool) error {
@@ -116,8 +125,14 @@ func (s *scalar) SetVarTime(varTime bool) error {
 
 func (s *scalar) MarshalBinary() ([]byte, error) {
 	n := s.MarshalSize()
-	buf := s.x.Bytes()
-	return buf[:n], nil
+	buf := make([]byte, n)
+	bytes := s.x.Bytes()
+	if n < len(bytes) {
+		return nil, errors.New("bn256.Scalar: unexpected size")
+	}
+	m := n - len(bytes)
+	copy(buf[m:n], bytes)
+	return buf, nil
 }
 
 func (s *scalar) MarshalTo(w io.Writer) (int, error) {

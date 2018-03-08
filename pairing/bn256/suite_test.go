@@ -8,6 +8,22 @@ import (
 	"golang.org/x/crypto/bn256"
 )
 
+func TestScalarMarshal(t *testing.T) {
+	suite := NewSuiteBN256()
+	a := suite.G1().Scalar().Pick(random.New())
+	b := suite.G1().Scalar()
+	am, err := a.MarshalBinary()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := b.UnmarshalBinary(am); err != nil {
+		t.Fatal(err)
+	}
+	if !a.Equal(b) {
+		t.Fatal("bn256: scalars not equal")
+	}
+}
+
 func TestG1(t *testing.T) {
 	suite := NewSuiteBN256()
 	k := suite.G1().Scalar().Pick(random.New())
