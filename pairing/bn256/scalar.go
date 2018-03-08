@@ -21,14 +21,8 @@ func newScalar() kyber.Scalar {
 }
 
 func (s *scalar) Equal(a kyber.Scalar) bool {
-	sm, err := s.MarshalBinary()
-	if err != nil {
-		return false
-	}
-	am, err := a.MarshalBinary()
-	if err != nil {
-		return false
-	}
+	sm, _ := s.MarshalBinary()
+	am, _ := a.MarshalBinary()
 	return subtle.ConstantTimeCompare(sm, am) == 1
 }
 
