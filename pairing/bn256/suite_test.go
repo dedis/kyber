@@ -8,6 +8,46 @@ import (
 	"golang.org/x/crypto/bn256"
 )
 
+func TestScalarMarshal(t *testing.T) {
+	suite := NewSuiteBN256()
+	a := suite.G1().Scalar().Pick(random.New())
+	b := suite.G1().Scalar()
+	am, err := a.MarshalBinary()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := b.UnmarshalBinary(am); err != nil {
+		t.Fatal(err)
+	}
+	if !a.Equal(b) {
+		t.Fatal("bn256: scalars not equal")
+	}
+}
+
+func TestScalarOps(t *testing.T) {
+	suite := NewSuiteBN256()
+	a := suite.G1().Scalar().Pick(random.New())
+	b := suite.G1().Scalar()
+	b.Add(a, b)
+	a.Sub(a, b)
+	if !a.Equal(suite.G1().Scalar().Zero()) {
+		t.Fatal("bn256: add sub failed")
+	}
+	a.Pick(random.New())
+	b.Set(suite.G1().Scalar().One())
+	b.Mul(a, b)
+	a.Div(a, b)
+	if !a.Equal(suite.G1().Scalar().One()) {
+		t.Fatal("bn256: mul div failed")
+	}
+	a.Pick(random.New())
+	b.Inv(a)
+	a.Mul(a, b)
+	if !a.Equal(suite.G1().Scalar().One()) {
+		t.Fatal("bn256: inversion failed")
+	}
+}
+
 func TestG1(t *testing.T) {
 	suite := NewSuiteBN256()
 	k := suite.G1().Scalar().Pick(random.New())
