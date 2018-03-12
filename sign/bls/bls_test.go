@@ -5,6 +5,7 @@ import (
 
 	"github.com/dedis/kyber/pairing/bn256"
 	"github.com/dedis/kyber/util/random"
+	"github.com/stretchr/testify/require"
 )
 
 func TestBLS(t *testing.T) {
@@ -12,9 +13,8 @@ func TestBLS(t *testing.T) {
 	suite := bn256.NewSuite()
 	private, public := NewKeyPair(suite, random.New())
 	sig := Sign(suite, private, msg)
-	if err := Verify(suite, public, msg, sig); err != nil {
-		t.Fatal(err)
-	}
+	err := Verify(suite, public, msg, sig)
+	require.Nil(t, err)
 }
 
 func TestBLSFail(t *testing.T) {
