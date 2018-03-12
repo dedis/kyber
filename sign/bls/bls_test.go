@@ -9,7 +9,7 @@ import (
 
 func TestBLS(t *testing.T) {
 	msg := []byte("Hello Boneh-Lynn-Shacham")
-	suite := bn256.NewSuiteBN256()
+	suite := bn256.NewSuite()
 	private, public := NewKeyPair(suite, random.New())
 	sig := Sign(suite, private, msg)
 	if err := Verify(suite, public, msg, sig); err != nil {

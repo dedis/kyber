@@ -13,27 +13,27 @@ import (
 	"github.com/dedis/kyber/xof/blake2xb"
 )
 
-// SuiteBN256 implements the PairingSuite interface for the BN256 bilinear pairing.
-type SuiteBN256 struct {
+// Suite implements the PairingSuite interface for the BN256 bilinear pairing.
+type Suite struct {
 	g1 *groupG1
 	g2 *groupG2
 	gt *groupGT
 	r  cipher.Stream
 }
 
-// NewSuiteBN256 generates and returns a new BN256 pairing suite.
-func NewSuiteBN256() *SuiteBN256 {
-	s := &SuiteBN256{}
+// NewSuite generates and returns a new BN256 pairing suite.
+func NewSuite() *Suite {
+	s := &Suite{}
 	s.g1 = &groupG1{}
 	s.g2 = &groupG2{}
 	s.gt = &groupGT{}
 	return s
 }
 
-// NewSuiteBN256Rand generates and returns a new BN256 suite seeded by the
+// NewSuiteRand generates and returns a new BN256 suite seeded by the
 // given cipher stream.
-func NewSuiteBN256Rand(rand cipher.Stream) *SuiteBN256 {
-	s := &SuiteBN256{}
+func NewSuiteRand(rand cipher.Stream) *Suite {
+	s := &Suite{}
 	s.g1 = &groupG1{}
 	s.g2 = &groupG2{}
 	s.gt = &groupGT{}
@@ -42,43 +42,43 @@ func NewSuiteBN256Rand(rand cipher.Stream) *SuiteBN256 {
 }
 
 // G1 returns the group G1 of the BN256 pairing.
-func (s *SuiteBN256) G1() kyber.Group {
+func (s *Suite) G1() kyber.Group {
 	return s.g1
 }
 
 // G2 returns the group G2 of the BN256 pairing.
-func (s *SuiteBN256) G2() kyber.Group {
+func (s *Suite) G2() kyber.Group {
 	return s.g2
 }
 
 // GT returns the group GT of the BN256 pairing.
-func (s *SuiteBN256) GT() kyber.Group {
+func (s *Suite) GT() kyber.Group {
 	return s.gt
 }
 
 // Pair takes the points p1 and p2 in groups G1 and G2, respectively, as input
 // and computes their pairing in GT.
-func (s *SuiteBN256) Pair(p1 kyber.Point, p2 kyber.Point) kyber.Point {
+func (s *Suite) Pair(p1 kyber.Point, p2 kyber.Point) kyber.Point {
 	return s.GT().Point().(*pointGT).Pair(p1, p2)
 }
 
 // Hash returns a newly instantiated sha256 hash function.
-func (s *SuiteBN256) Hash() hash.Hash {
+func (s *Suite) Hash() hash.Hash {
 	return sha256.New()
 }
 
 // XOF returns a newlly instantiated blake2xb XOF function.
-func (s *SuiteBN256) XOF(seed []byte) kyber.XOF {
+func (s *Suite) XOF(seed []byte) kyber.XOF {
 	return blake2xb.New(seed)
 }
 
 // Read is the default implementation of kyber.Encoding interface Read.
-func (s *SuiteBN256) Read(r io.Reader, objs ...interface{}) error {
+func (s *Suite) Read(r io.Reader, objs ...interface{}) error {
 	return fixbuf.Read(r, s, objs...)
 }
 
 // Write is the default implementation of kyber.Encoding interface Write.
-func (s *SuiteBN256) Write(w io.Writer, objs ...interface{}) error {
+func (s *Suite) Write(w io.Writer, objs ...interface{}) error {
 	return fixbuf.Write(w, objs)
 }
 
@@ -94,7 +94,7 @@ var tPointG2 = reflect.TypeOf(&aPointG2).Elem()
 var tPointGT = reflect.TypeOf(&aPointGT).Elem()
 
 // New implements the kyber.Encoding interface.
-func (s *SuiteBN256) New(t reflect.Type) interface{} {
+func (s *Suite) New(t reflect.Type) interface{} {
 	switch t {
 	case tScalar:
 		return s.G1().Scalar()
@@ -110,7 +110,7 @@ func (s *SuiteBN256) New(t reflect.Type) interface{} {
 
 // RandomStream returns a cipher.Stream which corresponds to a key stream from
 // crypto/rand.
-func (s *SuiteBN256) RandomStream() cipher.Stream {
+func (s *Suite) RandomStream() cipher.Stream {
 	if s.r != nil {
 		return s.r
 	}
