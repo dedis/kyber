@@ -18,11 +18,14 @@ func NewKeyPair(suite pairing.Suite, random cipher.Stream) (kyber.Scalar, kyber.
 
 // Sign creates a BLS signature s = x * H(m) on a message m using the private
 // key x. The signature s is a point on curve G1.
-func Sign(suite pairing.Suite, x kyber.Scalar, msg []byte) []byte {
-	HM := hash(suite, msg)
+func Sign(suite pairing.Suite, x kyber.Scalar, msg []byte) ([]byte, error) {
+	HM := hashToPoint(suite, msg)
 	xHM := HM.Mul(x, HM)
-	s, _ := xHM.MarshalBinary()
-	return s
+	s, err := xHM.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	return s, nil
 }
 
 // Verify checks the given BLS signature s on the message m using the public
@@ -30,7 +33,7 @@ func Sign(suite pairing.Suite, x kyber.Scalar, msg []byte) []byte {
 // e(x*H(m), B2) == e(s, B2) holds where e is the pairing operation and B2 is
 // the base point from curve G2.
 func Verify(suite pairing.Suite, X kyber.Point, msg, sig []byte) error {
-	HM := hash(suite, msg)
+	HM := hashToPoint(suite, msg)
 	left := suite.Pair(HM, X)
 	s := suite.G1().Point()
 	if err := s.UnmarshalBinary(sig); err != nil {
@@ -43,9 +46,9 @@ func Verify(suite pairing.Suite, X kyber.Point, msg, sig []byte) error {
 	return nil
 }
 
-// Hash a message to a point on curve G1. XXX: This should be replaced
+// HashToPoint hashes a message to a point on curve G1. XXX: This should be replaced
 // eventually by a proper hash-to-point mapping like Elligator.
-func hash(suite pairing.Suite, msg []byte) kyber.Point {
+func hashToPoint(suite pairing.Suite, msg []byte) kyber.Point {
 	h := suite.Hash()
 	h.Write(msg)
 	digest := h.Sum(nil)
