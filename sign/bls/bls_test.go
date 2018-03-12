@@ -16,3 +16,14 @@ func TestBLS(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestBLSFail(t *testing.T) {
+	msg := []byte("Hello Boneh-Lynn-Shacham")
+	suite := bn256.NewSuite()
+	private, public := NewKeyPair(suite, random.New())
+	sig := Sign(suite, private, msg)
+	sig[0] ^= 0x01
+	if Verify(suite, public, msg, sig) == nil {
+		t.Fatal("bls: verification succeeded unexpectedly")
+	}
+}
