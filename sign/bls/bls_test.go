@@ -12,8 +12,9 @@ func TestBLS(t *testing.T) {
 	msg := []byte("Hello Boneh-Lynn-Shacham")
 	suite := bn256.NewSuite()
 	private, public := NewKeyPair(suite, random.New())
-	sig := Sign(suite, private, msg)
-	err := Verify(suite, public, msg, sig)
+	sig, err := Sign(suite, private, msg)
+	require.Nil(t, err)
+	err = Verify(suite, public, msg, sig)
 	require.Nil(t, err)
 }
 
@@ -21,7 +22,8 @@ func TestBLSFail(t *testing.T) {
 	msg := []byte("Hello Boneh-Lynn-Shacham")
 	suite := bn256.NewSuite()
 	private, public := NewKeyPair(suite, random.New())
-	sig := Sign(suite, private, msg)
+	sig, err := Sign(suite, private, msg)
+	require.Nil(t, err)
 	sig[0] ^= 0x01
 	if Verify(suite, public, msg, sig) == nil {
 		t.Fatal("bls: verification succeeded unexpectedly")
