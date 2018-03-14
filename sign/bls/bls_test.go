@@ -34,7 +34,8 @@ func TestBLSFailKey(t *testing.T) {
 	msg := []byte("Hello Boneh-Lynn-Shacham")
 	suite := bn256.NewSuite()
 	private, _ := NewKeyPair(suite, random.New())
-	sig := Sign(suite, private, msg)
+	sig, err := Sign(suite, private, msg)
+	require.Nil(t, err)
 	_, public := NewKeyPair(suite, random.New())
 	if Verify(suite, public, msg, sig) == nil {
 		t.Fatal("bls: verification succeeded unexpectedly")
