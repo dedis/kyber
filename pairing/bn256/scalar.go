@@ -40,6 +40,7 @@ func (s *scalar) Clone() kyber.Scalar {
 
 func (s *scalar) SetInt64(v int64) kyber.Scalar {
 	s.x.SetInt64(v)
+	s.x.Mod(s.x, Order)
 	return s
 }
 
@@ -65,8 +66,12 @@ func (s *scalar) Sub(a, b kyber.Scalar) kyber.Scalar {
 
 func (s *scalar) Neg(a kyber.Scalar) kyber.Scalar {
 	ax := a.(*scalar).x
-	s.x.Neg(ax)
-	s.x.Mod(s.x, Order)
+	if ax.Sign() > 0 {
+		s.x.Neg(ax)
+		s.x.Mod(s.x, Order)
+	} else {
+		s.Zero()
+	}
 	return s
 }
 
@@ -85,7 +90,8 @@ func (s *scalar) Mul(a, b kyber.Scalar) kyber.Scalar {
 func (s *scalar) Div(a, b kyber.Scalar) kyber.Scalar {
 	ax := a.(*scalar).x
 	bx := b.(*scalar).x
-	s.x.Div(ax, bx)
+	var t big.Int
+	s.x.Mul(ax, t.ModInverse(bx, Order))
 	s.x.Mod(s.x, Order)
 	return s
 }
