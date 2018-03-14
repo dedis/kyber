@@ -9,6 +9,7 @@ import (
 
 	"github.com/dedis/fixbuf"
 	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/group/mod"
 	"github.com/dedis/kyber/util/random"
 	"github.com/dedis/kyber/xof/blake2xb"
 )
@@ -73,7 +74,7 @@ func (s *Suite) Write(w io.Writer, objs ...interface{}) error {
 }
 
 // Not used other than for reflect.TypeOf()
-var aScalar scalar
+var aScalar mod.Int
 var aPointG1 pointG1
 var aPointG2 pointG2
 var aPointGT pointGT
