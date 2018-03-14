@@ -46,7 +46,7 @@ type PriPoly struct {
 // NewPriPoly creates a new secret sharing polynomial using the provided
 // cryptographic group, the secret sharing threshold t, and the secret to be
 // shared s. If s is nil, a new s is chosen using the provided randomness
-// stream.
+// stream rand.
 func NewPriPoly(group kyber.Group, t int, s kyber.Scalar, rand cipher.Stream) *PriPoly {
 	coeffs := make([]kyber.Scalar, t)
 	coeffs[0] = s
@@ -135,11 +135,11 @@ func (p *PriPoly) Commit(b kyber.Point) *PubPoly {
 	return &PubPoly{p.g, b, commits}
 }
 
-// Mul multiples p  and q together. The result is a polynomial of the sum of
+// Mul multiples p and q together. The result is a polynomial of the sum of
 // the two degrees of p and q. NOTE: it does not check for null coefficients
 // after the multiplication, so the degree of the polynomial is "always" as
 // described above. This is only for use in secret sharing schemes. It is not
-// a general polynomial manipulation routine.
+// a general polynomial multiplication routine.
 func (p *PriPoly) Mul(q *PriPoly) *PriPoly {
 	d1 := len(p.coeffs) - 1
 	d2 := len(q.coeffs) - 1
@@ -210,9 +210,10 @@ func xMinusConst(g kyber.Group, c kyber.Scalar) *PriPoly {
 }
 
 // RecoverPriPoly takes a list of shares and the parameters t and n to
-// reconstruct the secret polynomial completely, i.e., all private coefficients.
-// It is up to the caller to make sure there are enough shares to correctly
-// re-construct the polynomial. There must be at least t shares.
+// reconstruct the secret polynomial completely, i.e., all private
+// coefficients.  It is up to the caller to make sure that there are enough
+// shares to correctly re-construct the polynomial. There must be at least t
+// shares.
 func RecoverPriPoly(g kyber.Group, shares []*PriShare, t, n int) (*PriPoly, error) {
 	x := xScalar(g, shares, t, n)
 	if len(x) != t {
@@ -222,7 +223,7 @@ func RecoverPriPoly(g kyber.Group, shares []*PriShare, t, n int) (*PriPoly, erro
 	var accPoly *PriPoly
 	var err error
 	den := g.Scalar()
-	// notations following the wikipedia article on Lagrange interpolation
+	// Notations follow the Wikipedia article on Lagrange interpolation
 	// https://en.wikipedia.org/wiki/Lagrange_polynomial
 	for j, xj := range x {
 		var basis = &PriPoly{
