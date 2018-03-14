@@ -4,6 +4,7 @@ import (
 	"crypto/cipher"
 
 	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/group/mod"
 )
 
 type groupG1 struct {
@@ -58,11 +59,11 @@ func (g *groupGT) Point() kyber.Point {
 type common struct{}
 
 func (c *common) ScalarLen() int {
-	return newScalar().MarshalSize()
+	return mod.NewInt64(0, Order).MarshalSize()
 }
 
 func (c *common) Scalar() kyber.Scalar {
-	return newScalar()
+	return mod.NewInt64(0, Order)
 }
 
 func (c *common) PrimeOrder() bool {
@@ -70,5 +71,5 @@ func (c *common) PrimeOrder() bool {
 }
 
 func (c *common) NewKey(rand cipher.Stream) kyber.Scalar {
-	return newScalar().Pick(rand)
+	return mod.NewInt64(0, Order).Pick(rand)
 }

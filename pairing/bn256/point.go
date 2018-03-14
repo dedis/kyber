@@ -7,6 +7,7 @@ import (
 	"io"
 
 	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/group/mod"
 )
 
 type pointG1 struct {
@@ -35,9 +36,9 @@ func (p *pointG1) Base() kyber.Point {
 }
 
 func (p *pointG1) Pick(rand cipher.Stream) kyber.Point {
-	s := newScalar().Pick(rand)
+	s := mod.NewInt64(0, Order).Pick(rand)
 	p.Base()
-	p.g.Mul(p.g, s.(*scalar).x)
+	p.g.Mul(p.g, &s.(*mod.Int).V)
 	return p
 }
 
@@ -99,9 +100,9 @@ func (p *pointG1) Mul(s kyber.Scalar, q kyber.Point) kyber.Point {
 	if q == nil {
 		q = newPointG1().Base()
 	}
-	t := s.(*scalar).x
+	t := s.(*mod.Int).V
 	r := q.(*pointG1).g
-	p.g.Mul(r, t)
+	p.g.Mul(r, &t)
 	return p
 }
 
@@ -209,9 +210,9 @@ func (p *pointG2) Base() kyber.Point {
 }
 
 func (p *pointG2) Pick(rand cipher.Stream) kyber.Point {
-	s := newScalar().Pick(rand)
+	s := mod.NewInt64(0, Order).Pick(rand)
 	p.Base()
-	p.g.Mul(p.g, s.(*scalar).x)
+	p.g.Mul(p.g, &s.(*mod.Int).V)
 	return p
 }
 
@@ -267,9 +268,9 @@ func (p *pointG2) Mul(s kyber.Scalar, q kyber.Point) kyber.Point {
 	if q == nil {
 		q = newPointG2().Base()
 	}
-	t := s.(*scalar).x
+	t := s.(*mod.Int).V
 	r := q.(*pointG2).g
-	p.g.Mul(r, t)
+	p.g.Mul(r, &t)
 	return p
 }
 
@@ -396,9 +397,9 @@ func (p *pointGT) Base() kyber.Point {
 }
 
 func (p *pointGT) Pick(rand cipher.Stream) kyber.Point {
-	s := newScalar().Pick(rand)
+	s := mod.NewInt64(0, Order).Pick(rand)
 	p.Base()
-	p.g.Exp(p.g, s.(*scalar).x)
+	p.g.Exp(p.g, &s.(*mod.Int).V)
 	return p
 }
 
@@ -454,9 +455,9 @@ func (p *pointGT) Mul(s kyber.Scalar, q kyber.Point) kyber.Point {
 	if q == nil {
 		q = newPointGT().Base()
 	}
-	t := s.(*scalar).x
+	t := s.(*mod.Int).V
 	r := q.(*pointGT).g
-	p.g.Exp(r, t)
+	p.g.Exp(r, &t)
 	return p
 }
 
