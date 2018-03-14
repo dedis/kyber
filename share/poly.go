@@ -10,6 +10,7 @@
 package share
 
 import (
+	"crypto/cipher"
 	"crypto/subtle"
 	"encoding/binary"
 	"errors"
@@ -17,13 +18,6 @@ import (
 
 	"github.com/dedis/kyber"
 )
-
-// Suite defines the capabilities required by the share package.
-type Suite interface {
-	kyber.Group
-	kyber.HashFactory
-	kyber.Random
-}
 
 // Some error definitions
 var errorGroups = errors.New("non-matching groups")
@@ -36,7 +30,7 @@ type PriShare struct {
 }
 
 // Hash returns the hash representation of this share
-func (p *PriShare) Hash(s Suite) []byte {
+func (p *PriShare) Hash(s kyber.HashFactory) []byte {
 	h := s.Hash()
 	_, _ = p.V.MarshalTo(h)
 	_ = binary.Write(h, binary.LittleEndian, p.I)
@@ -45,23 +39,24 @@ func (p *PriShare) Hash(s Suite) []byte {
 
 // PriPoly represents a secret sharing polynomial.
 type PriPoly struct {
-	s      Suite          // Cryptographic suite
+	g      kyber.Group    // Cryptographic group
 	coeffs []kyber.Scalar // Coefficients of the polynomial
 }
 
-// NewPriPoly creates a new secret sharing polynomial using cryptographic
-// suite, the secret sharing threshold t, and the secret to be shared s.
-// If s is nil, a new s is chosen using the suite's randomness stream.
-func NewPriPoly(suite Suite, t int, s kyber.Scalar) *PriPoly {
+// NewPriPoly creates a new secret sharing polynomial using the provided
+// cryptographic group, the secret sharing threshold t, and the secret to be
+// shared s. If s is nil, a new s is chosen using the provided randomness
+// stream.
+func NewPriPoly(group kyber.Group, t int, s kyber.Scalar, rand cipher.Stream) *PriPoly {
 	coeffs := make([]kyber.Scalar, t)
 	coeffs[0] = s
 	if coeffs[0] == nil {
-		coeffs[0] = suite.Scalar().Pick(suite.RandomStream())
+		coeffs[0] = group.Scalar().Pick(rand)
 	}
 	for i := 1; i < t; i++ {
-		coeffs[i] = suite.Scalar().Pick(suite.RandomStream())
+		coeffs[i] = group.Scalar().Pick(rand)
 	}
-	return &PriPoly{s: suite, coeffs: coeffs}
+	return &PriPoly{g: group, coeffs: coeffs}
 }
 
 // Threshold returns the secret sharing threshold.
@@ -76,8 +71,8 @@ func (p *PriPoly) Secret() kyber.Scalar {
 
 // Eval computes the private share v = p(i).
 func (p *PriPoly) Eval(i int) *PriShare {
-	xi := p.s.Scalar().SetInt64(1 + int64(i))
-	v := p.s.Scalar().Zero()
+	xi := p.g.Scalar().SetInt64(1 + int64(i))
+	v := p.g.Scalar().Zero()
 	for j := p.Threshold() - 1; j >= 0; j-- {
 		v.Mul(v, xi)
 		v.Add(v, p.coeffs[j])
@@ -97,7 +92,7 @@ func (p *PriPoly) Shares(n int) []*PriShare {
 // Add computes the component-wise sum of the polynomials p and q and returns it
 // as a new polynomial.
 func (p *PriPoly) Add(q *PriPoly) (*PriPoly, error) {
-	if p.s.String() != q.s.String() {
+	if p.g.String() != q.g.String() {
 		return nil, errorGroups
 	}
 	if p.Threshold() != q.Threshold() {
@@ -105,17 +100,17 @@ func (p *PriPoly) Add(q *PriPoly) (*PriPoly, error) {
 	}
 	coeffs := make([]kyber.Scalar, p.Threshold())
 	for i := range coeffs {
-		coeffs[i] = p.s.Scalar().Add(p.coeffs[i], q.coeffs[i])
+		coeffs[i] = p.g.Scalar().Add(p.coeffs[i], q.coeffs[i])
 	}
-	return &PriPoly{p.s, coeffs}, nil
+	return &PriPoly{p.g, coeffs}, nil
 }
 
 // Equal checks equality of two secret sharing polynomials p and q. If p and q are trivially
-// unequal (i.e. due to mismatching cryptographic suites or polynomial size), this routine
+// unequal (e.g., due to mismatching cryptographic groups or polynomial size), this routine
 // returns in variable time. Otherwise it runs in constant time regardless of whether it
 // eventually returns true or false.
 func (p *PriPoly) Equal(q *PriPoly) bool {
-	if p.s.String() != q.s.String() {
+	if p.g.String() != q.g.String() {
 		return false
 	}
 	if len(p.coeffs) != len(q.coeffs) {
@@ -135,9 +130,9 @@ func (p *PriPoly) Equal(q *PriPoly) bool {
 func (p *PriPoly) Commit(b kyber.Point) *PubPoly {
 	commits := make([]kyber.Point, p.Threshold())
 	for i := range commits {
-		commits[i] = p.s.Point().Mul(p.coeffs[i], b)
+		commits[i] = p.g.Point().Mul(p.coeffs[i], b)
 	}
-	return &PubPoly{p.s, b, commits}
+	return &PubPoly{p.g, b, commits}
 }
 
 // Mul multiples p  and q together. The result is a polynomial of the sum of
@@ -151,15 +146,15 @@ func (p *PriPoly) Mul(q *PriPoly) *PriPoly {
 	newDegree := d1 + d2
 	coeffs := make([]kyber.Scalar, newDegree+1)
 	for i := range coeffs {
-		coeffs[i] = p.s.Scalar().Zero()
+		coeffs[i] = p.g.Scalar().Zero()
 	}
 	for i := range p.coeffs {
 		for j := range q.coeffs {
-			tmp := p.s.Scalar().Mul(p.coeffs[i], q.coeffs[j])
+			tmp := p.g.Scalar().Mul(p.coeffs[i], q.coeffs[j])
 			coeffs[i+j] = tmp.Add(coeffs[i+j], tmp)
 		}
 	}
-	return &PriPoly{p.s, coeffs}
+	return &PriPoly{p.g, coeffs}
 }
 
 // RecoverSecret reconstructs the shared secret p(0) from a list of private
@@ -206,11 +201,11 @@ func xScalar(g kyber.Group, shares []*PriShare, t, n int) map[int]kyber.Scalar {
 	return x
 }
 
-func xMinusConst(s Suite, c kyber.Scalar) *PriPoly {
-	neg := s.Scalar().Neg(c)
+func xMinusConst(g kyber.Group, c kyber.Scalar) *PriPoly {
+	neg := g.Scalar().Neg(c)
 	return &PriPoly{
-		s:      s,
-		coeffs: []kyber.Scalar{neg, s.Scalar().One()},
+		g:      g,
+		coeffs: []kyber.Scalar{neg, g.Scalar().One()},
 	}
 }
 
@@ -218,29 +213,29 @@ func xMinusConst(s Suite, c kyber.Scalar) *PriPoly {
 // reconstruct the secret polynomial completely, i.e., all private coefficients.
 // It is up to the caller to make sure there are enough shares to correctly
 // re-construct the polynomial. There must be at least t shares.
-func RecoverPriPoly(s Suite, shares []*PriShare, t, n int) (*PriPoly, error) {
-	x := xScalar(s, shares, t, n)
+func RecoverPriPoly(g kyber.Group, shares []*PriShare, t, n int) (*PriPoly, error) {
+	x := xScalar(g, shares, t, n)
 	if len(x) != t {
 		return nil, errors.New("share: not enough shares to recover private polynomial")
 	}
 
 	var accPoly *PriPoly
 	var err error
-	den := s.Scalar()
+	den := g.Scalar()
 	// notations following the wikipedia article on Lagrange interpolation
 	// https://en.wikipedia.org/wiki/Lagrange_polynomial
 	for j, xj := range x {
 		var basis = &PriPoly{
-			s:      s,
-			coeffs: []kyber.Scalar{s.Scalar().One()},
+			g:      g,
+			coeffs: []kyber.Scalar{g.Scalar().One()},
 		}
-		var acc = s.Scalar().Set(shares[j].V)
+		var acc = g.Scalar().Set(shares[j].V)
 		// compute lagrange basis l_j
 		for m, xm := range x {
 			if j == m {
 				continue
 			}
-			basis = basis.Mul(xMinusConst(s, xm)) // basis = basis * (x - xm)
+			basis = basis.Mul(xMinusConst(g, xm)) // basis = basis * (x - xm)
 
 			den.Sub(xj, xm)   // den = xj - xm
 			den.Inv(den)      // den = 1 / den
@@ -280,7 +275,7 @@ type PubShare struct {
 }
 
 // Hash returns the hash representation of this share.
-func (p *PubShare) Hash(s Suite) []byte {
+func (p *PubShare) Hash(s kyber.HashFactory) []byte {
 	h := s.Hash()
 	_, _ = p.V.MarshalTo(h)
 	_ = binary.Write(h, binary.LittleEndian, p.I)
@@ -357,11 +352,10 @@ func (p *PubPoly) Add(q *PubPoly) (*PubPoly, error) {
 	return &PubPoly{p.g, p.b, commits}, nil
 }
 
-// Equal checks equality of two public commitment polynomials p and
-// q. If p and q are trivially unequal (i.e. due to mismatching
-// cryptographic suites), this routine returns in variable
-// time. Otherwise it runs in constant time regardless of whether it
-// eventually returns true or false.
+// Equal checks equality of two public commitment polynomials p and q. If p and
+// q are trivially unequal (e.g., due to mismatching cryptographic groups),
+// this routine returns in variable time. Otherwise it runs in constant time
+// regardless of whether it eventually returns true or false.
 func (p *PubPoly) Equal(q *PubPoly) bool {
 	if p.g.String() != q.g.String() {
 		return false
