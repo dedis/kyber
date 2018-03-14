@@ -46,12 +46,11 @@ func Verify(suite pairing.Suite, X kyber.Point, msg, sig []byte) error {
 	return nil
 }
 
-// HashToPoint hashes a message to a point on curve G1. XXX: This should be replaced
+// hashToPoint hashes a message to a point on curve G1. XXX: This should be replaced
 // eventually by a proper hash-to-point mapping like Elligator.
 func hashToPoint(suite pairing.Suite, msg []byte) kyber.Point {
 	h := suite.Hash()
 	h.Write(msg)
-	digest := h.Sum(nil)
-	x := suite.G1().Scalar().SetBytes(digest)
+	x := suite.G1().Scalar().SetBytes(h.Sum(nil))
 	return suite.G1().Point().Mul(x, nil)
 }

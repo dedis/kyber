@@ -1,7 +1,6 @@
 package tbls
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/dedis/kyber/pairing/bn256"
@@ -18,25 +17,17 @@ func TestTBLS(test *testing.T) {
 	g2s := bn256.NewSingleGroupSuite(suite.G2())
 	n := 10
 	t := n/2 + 1
-	secret := g2s.Scalar().Pick(random.New())
+	secret := suite.G1().Scalar().Pick(random.New())
 	priPoly := share.NewPriPoly(g2s, t, secret)
 	pubPoly := priPoly.Commit(g2s.Point().Base())
-	fmt.Println(pubPoly.Commit())
-	sigShares := make([][]byte, n)
-	for i, x := range priPoly.Shares(n) {
-		sigShares[i], err = Sign(suite, x, msg)
+	sigShares := make([][]byte, 0)
+	for _, x := range priPoly.Shares(n) {
+		sig, err := Sign(suite, x, msg)
 		require.Nil(test, err)
-		//err = Verify(suite, pubPoly, msg, sigShares[i])
-		//require.Nil(test, err)
+		sigShares = append(sigShares, sig)
 	}
 	sig, err := Recover(suite, pubPoly, msg, sigShares, t, n)
 	require.Nil(test, err)
-
-	//pubG1 := priPoly.Commit()
-
-	//for i, s := range pubShares {
-
-	//}
-
-	require.Nil(test, bls.Verify(suite, pubPoly.Commit(), msg, sig))
+	err = bls.Verify(suite, pubPoly.Commit(), msg, sig)
+	require.Nil(test, err)
 }
