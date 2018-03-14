@@ -6,7 +6,6 @@ import (
 	"github.com/dedis/kyber/pairing/bn256"
 	"github.com/dedis/kyber/share"
 	"github.com/dedis/kyber/sign/bls"
-	"github.com/dedis/kyber/util/random"
 	"github.com/stretchr/testify/require"
 )
 
@@ -17,8 +16,8 @@ func TestTBLS(test *testing.T) {
 	g2s := bn256.NewSingleGroupSuite(suite.G2())
 	n := 10
 	t := n/2 + 1
-	secret := suite.G1().Scalar().Pick(random.New())
-	priPoly := share.NewPriPoly(g2s, t, secret)
+	secret := suite.G1().Scalar().Pick(suite.RandomStream())
+	priPoly := share.NewPriPoly(g2s, t, secret, suite.RandomStream())
 	pubPoly := priPoly.Commit(g2s.Point().Base())
 	sigShares := make([][]byte, 0)
 	for _, x := range priPoly.Shares(n) {

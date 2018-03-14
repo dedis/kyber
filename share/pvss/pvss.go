@@ -51,7 +51,7 @@ func EncShares(suite Suite, H kyber.Point, X []kyber.Point, secret kyber.Scalar,
 	encShares := make([]*PubVerShare, n)
 
 	// Create secret sharing polynomial
-	priPoly := share.NewPriPoly(suite, t, secret)
+	priPoly := share.NewPriPoly(suite, t, secret, suite.RandomStream())
 
 	// Create secret set of shares
 	priShares := priPoly.Shares(n)
