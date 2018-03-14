@@ -16,10 +16,10 @@ import (
 
 // Suite implements the pairing.Suite interface for the BN256 bilinear pairing.
 type Suite struct {
-	commonSuite
 	g1 *groupG1
 	g2 *groupG2
 	gt *groupGT
+	r  cipher.Stream
 }
 
 // NewSuite generates and returns a new BN256 pairing suite.
@@ -63,6 +63,25 @@ func (s *Suite) Pair(p1 kyber.Point, p2 kyber.Point) kyber.Point {
 	return s.GT().Point().(*pointGT).Pair(p1, p2)
 }
 
+// Hash returns a newly instantiated sha256 hash function.
+func (s *Suite) Hash() hash.Hash {
+	return sha256.New()
+}
+
+// XOF returns a newlly instantiated blake2xb XOF function.
+func (s *Suite) XOF(seed []byte) kyber.XOF {
+	return blake2xb.New(seed)
+}
+
+// RandomStream returns a cipher.Stream which corresponds to a key stream from
+// crypto/rand.
+func (s *Suite) RandomStream() cipher.Stream {
+	if s.r != nil {
+		return s.r
+	}
+	return random.New()
+}
+
 // Read is the default implementation of kyber.Encoding interface Read.
 func (s *Suite) Read(r io.Reader, objs ...interface{}) error {
 	return fixbuf.Read(r, s, objs...)
@@ -97,39 +116,4 @@ func (s *Suite) New(t reflect.Type) interface{} {
 		return s.GT().Point()
 	}
 	return nil
-}
-
-// SingleGroupSuite is a helper struct that can be instantiated in case a suite
-// with a single group is needed.
-type SingleGroupSuite struct {
-	commonSuite
-	kyber.Group
-}
-
-// NewSingleGroupSuite generates and returns a new suite that consists of a single group.
-func NewSingleGroupSuite(g kyber.Group) *SingleGroupSuite {
-	return &SingleGroupSuite{commonSuite{}, g}
-}
-
-type commonSuite struct {
-	r cipher.Stream
-}
-
-// Hash returns a newly instantiated sha256 hash function.
-func (c *commonSuite) Hash() hash.Hash {
-	return sha256.New()
-}
-
-// XOF returns a newlly instantiated blake2xb XOF function.
-func (c *commonSuite) XOF(seed []byte) kyber.XOF {
-	return blake2xb.New(seed)
-}
-
-// RandomStream returns a cipher.Stream which corresponds to a key stream from
-// crypto/rand.
-func (c *commonSuite) RandomStream() cipher.Stream {
-	if c.r != nil {
-		return c.r
-	}
-	return random.New()
 }
