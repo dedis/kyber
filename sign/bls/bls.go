@@ -1,3 +1,6 @@
+// Package bls implements the Boneh-Lynn-Shacham (BLS) signature scheme which
+// requires pairing-based cryptography. For more details on BLS see the paper
+// "Short Signatures from the Weil Pairing".
 package bls
 
 import (
