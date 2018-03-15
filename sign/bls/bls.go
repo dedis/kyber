@@ -1,6 +1,6 @@
 // Package bls implements the Boneh-Lynn-Shacham (BLS) signature scheme which
-// requires pairing-based cryptography. For more details on BLS see the paper
-// "Short Signatures from the Weil Pairing".
+// was introduced in the paper "Short Signatures from the Weil Pairing". BLS
+// requires pairing-based cryptography.
 package bls
 
 import (
@@ -19,8 +19,8 @@ func NewKeyPair(suite pairing.Suite, random cipher.Stream) (kyber.Scalar, kyber.
 	return x, X
 }
 
-// Sign creates a BLS signature s = x * H(m) on a message m using the private
-// key x. The signature s is a point on curve G1.
+// Sign creates a BLS signature S = x * H(m) on a message m using the private
+// key x. The signature S is a point on curve G1.
 func Sign(suite pairing.Suite, x kyber.Scalar, msg []byte) ([]byte, error) {
 	HM := hashToPoint(suite, msg)
 	xHM := HM.Mul(x, HM)
@@ -31,9 +31,9 @@ func Sign(suite pairing.Suite, x kyber.Scalar, msg []byte) ([]byte, error) {
 	return s, nil
 }
 
-// Verify checks the given BLS signature s on the message m using the public
+// Verify checks the given BLS signature S on the message m using the public
 // key X by verifying that the equality e(H(m), X) == e(H(m), x*B2) ==
-// e(x*H(m), B2) == e(s, B2) holds where e is the pairing operation and B2 is
+// e(x*H(m), B2) == e(S, B2) holds where e is the pairing operation and B2 is
 // the base point from curve G2.
 func Verify(suite pairing.Suite, X kyber.Point, msg, sig []byte) error {
 	HM := hashToPoint(suite, msg)
