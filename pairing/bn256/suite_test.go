@@ -32,11 +32,13 @@ func TestScalarOps(t *testing.T) {
 	c := suite.G1().Scalar().Pick(random.New())
 	d := suite.G1().Scalar()
 	e := suite.G1().Scalar()
+	// check that (a+b)-c == (a-c)+b
 	d.Add(a, b)
 	d.Sub(d, c)
 	e.Sub(a, c)
 	e.Add(e, b)
 	require.True(t, d.Equal(e))
+	// check that (a*b)*c^-1 == (a*c^-1)*b
 	d.One()
 	e.One()
 	d.Mul(a, b)
@@ -44,6 +46,7 @@ func TestScalarOps(t *testing.T) {
 	e.Div(a, c)
 	e.Mul(e, b)
 	require.True(t, d.Equal(e))
+	// check that (a*b*c)^-1*(a*b*c) == 1
 	d.One()
 	e.One()
 	d.Mul(a, b)
