@@ -11,7 +11,7 @@ func TestSecretRecovery(test *testing.T) {
 	g := edwards25519.NewBlakeSHA256Ed25519()
 	n := 10
 	t := n/2 + 1
-	poly := NewPriPoly(g, t, nil)
+	poly := NewPriPoly(g, t, nil, g.RandomStream())
 	shares := poly.Shares(n)
 
 	recovered, err := RecoverSecret(g, shares, t, n)
@@ -28,7 +28,7 @@ func TestSecretRecoveryDelete(test *testing.T) {
 	g := edwards25519.NewBlakeSHA256Ed25519()
 	n := 10
 	t := n/2 + 1
-	poly := NewPriPoly(g, t, nil)
+	poly := NewPriPoly(g, t, nil, g.RandomStream())
 	shares := poly.Shares(n)
 
 	// Corrupt a few shares
@@ -52,7 +52,7 @@ func TestSecretRecoveryDeleteFail(test *testing.T) {
 	n := 10
 	t := n/2 + 1
 
-	poly := NewPriPoly(g, t, nil)
+	poly := NewPriPoly(g, t, nil, g.RandomStream())
 	shares := poly.Shares(n)
 
 	// Corrupt one more share than acceptable
@@ -73,9 +73,9 @@ func TestSecretPolyEqual(test *testing.T) {
 	n := 10
 	t := n/2 + 1
 
-	p1 := NewPriPoly(g, t, nil)
-	p2 := NewPriPoly(g, t, nil)
-	p3 := NewPriPoly(g, t, nil)
+	p1 := NewPriPoly(g, t, nil, g.RandomStream())
+	p2 := NewPriPoly(g, t, nil, g.RandomStream())
+	p3 := NewPriPoly(g, t, nil, g.RandomStream())
 
 	p12, _ := p1.Add(p2)
 	p13, _ := p1.Add(p3)
@@ -93,7 +93,7 @@ func TestPublicCheck(test *testing.T) {
 	n := 10
 	t := n/2 + 1
 
-	priPoly := NewPriPoly(g, t, nil)
+	priPoly := NewPriPoly(g, t, nil, g.RandomStream())
 	priShares := priPoly.Shares(n)
 	pubPoly := priPoly.Commit(nil)
 
@@ -109,7 +109,7 @@ func TestPublicRecovery(test *testing.T) {
 	n := 10
 	t := n/2 + 1
 
-	priPoly := NewPriPoly(g, t, nil)
+	priPoly := NewPriPoly(g, t, nil, g.RandomStream())
 	pubPoly := priPoly.Commit(nil)
 	pubShares := pubPoly.Shares(n)
 
@@ -128,7 +128,7 @@ func TestPublicRecoveryDelete(test *testing.T) {
 	n := 10
 	t := n/2 + 1
 
-	priPoly := NewPriPoly(g, t, nil)
+	priPoly := NewPriPoly(g, t, nil, g.RandomStream())
 	pubPoly := priPoly.Commit(nil)
 	shares := pubPoly.Shares(n)
 
@@ -153,7 +153,7 @@ func TestPublicRecoveryDeleteFail(test *testing.T) {
 	n := 10
 	t := n/2 + 1
 
-	priPoly := NewPriPoly(g, t, nil)
+	priPoly := NewPriPoly(g, t, nil, g.RandomStream())
 	pubPoly := priPoly.Commit(nil)
 	shares := pubPoly.Shares(n)
 
@@ -175,8 +175,8 @@ func TestPrivateAdd(test *testing.T) {
 	n := 10
 	t := n/2 + 1
 
-	p := NewPriPoly(g, t, nil)
-	q := NewPriPoly(g, t, nil)
+	p := NewPriPoly(g, t, nil, g.RandomStream())
+	q := NewPriPoly(g, t, nil, g.RandomStream())
 
 	r, err := p.Add(q)
 	if err != nil {
@@ -200,8 +200,8 @@ func TestPublicAdd(test *testing.T) {
 	G := g.Point().Pick(g.RandomStream())
 	H := g.Point().Pick(g.RandomStream())
 
-	p := NewPriPoly(g, t, nil)
-	q := NewPriPoly(g, t, nil)
+	p := NewPriPoly(g, t, nil, g.RandomStream())
+	q := NewPriPoly(g, t, nil, g.RandomStream())
 
 	P := p.Commit(G)
 	Q := q.Commit(H)
@@ -233,9 +233,9 @@ func TestPublicPolyEqual(test *testing.T) {
 
 	G := g.Point().Pick(g.RandomStream())
 
-	p1 := NewPriPoly(g, t, nil)
-	p2 := NewPriPoly(g, t, nil)
-	p3 := NewPriPoly(g, t, nil)
+	p1 := NewPriPoly(g, t, nil, g.RandomStream())
+	p2 := NewPriPoly(g, t, nil, g.RandomStream())
+	p3 := NewPriPoly(g, t, nil, g.RandomStream())
 
 	P1 := p1.Commit(G)
 	P2 := p2.Commit(G)
@@ -256,8 +256,8 @@ func TestPriPolyMul(test *testing.T) {
 	suite := edwards25519.NewBlakeSHA256Ed25519()
 	n := 10
 	t := n/2 + 1
-	a := NewPriPoly(suite, t, nil)
-	b := NewPriPoly(suite, t, nil)
+	a := NewPriPoly(suite, t, nil, suite.RandomStream())
+	b := NewPriPoly(suite, t, nil, suite.RandomStream())
 
 	c := a.Mul(b)
 	assert.Equal(test, len(a.coeffs)+len(b.coeffs)-1, len(c.coeffs))
@@ -283,7 +283,7 @@ func TestRecoverPriPoly(test *testing.T) {
 	suite := edwards25519.NewBlakeSHA256Ed25519()
 	n := 10
 	t := n/2 + 1
-	a := NewPriPoly(suite, t, nil)
+	a := NewPriPoly(suite, t, nil, suite.RandomStream())
 
 	shares := a.Shares(n)
 	reverses := make([]*PriShare, len(shares))

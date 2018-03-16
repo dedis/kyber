@@ -128,7 +128,7 @@ func NewDealer(suite Suite, longterm, secret kyber.Scalar, verifiers []kyber.Poi
 	}
 	d.t = t
 
-	f := share.NewPriPoly(d.suite, d.t, d.secret)
+	f := share.NewPriPoly(d.suite, d.t, d.secret, suite.RandomStream())
 	d.pub = d.suite.Point().Mul(d.long, nil)
 
 	// Compute public polynomial coefficients
