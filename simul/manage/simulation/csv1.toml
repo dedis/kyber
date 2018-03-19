@@ -1,8 +1,0 @@
-Servers = 16
-Simulation = "Count"
-BF = 2
-Suite = "Ed25519"
-
-Hosts,Rounds
-3, 3
-7,3

@@ -1,62 +1,81 @@
-[![Build Status](https://travis-ci.org/dedis/onet.svg?branch=master)](https://travis-ci.org/dedis/onet)
-[![Go Report Card](https://goreportcard.com/badge/github.com/dedis/onet)](https://goreportcard.com/report/github.com/dedis/onet)
-[![Coverage Status](https://coveralls.io/repos/github/dedis/onet/badge.svg)](https://coveralls.io/github/dedis/onet)
+[![Docs](https://img.shields.io/badge/docs-current-brightgreen.svg)](https://godoc.org/gopkg.in/dedis/kyber.v2)
+[![Build Status](https://travis-ci.org/dedis/kyber.svg?branch=v2)](https://travis-ci.org/dedis/kyber)
 
-# The Cothority Network Library - ONet
+DEDIS Advanced Crypto Library for Go
+====================================
 
-The Overlay-network (ONet) is a library for simulation and deployment of
-decentralized, distributed protocols. It offers an abstraction for tree-based
-communications between thousands of nodes and is used both in research for 
-testing out new protocols and running simulations, as well as in production to
-deploy those protocols as a service in a distributed manner.
+This package provides a toolbox of advanced cryptographic primitives for Go,
+targeting applications like [Cothority](https://github.com/dedis/cothority)
+that need more than straightforward signing and encryption.
+Please see the
+[Godoc documentation for this package](http://godoc.org/gopkg.in/dedis/kyber.v2)
+for details on the library's purpose and API functionality.
 
-ONet is developed by [DEDIS/EFPL](http://dedis.epfl.ch) as part of the
-[Cothority](https://github.com/dedis/cothority) project that aims to deploy
-a large number of conodes for distributed signing and related projects.
+How to Get the Stable Version
+-----------------------------
 
-## Documentation
+The stable version of Kyber should be imported using:
 
-- To run and use a conode, have a look at 
-	[Cothority Node](https://github.com/dedis/cothority/wiki/Conode)
-	with examples of protocols, services and apps
-- To start a new project by developing and integrating a new protocol, have a look at
-	the [Cothority Template](https://github.com/dedis/cothority_template/wiki)
-- To participate as a core-developer, go to 
-	[Cothority Network Library](https://github.com/dedis/onet/wiki)
-	
-## Version
+```
+   import "gopkg.in/dedis/kyber.v2"
+```
 
-We have a development and a stable version. The `master`-branch in
-`github.com/dedis/onet` is the development version that works but can have
-incompatible changes.
+Other versions:
+* gopkg.in/dedis/crypto.v0 was the previous semi-stable version. See
+  [migration notes](https://github.com/dedis/kyber/wiki/Migration-from-gopkg.in-dedis-crypto.v0).
+* kyber.v1 never existed, in order to keep kyber, onet and cothorithy versions linked
+* the master branch of kyber is the development version
 
-The version at `gopkg.in/dedis/onet.v1` is stable and has no incompatible
-changes.
+Installing
+----------
 
-Also have a look at https://github.com/dedis/onet/blob/master/CHANGELOG.md for
-any incompatible changes.
+First make sure you have [Go](https://golang.org) version 1.8 or newer installed.
 
-## License
+The basic crypto library requires only Go and a few
+third-party Go-language dependencies that can be installed automatically
+as follows:
 
-All repositories for the cothority-project 
-([ONet](https://github.com/dedis/onet), 
-[cothority](https://github.com/dedis/cothority), 
-[cothority_template](https://github.com/dedis/cothority_template))
-are double-licensed under a 
-GNU/AGPL 3.0 and a commercial license. If you want to have more information, 
-contact us at dedis@epfl.ch.
+	go get gopkg.in/dedis/kyber.v2
+	cd $(go env GOPATH)/src/gopkg.in/dedis/kyber.v2
+	go get -t ./... # install 3rd-party dependencies
 
-## Contribution
+You should then be able to test its basic function as follows:
 
-If you want to contribute to Cothority-ONet, please have a look at 
-[CONTRIBUTION](https://github.com/dedis/onet/blob/master/CONTRIBUTION) for
-licensing details. Once you are OK with those, you can have a look at our
-coding-guidelines in
-[Coding](https://github.com/dedis/Coding). In short, we use the github-issues
-to communicate and pull-requests to do code-review. Travis makes sure that
-everything goes smoothly. And we'd like to have good code-coverage.
+	go test -v
 
-# Contact
+You can recursively test all the packages in the library as follows:
 
-You can contact us at https://groups.google.com/forum/#!forum/cothority or
-privately at dedis@epfl.ch.
+	go test -v ./...
+
+Constant Time Implementation
+----------------------------
+
+By default, this package builds groups that implements constant time arithmetic
+operations. Currently, only the Edwards25519 group has a constant time implementation,
+and thus by default only the Edwards25519 group is compiled in.
+
+If you need to have access to variable time arithmetic groups such as P256 or
+Curve25519, you need to build the repository with the "vartime" tag:
+
+    go build -tags vartime
+
+And you can test the vartime packages with:
+
+    go test -tags vartime ./...
+
+When a given implementation provides both constant time and variable time
+operations, the constant time operations are used in preference to the variable
+time ones, in order to reduce the risk of timing side-channel attack.
+See [AllowsVarTime](https://godoc.org/gopkg.in/dedis/kyber.v2#AllowsVarTime) for how
+to opt-in to variable time implementations when it is safe to do so.
+
+A note on deriving shared secrets
+---------------------------------
+
+Traditionally, ECDH (Elliptic curve Diffie-Hellman) derives the shared secret
+from the x point only. In this framework, you can either manually retrieve the
+value or use the MarshalBinary method to take the combined (x, y) value as the
+shared secret. We recommend the latter process for new softare/protocols using
+this framework as it is cleaner and generalizes across different types of
+groups (e.g., both integer and elliptic curves), although it will likely be
+incompatible with other implementations of ECDH. See [the Wikipedia page](http://en.wikipedia.org/wiki/Elliptic_curve_Diffie%E2%80%93Hellman) on ECDH.

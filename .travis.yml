@@ -1,13 +1,13 @@
 language: go
 
 go:
-  - 1.9
+  - 1.8.x
+
+go_import_path: gopkg.in/dedis/kyber.v2
 
 install:
   - go get -t ./...
   - go get github.com/dedis/Coding || true
-
-go_import_path: gopkg.in/dedis/onet.v2
 
 script:
   - make test_stable
