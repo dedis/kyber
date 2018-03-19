@@ -447,7 +447,7 @@ func TestRoster_GenerateNaryTreeWithRoot_NewRoster(t *testing.T) {
 	peerList := genRoster(tSuite, names)
 	tree := NewRoster(peerList.List[1:10]).GenerateNaryTreeWithRoot(2, peerList.List[0])
 	assert.Nil(t, tree)
-	for _, e := range peerList.List {
+	for _, e := range peerList.List[1:len(peerList.List)] {
 		tree := peerList.NewRosterWithRoot(e).GenerateNaryTree(4)
 		for i := 0; i <= 9; i++ {
 			if !strings.Contains(peerList.List[i].Address.String(),

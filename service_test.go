@@ -10,7 +10,6 @@ import (
 	"sync"
 
 	"github.com/dedis/protobuf"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/dedis/onet.v2/log"
 	"gopkg.in/dedis/onet.v2/network"
@@ -136,7 +135,7 @@ func TestServiceRequestNewProtocol(t *testing.T) {
 	// Now resend the value so we instantiate using the same treenode
 	log.Lvl1("Sending request again to service...")
 	err := client.SendProtobuf(server.ServerIdentity, &DummyMsg{10}, nil)
-	assert.Error(t, err)
+	require.Error(t, err)
 	// this should fail
 	waitOrFatalValue(ds.link, false, t)
 }
@@ -229,7 +228,9 @@ func TestServiceProcessor(t *testing.T) {
 	log.Lvl1("Host created and listening")
 	// create request
 	log.Lvl1("Sending request to service...")
-	assert.Nil(t, server2.Send(server1.ServerIdentity, &DummyMsg{10}))
+	sentLen, err := server2.Send(server1.ServerIdentity, &DummyMsg{10})
+	require.Nil(t, err)
+	require.NotNil(t, sentLen)
 
 	// wait for the link from the Service on server 1
 	waitOrFatalValue(ds1.link, true, t)
@@ -262,7 +263,7 @@ func TestServiceBackForthProtocol(t *testing.T) {
 	sr := &SimpleResponse{}
 	err = client.SendProtobuf(servers[0].ServerIdentity, r, sr)
 	log.ErrFatal(err)
-	assert.Equal(t, sr.Val, 10)
+	require.Equal(t, sr.Val, 10)
 }
 
 func TestServiceManager_Service(t *testing.T) {
@@ -271,10 +272,10 @@ func TestServiceManager_Service(t *testing.T) {
 	servers, _, _ := local.GenTree(2, true)
 
 	services := servers[0].serviceManager.availableServices()
-	assert.NotEqual(t, 0, len(services), "no services available")
+	require.NotEqual(t, 0, len(services), "no services available")
 
 	service := servers[0].serviceManager.service("testService")
-	assert.NotNil(t, service, "Didn't find service testService")
+	require.NotNil(t, service, "Didn't find service testService")
 }
 
 func TestServiceMessages(t *testing.T) {
@@ -283,7 +284,7 @@ func TestServiceMessages(t *testing.T) {
 	servers, _, _ := local.GenTree(2, true)
 
 	service := servers[0].serviceManager.service(ismServiceName)
-	assert.NotNil(t, service, "Didn't find service ISMService")
+	require.NotNil(t, service, "Didn't find service ISMService")
 	ism := service.(*ServiceMessages)
 	ism.SendRaw(servers[0].ServerIdentity, &SimpleResponse{})
 	require.True(t, <-ism.GotResponse, "Didn't get response")

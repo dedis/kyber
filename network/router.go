@@ -156,60 +156,66 @@ func (r *Router) Stop() error {
 }
 
 // Send sends to an ServerIdentity without wrapping the msg into a ProtocolMsg
-func (r *Router) Send(e *ServerIdentity, msg Message) error {
+func (r *Router) Send(e *ServerIdentity, msg Message) (uint64, error) {
 	if msg == nil {
-		return errors.New("Can't send nil-packet")
+		return 0, errors.New("Can't send nil-packet")
 	}
 
+	var totSentLen uint64
 	c := r.connection(e.ID)
 	if c == nil {
+		var sentLen uint64
 		var err error
-		c, err = r.connect(e)
+		c, sentLen, err = r.connect(e)
+		totSentLen += sentLen
 		if err != nil {
-			return err
+			return totSentLen, err
 		}
 	}
 
 	log.Lvlf4("%s sends to %s msg: %+v", r.address, e, msg)
-	var err error
-	err = c.Send(msg)
+	sentLen, err := c.Send(msg)
+	totSentLen += sentLen
 	if err != nil {
 		log.Lvl2(r.address, "Couldn't send to", e, ":", err, "trying again")
-		c, err := r.connect(e)
+		c, sentLen, err := r.connect(e)
+		totSentLen += sentLen
 		if err != nil {
-			return err
+			return totSentLen, err
 		}
-		err = c.Send(msg)
+		sentLen, err = c.Send(msg)
+		totSentLen += sentLen
 		if err != nil {
-			return err
+			return totSentLen, err
 		}
 	}
 	log.Lvl5("Message sent")
-	return nil
+	return totSentLen, nil
 }
 
 // connect starts a new connection and launches the listener for incoming
 // messages.
-func (r *Router) connect(si *ServerIdentity) (Conn, error) {
+func (r *Router) connect(si *ServerIdentity) (Conn, uint64, error) {
 	log.Lvl3(r.address, "Connecting to", si.Address)
 	c, err := r.host.Connect(si)
 	if err != nil {
 		log.Lvl3("Could not connect to", si.Address, err)
-		return nil, err
+		return nil, 0, err
 	}
 	log.Lvl3(r.address, "Connected to", si.Address)
-	if err := c.Send(r.ServerIdentity); err != nil {
-		return nil, err
+	var sentLen uint64
+	if sentLen, err = c.Send(r.ServerIdentity); err != nil {
+		return nil, sentLen, err
 	}
 
-	if err := r.registerConnection(si, c); err != nil {
-		return nil, err
+	if err = r.registerConnection(si, c); err != nil {
+		return nil, sentLen, err
 	}
 
-	if err := r.launchHandleRoutine(si, c); err != nil {
-		return nil, err
+	if err = r.launchHandleRoutine(si, c); err != nil {
+		return nil, sentLen, err
 	}
-	return c, nil
+	return c, sentLen, nil
 
 }
 
@@ -256,7 +262,7 @@ func (r *Router) handleConn(remote *ServerIdentity, c Conn) {
 		r.traffic.updateTx(tx)
 		r.wg.Done()
 		r.removeConnection(remote, c)
-		log.Lvl2("onet close", c.Remote(), "rx", rx, "tx", tx)
+		log.Lvl4("onet close", c.Remote(), "rx", rx, "tx", tx)
 	}()
 	address := c.Remote()
 	log.Lvl3(r.address, "Handling new connection from", remote.Address)

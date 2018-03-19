@@ -219,7 +219,7 @@ func NewTLSListener(si *ServerIdentity, suite Suite) (*TCPListener, error) {
 
 	// This callback will be called for every new client, which
 	// gives us a chance to set the nonce that will be sent down to them.
-	cfg.GetConfigForClient = func(*tls.ClientHelloInfo) (*tls.Config, error) {
+	cfg.GetConfigForClient = func(client *tls.ClientHelloInfo) (*tls.Config, error) {
 		// Copy the global config, set the nonce in the copy.
 		cfg2 := cloneTLSClientConfig(cfg)
 
@@ -233,6 +233,7 @@ func NewTLSListener(si *ServerIdentity, suite Suite) (*TCPListener, error) {
 		cfg2.ClientCAs.AddCert(&x509.Certificate{
 			RawSubject: nonce,
 		})
+		log.Lvl2("Got new connection request from:", client.Conn.RemoteAddr().String())
 		return cfg2, nil
 	}
 
@@ -358,7 +359,7 @@ func tlsConfig(suite Suite, us *ServerIdentity) (*tls.Config, error) {
 // it holds the given Public key by self-signing a certificate
 // linked to that key.
 func NewTLSConn(us *ServerIdentity, them *ServerIdentity, suite Suite) (conn *TCPConn, err error) {
-	log.Lvl3("NewTLSConn to:", them)
+	log.Lvl2("NewTLSConn to:", them)
 	if them.Address.ConnType() != TLS {
 		return nil, errors.New("not a tls server")
 	}

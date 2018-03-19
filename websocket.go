@@ -43,9 +43,36 @@ func NewWebSocket(si *network.ServerIdentity) *WebSocket {
 	log.ErrFatal(err)
 	w.mux = http.NewServeMux()
 	w.mux.HandleFunc("/ok", func(w http.ResponseWriter, r *http.Request) {
-		log.Lvl2("ok?", r.RemoteAddr)
+		log.Lvl4("ok?", r.RemoteAddr)
 		ok := []byte("ok\n")
 		w.Write(ok)
+	})
+
+	// Add a catch-all handler (longest paths take precedence, so "/" takes
+	// all non-registered paths) and correctly upgrade to a websocket and
+	// throw an error.
+	w.mux.HandleFunc("/", func(wr http.ResponseWriter, re *http.Request) {
+		log.Error("Got a request for an invalid path:", re.URL.Path)
+
+		u := websocket.Upgrader{
+			EnableCompression: true,
+			// As the website will not be served from ourselves, we
+			// need to accept _all_ origins. Cross-site scripting is
+			// required.
+			CheckOrigin: func(*http.Request) bool {
+				return true
+			},
+		}
+		ws, err := u.Upgrade(wr, re, http.Header{})
+		if err != nil {
+			log.Error(err)
+			return
+		}
+
+		ws.WriteControl(websocket.CloseMessage,
+			websocket.FormatCloseMessage(4001, "This service doesn't exist"),
+			time.Now().Add(time.Millisecond*500))
+		ws.Close()
 	})
 	w.server = &graceful.Server{
 		Timeout: 100 * time.Millisecond,
@@ -63,7 +90,7 @@ func (w *WebSocket) start() {
 	w.Lock()
 	w.started = true
 	w.Unlock()
-	log.Lvl3("Starting to listen on", w.server.Server.Addr)
+	log.Lvl2("Starting to listen on", w.server.Server.Addr)
 	go func() {
 		w.server.ListenAndServe()
 	}()
@@ -114,7 +141,7 @@ func (t wsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ok := false
 
 	defer func() {
-		log.Lvl2("ws close", r.RemoteAddr, "n", n, "rx", rx, "tx", tx, "ok", ok)
+		log.Lvl4("ws close", r.RemoteAddr, "n", n, "rx", rx, "tx", tx, "ok", ok)
 	}()
 
 	u := websocket.Upgrader{
@@ -148,7 +175,7 @@ func (t wsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		s := t.service
 		var reply []byte
 		path := strings.TrimPrefix(r.URL.Path, "/"+t.serviceName+"/")
-		log.Lvl2("ws request", r.RemoteAddr, t.serviceName, path)
+		log.Lvlf2("ws request from %s: %s/%s", r.RemoteAddr, t.serviceName, path)
 		reply, err = s.ProcessClientRequest(r, path, buf)
 		if err == nil {
 			tx += len(reply)

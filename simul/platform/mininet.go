@@ -346,6 +346,9 @@ func (m *MiniNet) parseServers() error {
 // hosts holds all addresses for all conodes, attributed in a round-robin fashion
 // over all mininet-addresses.
 //
+// If the number of servers in MiniNet.HostsIP is bigger than MiniSet.Servers,
+// only the first MiniNet.Servers are taken into account.
+//
 // list is used by platform/mininet/start.py and has the following format:
 // SimulationName BandwidthMbps DelayMS
 // physicalIP1 MininetNet1/16 NumberConodes1
@@ -354,8 +357,12 @@ func (m *MiniNet) getHostList(rc *RunConfig) (hosts []string, list string, err e
 	hosts = []string{}
 	list = ""
 	physicalServers := len(m.HostIPs)
-	nets := make([]*net.IPNet, physicalServers)
-	ips := make([]net.IP, physicalServers)
+	nbrServers, err := rc.GetInt("Servers")
+	if err != nil {
+		return
+	}
+	nets := make([]*net.IPNet, nbrServers)
+	ips := make([]net.IP, nbrServers)
 
 	// Create all mininet-networks
 	for n := range nets {
@@ -368,10 +375,6 @@ func (m *MiniNet) getHostList(rc *RunConfig) (hosts []string, list string, err e
 		ips[n][len(ips[n])-1] = byte(1)
 	}
 	hosts = []string{}
-	nbrServers, err := rc.GetInt("Servers")
-	if err != nil {
-		return
-	}
 	if nbrServers > physicalServers {
 		log.Warn(nbrServers, "servers requested, but only", physicalServers,
 			"available - proceeding anyway.")
@@ -383,14 +386,14 @@ func (m *MiniNet) getHostList(rc *RunConfig) (hosts []string, list string, err e
 
 	// Map all required conodes to Mininet-hosts
 	for i := 0; i < nbrHosts; i++ {
-		ip := ips[i%physicalServers]
+		ip := ips[i%nbrServers]
 		for j := len(ip) - 1; j >= 0; j-- {
 			ip[j]++
 			if ip[j] > 0 {
 				break
 			}
 		}
-		ips[i%physicalServers] = ip
+		ips[i%nbrServers] = ip
 		hosts = append(hosts, ip.String())
 	}
 
@@ -414,7 +417,7 @@ func (m *MiniNet) getHostList(rc *RunConfig) (hosts []string, list string, err e
 		// Magical formula to get how many hosts run on each
 		// physical server if we distribute them evenly, starting
 		// from the first server.
-		h := (nbrHosts + physicalServers - 1 - i) / physicalServers
+		h := (nbrHosts + nbrServers - 1 - i) / nbrServers
 		list += fmt.Sprintf("%s %s %d\n",
 			m.HostIPs[i], s.String(), h)
 	}

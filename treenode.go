@@ -52,6 +52,28 @@ type TreeNodeInstance struct {
 	config    *GenericConfig
 	sentTo    map[TreeNodeID]bool
 	configMut sync.Mutex
+
+	// used for the CounterIO interface
+	tx safeAdder
+	rx safeAdder
+}
+
+type safeAdder struct {
+	sync.RWMutex
+	x uint64
+}
+
+func (a *safeAdder) add(x uint64) {
+	a.Lock()
+	a.x += x
+	a.Unlock()
+}
+
+func (a *safeAdder) get() (x uint64) {
+	a.RLock()
+	x = a.x
+	a.RUnlock()
+	return
 }
 
 const (
@@ -135,7 +157,9 @@ func (n *TreeNodeInstance) SendTo(to *TreeNode, msg interface{}) error {
 	}
 	n.configMut.Unlock()
 
-	return n.overlay.SendToTreeNode(n.token, to, msg, n.protoIO, c)
+	sentLen, err := n.overlay.SendToTreeNode(n.token, to, msg, n.protoIO, c)
+	n.tx.add(sentLen)
+	return err
 }
 
 // Tree returns the tree of that node
@@ -445,6 +469,9 @@ func (n *TreeNodeInstance) dispatchMsgReader() {
 
 // dispatchMsgToProtocol will dispatch this onet.Data to the right instance
 func (n *TreeNodeInstance) dispatchMsgToProtocol(onetMsg *ProtocolMsg) error {
+
+	n.rx.add(uint64(len(onetMsg.MsgSlice)))
+
 	// if message comes from parent, dispatch directly
 	// if messages come from children we must aggregate them
 	// if we still need to wait for additional messages, we return
@@ -714,6 +741,16 @@ func (n *TreeNodeInstance) SetConfig(c *GenericConfig) error {
 	}
 	n.config = c
 	return nil
+}
+
+// Rx implements the CounterIO interface
+func (n *TreeNodeInstance) Rx() uint64 {
+	return n.rx.get()
+}
+
+// Tx implements the CounterIO interface
+func (n *TreeNodeInstance) Tx() uint64 {
+	return n.tx.get()
 }
 
 func (n *TreeNodeInstance) isBound() bool {

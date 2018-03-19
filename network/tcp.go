@@ -139,26 +139,26 @@ func (c *TCPConn) receiveRaw() ([]byte, error) {
 
 // Send converts the NetworkMessage into an ApplicationMessage
 // and sends it using send().
-// It returns an error if anything was wrong.
-func (c *TCPConn) Send(msg Message) error {
+// It returns the number of bytes sent and an error if anything was wrong.
+func (c *TCPConn) Send(msg Message) (uint64, error) {
 	c.sendMutex.Lock()
 	defer c.sendMutex.Unlock()
 
 	b, err := Marshal(msg)
 	if err != nil {
-		return fmt.Errorf("Error marshaling  message: %s", err.Error())
+		return 0, fmt.Errorf("Error marshaling  message: %s", err.Error())
 	}
 	return c.sendRaw(b)
 }
 
 // sendRaw writes the number of bytes of the message to the network then the
 // whole message b in slices of size maxChunkSize.
-// In case of an error it aborts and returns error.
-func (c *TCPConn) sendRaw(b []byte) error {
+// In case of an error it aborts.
+func (c *TCPConn) sendRaw(b []byte) (uint64, error) {
 	// First write the size
 	packetSize := Size(len(b))
 	if err := binary.Write(c.conn, globalOrder, packetSize); err != nil {
-		return err
+		return 0, err
 	}
 	// Then send everything through the connection
 	// Send chunk by chunk
@@ -167,14 +167,16 @@ func (c *TCPConn) sendRaw(b []byte) error {
 	for sent < packetSize {
 		n, err := c.conn.Write(b[sent:])
 		if err != nil {
-			c.updateTx(4 + uint64(sent))
-			return handleError(err)
+			sentLen := 4 + uint64(sent)
+			c.updateTx(sentLen)
+			return sentLen, handleError(err)
 		}
 		sent += Size(n)
 	}
 	// update stats on the connection. Plus 4 for the uint32 for the frame size.
-	c.updateTx(4 + uint64(sent))
-	return nil
+	sentLen := 4 + uint64(sent)
+	c.updateTx(sentLen)
+	return sentLen, nil
 }
 
 // Remote returns the name of the peer at the end point of

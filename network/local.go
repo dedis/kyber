@@ -270,13 +270,14 @@ func (lc *LocalConn) start(wg *sync.WaitGroup) {
 // Send takes a context (that is not used in any way) and a message that
 // will be sent to the remote endpoint.
 // If there is an error in the connection, it will be returned.
-func (lc *LocalConn) Send(msg Message) error {
+func (lc *LocalConn) Send(msg Message) (uint64, error) {
 	buff, err := Marshal(msg)
 	if err != nil {
-		return err
+		return 0, err
 	}
-	lc.updateTx(uint64(len(buff)))
-	return lc.manager.send(lc.remote, buff)
+	sentLen := uint64(len(buff))
+	lc.updateTx(sentLen)
+	return sentLen, lc.manager.send(lc.remote, buff)
 }
 
 // Receive takes a context (that is not used) and waits for a packet to

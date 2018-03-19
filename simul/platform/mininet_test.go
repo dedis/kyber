@@ -20,45 +20,56 @@ import (
 
 func TestMiniNet_getHostList(t *testing.T) {
 	testVector := []struct {
-		Servers    int
-		Hosts      int
-		HostsSlice []string
-		List       string
+		ServersInFile int // In 'server_list' file
+		Servers       int
+		Hosts         int
+		HostsSlice    []string
+		List          string
 	}{
-		{1, 1,
+		{1, 1, 1,
 			[]string{"10.1.0.2"},
 			"cosi 0 0\n0 false false\n\nlocal1 10.1.0.0/16 1\n"},
-		{1, 2,
+		{3, 1, 1,
+			[]string{"10.1.0.2"},
+			"cosi 0 0\n0 false false\n\nlocal1 10.1.0.0/16 1\n"},
+		{1, 1, 2,
 			[]string{"10.1.0.2", "10.1.0.3"},
 			"cosi 0 0\n0 false false\n\nlocal1 10.1.0.0/16 2\n"},
-		{2, 1,
+		{2, 2, 1,
 			[]string{"10.1.0.2"},
 			"cosi 0 0\n0 false false\n\nlocal1 10.1.0.0/16 1\n"},
-		{2, 2,
+		{3, 2, 1,
+			[]string{"10.1.0.2"},
+			"cosi 0 0\n0 false false\n\nlocal1 10.1.0.0/16 1\n"},
+		{2, 2, 2,
 			[]string{"10.1.0.2", "10.2.0.2"},
 			"cosi 0 0\n0 false false\n\nlocal1 10.1.0.0/16 1\nlocal2 10.2.0.0/16 1\n"},
-		{2, 3,
+		{2, 2, 3,
 			[]string{"10.1.0.2", "10.2.0.2", "10.1.0.3"},
 			"cosi 0 0\n0 false false\n\nlocal1 10.1.0.0/16 2\nlocal2 10.2.0.0/16 1\n"},
-		{3, 1,
+		{3, 3, 1,
 			[]string{"10.1.0.2"},
 			"cosi 0 0\n0 false false\n\nlocal1 10.1.0.0/16 1\n"},
-		{3, 4,
+		{3, 3, 4,
+			[]string{"10.1.0.2", "10.2.0.2", "10.3.0.2",
+				"10.1.0.3"},
+			"cosi 0 0\n0 false false\n\nlocal1 10.1.0.0/16 2\nlocal2 10.2.0.0/16 1\nlocal3 10.3.0.0/16 1\n"},
+		{4, 3, 4,
 			[]string{"10.1.0.2", "10.2.0.2", "10.3.0.2",
 				"10.1.0.3"},
 			"cosi 0 0\n0 false false\n\nlocal1 10.1.0.0/16 2\nlocal2 10.2.0.0/16 1\nlocal3 10.3.0.0/16 1\n"},
 	}
 	for _, tv := range testVector {
 		mn := &MiniNet{Simulation: "cosi"}
-		for i := 1; i <= tv.Servers; i++ {
+		for i := 1; i <= tv.ServersInFile; i++ {
 			mn.HostIPs = append(mn.HostIPs, fmt.Sprintf("local%d", i))
 		}
 
 		rc := makeRunConfig(tv.Servers, tv.Hosts)
 		h, l, err := mn.getHostList(rc)
 		log.ErrFatal(err)
-		errStr := fmt.Sprintf("Servers: %d - Hosts: %d",
-			tv.Servers, tv.Hosts)
+		errStr := fmt.Sprintf("ServersInFile: %d - Servers: %d - Hosts: %d",
+			tv.ServersInFile, tv.Servers, tv.Hosts)
 		assert.Equal(t, tv.HostsSlice, h, errStr)
 		assert.Equal(t, tv.List, l, errStr)
 	}

@@ -109,7 +109,7 @@ func TestTCPsendRaw(t *testing.T) {
 		tcp := &TCPConn{
 			conn: test.conn,
 		}
-		err := tcp.sendRaw(test.msg)
+		_, err := tcp.sendRaw(test.msg)
 		if test.errExpected {
 			if err == nil {
 				t.Error("Should have had an error here")
@@ -176,7 +176,7 @@ func TestTCPConnReceiveRaw(t *testing.T) {
 		check <- true
 	}
 
-	fn_bad := func(c net.Conn) {
+	fnBad := func(c net.Conn) {
 		// send the size first
 		binary.Write(c, globalOrder, Size(MaxPacketSize+1))
 	}
@@ -212,7 +212,7 @@ func TestTCPConnReceiveRaw(t *testing.T) {
 	// wait until it is closed
 	<-done
 
-	go listen(fn_bad)
+	go listen(fnBad)
 
 	listeningAddr = <-addr
 	c, err = NewTCPConn(NewAddress(PlainTCP, listeningAddr), tSuite)
@@ -295,7 +295,9 @@ func TestTCPConnTimeout(t *testing.T) {
 	c, err := NewTCPConn(addr, tSuite)
 	require.Nil(t, err, "Could not open connection")
 	// Test bandwitdth measurements also
-	require.Nil(t, c.Send(&SimpleMessage{3}))
+	sentLen, err := c.Send(&SimpleMessage{3})
+	require.Nil(t, err)
+	require.NotZero(t, sentLen)
 	select {
 	case received := <-connStat:
 		assert.Nil(t, received)
@@ -342,13 +344,15 @@ func TestTCPConnWithListener(t *testing.T) {
 	// Test bandwitdth measurements also
 	rx1 := <-connStat
 	tx1 := c.Tx()
-	require.Nil(t, c.Send(&SimpleMessage{3}))
+	sentLen, err := c.Send(&SimpleMessage{3})
+	require.Nil(t, err)
 	tx2 := c.Tx()
 	rx2 := <-connStat
 
 	if (tx2 - tx1) != (rx2 - rx1) {
 		t.Errorf("Connections did see same bytes? %d tx vs %d rx", (tx2 - tx1), (rx2 - rx1))
 	}
+	require.Equal(t, tx2-tx1, sentLen)
 
 	require.Nil(t, ln.Stop(), "Error stopping listener")
 	select {
@@ -481,7 +485,7 @@ func TestHandleError(t *testing.T) {
 	require.Equal(t, ErrCanceled, handleError(errors.New("canceled")))
 	require.Equal(t, ErrEOF, handleError(errors.New("EOF")))
 
-	require.Equal(t, ErrUnknown, handleError(errors.New("Random error!")))
+	require.Equal(t, ErrUnknown, handleError(errors.New("random error")))
 
 	de := dummyErr{true, true}
 	de.temporary = false
@@ -562,10 +566,14 @@ func sendrcvProc(from, to *Router) error {
 	sp := newSimpleProcessor()
 	// new processing
 	to.RegisterProcessor(sp, statusMsgID)
-	if err := from.Send(to.ServerIdentity, &statusMessage{true, 10}); err != nil {
+	sentLen, err := from.Send(to.ServerIdentity, &statusMessage{true, 10})
+	if err != nil {
 		return err
 	}
-	var err error
+	if sentLen == 0 {
+		return errors.New("sentLen is zero")
+	}
+
 	select {
 	case <-sp.relay:
 		err = nil

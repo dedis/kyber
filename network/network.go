@@ -5,7 +5,8 @@ type Conn interface {
 	// Send a message through the connection.
 	// obj should be a POINTER to the actual struct to send, or an interface.
 	// It should not be a Golang type.
-	Send(Message) error
+	// Returns the number of bytes sent and an error if any.
+	Send(Message) (uint64, error)
 	// Receive any message through the connection. It is a blocking call that
 	// returns either when a message arrived or when Close() has been called, or
 	// when a network error occurred.

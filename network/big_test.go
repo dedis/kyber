@@ -78,9 +78,12 @@ func TestTCPHugeConnections(t *testing.T) {
 
 				go func(h int) {
 					log.Lvl3(h, "Sending back")
-					err := c.Send(&big)
+					sentLen, err := c.Send(&big)
 					if err != nil {
 						t.Fatal(h, "couldn't send message:", err)
+					}
+					if sentLen == 0 {
+						t.Fatal("sentLen is zero")
 					}
 				}(h)
 				log.Lvl3(h, "done sending messages")
@@ -111,8 +114,12 @@ func TestTCPHugeConnections(t *testing.T) {
 			go func(conn Conn, i, j int) {
 				defer wg.Done()
 				log.Lvl3("Sending from", i, "to", j, ":")
-				if err := conn.Send(&big); err != nil {
+				sentLen, err := conn.Send(&big)
+				if err != nil {
 					t.Fatal(i, j, "Couldn't send:", err)
+				}
+				if sentLen == 0 {
+					t.Fatal("sentLen is zero")
 				}
 				nm, err := conn.Receive()
 				if err != nil {

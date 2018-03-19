@@ -1,6 +1,7 @@
 package onet
 
 import (
+	"sync"
 	"testing"
 	"time"
 
@@ -50,15 +51,18 @@ type configProcessor struct {
 	configCount int
 	expected    int
 	done        chan<- bool
+	sync.Mutex
 }
 
 func (p *configProcessor) Process(env *network.Envelope) {
+	p.Lock()
 	if env.MsgType == ConfigMsgID {
 		p.configCount++
 		if p.configCount == p.expected {
 			p.done <- true
 		}
 	}
+	p.Unlock()
 }
 
 func TestConfigPropagation(t *testing.T) {
@@ -85,11 +89,16 @@ func TestConfigPropagation(t *testing.T) {
 
 	network.RegisterMessage(dummyMsg{})
 	rootInstance, _ := local.NewTreeNodeInstance(tree.Root, spawnName)
+	require.Zero(t, rootInstance.Tx())
+	require.Zero(t, rootInstance.Rx())
+
 	err = rootInstance.SetConfig(&GenericConfig{serviceConfig})
 	assert.Nil(t, err)
 	err = rootInstance.SetConfig(&GenericConfig{serviceConfig})
 	assert.NotNil(t, err)
+
 	err = rootInstance.SendToChildren(&dummyMsg{})
+	assert.NotZero(t, rootInstance.Tx())
 	log.ErrFatal(err)
 	// wait until the processor has processed the expected number of config messages
 	select {
@@ -97,7 +106,6 @@ func TestConfigPropagation(t *testing.T) {
 	case <-time.After(time.Second):
 		t.Fatal("Didn't receive response in time")
 	}
-
 }
 
 func TestTreeNodeInstance_RegisterChannel(t *testing.T) {

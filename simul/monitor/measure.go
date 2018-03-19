@@ -28,8 +28,8 @@ var global struct {
 // Usage:
 // 		measure := monitor.SingleMeasure("bandwidth")
 // or
-//		 measure := monitor.NewTimeMeasure("round")
-// 		 measure.Record()
+//		measure := monitor.NewTimeMeasure("round")
+// 		measure.Record()
 type Measure interface {
 	// Record must be called when you want to send the value
 	// over the monitor listening.

@@ -1,5 +1,0 @@
-SRC="$1"
-DST="$2"
-
-# Adjust paths in libtest.sh - this will not be done by goimports.
-perl -pi -e "s:github.com/dedis/onet:gopkg.in/dedis/onet.v1:" $DST/app/libtest.sh

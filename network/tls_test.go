@@ -83,8 +83,9 @@ func TestTLS(t *testing.T) {
 	}()
 
 	// now send a message from r2 to r1
-	err = r2.Send(r1.ServerIdentity, aHello)
+	sentLen, err := r2.Send(r1.ServerIdentity, aHello)
 	require.Nil(t, err, "Could not router.Send")
+	require.NotZero(t, sentLen)
 
 	<-rcv
 }
@@ -135,7 +136,7 @@ func benchmarkMsg(b *testing.B, r1, r2 *Router) {
 
 	// Send one message from r2 to r1.
 	for i := 0; i < b.N; i++ {
-		err := r2.Send(r1.ServerIdentity, aHello)
+		_, err := r2.Send(r1.ServerIdentity, aHello)
 		if err != nil {
 			b.Log("Could not router.Send")
 		}

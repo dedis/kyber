@@ -118,7 +118,9 @@ func (p *ServiceProcessor) ProcessClientRequest(req *http.Request, path string, 
 	mh, ok := p.handlers[path]
 	reply, err := func() (interface{}, error) {
 		if !ok {
-			return nil, errors.New("Path not found")
+			err := errors.New("The requested message hasn't been registered: " + path)
+			log.Error(err)
+			return nil, err
 		}
 		msg := reflect.New(mh.msgType).Interface()
 		err := protobuf.DecodeWithConstructors(buf, msg,

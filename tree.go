@@ -1,6 +1,8 @@
 package onet
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 
@@ -65,7 +67,24 @@ func (tId TreeID) IsNil() bool {
 // NewTree creates a new tree using the given roster and root. It
 // also generates the id.
 func NewTree(roster *Roster, root *TreeNode) *Tree {
-	url := network.NamespaceURL + "tree/" + roster.ID.String() + root.ID.String()
+	// walk the tree with DFS to build a unique hash
+	h := sha256.New()
+	root.Visit(0, func(d int, tn *TreeNode) {
+		_, err := tn.ServerIdentity.Public.MarshalTo(h)
+		if err != nil {
+			log.Error(err)
+		}
+		if tn.IsLeaf() {
+			// to prevent generating the same hash for tree with
+			// the same nodes but with a different structure
+			_, err = h.Write([]byte{1})
+			if err != nil {
+				log.Error(err)
+			}
+		}
+	})
+
+	url := network.NamespaceURL + "tree/" + roster.ID.String() + hex.EncodeToString(h.Sum(nil))
 	t := &Tree{
 		Roster: roster,
 		Root:   root,
@@ -382,9 +401,18 @@ func NewRoster(ids []*network.ServerIdentity) *Roster {
 		return nil
 	}
 
-	r := &Roster{
-		ID: RosterID(uuid.NewV4()),
+	h := sha256.New()
+	for _, id := range ids {
+		_, err := id.Public.MarshalTo(h)
+		if err != nil {
+			log.Error(err)
+		}
 	}
+
+	r := &Roster{
+		ID: RosterID(uuid.NewV5(uuid.NamespaceURL, hex.EncodeToString(h.Sum(nil)))),
+	}
+
 	// Take a copy of ids, in case the caller tries to change it later.
 	r.List = append(r.List, ids...)
 
@@ -515,13 +543,12 @@ func (ro *Roster) GenerateBigNaryTree(N, nodes int) *Tree {
 func (ro *Roster) NewRosterWithRoot(root *network.ServerIdentity) *Roster {
 	list := make([]*network.ServerIdentity, len(ro.List))
 	copy(list, ro.List)
-	roster := NewRoster(list)
-	rootIndex, _ := roster.Search(root.ID)
+	rootIndex, _ := ro.Search(root.ID)
 	if rootIndex < 0 {
 		return nil
 	}
-	roster.List[0], roster.List[rootIndex] = roster.List[rootIndex], roster.List[0]
-	return roster
+	list[0], list[rootIndex] = list[rootIndex], list[0]
+	return NewRoster(list)
 }
 
 // GenerateNaryTreeWithRoot creates a tree where each node has N children.
@@ -687,7 +714,7 @@ func NewTreeNode(entityIdx int, ni *network.ServerIdentity) *TreeNode {
 		RosterIndex:    entityIdx,
 		Parent:         nil,
 		Children:       make([]*TreeNode, 0),
-		ID:             TreeNodeID(uuid.NewV4()),
+		ID:             TreeNodeID(uuid.NewV5(uuid.NamespaceURL, ni.Public.String())),
 	}
 	return tn
 }

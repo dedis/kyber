@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/dedis/onet.v2/log"
 )
@@ -101,11 +100,14 @@ func TestRouterErrorHandling(t *testing.T) {
 	h2.RegisterProcessor(proc, SimpleMessageType)
 
 	msgSimple := &SimpleMessage{3}
-	err := h1.Send(h2.ServerIdentity, msgSimple)
+	sentLen, err := h1.Send(h2.ServerIdentity, msgSimple)
 	require.Nil(t, err)
+	require.NotZero(t, sentLen)
 	decoded := <-proc.relay
-	assert.Equal(t, 3, decoded.I)
-	assert.Nil(t, h2.Send(h1.ServerIdentity, msgSimple))
+	require.Equal(t, 3, decoded.I)
+	sentLen, err = h2.Send(h1.ServerIdentity, msgSimple)
+	require.Nil(t, err)
+	require.NotZero(t, sentLen)
 	decoded = <-proc.relay
 
 	//stop node 2
@@ -130,7 +132,9 @@ func testRouterRemoveConnection(t *testing.T) {
 	go r1.Start()
 	go r2.Start()
 
-	require.NotNil(t, r1.Send(r2.ServerIdentity, nil))
+	sentLen, err := r1.Send(r2.ServerIdentity, nil)
+	require.NotNil(t, err)
+	require.Zero(t, sentLen)
 
 	r1.Lock()
 	require.Equal(t, 1, len(r1.connections[r2.ServerIdentity.ID]))
@@ -156,16 +160,15 @@ func testRouterAutoConnection(t *testing.T, fac routerFactory) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = h1.Send(&ServerIdentity{Address: NewLocalAddress("127.1.2.3:2890")}, &SimpleMessage{12})
-	if err == nil {
-		t.Fatal("Should not be able to send")
-	}
+	_, err = h1.Send(&ServerIdentity{Address: NewLocalAddress("127.1.2.3:2890")}, &SimpleMessage{12})
+	require.NotNil(t, err, "Should not be able to send")
+
 	h2, err := fac(2008)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = h1.Send(h2.ServerIdentity, nil)
+	_, err = h1.Send(h2.ServerIdentity, nil)
 	require.NotNil(t, err)
 
 	go h2.Start()
@@ -174,8 +177,8 @@ func testRouterAutoConnection(t *testing.T, fac routerFactory) {
 	}
 
 	clean := func() {
-		assert.Nil(t, h1.Stop())
-		assert.Nil(t, h2.Stop())
+		require.Nil(t, h1.Stop())
+		require.Nil(t, h2.Stop())
 	}
 	defer clean()
 
@@ -183,8 +186,9 @@ func testRouterAutoConnection(t *testing.T, fac routerFactory) {
 	h2.RegisterProcessor(proc, SimpleMessageType)
 	h1.RegisterProcessor(proc, SimpleMessageType)
 
-	err = h1.Send(h2.ServerIdentity, &SimpleMessage{12})
+	sentLen, err := h1.Send(h2.ServerIdentity, &SimpleMessage{12})
 	require.Nil(t, err)
+	require.NotZero(t, sentLen)
 
 	// Receive the message
 	msg := <-proc.relay
@@ -194,19 +198,20 @@ func testRouterAutoConnection(t *testing.T, fac routerFactory) {
 
 	h12 := h1.connection(h2.ServerIdentity.ID)
 	h21 := h2.connection(h1.ServerIdentity.ID)
-	assert.NotNil(t, h12)
+	require.NotNil(t, h12)
 	require.NotNil(t, h21)
-	assert.Nil(t, h21.Close())
+	require.Nil(t, h21.Close())
 	time.Sleep(100 * time.Millisecond)
 
-	err = h1.Send(h2.ServerIdentity, &SimpleMessage{12})
+	sentLen, err = h1.Send(h2.ServerIdentity, &SimpleMessage{12})
 	require.Nil(t, err)
+	require.NotZero(t, sentLen)
 	<-proc.relay
 
 	if err := h2.Stop(); err != nil {
 		t.Fatal("Should be able to stop h2")
 	}
-	err = h1.Send(h2.ServerIdentity, &SimpleMessage{12})
+	_, err = h1.Send(h2.ServerIdentity, &SimpleMessage{12})
 	if err == nil {
 		// This should not happen, but it can due to a race in
 		// the kernel between closing and writing to the
@@ -240,17 +245,22 @@ func TestRouterMessaging(t *testing.T) {
 	h2.RegisterProcessor(proc, SimpleMessageType)
 
 	msgSimple := &SimpleMessage{3}
-	err := h1.Send(h2.ServerIdentity, msgSimple)
+	sentLen, err := h1.Send(h2.ServerIdentity, msgSimple)
 	require.Nil(t, err)
+	require.NotZero(t, sentLen)
+
 	decoded := <-proc.relay
-	assert.Equal(t, 3, decoded.I)
+	require.Equal(t, 3, decoded.I)
 
 	// make sure the connection is registered in host1 (because it's launched in
 	// a go routine). Since we try to avoid random timeout, let's send a msg
 	// from host2 -> host1.
-	assert.Nil(t, h2.Send(h1.ServerIdentity, msgSimple))
+	sentLen, err = h2.Send(h1.ServerIdentity, msgSimple)
+	require.Nil(t, err)
+	require.NotZero(t, sentLen)
+
 	decoded = <-proc.relay
-	assert.Equal(t, 3, decoded.I)
+	require.Equal(t, 3, decoded.I)
 
 	written := h1.Tx()
 	read := h2.Rx()
@@ -305,7 +315,7 @@ func (p *nSquareProc) Process(env *Envelope) {
 	}
 
 	p.firstRound[remote] = true
-	if err := p.r.Send(env.ServerIdentity, &SimpleMessage{3}); err != nil {
+	if _, err := p.r.Send(env.ServerIdentity, &SimpleMessage{3}); err != nil {
 		p.t.Fatal("Could not send to first round dest.")
 	}
 
@@ -348,7 +358,7 @@ func testRouterLotsOfConn(t *testing.T, fac routerFactory, nbrRouter int) {
 					continue
 				}
 				// send to everyone else
-				if err := r.Send(routers[k].ServerIdentity, &SimpleMessage{3}); err != nil {
+				if _, err := r.Send(routers[k].ServerIdentity, &SimpleMessage{3}); err != nil {
 					t.Fatal(err)
 				}
 			}
@@ -395,17 +405,17 @@ func testRouterSendMsgDuplex(t *testing.T, fac routerFactory) {
 	h2.RegisterProcessor(proc, SimpleMessageType)
 
 	msgSimple := &SimpleMessage{5}
-	err := h1.Send(h2.ServerIdentity, msgSimple)
-	if err != nil {
-		t.Fatal("Couldn't send message from h1 to h2", err)
-	}
+	sentLen, err := h1.Send(h2.ServerIdentity, msgSimple)
+	require.Nil(t, err, "Couldn't send message from h1 to h2")
+	require.NotZero(t, sentLen)
+
 	msg := <-proc.relay
 	log.Lvl2("Received msg h1 -> h2", msg)
 
-	err = h2.Send(h1.ServerIdentity, msgSimple)
-	if err != nil {
-		t.Fatal("Couldn't send message from h2 to h1", err)
-	}
+	sentLen, err = h2.Send(h1.ServerIdentity, msgSimple)
+	require.Nil(t, err, "Couldn't send message from h2 to h1")
+	require.NotZero(t, sentLen)
+
 	msg = <-proc.relay
 	log.Lvl2("Received msg h2 -> h1", msg)
 }
@@ -431,14 +441,15 @@ func TestRouterExchange(t *testing.T) {
 	if err != nil {
 		t.Fatal("Couldn't connect to host1:", err)
 	}
-	if err := c.Send(router2.ServerIdentity); err != nil {
-		t.Fatal("Wrong negotiation")
-	}
+	sentLen, err := c.Send(router2.ServerIdentity)
+	require.Nil(t, err, "Wrong negotiation")
+	require.NotZero(t, sentLen)
+
 	// triggers the dispatching conditional branch error router.go:
 	//  `log.Lvl3("Error dispatching:", err)`
-	if err := router2.Send(router1.ServerIdentity, &SimpleMessage{12}); err != nil {
-		t.Fatal("Could not send")
-	}
+	sentLen, err = router2.Send(router1.ServerIdentity, &SimpleMessage{12})
+	require.Nil(t, err, "Could not send")
+	require.NotZero(t, sentLen)
 	c.Close()
 
 	// try messing with the connections here
@@ -448,9 +459,8 @@ func TestRouterExchange(t *testing.T) {
 	}
 	// closing before sending
 	c.Close()
-	if err := c.Send(router2.ServerIdentity); err == nil {
-		t.Fatal("negotiation should have aborted")
-	}
+	_, err = c.Send(router2.ServerIdentity)
+	require.NotNil(t, err, "negotiation should have aborted")
 
 	// stop everything
 	log.Lvl4("Closing connections")
@@ -474,14 +484,16 @@ func TestRouterRxTx(t *testing.T) {
 	addr := NewAddress(router1.address.ConnType(), "127.0.0.1:"+router1.address.Port())
 	si1 := NewServerIdentity(Suite.Point(tSuite).Null(), addr)
 
-	log.ErrFatal(router2.Send(si1, si1))
+	sentLen, err := router2.Send(si1, si1)
+	require.Nil(t, err)
+	require.NotZero(t, sentLen)
 
 	// Wait for the message to be sent and received
 	waitTimeout(time.Second, 10, func() bool {
 		return router1.Rx() > 0 && router1.Rx() == router2.Tx()
 	})
 	rx := router1.Rx()
-	assert.Equal(t, 1, len(router1.connections))
+	require.Equal(t, 1, len(router1.connections))
 	router1.Lock()
 	var si2 ServerIdentityID
 	for si2 = range router1.connections {
@@ -494,7 +506,7 @@ func TestRouterRxTx(t *testing.T) {
 		defer router1.Unlock()
 		return len(router1.connections[si2]) == 0
 	})
-	assert.Equal(t, rx, router1.Rx())
+	require.Equal(t, rx, router1.Rx())
 	defer router1.Stop()
 }
 

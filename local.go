@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"strconv"
+	"testing"
 	"time"
 
 	"gopkg.in/dedis/kyber.v2"
@@ -33,9 +34,10 @@ type LocalTest struct {
 	ctx   *network.LocalManager
 	Suite network.Suite
 	path  string
-	// Once closed is set, do not allow further operation on it,
+	// Once closed is set, do not allow further operations on it,
 	// since now the temp directory is gone.
 	closed bool
+	T      *testing.T
 }
 
 const (
@@ -171,7 +173,7 @@ func (l *LocalTest) panicClosed() {
 	}
 }
 
-// CloseAll takes a list of servers that will be closed
+// CloseAll closes all the servers.
 func (l *LocalTest) CloseAll() {
 	log.Lvl3("Stopping all")
 	// If the debug-level is 0, we copy all errors to a buffer that
@@ -179,6 +181,20 @@ func (l *LocalTest) CloseAll() {
 	if log.DebugVisible() == 0 {
 		log.OutputToBuf()
 	}
+
+	if l.T != nil {
+		ct := 0
+		for _, o := range l.Overlays {
+			for _, pi := range o.protocolInstances {
+				l.T.Logf("Lingering protocol instance: %T", pi)
+				ct++
+			}
+		}
+		if ct > 0 {
+			l.T.Fatal("Protocols lingering.")
+		}
+	}
+
 	l.ctx.Stop()
 	for _, server := range l.Servers {
 		log.Lvl3("Closing server", server.ServerIdentity.Address)

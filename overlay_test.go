@@ -188,11 +188,11 @@ func TestOverlayRosterPropagation(t *testing.T) {
 	h1.RegisterProcessor(proc, proc.Types()...)
 
 	// Check that h2 sends back an empty list if it is unknown
-	err := h1.Send(h2.ServerIdentity, &RequestRoster{
+	sentLen, err := h1.Send(h2.ServerIdentity, &RequestRoster{
 		RosterID: el.ID})
-	if err != nil {
-		t.Fatal("Couldn't send message to h2:", err)
-	}
+	require.Nil(t, err, "Couldn't send message to h1")
+	require.NotZero(t, sentLen)
+
 	roster := <-proc.sendRoster
 	if !roster.ID.IsNil() {
 		t.Fatal("List should be empty")
@@ -200,19 +200,19 @@ func TestOverlayRosterPropagation(t *testing.T) {
 
 	// Now add the list to h2 and try again
 	h2.AddRoster(el)
-	err = h1.Send(h2.ServerIdentity, &RequestRoster{RosterID: el.ID})
-	if err != nil {
-		t.Fatal("Couldn't send message to h2:", err)
-	}
+	sentLen, err = h1.Send(h2.ServerIdentity, &RequestRoster{RosterID: el.ID})
+	require.Nil(t, err, "Couldn't send message to h2")
+	require.NotZero(t, sentLen)
+
 	msg := <-proc.sendRoster
 	if !msg.ID.Equal(el.ID) {
 		t.Fatal("List should be equal to original list")
 	}
 
-	err = h1.Send(h2.ServerIdentity, &RequestRoster{RosterID: el.ID})
-	if err != nil {
-		t.Fatal("Couldn't send message to h2:", err)
-	}
+	sentLen, err = h1.Send(h2.ServerIdentity, &RequestRoster{RosterID: el.ID})
+	require.Nil(t, err, "Couldn't send message to h2")
+	require.NotZero(t, sentLen)
+
 	// check if we receive the Roster then
 	ros := <-proc.sendRoster
 	packet := network.Envelope{
@@ -242,10 +242,10 @@ func TestOverlayTreePropagation(t *testing.T) {
 	//h2.RegisterProcessor(proc, proc.Types()...)
 
 	// Check that h2 sends back an empty tree if it is unknown
-	err := h1.Send(h2.ServerIdentity, &RequestTree{TreeID: tree.ID})
-	if err != nil {
-		t.Fatal("Couldn't send message to h2:", err)
-	}
+	sentLen, err := h1.Send(h2.ServerIdentity, &RequestTree{TreeID: tree.ID})
+	require.Nil(t, err, "Couldn't send message to h2")
+	require.NotZero(t, sentLen)
+
 	msg := <-proc.treeMarshal
 	if !msg.RosterID.IsNil() {
 		t.Fatal("List should be empty")
@@ -253,14 +253,17 @@ func TestOverlayTreePropagation(t *testing.T) {
 
 	// Now add the list to h2 and try again
 	h2.AddTree(tree)
-	err = h1.Send(h2.ServerIdentity, &RequestTree{TreeID: tree.ID})
+	sentLen, err = h1.Send(h2.ServerIdentity, &RequestTree{TreeID: tree.ID})
 	require.Nil(t, err)
+	require.NotZero(t, sentLen)
 
 	msg = <-proc.treeMarshal
 	assert.Equal(t, msg.TreeID, tree.ID)
 
-	err = h1.Send(h2.ServerIdentity, &RequestTree{TreeID: tree.ID})
+	sentLen, err = h1.Send(h2.ServerIdentity, &RequestTree{TreeID: tree.ID})
 	require.Nil(t, err)
+	require.NotZero(t, sentLen)
+
 	// check if we receive the tree then
 	var tm *TreeMarshal
 	tm = <-proc.treeMarshal
@@ -297,9 +300,9 @@ func TestOverlayRosterTreePropagation(t *testing.T) {
 	// and the tree
 	h2.AddTree(tree)
 	// make the communcation happen
-	if err := h1.Send(h2.ServerIdentity, &RequestTree{TreeID: tree.ID}); err != nil {
-		t.Fatal("Could not send tree request to host2", err)
-	}
+	sentLen, err := h1.Send(h2.ServerIdentity, &RequestTree{TreeID: tree.ID})
+	require.Nil(t, err, "Could not send tree request to host2")
+	require.NotZero(t, sentLen)
 
 	proc := newOverlayProc()
 	h1.RegisterProcessor(proc, SendRosterMsgID)
