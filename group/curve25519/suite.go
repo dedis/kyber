@@ -17,32 +17,32 @@ import (
 	"github.com/dedis/kyber/xof/blake2xb"
 )
 
-type SuiteEd25519 struct {
+type SuiteCurve25519 struct {
 	ProjectiveCurve
 }
 
 // SHA256 hash function
-func (s *SuiteEd25519) Hash() hash.Hash {
+func (s *SuiteCurve25519) Hash() hash.Hash {
 	return sha256.New()
 }
 
-func (s *SuiteEd25519) XOF(seed []byte) kyber.XOF {
+func (s *SuiteCurve25519) XOF(seed []byte) kyber.XOF {
 	return blake2xb.New(seed)
 }
 
-func (s *SuiteEd25519) Read(r io.Reader, objs ...interface{}) error {
+func (s *SuiteCurve25519) Read(r io.Reader, objs ...interface{}) error {
 	return fixbuf.Read(r, s, objs)
 }
 
-func (s *SuiteEd25519) Write(w io.Writer, objs ...interface{}) error {
+func (s *SuiteCurve25519) Write(w io.Writer, objs ...interface{}) error {
 	return fixbuf.Write(w, objs)
 }
 
-func (s *SuiteEd25519) New(t reflect.Type) interface{} {
+func (s *SuiteCurve25519) New(t reflect.Type) interface{} {
 	return marshalling.GroupNew(s, t)
 }
 
-func (s *SuiteEd25519) RandomStream() cipher.Stream {
+func (s *SuiteCurve25519) RandomStream() cipher.Stream {
 	return random.New()
 }
 
@@ -54,8 +54,8 @@ func (s *SuiteEd25519) RandomStream() cipher.Stream {
 // The scalars created by this group implement kyber.Scalar's SetBytes
 // method, interpreting the bytes as a big-endian integer, so as to be
 // compatible with the Go standard library's big.Int type.
-func NewBlakeSHA256Curve25519(fullGroup bool) *SuiteEd25519 {
-	suite := new(SuiteEd25519)
+func NewBlakeSHA256Curve25519(fullGroup bool) *SuiteCurve25519 {
+	suite := new(SuiteCurve25519)
 	suite.Init(Param25519(), fullGroup)
 	return suite
 }
