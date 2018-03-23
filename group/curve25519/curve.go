@@ -4,12 +4,14 @@ package curve25519
 
 import (
 	"crypto/cipher"
+	"crypto/sha512"
 	"errors"
 	"fmt"
 	"math/big"
 
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/group/mod"
+	"github.com/dedis/kyber/util/random"
 )
 
 var zero = big.NewInt(0)
@@ -75,6 +77,20 @@ func (c *curve) Scalar() kyber.Scalar {
 // and only the sign bit of the x-coordinate.
 func (c *curve) PointLen() int {
 	return (c.P.BitLen() + 7 + 1) / 8
+}
+
+// NewKey returns a formatted curve25519 key (avoiding subgroup attack by requiring
+// it to be a multiple of 8). NewKey implements the kyber/util/key.Generator interface.
+func (c *curve) NewKey(stream cipher.Stream) kyber.Scalar {
+	var buffer [32]byte
+	random.Bytes(buffer[:], stream)
+	scalar := sha512.Sum512(buffer[:])
+	scalar[0] &= 248
+	scalar[31] &= 127
+	scalar[31] |= 64
+
+	secret := c.Scalar().SetBytes(scalar[:32])
+	return secret
 }
 
 // Initialize a twisted Edwards curve with given parameters.
