@@ -29,15 +29,6 @@ type Marshaling interface {
 	UnmarshalFrom(r io.Reader) (int, error)
 }
 
-// Describing is an interface that provides self describing functionalities
-// For now it is mostly useful to help for auto marshalling of points and
-// scalar. Later on, a Group could also implement that interface to provide
-// information such as if it is a prime order group, which is the cofactor, etc.
-type Describing interface {
-	// Returns the group the interface is using
-	Group() Group
-}
-
 /*
 Hiding is an alternative encoding interface to encode cryptographic objects
 such that their representation appears indistinguishable from a
