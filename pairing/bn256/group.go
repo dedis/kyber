@@ -16,11 +16,18 @@ func (g *groupG1) String() string {
 }
 
 func (g *groupG1) PointLen() int {
-	return newPointG1().MarshalSize()
+	return newPointG1(g).MarshalSize()
+}
+
+func (g *groupG1) Scalar() kyber.Scalar {
+	return &scalarDescribing{
+		Scalar: g.common.Scalar(),
+		group:  g,
+	}
 }
 
 func (g *groupG1) Point() kyber.Point {
-	return newPointG1()
+	return newPointG1(g)
 }
 
 type groupG2 struct {
@@ -32,11 +39,18 @@ func (g *groupG2) String() string {
 }
 
 func (g *groupG2) PointLen() int {
-	return newPointG2().MarshalSize()
+	return newPointG2(g).MarshalSize()
 }
 
 func (g *groupG2) Point() kyber.Point {
-	return newPointG2()
+	return newPointG2(g)
+}
+
+func (g *groupG2) Scalar() kyber.Scalar {
+	return &scalarDescribing{
+		Scalar: g.common.Scalar(),
+		group:  g,
+	}
 }
 
 type groupGT struct {
@@ -48,11 +62,18 @@ func (g *groupGT) String() string {
 }
 
 func (g *groupGT) PointLen() int {
-	return newPointGT().MarshalSize()
+	return newPointGT(g).MarshalSize()
 }
 
 func (g *groupGT) Point() kyber.Point {
-	return newPointGT()
+	return newPointGT(g)
+}
+
+func (g *groupGT) Scalar() kyber.Scalar {
+	return &scalarDescribing{
+		Scalar: g.common.Scalar(),
+		group:  g,
+	}
 }
 
 // common functionalities across G1, G2, and GT
@@ -72,4 +93,13 @@ func (c *common) PrimeOrder() bool {
 
 func (c *common) NewKey(rand cipher.Stream) kyber.Scalar {
 	return mod.NewInt64(0, Order).Pick(rand)
+}
+
+type scalarDescribing struct {
+	kyber.Scalar
+	group kyber.Group
+}
+
+func (s *scalarDescribing) Group() kyber.Group {
+	return s.group
 }

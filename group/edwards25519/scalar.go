@@ -24,7 +24,12 @@ import (
 // The scalars are GF(2^252 + 27742317777372353535851937790883648493).
 
 type scalar struct {
-	v [32]byte
+	v     [32]byte
+	curve *Curve
+}
+
+func (s *scalar) Group() kyber.Group {
+	return s.curve
 }
 
 // Equality test for two Scalars derived from the same Group

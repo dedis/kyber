@@ -27,6 +27,11 @@ import (
 type point struct {
 	ge      extendedGroupElement
 	varTime bool
+	curve   *Curve
+}
+
+func (p *point) Group() kyber.Group {
+	return p.curve
 }
 
 func (P *point) String() string {

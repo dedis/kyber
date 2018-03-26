@@ -11,12 +11,17 @@ import (
 )
 
 type pointG1 struct {
-	g *curvePoint
+	g     *curvePoint
+	group kyber.Group
 }
 
-func newPointG1() *pointG1 {
-	p := &pointG1{g: &curvePoint{}}
+func newPointG1(group kyber.Group) *pointG1 {
+	p := &pointG1{g: &curvePoint{}, group: group}
 	return p
+}
+
+func (p *pointG1) Group() kyber.Group {
+	return p.group
 }
 
 func (p *pointG1) Equal(q kyber.Point) bool {
@@ -49,7 +54,7 @@ func (p *pointG1) Set(q kyber.Point) kyber.Point {
 }
 
 func (p *pointG1) Clone() kyber.Point {
-	q := newPointG1()
+	q := newPointG1(p.group)
 	buf, err := p.MarshalBinary()
 	if err != nil {
 		panic(err)
@@ -86,7 +91,7 @@ func (p *pointG1) Add(a, b kyber.Point) kyber.Point {
 }
 
 func (p *pointG1) Sub(a, b kyber.Point) kyber.Point {
-	q := newPointG1()
+	q := newPointG1(p.group)
 	return p.Add(a, q.Neg(b))
 }
 
@@ -98,7 +103,7 @@ func (p *pointG1) Neg(q kyber.Point) kyber.Point {
 
 func (p *pointG1) Mul(s kyber.Scalar, q kyber.Point) kyber.Point {
 	if q == nil {
-		q = newPointG1().Base()
+		q = newPointG1(p.group).Base()
 	}
 	t := s.(*mod.Int).V
 	r := q.(*pointG1).g
@@ -185,12 +190,17 @@ func (p *pointG1) String() string {
 }
 
 type pointG2 struct {
-	g *twistPoint
+	g     *twistPoint
+	group kyber.Group
 }
 
-func newPointG2() *pointG2 {
-	p := &pointG2{g: &twistPoint{}}
+func newPointG2(group kyber.Group) *pointG2 {
+	p := &pointG2{g: &twistPoint{}, group: group}
 	return p
+}
+
+func (p *pointG2) Group() kyber.Group {
+	return p.group
 }
 
 func (p *pointG2) Equal(q kyber.Point) bool {
@@ -223,7 +233,7 @@ func (p *pointG2) Set(q kyber.Point) kyber.Point {
 }
 
 func (p *pointG2) Clone() kyber.Point {
-	q := newPointG2()
+	q := newPointG2(p.group)
 	buf, err := p.MarshalBinary()
 	if err != nil {
 		panic(err)
@@ -254,7 +264,7 @@ func (p *pointG2) Add(a, b kyber.Point) kyber.Point {
 }
 
 func (p *pointG2) Sub(a, b kyber.Point) kyber.Point {
-	q := newPointG2()
+	q := newPointG2(p.group)
 	return p.Add(a, q.Neg(b))
 }
 
@@ -266,7 +276,7 @@ func (p *pointG2) Neg(q kyber.Point) kyber.Point {
 
 func (p *pointG2) Mul(s kyber.Scalar, q kyber.Point) kyber.Point {
 	if q == nil {
-		q = newPointG2().Base()
+		q = newPointG2(p.group).Base()
 	}
 	t := s.(*mod.Int).V
 	r := q.(*pointG2).g
@@ -372,12 +382,17 @@ func (p *pointG2) String() string {
 }
 
 type pointGT struct {
-	g *gfP12
+	g     *gfP12
+	group kyber.Group
 }
 
-func newPointGT() *pointGT {
-	p := &pointGT{g: &gfP12{}}
+func newPointGT(group kyber.Group) *pointGT {
+	p := &pointGT{g: &gfP12{}, group: group}
 	return p
+}
+
+func (p *pointGT) Group() kyber.Group {
+	return p.group
 }
 
 func (p *pointGT) Equal(q kyber.Point) bool {
@@ -410,7 +425,7 @@ func (p *pointGT) Set(q kyber.Point) kyber.Point {
 }
 
 func (p *pointGT) Clone() kyber.Point {
-	q := newPointGT()
+	q := newPointGT(p.group)
 	buf, err := p.MarshalBinary()
 	if err != nil {
 		panic(err)
@@ -441,7 +456,7 @@ func (p *pointGT) Add(a, b kyber.Point) kyber.Point {
 }
 
 func (p *pointGT) Sub(a, b kyber.Point) kyber.Point {
-	q := newPointGT()
+	q := newPointGT(p.group)
 	return p.Add(a, q.Neg(b))
 }
 
@@ -453,7 +468,7 @@ func (p *pointGT) Neg(q kyber.Point) kyber.Point {
 
 func (p *pointGT) Mul(s kyber.Scalar, q kyber.Point) kyber.Point {
 	if q == nil {
-		q = newPointGT().Base()
+		q = newPointGT(p.group).Base()
 	}
 	t := s.(*mod.Int).V
 	r := q.(*pointGT).g

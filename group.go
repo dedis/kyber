@@ -66,6 +66,9 @@ type Scalar interface {
 type Point interface {
 	Marshaling
 
+	// Group returns the group the point belongs to.
+	Group() Group
+
 	// Equality test for two Points derived from the same Group
 	Equal(s2 Point) bool
 
