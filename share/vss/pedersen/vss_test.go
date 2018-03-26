@@ -205,7 +205,7 @@ func TestVSSVerifierDecryptDeal(t *testing.T) {
 
 	// wrong dh key
 	goodDh := encD.DHKey
-	encD.DHKey = suite.Point()
+	encD.DHKey, _ = suite.Point().Null().MarshalBinary()
 	decD, err = v.decryptDeal(encD)
 	assert.Error(t, err)
 	assert.Nil(t, decD)
