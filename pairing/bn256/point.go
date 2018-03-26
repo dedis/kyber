@@ -105,7 +105,7 @@ func (p *pointG1) Mul(s kyber.Scalar, q kyber.Point) kyber.Point {
 	if q == nil {
 		q = newPointG1(p.group).Base()
 	}
-	t := s.(*mod.Int).V
+	t := s.(*scalarDescribing).V
 	r := q.(*pointG1).g
 	p.g.Mul(r, &t)
 	return p
@@ -278,7 +278,7 @@ func (p *pointG2) Mul(s kyber.Scalar, q kyber.Point) kyber.Point {
 	if q == nil {
 		q = newPointG2(p.group).Base()
 	}
-	t := s.(*mod.Int).V
+	t := s.(*scalarDescribing).Int.V
 	r := q.(*pointG2).g
 	p.g.Mul(r, &t)
 	return p
@@ -470,7 +470,7 @@ func (p *pointGT) Mul(s kyber.Scalar, q kyber.Point) kyber.Point {
 	if q == nil {
 		q = newPointGT(p.group).Base()
 	}
-	t := s.(*mod.Int).V
+	t := s.(*scalarDescribing).Int.V
 	r := q.(*pointGT).g
 	p.g.Exp(r, &t)
 	return p

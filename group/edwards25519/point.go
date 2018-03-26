@@ -30,8 +30,8 @@ type point struct {
 	curve   *Curve
 }
 
-func (p *point) Group() kyber.Group {
-	return p.curve
+func (P *point) Group() kyber.Group {
+	return P.curve
 }
 
 func (P *point) String() string {

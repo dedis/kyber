@@ -3,7 +3,6 @@ package bn256
 import (
 	"testing"
 
-	"github.com/dedis/kyber/group/mod"
 	"github.com/dedis/kyber/util/random"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/crypto/bn256"
@@ -65,7 +64,7 @@ func TestG1(t *testing.T) {
 	ma, err := pa.MarshalBinary()
 	require.Nil(t, err)
 
-	pb := new(bn256.G1).ScalarBaseMult(&k.(*mod.Int).V)
+	pb := new(bn256.G1).ScalarBaseMult(&k.(*scalarDescribing).Int.V)
 	mb := pb.Marshal()
 
 	require.Equal(t, ma, mb)
@@ -115,7 +114,7 @@ func TestG2(t *testing.T) {
 	pa := suite.G2().Point().Mul(k, nil)
 	ma, err := pa.MarshalBinary()
 	require.Nil(t, err)
-	pb := new(bn256.G2).ScalarBaseMult(&k.(*mod.Int).V)
+	pb := new(bn256.G2).ScalarBaseMult(&k.(*scalarDescribing).Int.V)
 	mb := pb.Marshal()
 	mb = append([]byte{0x01}, mb...)
 	require.Equal(t, ma, mb)
@@ -168,7 +167,7 @@ func TestGT(t *testing.T) {
 	if !ok {
 		t.Fatal("unmarshal not ok")
 	}
-	pb.ScalarMult(pb, &k.(*mod.Int).V)
+	pb.ScalarMult(pb, &k.(*scalarDescribing).Int.V)
 	mb := pb.Marshal()
 	require.Equal(t, ma, mb)
 }
