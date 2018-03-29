@@ -70,5 +70,6 @@ func (p *Pair) GenHiding(suite Suite) {
 			return // success
 		}
 		p.Gen(suite)
+		Xh = p.Public.(kyber.Hiding)
 	}
 }
