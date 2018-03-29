@@ -65,7 +65,7 @@ type Deal struct {
 // longterm secret key.
 type EncryptedDeal struct {
 	// Ephemeral Diffie Hellman key
-	DHKey kyber.Point
+	DHKey []byte
 	// Signature of the DH key by the longterm key of the dealer
 	Signature []byte
 	// Nonce used for the encryption
@@ -200,8 +200,9 @@ func (d *Dealer) EncryptedDeal(i int) (*EncryptedDeal, error) {
 		return nil, err
 	}
 	encrypted := gcm.Seal(nil, nonce, dealBuff, d.hkdfContext)
+	dhBytes, _ := dhPublic.MarshalBinary()
 	return &EncryptedDeal{
-		DHKey:     dhPublic,
+		DHKey:     dhBytes,
 		Signature: signature,
 		Nonce:     nonce,
 		Cipher:    encrypted,
@@ -387,17 +388,17 @@ func (v *Verifier) ProcessEncryptedDeal(e *EncryptedDeal) (*Response, error) {
 }
 
 func (v *Verifier) decryptDeal(e *EncryptedDeal) (*Deal, error) {
-	ephBuff, err := e.DHKey.MarshalBinary()
-	if err != nil {
-		return nil, err
-	}
 	// verify signature
-	if err := schnorr.Verify(v.suite, v.dealer, ephBuff, e.Signature); err != nil {
+	if err := schnorr.Verify(v.suite, v.dealer, e.DHKey, e.Signature); err != nil {
 		return nil, err
 	}
 
 	// compute shared key and AES526-GCM cipher
-	pre := dhExchange(v.suite, v.longterm, e.DHKey)
+	dhKey := v.suite.Point()
+	if err := dhKey.UnmarshalBinary(e.DHKey); err != nil {
+		return nil, err
+	}
+	pre := dhExchange(v.suite, v.longterm, dhKey)
 	gcm, err := newAEAD(v.suite.Hash, pre, v.hkdfContext)
 	if err != nil {
 		return nil, err
