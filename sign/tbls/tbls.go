@@ -25,9 +25,9 @@ import (
 type SigShare []byte
 
 // Index returns the index i of the TBLS share Si.
-func (s *SigShare) Index() (int, error) {
+func (s SigShare) Index() (int, error) {
 	var index uint16
-	buf := bytes.NewReader(*s)
+	buf := bytes.NewReader(s)
 	err := binary.Read(buf, binary.BigEndian, &index)
 	if err != nil {
 		return -1, err
