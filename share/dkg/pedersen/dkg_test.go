@@ -20,6 +20,7 @@ var partPubs []kyber.Point
 var partSec []kyber.Scalar
 
 var dkgs []*DistKeyGenerator
+var dkgsReNew []*DistKeyGenerator
 
 func init() {
 	partPubs = make([]kyber.Point, nbParticipants)
@@ -310,6 +311,80 @@ func dkgGen() []*DistKeyGenerator {
 	return dkgs
 }
 
+func TestDistKeyShareReNew(t *testing.T){
+	fullExchange(t)
+	fullExchangeWithRenewal(t)
+
+	dkss := make([]*DistKeyShare, nbParticipants)
+	for i, dkg := range dkgs{
+		dks,_ := dkg.DistKeyShare()
+		dksReNew,_:= dkgsReNew[i].DistKeyShare()
+		dkss[i],_ = dks.Renew(dksReNew,dkg.suite)
+	}
+
+	shares := make([]*share.PriShare, nbParticipants)
+	for i, dks := range dkss {
+		shares[i] = dks.Share
+	}
+	secret, err := share.RecoverSecret(suite, shares, nbParticipants, nbParticipants) // SUMf_j(0),j:0->#participants-
+	assert.Nil(t, err)
+
+	commitSecret := suite.Point().Mul(secret, nil)
+	assert.Equal(t, dkss[0].Public().String(), commitSecret.String())
+}
+
+func TestReNewDistKeyGenerator(t *testing.T) {
+	long := partSec[0]
+	dkgNew, err := ResharingDKG(suite,long,partPubs,nbParticipants/2+1)
+	assert.Nil(t, err)
+	assert.NotNil(t, dkgNew.dealer)
+
+}
+
+func TestDistKeyShare_Renew(t *testing.T) {
+	fullExchange(t)
+	fullExchangeWithRenewal(t)
+	dkg := dkgs[2]
+	dks,_ := dkg.DistKeyShare()
+
+	//Check when they don't have the same index
+	dkg1 := dkgsReNew[1]
+	dks1, _ := dkg1.DistKeyShare()
+	newDsk1, err := dks.Renew(dks1,dkg.suite)
+	assert.Nil(t,newDsk1)
+	assert.Error(t,err)
+
+	//Check the last coeff is not 0 in g(x)
+	dkg3 := dkgs[1]
+	dks3,_ := dkg3.DistKeyShare()
+	newDsk3, err3 := dks.Renew(dks3,dkg.suite)
+	assert.Nil(t,newDsk3)
+	assert.Error(t,err3)
+
+	//Finally, check whether it works
+	dkg2 := dkgsReNew[2]
+	dks2, _:= dkg2.DistKeyShare()
+	newDks,err := dks.Renew(dks2,dkg.suite)
+	assert.Nil(t,err)
+	assert.NotNil(t,newDks)
+
+}
+
+
+func reNewDkgGen() []*DistKeyGenerator{
+
+	dkgsNew := make([]*DistKeyGenerator, nbParticipants)
+	for i := 0; i < nbParticipants ; i++ {
+		dkgNew, err := ResharingDKG(suite,partSec[i],partPubs,nbParticipants/2+1)
+		if err != nil {
+			panic(err)
+		}
+		dkgsNew[i] = dkgNew
+	}
+	return dkgsNew
+}
+
+
 func genPair() (kyber.Scalar, kyber.Point) {
 	sc := suite.Scalar().Pick(suite.RandomStream())
 	return sc, suite.Point().Mul(sc, nil)
@@ -364,6 +439,34 @@ func fullExchange(t *testing.T) {
 	for _, dkg := range dkgs {
 		for _, dkg2 := range dkgs {
 			require.True(t, dkg.isInQUAL(dkg2.index))
+		}
+	}
+
+}
+
+
+func fullExchangeWithRenewal(t *testing.T) {
+	dkgsReNew = reNewDkgGen()
+	// full secret sharing exchange
+	// 1. broadcast deals
+	resps := make([]*Response, 0, nbParticipants*nbParticipants)
+	for _, dkg := range dkgsReNew {
+		deals, _ := dkg.Deals()
+		for i, d := range deals {
+			resp, _ := dkgsReNew[i].ProcessDeal(d)
+			resps = append(resps, resp)
+		}
+	}
+	// 2. Broadcast responses
+	for _, resp := range resps {
+		for _, dkg := range dkgsReNew {
+			// Ignore messages about ourselves
+			if resp.Response.Index == dkg.index {
+				continue
+			}
+			j, _ := dkg.ProcessResponse(resp)
+			//require.Nil(t, err)
+			require.Nil(t, j)
 		}
 	}
 
