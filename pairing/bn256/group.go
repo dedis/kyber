@@ -12,7 +12,7 @@ type groupG1 struct {
 }
 
 func (g *groupG1) String() string {
-	return "bn256.G1"
+	return "bn256_G1"
 }
 
 func (g *groupG1) PointLen() int {
@@ -35,7 +35,7 @@ type groupG2 struct {
 }
 
 func (g *groupG2) String() string {
-	return "bn256.G2"
+	return "BN256_G2"
 }
 
 func (g *groupG2) PointLen() int {
@@ -58,7 +58,7 @@ type groupGT struct {
 }
 
 func (g *groupGT) String() string {
-	return "bn256.GT"
+	return "BN256_GT"
 }
 
 func (g *groupGT) PointLen() int {
