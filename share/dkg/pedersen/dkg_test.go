@@ -35,12 +35,12 @@ func init() {
 
 func TestDKGNewDistKeyGenerator(t *testing.T) {
 	long := partSec[0]
-	dkg, err := NewDistKeyGenerator(suite, long, partPubs, nbParticipants/2+1)
+	dkg, err := NewDistKeyGeneratorWithSecret(suite, long, partPubs, nbParticipants/2+1)
 	assert.Nil(t, err)
 	assert.NotNil(t, dkg.dealer)
 
 	sec, _ := genPair()
-	_, err = NewDistKeyGenerator(suite, sec, partPubs, nbParticipants/2+1)
+	_, err = NewDistKeyGeneratorWithSecret(suite, sec, partPubs, nbParticipants/2+1)
 	assert.Error(t, err)
 
 }
@@ -302,7 +302,7 @@ func TestDistKeyShare(t *testing.T) {
 func dkgGen() []*DistKeyGenerator {
 	dkgs := make([]*DistKeyGenerator, nbParticipants)
 	for i := 0; i < nbParticipants; i++ {
-		dkg, err := NewDistKeyGenerator(suite, partSec[i], partPubs, nbParticipants/2+1)
+		dkg, err := NewDistKeyGeneratorWithSecret(suite, partSec[i], partPubs, nbParticipants/2+1)
 		if err != nil {
 			panic(err)
 		}
@@ -311,15 +311,15 @@ func dkgGen() []*DistKeyGenerator {
 	return dkgs
 }
 
-func TestDistKeyShareReNew(t *testing.T){
+func TestDistKeyShareReNew(t *testing.T) {
 	fullExchange(t)
 	fullExchangeWithRenewal(t)
 
 	dkss := make([]*DistKeyShare, nbParticipants)
-	for i, dkg := range dkgs{
-		dks,_ := dkg.DistKeyShare()
-		dksReNew,_:= dkgsReNew[i].DistKeyShare()
-		dkss[i],_ = dks.Renew(dksReNew,dkg.suite)
+	for i, dkg := range dkgs {
+		dks, _ := dkg.DistKeyShare()
+		dksReNew, _ := dkgsReNew[i].DistKeyShare()
+		dkss[i], _ = dks.Renew(dkg.suite,dksReNew)
 	}
 
 	shares := make([]*share.PriShare, nbParticipants)
@@ -335,7 +335,7 @@ func TestDistKeyShareReNew(t *testing.T){
 
 func TestReNewDistKeyGenerator(t *testing.T) {
 	long := partSec[0]
-	dkgNew, err := ResharingDKG(suite,long,partPubs,nbParticipants/2+1)
+	dkgNew, err := NewDistKeyGeneratorWithoutSecret(suite, long, partPubs, nbParticipants/2+1)
 	assert.Nil(t, err)
 	assert.NotNil(t, dkgNew.dealer)
 
@@ -345,37 +345,71 @@ func TestDistKeyShare_Renew(t *testing.T) {
 	fullExchange(t)
 	fullExchangeWithRenewal(t)
 	dkg := dkgs[2]
-	dks,_ := dkg.DistKeyShare()
+	dks, _ := dkg.DistKeyShare()
 
 	//Check when they don't have the same index
 	dkg1 := dkgsReNew[1]
 	dks1, _ := dkg1.DistKeyShare()
-	newDsk1, err := dks.Renew(dks1,dkg.suite)
-	assert.Nil(t,newDsk1)
-	assert.Error(t,err)
+	newDsk1, err := dks.Renew( dkg.suite, dks1)
+	assert.Nil(t, newDsk1)
+	assert.Error(t, err)
 
 	//Check the last coeff is not 0 in g(x)
 	dkg3 := dkgs[1]
-	dks3,_ := dkg3.DistKeyShare()
-	newDsk3, err3 := dks.Renew(dks3,dkg.suite)
-	assert.Nil(t,newDsk3)
-	assert.Error(t,err3)
+	dks3, _ := dkg3.DistKeyShare()
+	newDsk3, err3 := dks.Renew( dkg.suite, dks3)
+	assert.Nil(t, newDsk3)
+	assert.Error(t, err3)
 
 	//Finally, check whether it works
 	dkg2 := dkgsReNew[2]
-	dks2, _:= dkg2.DistKeyShare()
-	newDks,err := dks.Renew(dks2,dkg.suite)
-	assert.Nil(t,err)
-	assert.NotNil(t,newDks)
+	dks2, _ := dkg2.DistKeyShare()
+	newDks, err := dks.Renew(dkg.suite, dks2)
+	assert.Nil(t, err)
+	assert.NotNil(t, newDks)
 
 }
 
+func TestReNewDistKeyShare(t *testing.T) {
+	fullExchange(t)
+	fullExchangeWithRenewal(t)
 
-func reNewDkgGen() []*DistKeyGenerator{
+	for _, dkg := range dkgs {
+		assert.True(t, dkg.Certified())
+
+	}
+	// verify integrity of shares etc
+	dkss := make([]*DistKeyShare, nbParticipants)
+	for i, dkg := range dkgs {
+		dks, err := dkg.DistKeyShare()
+
+		require.Nil(t, err)
+		require.NotNil(t, dks)
+		dksNew,_ := dkgsReNew[i].DistKeyShare()
+		dkss[i],_ = dks.Renew(dkg.suite,dksNew)
+		assert.Equal(t, dkg.index, uint32(dks.Share.I))
+	}
+
+	shares := make([]*share.PriShare, nbParticipants)
+	for i, dks := range dkss {
+		assert.True(t, checkDks(dks, dkss[0]), "dist key share not equal %d vs %d", dks.Share.I, 0)
+		shares[i] = dks.Share
+	}
+
+	secret, err := share.RecoverSecret(suite, shares, nbParticipants, nbParticipants)
+	assert.Nil(t, err)
+
+
+	//Check is sum(f)*G == sum(F)
+	commitSecret := suite.Point().Mul(secret, nil)
+	assert.Equal(t, dkss[0].Public().String(), commitSecret.String())
+}
+
+func reNewDkgGen() []*DistKeyGenerator {
 
 	dkgsNew := make([]*DistKeyGenerator, nbParticipants)
-	for i := 0; i < nbParticipants ; i++ {
-		dkgNew, err := ResharingDKG(suite,partSec[i],partPubs,nbParticipants/2+1)
+	for i := 0; i < nbParticipants; i++ {
+		dkgNew, err := NewDistKeyGeneratorWithoutSecret(suite,partSec[i],partPubs, nbParticipants/2+1)
 		if err != nil {
 			panic(err)
 		}
@@ -383,7 +417,6 @@ func reNewDkgGen() []*DistKeyGenerator{
 	}
 	return dkgsNew
 }
-
 
 func genPair() (kyber.Scalar, kyber.Point) {
 	sc := suite.Scalar().Pick(suite.RandomStream())
@@ -443,7 +476,6 @@ func fullExchange(t *testing.T) {
 	}
 
 }
-
 
 func fullExchangeWithRenewal(t *testing.T) {
 	dkgsReNew = reNewDkgGen()
