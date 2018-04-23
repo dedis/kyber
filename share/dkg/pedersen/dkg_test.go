@@ -319,7 +319,7 @@ func TestDistKeyShareReNew(t *testing.T) {
 	for i, dkg := range dkgs {
 		dks, _ := dkg.DistKeyShare()
 		dksReNew, _ := dkgsReNew[i].DistKeyShare()
-		dkss[i], _ = dks.Renew(dkg.suite,dksReNew)
+		dkss[i], _ = dks.Renew(dkg.suite, dksReNew)
 	}
 
 	shares := make([]*share.PriShare, nbParticipants)
@@ -350,14 +350,14 @@ func TestDistKeyShare_Renew(t *testing.T) {
 	//Check when they don't have the same index
 	dkg1 := dkgsReNew[1]
 	dks1, _ := dkg1.DistKeyShare()
-	newDsk1, err := dks.Renew( dkg.suite, dks1)
+	newDsk1, err := dks.Renew(dkg.suite, dks1)
 	assert.Nil(t, newDsk1)
 	assert.Error(t, err)
 
 	//Check the last coeff is not 0 in g(x)
 	dkg3 := dkgs[1]
 	dks3, _ := dkg3.DistKeyShare()
-	newDsk3, err3 := dks.Renew( dkg.suite, dks3)
+	newDsk3, err3 := dks.Renew(dkg.suite, dks3)
 	assert.Nil(t, newDsk3)
 	assert.Error(t, err3)
 
@@ -379,14 +379,15 @@ func TestReNewDistKeyShare(t *testing.T) {
 
 	}
 	// verify integrity of shares etc
+	formerDks, _ := dkgs[0].DistKeyShare()
 	dkss := make([]*DistKeyShare, nbParticipants)
 	for i, dkg := range dkgs {
 		dks, err := dkg.DistKeyShare()
 
 		require.Nil(t, err)
 		require.NotNil(t, dks)
-		dksNew,_ := dkgsReNew[i].DistKeyShare()
-		dkss[i],_ = dks.Renew(dkg.suite,dksNew)
+		dksNew, _ := dkgsReNew[i].DistKeyShare()
+		dkss[i], _ = dks.Renew(dkg.suite, dksNew) //Renewal
 		assert.Equal(t, dkg.index, uint32(dks.Share.I))
 	}
 
@@ -399,17 +400,16 @@ func TestReNewDistKeyShare(t *testing.T) {
 	secret, err := share.RecoverSecret(suite, shares, nbParticipants, nbParticipants)
 	assert.Nil(t, err)
 
-
 	//Check is sum(f)*G == sum(F)
+	//a0*G
 	commitSecret := suite.Point().Mul(secret, nil)
-	assert.Equal(t, dkss[0].Public().String(), commitSecret.String())
+	assert.Equal(t, formerDks.Public().String(), commitSecret.String())
 }
 
 func reNewDkgGen() []*DistKeyGenerator {
-
 	dkgsNew := make([]*DistKeyGenerator, nbParticipants)
 	for i := 0; i < nbParticipants; i++ {
-		dkgNew, err := NewDistKeyGeneratorWithoutSecret(suite,partSec[i],partPubs, nbParticipants/2+1)
+		dkgNew, err := NewDistKeyGeneratorWithoutSecret(suite, partSec[i], partPubs, nbParticipants/2+1)
 		if err != nil {
 			panic(err)
 		}
@@ -501,5 +501,4 @@ func fullExchangeWithRenewal(t *testing.T) {
 			require.Nil(t, j)
 		}
 	}
-
 }
