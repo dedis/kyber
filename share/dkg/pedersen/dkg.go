@@ -109,8 +109,6 @@ func NewDistKeyGenerator(suite Suite, longterm kyber.Scalar, participants []kybe
 		return nil, err
 	}
 
-
-
 	return &DistKeyGenerator{
 		dealer:       dealer,
 		verifiers:    make(map[uint32]*vss.Verifier),
@@ -124,18 +122,17 @@ func NewDistKeyGenerator(suite Suite, longterm kyber.Scalar, participants []kybe
 }
 
 //NewDistKeyGeneratorWithSecret simply returns a DistKeyGenerator with a given random secret
-func NewDistKeyGeneratorWithSecret(suite Suite, longterm kyber.Scalar, participants []kyber.Point, t int) (*DistKeyGenerator, error){
+func NewDistKeyGeneratorWithSecret(suite Suite, longterm kyber.Scalar, participants []kyber.Point, t int) (*DistKeyGenerator, error) {
 	ownSecret := suite.Scalar().Pick(suite.RandomStream())
-	return NewDistKeyGenerator(suite,longterm,participants,t,ownSecret)
+	return NewDistKeyGenerator(suite, longterm, participants, t, ownSecret)
 }
 
 //NewDistKeyGeneratorWithoutSecret simply returns a DistKeyGenerator with an nil secret.
 // It is used to renew the private shares without affecting the secret.
 func NewDistKeyGeneratorWithoutSecret(suite Suite, longterm kyber.Scalar, participants []kyber.Point, t int) (*DistKeyGenerator, error) {
-	ownSecret :=  suite.Scalar().Zero()
-	return NewDistKeyGenerator(suite,longterm,participants,t,ownSecret)
+	ownSecret := suite.Scalar().Zero()
+	return NewDistKeyGenerator(suite, longterm, participants, t, ownSecret)
 }
-
 
 // Deals returns all the deals that must be broadcasted to all
 // participants. The deal corresponding to this DKG is already added
@@ -358,7 +355,6 @@ func (d *DistKeyGenerator) DistKeyShare() (*DistKeyShare, error) {
 		},
 	}, nil
 }
-
 
 //Renew adds the new distributed key share g (with secret 0) to the distributed key share d.
 func (d *DistKeyShare) Renew(suite Suite, g *DistKeyShare) (*DistKeyShare, error) {
