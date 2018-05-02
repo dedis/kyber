@@ -209,8 +209,11 @@ func Verify(suite Suite, publics []kyber.Point, message, sig []byte, policy Poli
 	sB := suite.Point().Mul(r, nil)
 	left := suite.Point().Add(kA, sB)
 
-	if !left.Equal(V) || !policy.Check(mask) {
-		return errors.New("invalid signature")
+	if !left.Equal(V) {
+		return errors.New("recreated response is different from signature")
+	}
+	if !policy.Check(mask) {
+		return errors.New("the policy is not fulfilled")
 	}
 
 	return nil
