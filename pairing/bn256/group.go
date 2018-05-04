@@ -9,6 +9,7 @@ import (
 
 type groupG1 struct {
 	common
+	*commonSuite
 }
 
 func (g *groupG1) String() string {
@@ -32,6 +33,7 @@ func (g *groupG1) Point() kyber.Point {
 
 type groupG2 struct {
 	common
+	*commonSuite
 }
 
 func (g *groupG2) String() string {
@@ -55,6 +57,7 @@ func (g *groupG2) Scalar() kyber.Scalar {
 
 type groupGT struct {
 	common
+	*commonSuite
 }
 
 func (g *groupGT) String() string {
