@@ -83,10 +83,10 @@ type DistKeyGenerator struct {
 }
 
 // NewDistKeyGenerator returns a DistKeyGenerator out of the suite,
-// the longterm secret key, the list of participants, and the
-// threshold t parameter. It returns an error if the secret key's
+// the longterm secret key, the list of participants, the
+// threshold t parameter and a given secret. It returns an error if the secret key's
 // commitment can't be found in the list of participants.
-func NewDistKeyGenerator(suite Suite, longterm kyber.Scalar, participants []kyber.Point, t int) (*DistKeyGenerator, error) {
+func NewDistKeyGenerator(suite Suite, longterm kyber.Scalar, participants []kyber.Point, t int, secret kyber.Scalar) (*DistKeyGenerator, error) {
 	pub := suite.Point().Mul(longterm, nil)
 	// find our index
 	var found bool
@@ -103,7 +103,7 @@ func NewDistKeyGenerator(suite Suite, longterm kyber.Scalar, participants []kybe
 	}
 	var err error
 	// generate our dealer / deal
-	ownSec := suite.Scalar().Pick(suite.RandomStream())
+	ownSec := secret
 	dealer, err := vss.NewDealer(suite, longterm, ownSec, participants, t)
 	if err != nil {
 		return nil, err
@@ -119,6 +119,19 @@ func NewDistKeyGenerator(suite Suite, longterm kyber.Scalar, participants []kybe
 		participants: participants,
 		index:        index,
 	}, nil
+}
+
+//NewDistKeyGeneratorWithSecret simply returns a DistKeyGenerator with a given random secret
+func NewDistKeyGeneratorWithSecret(suite Suite, longterm kyber.Scalar, participants []kyber.Point, t int) (*DistKeyGenerator, error) {
+	ownSecret := suite.Scalar().Pick(suite.RandomStream())
+	return NewDistKeyGenerator(suite, longterm, participants, t, ownSecret)
+}
+
+//NewDistKeyGeneratorWithoutSecret simply returns a DistKeyGenerator with an nil secret.
+// It is used to renew the private shares without affecting the secret.
+func NewDistKeyGeneratorWithoutSecret(suite Suite, longterm kyber.Scalar, participants []kyber.Point, t int) (*DistKeyGenerator, error) {
+	ownSecret := suite.Scalar().Zero()
+	return NewDistKeyGenerator(suite, longterm, participants, t, ownSecret)
 }
 
 // Deals returns all the deals that must be broadcasted to all
@@ -339,6 +352,32 @@ func (d *DistKeyGenerator) DistKeyShare() (*DistKeyShare, error) {
 		Share: &share.PriShare{
 			I: int(d.index),
 			V: sh,
+		},
+	}, nil
+}
+
+//Renew adds the new distributed key share g (with secret 0) to the distributed key share d.
+func (d *DistKeyShare) Renew(suite Suite, g *DistKeyShare) (*DistKeyShare, error) {
+	//Check G(0) = 0*G.
+	if !g.Public().Equal(suite.Point().Base().Mul(suite.Scalar().Zero(), nil)) {
+		return nil, errors.New("wrong renewal function")
+	}
+
+	//Check whether they have the same index
+	if d.Share.I != g.Share.I {
+		return nil, errors.New("not the same party")
+	}
+
+	newShare := suite.Scalar().Add(d.Share.V, g.Share.V)
+	newCommits := make([]kyber.Point, len(d.Commits))
+	for i := range newCommits {
+		newCommits[i] = suite.Point().Add(d.Commits[i], g.Commits[i])
+	}
+	return &DistKeyShare{
+		Commits: newCommits,
+		Share: &share.PriShare{
+			I: d.Share.I,
+			V: newShare,
 		},
 	}, nil
 }
