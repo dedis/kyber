@@ -29,10 +29,7 @@ func (s SigShare) Index() (int, error) {
 	var index uint16
 	buf := bytes.NewReader(s)
 	err := binary.Read(buf, binary.BigEndian, &index)
-	if err != nil {
-		return -1, err
-	}
-	return int(index), nil
+	return int(index), err
 }
 
 // Value returns the value v of the TBLS share Si.
