@@ -35,12 +35,12 @@ func init() {
 
 func TestDKGNewDistKeyGenerator(t *testing.T) {
 	long := partSec[0]
-	dkg, err := NewDistKeyGeneratorWithSecret(suite, long, partPubs, nbParticipants/2+1)
+	dkg, err := NewDistKeyGenerator(suite, long, partPubs, nbParticipants/2+1)
 	assert.Nil(t, err)
 	assert.NotNil(t, dkg.dealer)
 
 	sec, _ := genPair()
-	_, err = NewDistKeyGeneratorWithSecret(suite, sec, partPubs, nbParticipants/2+1)
+	_, err = NewDistKeyGenerator(suite, sec, partPubs, nbParticipants/2+1)
 	assert.Error(t, err)
 
 }
@@ -302,7 +302,7 @@ func TestDistKeyShare(t *testing.T) {
 func dkgGen() []*DistKeyGenerator {
 	dkgs := make([]*DistKeyGenerator, nbParticipants)
 	for i := 0; i < nbParticipants; i++ {
-		dkg, err := NewDistKeyGeneratorWithSecret(suite, partSec[i], partPubs, nbParticipants/2+1)
+		dkg, err := NewDistKeyGenerator(suite, partSec[i], partPubs, nbParticipants/2+1)
 		if err != nil {
 			panic(err)
 		}

@@ -82,11 +82,9 @@ type DistKeyGenerator struct {
 	verifiers map[uint32]*vss.Verifier
 }
 
-// NewDistKeyGenerator returns a DistKeyGenerator out of the suite,
-// the longterm secret key, the list of participants, the
-// threshold t parameter and a given secret. It returns an error if the secret key's
-// commitment can't be found in the list of participants.
-func NewDistKeyGenerator(suite Suite, longterm kyber.Scalar, participants []kyber.Point, t int, secret kyber.Scalar) (*DistKeyGenerator, error) {
+// initDistKeyGenerator returns a dist key generator with the given secret as
+// the first coefficient of the polynomial of this dealer.
+func initDistKeyGenerator(suite Suite, longterm kyber.Scalar, participants []kyber.Point, t int, secret kyber.Scalar) (*DistKeyGenerator, error) {
 	pub := suite.Point().Mul(longterm, nil)
 	// find our index
 	var found bool
@@ -121,17 +119,21 @@ func NewDistKeyGenerator(suite Suite, longterm kyber.Scalar, participants []kybe
 	}, nil
 }
 
-//NewDistKeyGeneratorWithSecret simply returns a DistKeyGenerator with a given random secret
-func NewDistKeyGeneratorWithSecret(suite Suite, longterm kyber.Scalar, participants []kyber.Point, t int) (*DistKeyGenerator, error) {
+// NewDistKeyGenerator returns a DistKeyGenerator out of the suite, the longterm
+// secret key, the list of participants, the threshold t parameter and a given
+// secret. It returns an error if the secret key's commitment can't be found in
+// the list of participants.
+func NewDistKeyGenerator(suite Suite, longterm kyber.Scalar, participants []kyber.Point, t int) (*DistKeyGenerator, error) {
 	ownSecret := suite.Scalar().Pick(suite.RandomStream())
-	return NewDistKeyGenerator(suite, longterm, participants, t, ownSecret)
+	return initDistKeyGenerator(suite, longterm, participants, t, ownSecret)
 }
 
-//NewDistKeyGeneratorWithoutSecret simply returns a DistKeyGenerator with an nil secret.
-// It is used to renew the private shares without affecting the secret.
+// NewDistKeyGeneratorWithoutSecret simply returns a DistKeyGenerator with an
+// nil secret.  It is used to renew the private shares without affecting the
+// secret.
 func NewDistKeyGeneratorWithoutSecret(suite Suite, longterm kyber.Scalar, participants []kyber.Point, t int) (*DistKeyGenerator, error) {
 	ownSecret := suite.Scalar().Zero()
-	return NewDistKeyGenerator(suite, longterm, participants, t, ownSecret)
+	return initDistKeyGenerator(suite, longterm, participants, t, ownSecret)
 }
 
 // Deals returns all the deals that must be broadcasted to all
