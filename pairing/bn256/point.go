@@ -108,15 +108,18 @@ func (p *pointG1) Mul(s kyber.Scalar, q kyber.Point) kyber.Point {
 
 func (p *pointG1) MarshalBinary() ([]byte, error) {
 	n := p.ElementSize()
-	p.g.MakeAffine()
+	// Take a copy so that p is not written to, so calls to MarshalBinary
+	// are threadsafe.
+	pgtemp := *p.g
+	pgtemp.MakeAffine()
 	ret := make([]byte, p.MarshalSize())
-	if p.g.IsInfinity() {
+	if pgtemp.IsInfinity() {
 		return ret, nil
 	}
 	tmp := &gfP{}
-	montDecode(tmp, &p.g.x)
+	montDecode(tmp, &pgtemp.x)
 	tmp.Marshal(ret)
-	montDecode(tmp, &p.g.y)
+	montDecode(tmp, &pgtemp.y)
 	tmp.Marshal(ret[n:])
 	return ret, nil
 }
