@@ -25,10 +25,10 @@ func TestECIESFailPoint(t *testing.T) {
 	suite := edwards25519.NewBlakeSHA256Ed25519()
 	private := suite.Scalar().Pick(random.New())
 	public := suite.Point().Mul(private, nil)
-	ephKey, ciphertext, err := Encrypt(suite, public, message, suite.Hash)
+	ephKey, ciphertext, err := Encrypt(suite, public, message, nil)
 	require.Nil(t, err)
 	ephKey[0] ^= 0xff
-	_, err = Decrypt(suite, private, ephKey, ciphertext, suite.Hash)
+	_, err = Decrypt(suite, private, ephKey, ciphertext, nil)
 	require.NotNil(t, err)
 }
 
@@ -37,9 +37,9 @@ func TestECIESFailCiphertext(t *testing.T) {
 	suite := edwards25519.NewBlakeSHA256Ed25519()
 	private := suite.Scalar().Pick(random.New())
 	public := suite.Point().Mul(private, nil)
-	ephKey, ciphertext, err := Encrypt(suite, public, message, suite.Hash)
+	ephKey, ciphertext, err := Encrypt(suite, public, message, nil)
 	require.Nil(t, err)
 	ciphertext[0] ^= 0xff
-	_, err = Decrypt(suite, private, ephKey, ciphertext, suite.Hash)
+	_, err = Decrypt(suite, private, ephKey, ciphertext, nil)
 	require.NotNil(t, err)
 }
