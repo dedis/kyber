@@ -13,16 +13,16 @@ import (
 	"golang.org/x/crypto/hkdf"
 )
 
-// Encrypt first performs a DH key exchange, then HKDF-derives a shared secret
-// key (and nonce) and finally encrypts the given message using AES-GCM.
-// Encrypt returns the ephemeral elliptic curve point of the DH key exchange
-// and the ciphertext or an error.
+// Encrypt first performs a DH key exchange using the given public key, then
+// HKDF-derives a shared secret key (and nonce) from that, and finally encrypts
+// the given message using AES-GCM. Encrypt returns the ephemeral elliptic
+// curve point of the DH key exchange and the ciphertext or an error.
 func Encrypt(group kyber.Group, public kyber.Point, message []byte, hash func() hash.Hash) ([]byte, []byte, error) {
 	if hash == nil {
 		hash = sha256.New
 	}
 
-	// Generate an ephemeral elliptic curve point
+	// Generate an ephemeral elliptic curve scalar and point
 	r := group.Scalar().Pick(random.New())
 	R := group.Point().Mul(r, nil)
 	Rb, err := R.MarshalBinary()
@@ -59,9 +59,9 @@ func Encrypt(group kyber.Group, public kyber.Point, message []byte, hash func() 
 }
 
 // Decrypt first performs a DH key exchange using the received ephemeral
-// elliptic curve point, then HKDF-derives a shared secret key (and nonce) and
-// finally decrypts the given ciphertext using AES-GCM. Decrypt returns the
-// plaintext message or an error.
+// elliptic curve point, then HKDF-derives a shared secret key (and nonce) from
+// that, and finally decrypts the given ciphertext using AES-GCM. Decrypt
+// returns the plaintext message or an error.
 func Decrypt(group kyber.Group, private kyber.Scalar, dhPoint []byte, ciphertext []byte, hash func() hash.Hash) ([]byte, error) {
 	if hash == nil {
 		hash = sha256.New
