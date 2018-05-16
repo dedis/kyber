@@ -58,7 +58,7 @@ func Encrypt(group kyber.Group, hash func() hash.Hash, public kyber.Point, messa
 // finally AEAD decrypts the given ciphertext using AES-GCM. Decrypt returns
 // the plaintext message or an error.
 func Decrypt(group kyber.Group, hash func() hash.Hash, private kyber.Scalar, Rb []byte, ciphertext []byte) ([]byte, error) {
-	// Reconstruct ephemeral key
+	// Reconstruct ephemeral elliptic curve point
 	R := group.Point()
 	if err := R.UnmarshalBinary(Rb); err != nil {
 		return nil, err
