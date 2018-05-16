@@ -107,7 +107,7 @@ func deriveKey(hash func() hash.Hash, dh kyber.Point, len int) ([]byte, error) {
 		return nil, err
 	}
 	if n < len {
-		return nil, errors.New("ecies: hdkf-derived key too short")
+		return nil, errors.New("ecies: hkdf-derived key too short")
 	}
 	return key, nil
 }
