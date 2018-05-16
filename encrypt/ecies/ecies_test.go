@@ -3,23 +3,43 @@ package ecies
 import (
 	"testing"
 
-	"github.com/dedis/kyber/pairing/bn256"
+	"github.com/dedis/kyber/group/edwards25519"
 	"github.com/dedis/kyber/util/random"
 	"github.com/stretchr/testify/require"
 )
 
 func TestECIES(t *testing.T) {
-	message := []byte("shake that cipher")
-	suite := bn256.NewSuite()
-	private := suite.G2().Scalar().Pick(random.New())
-	public := suite.G2().Point().Mul(private, nil)
-
-	ephKey, ciphertext, err := Encrypt(suite.G2(), suite.Hash, public, message)
+	message := []byte("Hello ECIES")
+	suite := edwards25519.NewBlakeSHA256Ed25519()
+	private := suite.Scalar().Pick(random.New())
+	public := suite.Point().Mul(private, nil)
+	ephKey, ciphertext, err := Encrypt(suite, public, message, suite.Hash)
 	require.Nil(t, err)
-
-	plaintext, err := Decrypt(suite.G2(), suite.Hash, private, ephKey, ciphertext)
+	plaintext, err := Decrypt(suite, private, ephKey, ciphertext, suite.Hash)
 	require.Nil(t, err)
-
 	require.Equal(t, message, plaintext)
+}
 
+func TestECIESFailPoint(t *testing.T) {
+	message := []byte("Hello ECIES")
+	suite := edwards25519.NewBlakeSHA256Ed25519()
+	private := suite.Scalar().Pick(random.New())
+	public := suite.Point().Mul(private, nil)
+	ephKey, ciphertext, err := Encrypt(suite, public, message, suite.Hash)
+	require.Nil(t, err)
+	ephKey[0] ^= 0xff
+	_, err = Decrypt(suite, private, ephKey, ciphertext, suite.Hash)
+	require.NotNil(t, err)
+}
+
+func TestECIESFailCiphertext(t *testing.T) {
+	message := []byte("Hello ECIES")
+	suite := edwards25519.NewBlakeSHA256Ed25519()
+	private := suite.Scalar().Pick(random.New())
+	public := suite.Point().Mul(private, nil)
+	ephKey, ciphertext, err := Encrypt(suite, public, message, suite.Hash)
+	require.Nil(t, err)
+	ciphertext[0] ^= 0xff
+	_, err = Decrypt(suite, private, ephKey, ciphertext, suite.Hash)
+	require.NotNil(t, err)
 }

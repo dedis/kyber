@@ -4,6 +4,7 @@ package ecies
 import (
 	"crypto/aes"
 	"crypto/cipher"
+	"crypto/sha256"
 	"errors"
 	"hash"
 
@@ -13,11 +14,15 @@ import (
 )
 
 // Encrypt first performs a DH key exchange, then HKDF-derives a shared secret
-// key (and nonce) and finally AEAD encrypts the given message using AES-GCM.
+// key (and nonce) and finally encrypts the given message using AES-GCM.
 // Encrypt returns the ephemeral elliptic curve point of the DH key exchange
 // and the ciphertext or an error.
-func Encrypt(group kyber.Group, hash func() hash.Hash, public kyber.Point, message []byte) ([]byte, []byte, error) {
-	// Generate an ephemeral key
+func Encrypt(group kyber.Group, public kyber.Point, message []byte, hash func() hash.Hash) ([]byte, []byte, error) {
+	if hash == nil {
+		hash = sha256.New
+	}
+
+	// Generate an ephemeral elliptic curve point
 	r := group.Scalar().Pick(random.New())
 	R := group.Point().Mul(r, nil)
 	Rb, err := R.MarshalBinary()
@@ -55,12 +60,16 @@ func Encrypt(group kyber.Group, hash func() hash.Hash, public kyber.Point, messa
 
 // Decrypt first performs a DH key exchange using the received ephemeral
 // elliptic curve point, then HKDF-derives a shared secret key (and nonce) and
-// finally AEAD decrypts the given ciphertext using AES-GCM. Decrypt returns
-// the plaintext message or an error.
-func Decrypt(group kyber.Group, hash func() hash.Hash, private kyber.Scalar, Rb []byte, ciphertext []byte) ([]byte, error) {
+// finally decrypts the given ciphertext using AES-GCM. Decrypt returns the
+// plaintext message or an error.
+func Decrypt(group kyber.Group, private kyber.Scalar, dhPoint []byte, ciphertext []byte, hash func() hash.Hash) ([]byte, error) {
+	if hash == nil {
+		hash = sha256.New
+	}
+
 	// Reconstruct ephemeral elliptic curve point
 	R := group.Point()
-	if err := R.UnmarshalBinary(Rb); err != nil {
+	if err := R.UnmarshalBinary(dhPoint); err != nil {
 		return nil, err
 	}
 
@@ -98,7 +107,7 @@ func deriveKey(hash func() hash.Hash, dh kyber.Point, len int) ([]byte, error) {
 		return nil, err
 	}
 	if n < len {
-		return nil, errors.New("ECIES: HDKF-derived key too short")
+		return nil, errors.New("ecies: hdkf-derived key too short")
 	}
 	return key, nil
 }
