@@ -13,10 +13,11 @@ import (
 	"golang.org/x/crypto/hkdf"
 )
 
-// Encrypt first performs a DH key exchange using the given public key, then
-// HKDF-derives a shared secret key (and nonce) from that, and finally encrypts
-// the given message using AES-GCM. Encrypt returns the ephemeral elliptic
-// curve point of the DH key exchange and the ciphertext or an error.
+// Encrypt first computes a shared DH key using the given public key, then
+// HKDF-derives a symmetric key (and nonce) from that, and finally uses these
+// values to encrypt the given message via AES-GCM. If the hash input parameter
+// is nil then SHA256 is used as a default. Encrypt returns the ephemeral
+// elliptic curve point of the DH key exchange and the ciphertext or an error.
 func Encrypt(group kyber.Group, public kyber.Point, message []byte, hash func() hash.Hash) ([]byte, []byte, error) {
 	if hash == nil {
 		hash = sha256.New
@@ -33,7 +34,7 @@ func Encrypt(group kyber.Group, public kyber.Point, message []byte, hash func() 
 	// Compute shared DH key
 	dh := group.Point().Mul(r, public)
 
-	// Derive symmetric key and nonce via HDKF (NOTE: Since we use a new
+	// Derive symmetric key and nonce via HKDF (NOTE: Since we use a new
 	// ephemeral key for every ECIES encryption and thus have a fresh
 	// HKDF-derived key for AES-GCM, the nonce for AES-GCM can be an arbitrary
 	// (even static) value. We derive it here simply via HKDF as well.)
@@ -58,22 +59,23 @@ func Encrypt(group kyber.Group, public kyber.Point, message []byte, hash func() 
 	return Rb, ciphertext, nil
 }
 
-// Decrypt first performs a DH key exchange using the received ephemeral
-// elliptic curve point, then HKDF-derives a shared secret key (and nonce) from
-// that, and finally decrypts the given ciphertext using AES-GCM. Decrypt
+// Decrypt first computes a shared DH key using the received ephemeral elliptic
+// curve point, then HKDF-derives a symmetric key (and nonce) from that, and
+// finally uses these values to decrypt the given ciphertext via AES-GCM. If
+// the hash input parameter is nil then SHA256 is used as a default. Decrypt
 // returns the plaintext message or an error.
-func Decrypt(group kyber.Group, private kyber.Scalar, dhPoint []byte, ciphertext []byte, hash func() hash.Hash) ([]byte, error) {
+func Decrypt(group kyber.Group, private kyber.Scalar, ephPoint []byte, ciphertext []byte, hash func() hash.Hash) ([]byte, error) {
 	if hash == nil {
 		hash = sha256.New
 	}
 
-	// Reconstruct ephemeral elliptic curve point
+	// Reconstruct the ephemeral elliptic curve point
 	R := group.Point()
-	if err := R.UnmarshalBinary(dhPoint); err != nil {
+	if err := R.UnmarshalBinary(ephPoint); err != nil {
 		return nil, err
 	}
 
-	// Compute shared DH key
+	// Compute shared DH key and derive the symmetric key and nonce via HKDF
 	dh := group.Point().Mul(private, R)
 	len := 32 + 12
 	buf, err := deriveKey(hash, dh, len)
