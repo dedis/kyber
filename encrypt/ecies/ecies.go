@@ -55,8 +55,7 @@ func Encrypt(group kyber.Group, public kyber.Point, message []byte, hash func() 
 	if err != nil {
 		return nil, nil, err
 	}
-	ciphertext := aesgcm.Seal(nil, nonce, message, nil)
-	return Rb, ciphertext, nil
+	return Rb, aesgcm.Seal(nil, nonce, message, nil), nil
 }
 
 // Decrypt first computes a shared DH key using the received ephemeral elliptic
