@@ -2,6 +2,7 @@
 package ecies
 
 import (
+	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/sha256"
@@ -16,9 +17,10 @@ import (
 // Encrypt first computes a shared DH key using the given public key, then
 // HKDF-derives a symmetric key (and nonce) from that, and finally uses these
 // values to encrypt the given message via AES-GCM. If the hash input parameter
-// is nil then SHA256 is used as a default. Encrypt returns the ephemeral
-// elliptic curve point of the DH key exchange and the ciphertext or an error.
-func Encrypt(group kyber.Group, public kyber.Point, message []byte, hash func() hash.Hash) ([]byte, []byte, error) {
+// is nil then SHA256 is used as a default. Encrypt returns a byte slice
+// containing the ephemeral elliptic curve point of the DH key exchange and the
+// ciphertext or an error.
+func Encrypt(group kyber.Group, public kyber.Point, message []byte, hash func() hash.Hash) ([]byte, error) {
 	if hash == nil {
 		hash = sha256.New
 	}
@@ -26,10 +28,6 @@ func Encrypt(group kyber.Group, public kyber.Point, message []byte, hash func() 
 	// Generate an ephemeral elliptic curve scalar and point
 	r := group.Scalar().Pick(random.New())
 	R := group.Point().Mul(r, nil)
-	Rb, err := R.MarshalBinary()
-	if err != nil {
-		return nil, nil, err
-	}
 
 	// Compute shared DH key
 	dh := group.Point().Mul(r, public)
@@ -41,7 +39,7 @@ func Encrypt(group kyber.Group, public kyber.Point, message []byte, hash func() 
 	len := 32 + 12
 	buf, err := deriveKey(hash, dh, len)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	key := buf[:32]
 	nonce := buf[32:len]
@@ -49,28 +47,42 @@ func Encrypt(group kyber.Group, public kyber.Point, message []byte, hash func() 
 	// Encrypt message using AES-GCM
 	aes, err := aes.NewCipher(key)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	aesgcm, err := cipher.NewGCM(aes)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	return Rb, aesgcm.Seal(nil, nonce, message, nil), nil
+	c := aesgcm.Seal(nil, nonce, message, nil)
+
+	// Serialize ephemeral elliptic curve point and ciphertext
+	var ctx bytes.Buffer
+	_, err = R.MarshalTo(&ctx)
+	if err != nil {
+		return nil, err
+	}
+	_, err = ctx.Write(c)
+	if err != nil {
+		return nil, err
+	}
+	return ctx.Bytes(), nil
 }
 
 // Decrypt first computes a shared DH key using the received ephemeral elliptic
-// curve point, then HKDF-derives a symmetric key (and nonce) from that, and
-// finally uses these values to decrypt the given ciphertext via AES-GCM. If
-// the hash input parameter is nil then SHA256 is used as a default. Decrypt
-// returns the plaintext message or an error.
-func Decrypt(group kyber.Group, private kyber.Scalar, ephPoint []byte, ciphertext []byte, hash func() hash.Hash) ([]byte, error) {
+// curve point (stored in the first part of ctx), then HKDF-derives a symmetric
+// key (and nonce) from that, and finally uses these values to decrypt the
+// given ciphertext (stored in the second part of ctx) via AES-GCM. If the hash
+// input parameter is nil then SHA256 is used as a default. Decrypt returns the
+// plaintext message or an error.
+func Decrypt(group kyber.Group, private kyber.Scalar, ctx []byte, hash func() hash.Hash) ([]byte, error) {
 	if hash == nil {
 		hash = sha256.New
 	}
 
 	// Reconstruct the ephemeral elliptic curve point
 	R := group.Point()
-	if err := R.UnmarshalBinary(ephPoint); err != nil {
+	l := group.PointLen()
+	if err := R.UnmarshalBinary(ctx[:l]); err != nil {
 		return nil, err
 	}
 
@@ -93,7 +105,7 @@ func Decrypt(group kyber.Group, private kyber.Scalar, ephPoint []byte, ciphertex
 	if err != nil {
 		return nil, err
 	}
-	return aesgcm.Open(nil, nonce, ciphertext, nil)
+	return aesgcm.Open(nil, nonce, ctx[l:], nil)
 }
 
 func deriveKey(hash func() hash.Hash, dh kyber.Point, len int) ([]byte, error) {
