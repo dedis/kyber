@@ -31,10 +31,31 @@ func NewSuite() *Suite {
 	return s
 }
 
+// NewSuiteG1 returns a combined bn256 with a G1 group in the definition.
+func NewSuiteG1() *Suite {
+	s := NewSuite()
+	s.commonSuite.Group = &groupG1{commonSuite: &commonSuite{}}
+	return s
+}
+
+// NewSuiteG2 returns a combined bn256 with a G2 group in the definition.
+func NewSuiteG2() *Suite {
+	s := NewSuite()
+	s.commonSuite.Group = &groupG2{commonSuite: &commonSuite{}}
+	return s
+}
+
+// NewSuiteGT returns a combined bn256 with a G2 group in the definition.
+func NewSuiteGT() *Suite {
+	s := NewSuite()
+	s.commonSuite.Group = &groupGT{commonSuite: &commonSuite{}}
+	return s
+}
+
 // NewSuiteRand generates and returns a new BN256 suite seeded by the
 // given cipher stream.
 func NewSuiteRand(rand cipher.Stream) *Suite {
-	s := &Suite{commonSuite: &commonSuite{rand}}
+	s := &Suite{commonSuite: &commonSuite{s: rand}}
 	s.g1 = &groupG1{commonSuite: s.commonSuite}
 	s.g2 = &groupG2{commonSuite: s.commonSuite}
 	s.gt = &groupGT{commonSuite: s.commonSuite}
@@ -63,24 +84,34 @@ func (s *Suite) Pair(p1 kyber.Point, p2 kyber.Point) kyber.Point {
 }
 
 // Not used other than for reflect.TypeOf()
-var aScalar mod.Int
+var aScalar kyber.Scalar
+var aPoint kyber.Point
+var aModInt mod.Int
 var aPointG1 pointG1
 var aPointG2 pointG2
 var aPointGT pointGT
 
 var tScalar = reflect.TypeOf(&aScalar).Elem()
+var tPoint = reflect.TypeOf(&aPoint).Elem()
+var tModInt = reflect.TypeOf(&aModInt).Elem()
 var tPointG1 = reflect.TypeOf(&aPointG1).Elem()
 var tPointG2 = reflect.TypeOf(&aPointG2).Elem()
 var tPointGT = reflect.TypeOf(&aPointGT).Elem()
 
 type commonSuite struct {
 	s cipher.Stream
+	// kyber.Group is only set if we have a combined Suite
+	kyber.Group
 }
 
 // New implements the kyber.Encoding interface.
 func (c *commonSuite) New(t reflect.Type) interface{} {
 	switch t {
 	case tScalar:
+		return c.Scalar()
+	case tPoint:
+		return c.Point()
+	case tModInt:
 		g1 := groupG1{}
 		return g1.Scalar()
 	case tPointG1:
@@ -123,4 +154,12 @@ func (c *commonSuite) RandomStream() cipher.Stream {
 		return c.s
 	}
 	return random.New()
+}
+
+// String returns a recognizable string that this is a combined suite.
+func (c commonSuite) String() string {
+	if c.Group != nil {
+		return "combined:" + c.Group.String()
+	}
+	return "bn256"
 }

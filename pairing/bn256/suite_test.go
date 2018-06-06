@@ -237,3 +237,21 @@ func TestTripartiteDiffieHellman(t *testing.T) {
 	require.Equal(t, k1, k2)
 	require.Equal(t, k2, k3)
 }
+
+func TestCombined(t *testing.T) {
+	// Making sure we can do some basic arithmetic with the suites without having
+	// to extract the suite using .G1(), .G2(), .GT()
+	basicPointTest(t, NewSuiteG1())
+	basicPointTest(t, NewSuiteG2())
+	basicPointTest(t, NewSuiteGT())
+}
+
+func basicPointTest(t *testing.T, s *Suite) {
+	a := s.Scalar().Pick(random.New())
+	pa := s.Point().Mul(a, nil)
+
+	b := s.Scalar().Add(a, s.Scalar().One())
+	pb1 := s.Point().Mul(b, nil)
+	pb2 := s.Point().Add(pa, s.Point().Base())
+	require.True(t, pb1.Equal(pb2))
+}
