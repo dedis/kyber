@@ -25,7 +25,7 @@ func (c *curvePoint) String() string {
 	x, y := &gfP{}, &gfP{}
 	montDecode(x, &c.x)
 	montDecode(y, &c.y)
-	return "(" + x.String() + ", " + y.String() + ")"
+	return x.String() + y.String()
 }
 
 func (c *curvePoint) Set(a *curvePoint) {
