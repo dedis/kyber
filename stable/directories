@@ -7,6 +7,7 @@ group/internal/marshalling
 group/mod
 group/nist
 proof/dleq
+proof
 share
 share/dkg/rabin
 share/dkg/pedersen
@@ -19,6 +20,7 @@ sign/cosi
 sign/eddsa
 sign/eddsa/testdata
 sign/schnorr
+shuffle
 suites
 util/encoding
 util/key

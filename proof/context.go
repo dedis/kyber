@@ -15,7 +15,7 @@ type Prover func(ctx ProverContext) error
 // and returns nil on success or an error once the protocol run concludes.
 type Verifier func(ctx VerifierContext) error
 
-// ProverContext represents the kyber.environment
+// ProverContext represents the environment
 // required by the prover in a Sigma protocol.
 //
 // In a basic 3-step Sigma protocol such as a standard digital signature,
@@ -39,7 +39,7 @@ type ProverContext interface {
 	PriRand(message ...interface{}) error // Get private randomness
 }
 
-// VerifierContext represents the kyber.environment
+// VerifierContext represents the environment
 // required by the verifier in a Sigma protocol.
 //
 // The verifier calls Get() to obtain the prover's message data,
