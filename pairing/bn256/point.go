@@ -184,7 +184,7 @@ func (p *pointG1) ElementSize() int {
 }
 
 func (p *pointG1) String() string {
-	return "bn256.G1" + p.g.String()
+	return "bn256.G1:" + p.g.String()
 }
 
 type pointG2 struct {
@@ -371,7 +371,7 @@ func (p *pointG2) ElementSize() int {
 }
 
 func (p *pointG2) String() string {
-	return "bn256.G2" + p.g.String()
+	return "bn256.G2:" + p.g.String()
 }
 
 type pointGT struct {
@@ -563,7 +563,7 @@ func (p *pointGT) ElementSize() int {
 }
 
 func (p *pointGT) String() string {
-	return "bn256.GT" + p.g.String()
+	return "bn256.GT:" + p.g.String()
 }
 
 func (p *pointGT) Finalize() kyber.Point {
