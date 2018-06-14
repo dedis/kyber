@@ -10,12 +10,12 @@ proof/dleq
 share
 share/dkg/rabin
 share/dkg/pedersen
-share/dss
 share/pvss
 share/vss/rabin
 share/vss/pedersen
 sign/anon
 sign/cosi
+sign/dss
 sign/eddsa
 sign/eddsa/testdata
 sign/schnorr
