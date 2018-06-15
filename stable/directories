@@ -15,7 +15,6 @@ share/vss/rabin
 share/vss/pedersen
 sign/anon
 sign/cosi
-sign/dss
 sign/eddsa
 sign/eddsa/testdata
 sign/schnorr
