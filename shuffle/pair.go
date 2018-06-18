@@ -30,7 +30,7 @@ import (
 )
 
 // Suite wraps the functionalities needed by the shuffle/ package. These are the
-// same functionatlities needed by the proof/ package.
+// same functionalities needed by the proof/ package.
 type Suite proof.Suite
 
 // XX these could all be inlined into PairShuffleProof; do we want to?
