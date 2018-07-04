@@ -42,7 +42,6 @@ func TestDKGNewDistKeyGenerator(t *testing.T) {
 	sec, _ := genPair()
 	_, err = NewDistKeyGenerator(suite, sec, partPubs, nbParticipants/2+1)
 	assert.Error(t, err)
-
 }
 
 func TestDKGDeal(t *testing.T) {
@@ -278,12 +277,22 @@ func TestDistKeyShare(t *testing.T) {
 	}
 	// verify integrity of shares etc
 	dkss := make([]*DistKeyShare, nbParticipants)
+	var poly *share.PriPoly
 	for i, dkg := range dkgs {
 		dks, err := dkg.DistKeyShare()
 		require.Nil(t, err)
 		require.NotNil(t, dks)
+		require.NotNil(t, dks.PrivatePoly)
 		dkss[i] = dks
 		assert.Equal(t, dkg.index, uint32(dks.Share.I))
+
+		pripoly := share.CoefficientsToPriPoly(suite, dks.PrivatePoly)
+		if poly == nil {
+			poly = pripoly
+			continue
+		}
+		poly, err = poly.Add(pripoly)
+		require.NoError(t, err)
 	}
 
 	shares := make([]*share.PriShare, nbParticipants)
@@ -294,6 +303,9 @@ func TestDistKeyShare(t *testing.T) {
 
 	secret, err := share.RecoverSecret(suite, shares, nbParticipants, nbParticipants)
 	assert.Nil(t, err)
+
+	secretCoeffs := poly.Coefficients()
+	require.Equal(t, secret.String(), secretCoeffs[0].String())
 
 	commitSecret := suite.Point().Mul(secret, nil)
 	assert.Equal(t, dkss[0].Public().String(), commitSecret.String())
