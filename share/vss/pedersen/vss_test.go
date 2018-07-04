@@ -79,17 +79,23 @@ func TestVSSWhole(t *testing.T) {
 	assert.Nil(t, err)
 	require.NotNil(t, sec)
 	assert.Equal(t, dealer.secret.String(), sec.String())
+
+	priPoly := dealer.PrivatePoly()
+	priCoeffs := priPoly.Coefficients()
+	require.Equal(t, secret.String(), priCoeffs[0].String())
 }
 
 func TestVSSDealerNew(t *testing.T) {
 	goodT := MinimumT(nbVerifiers)
-	_, err := NewDealer(suite, dealerSec, secret, verifiersPub, goodT)
-	assert.NoError(t, err)
+	dealer, err := NewDealer(suite, dealerSec, secret, verifiersPub, goodT)
+	require.NoError(t, err)
+	require.NotNil(t, dealer.secretPoly)
 
 	for _, badT := range []int{0, 1, -4} {
 		_, err = NewDealer(suite, dealerSec, secret, verifiersPub, badT)
 		assert.Error(t, err)
 	}
+
 }
 
 func TestVSSVerifierNew(t *testing.T) {
