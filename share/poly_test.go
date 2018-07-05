@@ -5,6 +5,7 @@ import (
 
 	"github.com/dedis/kyber/group/edwards25519"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSecretRecovery(test *testing.T) {
@@ -301,4 +302,18 @@ func TestRecoverPriPoly(test *testing.T) {
 		assert.Equal(test, recovered.Eval(i).V.String(), a.Eval(i).V.String())
 		assert.Equal(test, reverseRecovered.Eval(i).V.String(), a.Eval(i).V.String())
 	}
+}
+
+func TestPriPolyCoefficients(test *testing.T) {
+	suite := edwards25519.NewBlakeSHA256Ed25519()
+	n := 10
+	t := n/2 + 1
+	a := NewPriPoly(suite, t, nil, suite.RandomStream())
+
+	coeffs := a.Coefficients()
+	require.Len(test, coeffs, t)
+
+	b := CoefficientsToPriPoly(suite, coeffs)
+	require.Equal(test, a.coeffs, b.coeffs)
+
 }
