@@ -153,6 +153,12 @@ func testGroup(t *testing.T, g kyber.Group, rand cipher.Stream) []kyber.Point {
 	// Do a simple Diffie-Hellman test
 	s1 := g.Scalar().Pick(rand)
 	s2 := g.Scalar().Pick(rand)
+	if s1.Equal(szero) {
+		t.Errorf("first secret is scalar zero %v", s1)
+	}
+	if s2.Equal(szero) {
+		t.Errorf("second secret is scalar zero %v", s2)
+	}
 	if s1.Equal(s2) {
 		t.Errorf("not getting unique secrets: picked %s twice", s1)
 	}
