@@ -10,11 +10,11 @@ import (
 
 var testQR512 = NewBlakeSHA256QR512()
 
-func TestQR512(t *testing.T) { test.SuiteTest(testQR512) }
+func TestQR512(t *testing.T) { test.SuiteTest(t, testQR512) }
 
 var testP256 = NewBlakeSHA256P256()
 
-func TestP256(t *testing.T) { test.SuiteTest(testP256) }
+func TestP256(t *testing.T) { test.SuiteTest(t, testP256) }
 
 func TestSetBytesBE(t *testing.T) {
 	s := testP256.Scalar()
