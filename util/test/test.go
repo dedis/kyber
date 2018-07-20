@@ -132,16 +132,21 @@ func testScalarClone(t *testing.T, g kyber.Group, rand cipher.Stream) {
 	}
 }
 
-// Apply a generic set of validation tests to a cryptographic Group,
-// using a given source of [pseudo-]randomness.
+// GroupTest applies a generic set of validation tests to a cryptographic Group
+// using a given source of [pseudo-]randomness. If `rand` is nil, create a new
+// PRNG.
 //
 // Returns a log of the pseudorandom Points produced in the test,
 // for comparison across alternative implementations
 // that are supposed to be equivalent.
 //
-func testGroup(t *testing.T, g kyber.Group, rand cipher.Stream) []kyber.Point {
+func GroupTest(t *testing.T, g kyber.Group, rand cipher.Stream) []kyber.Point {
 	t.Logf("\nTesting group '%s': %d-byte Point, %d-byte Scalar\n",
 		g.String(), g.PointLen(), g.ScalarLen())
+
+	if rand == nil {
+		rand = random.New()
+	}
 
 	points := make([]kyber.Point, 0)
 	ptmp := g.Point()
@@ -364,18 +369,13 @@ func testGroup(t *testing.T, g kyber.Group, rand cipher.Stream) []kyber.Point {
 	return points
 }
 
-// GroupTest applies a generic set of validation tests to a cryptographic Group.
-func GroupTest(t *testing.T, g kyber.Group) {
-	testGroup(t, g, random.New())
-}
-
 // CompareGroups tests two group implementations that are supposed to be equivalent,
 // and compare their results.
 func CompareGroups(t *testing.T, fn func(key []byte) kyber.XOF, g1, g2 kyber.Group) {
 
 	// Produce test results from the same pseudorandom seed
-	r1 := testGroup(t, g1, fn(nil))
-	r2 := testGroup(t, g2, fn(nil))
+	r1 := GroupTest(t, g1, fn(nil))
+	r2 := GroupTest(t, g2, fn(nil))
 
 	// Compare resulting Points
 	for i := range r1 {
@@ -429,5 +429,5 @@ func SuiteTest(t *testing.T, suite suite) {
 	}
 
 	// Test the public-key group arithmetic
-	GroupTest(t, suite)
+	GroupTest(t, suite, nil)
 }

@@ -16,37 +16,37 @@ var testSuite = NewBlakeSHA256Curve25519(false)
 // Test each curve implementation of the Ed25519 curve.
 
 func TestProjective25519(t *testing.T) {
-	test.GroupTest(t, new(ProjectiveCurve).Init(Param25519(), false))
+	test.GroupTest(t, new(ProjectiveCurve).Init(Param25519(), false), nil)
 }
 
 func TestExtended25519(t *testing.T) {
-	test.GroupTest(t, new(ExtendedCurve).Init(Param25519(), false))
+	test.GroupTest(t, new(ExtendedCurve).Init(Param25519(), false), nil)
 }
 
 func TestEd25519(t *testing.T) {
-	test.GroupTest(t, new(edwards25519.Curve))
+	test.GroupTest(t, new(edwards25519.Curve), nil)
 }
 
 // Test the Extended coordinates implementation of each curve.
 
 func Test1174(t *testing.T) {
-	test.GroupTest(t, new(ExtendedCurve).Init(Param1174(), false))
+	test.GroupTest(t, new(ExtendedCurve).Init(Param1174(), false), nil)
 }
 
 func Test25519(t *testing.T) {
-	test.GroupTest(t, new(ExtendedCurve).Init(Param25519(), false))
+	test.GroupTest(t, new(ExtendedCurve).Init(Param25519(), false), nil)
 }
 
 func TestE382(t *testing.T) {
-	test.GroupTest(t, new(ExtendedCurve).Init(ParamE382(), false))
+	test.GroupTest(t, new(ExtendedCurve).Init(ParamE382(), false), nil)
 }
 
 func Test4147(t *testing.T) {
-	test.GroupTest(t, new(ExtendedCurve).Init(Param41417(), false))
+	test.GroupTest(t, new(ExtendedCurve).Init(Param41417(), false), nil)
 }
 
 func TestE521(t *testing.T) {
-	test.GroupTest(t, new(ExtendedCurve).Init(ParamE521(), false))
+	test.GroupTest(t, new(ExtendedCurve).Init(ParamE521(), false), nil)
 }
 
 func TestSetBytesBE(t *testing.T) {
@@ -64,23 +64,23 @@ func TestSetBytesBE(t *testing.T) {
 // for which a full-group-order base point is defined.
 
 func TestFullOrder1174(t *testing.T) {
-	test.GroupTest(t, new(ExtendedCurve).Init(Param1174(), true))
+	test.GroupTest(t, new(ExtendedCurve).Init(Param1174(), true), nil)
 }
 
 func TestFullOrder25519(t *testing.T) {
-	test.GroupTest(t, new(ExtendedCurve).Init(Param25519(), true))
+	test.GroupTest(t, new(ExtendedCurve).Init(Param25519(), true), nil)
 }
 
 func TestFullOrderE382(t *testing.T) {
-	test.GroupTest(t, new(ExtendedCurve).Init(ParamE382(), true))
+	test.GroupTest(t, new(ExtendedCurve).Init(ParamE382(), true), nil)
 }
 
 func TestFullOrder4147(t *testing.T) {
-	test.GroupTest(t, new(ExtendedCurve).Init(Param41417(), true))
+	test.GroupTest(t, new(ExtendedCurve).Init(Param41417(), true), nil)
 }
 
 func TestFullOrderE521(t *testing.T) {
-	test.GroupTest(t, new(ExtendedCurve).Init(ParamE521(), true))
+	test.GroupTest(t, new(ExtendedCurve).Init(ParamE521(), true), nil)
 }
 
 // Test ExtendedCurve versus ProjectiveCurve implementations
