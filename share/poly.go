@@ -449,6 +449,9 @@ func RecoverPubPoly(g kyber.Group, shares []*PubShare, t, n int) (*PubPoly, erro
 
 }
 
+// LagrangeBasis returns a PriPoly containing the Lagrange coefficients for the
+// i-th position. xs is a mapping between the indices and the values that the
+// interpolation is using, computed with xScalar().
 func LagrangeBasis(g kyber.Group, i int, xs map[int]kyber.Scalar) *PriPoly {
 	var basis = &PriPoly{
 		g:      g,
