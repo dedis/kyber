@@ -427,6 +427,8 @@ func RecoverCommit(g kyber.Group, shares []*PubShare, t, n int) (kyber.Point, er
 	return Acc, nil
 }
 
+// RecoverPubPoly reconstructs the full public polynomial from a set of public
+// shares using Lagrange interpolation.
 func RecoverPubPoly(g kyber.Group, shares []*PubShare, t, n int) (*PubPoly, error) {
 	x := make(map[int]kyber.Scalar)
 	for i, s := range shares {
