@@ -25,68 +25,6 @@ func TestSecretRecovery(test *testing.T) {
 	}
 }
 
-func TestSecretRecoverySub(test *testing.T) {
-	g := edwards25519.NewBlakeSHA256Ed25519()
-	n := 10
-	t := n/2 + 1
-
-	// each make their own polynomial
-	polys := make([]*PriPoly, n)
-	individualShares := make([][]*PriShare, n)
-	finalShares := make([]*PriShare, n)
-	secret := g.Scalar().Zero()
-	for i := 0; i < n; i++ {
-		polys[i] = NewPriPoly(g, t, nil, g.RandomStream())
-		individualShares[i] = polys[i].Shares(n)
-		secret = secret.Add(secret, polys[i].Secret())
-	}
-
-	// compute final share (of DKG)
-	for i := 0; i < n; i++ {
-		finalShare := g.Scalar().Zero()
-		for j := 0; j < n; j++ {
-			finalShare = finalShare.Add(finalShare, individualShares[j][i].V)
-		}
-		finalShares[i] = &PriShare{I: i, V: finalShare}
-	}
-
-	// test if DKG is correct
-	recovered, err := RecoverSecret(g, finalShares, t, n)
-	require.NoError(test, err)
-	require.Equal(test, recovered.String(), secret.String())
-
-	// start sub-sharing
-	subpolys := make([]*PriPoly, n)
-	subshares := make([][]*PriShare, n)
-	// for each final share, we compute a set of sub-shares
-	for i := 0; i < n; i++ {
-		// create subshares of the share of node i
-		subpolys[i] = NewPriPoly(g, t+1, finalShares[i].V, g.RandomStream())
-		subshares[i] = subpolys[i].Shares(n)
-	}
-
-	newShares := make([]*PriShare, n)
-	// give respective sub-shares to each node
-	for j := 0; j < n; j++ {
-		tmpshares := make([]*PriShare, n)
-		// take all j-th in the slice of sub-shares of everyone
-		for k := 0; k < n; k++ {
-			tmpshares[k] = subshares[k][j]
-			tmpshares[k].I = k // because this time, the creator has the index
-			//fmt.println("shares:", tmpshares[j].i)
-		}
-		// reconstruct the new share
-		sec, err := RecoverSecret(g, tmpshares, t+1, n)
-		require.NoError(test, err)
-		newShares[j] = &PriShare{I: j, V: sec}
-	}
-
-	// check if it reconstructs to same secret
-	recovered, err = RecoverSecret(g, newShares, t+1, n)
-	require.NoError(test, err)
-	require.Equal(test, recovered.String(), secret.String())
-}
-
 func TestSecretRecoveryDelete(test *testing.T) {
 	g := edwards25519.NewBlakeSHA256Ed25519()
 	n := 10
