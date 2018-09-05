@@ -237,7 +237,7 @@ func RecoverPriPoly(g kyber.Group, shares []*PriShare, t, n int) (*PriPoly, erro
 	//den := g.Scalar()
 	// Notations follow the Wikipedia article on Lagrange interpolation
 	// https://en.wikipedia.org/wiki/Lagrange_polynomial
-	for j, _ := range x {
+	for j := range x {
 		basis := LagrangeBasis(g, j, x)
 		for i := range basis.coeffs {
 			basis.coeffs[i] = basis.coeffs[i].Mul(basis.coeffs[i], shares[j].V)
@@ -429,7 +429,7 @@ func RecoverPubPoly(g kyber.Group, shares []*PubShare, t, n int) (*PubPoly, erro
 	var accPoly *PubPoly
 	var err error
 
-	for j, _ := range x {
+	for j := range x {
 		basis := LagrangeBasis(g, j, x)
 		// compute the L_j * y_j polynomial in point space
 		tmp := basis.Commit(shares[j].V)
