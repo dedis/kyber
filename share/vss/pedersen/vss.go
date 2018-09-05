@@ -265,9 +265,6 @@ func (d *Dealer) SecretCommit() kyber.Point {
 // Commits returns the commitments of the coefficient of the secret polynomial
 // the Dealer is sharing.
 func (d *Dealer) Commits() []kyber.Point {
-	if !d.EnoughApprovals() || !d.DealCertified() {
-		return nil
-	}
 	return d.secretCommits
 }
 
@@ -436,6 +433,13 @@ func (v *Verifier) ProcessResponse(resp *Response) error {
 		return ErrNoDealBeforeResponse
 	}
 	return v.aggregator.verifyResponse(resp)
+}
+
+// Commits returns the commitments of the coefficients of the polynomial
+// contained in the Deal received. It is public information. The private
+// information in the deal must be retrieved through Deal().
+func (v *Verifier) Commits() []kyber.Point {
+	return v.deal.Commitments
 }
 
 // Deal returns the Deal that this verifier has received. It returns
