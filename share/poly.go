@@ -398,6 +398,9 @@ func RecoverCommit(g kyber.Group, shares []*PubShare, t, n int) (kyber.Point, er
 			continue
 		}
 		x[i] = g.Scalar().SetInt64(1 + int64(s.I))
+		if len(x) == t {
+			break
+		}
 	}
 
 	if len(x) < t {
@@ -436,6 +439,9 @@ func RecoverPubPoly(g kyber.Group, shares []*PubShare, t, n int) (*PubPoly, erro
 			continue
 		}
 		x[i] = g.Scalar().SetInt64(1 + int64(s.I))
+		if len(x) == t {
+			break
+		}
 	}
 
 	if len(x) < t {

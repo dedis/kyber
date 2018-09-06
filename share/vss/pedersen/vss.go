@@ -422,7 +422,7 @@ func (v *Verifier) decryptDeal(e *EncryptedDeal) (*Deal, error) {
 // ErrNoDealBeforeResponse is an error returned if a verifier receives a
 // deal before having received any responses. For the moment, the caller must
 // be sure to have dispatched a deal before.
-var ErrNoDealBeforeResponse = errors.New("verfier: need to receive deal before response")
+var ErrNoDealBeforeResponse = errors.New("verifier: need to receive deal before response")
 
 // ProcessResponse analyzes the given response. If it's a valid complaint, the
 // verifier should expect to see a Justification from the Dealer. It returns an

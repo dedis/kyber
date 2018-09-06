@@ -43,8 +43,6 @@ func (d *DistKeyShare) Commitments() []kyber.Point {
 type Deal struct {
 	// Index of the Dealer in the list of participants
 	Index uint32
-	// Commitments of the all current shares
-	ShareCommits []*share.PubShare
 	// Deal issued for another participant
 	Deal *vss.EncryptedDeal
 	// Signature over the whole message
@@ -54,11 +52,8 @@ type Deal struct {
 func (d *Deal) MarshalBinary() ([]byte, error) {
 	var b bytes.Buffer
 	binary.Write(&b, binary.LittleEndian, d.Index)
-	for _, s := range d.ShareCommits {
-		_, _ = s.MarshalTo(&b)
-	}
-	buff, err := d.deal.MarshalBinary()
-	return b.Bytes(), err
+	b.Write(d.Deal.Cipher)
+	return b.Bytes(), nil
 }
 
 // Response holds the Response from another participant as well as the index of

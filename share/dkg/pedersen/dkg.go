@@ -4,6 +4,7 @@ package dkg
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/dedis/kyber"
 
@@ -21,12 +22,6 @@ type Config struct {
 	// Longterm is the longterm secret key.
 	Longterm kyber.Scalar
 
-	// Expected new group of share holders. These public-key designated nodes
-	// will be in possession of new shares after the protocol is ran. To be a
-	// receiver a of new share, one's public key must be inside this list. Keys
-	// can be disjoint or not with respect to the OldNodes list.
-	NewNodes []kyber.Point
-
 	// Current group of share holders. It can be nil for new DKG. These nodes
 	// will have invalid share after the protocol is ran. To be able to issue
 	// new fresh shares to a new group, one's public key must be inside this
@@ -34,14 +29,21 @@ type Config struct {
 	// respect to the NewNodes list.
 	OldNodes []kyber.Point
 
-	// DistPublic is the distributed public key required during the resharing
-	// protocol. It is required for new share holders. It can be nil for new DKG.
-	DistPublic kyber.Point
+	// PublicCoeffs are the coefficients of the distributed polynomial needed
+	// during the resharing protocol. The first coefficient is the key.It is
+	// required for new share holders.  It can be nil for new DKG.
+	PublicCoeffs []kyber.Point
 
-	// Share to refresh. Can be nil for new DKG or new node wishing to join the
-	// group. To be able to issue new fresh shares to a new group, one's share
-	// must be specified here, along with the public key inside the OldNodes
-	// field.
+	// Expected new group of share holders. These public-key designated nodes
+	// will be in possession of new shares after the protocol is ran. To be a
+	// receiver a of new share, one's public key must be inside this list. Keys
+	// can be disjoint or not with respect to the OldNodes list.
+	NewNodes []kyber.Point
+
+	// Share to refresh. It must be nil for fresh DKG or new node wishing to
+	// join the group. To be able to issue new fresh shares to a new group,
+	// one's share must be specified here, along with the public key inside the
+	// OldNodes field.
 	Share *DistKeyShare
 
 	// New threshold to use if set. Default will be returned by `vss.MinimumT()`
@@ -50,9 +52,10 @@ type Config struct {
 
 func NewDKGConfig(suite Suite, longterm kyber.Scalar, participants []kyber.Point) *Config {
 	return &Config{
-		Suite:    suite,
-		Longterm: longterm,
-		NewNodes: participants,
+		Suite:     suite,
+		Longterm:  longterm,
+		NewNodes:  participants,
+		Threshold: vss.MinimumT(len(participants)),
 	}
 }
 
@@ -62,28 +65,28 @@ func NewDKGConfig(suite Suite, longterm kyber.Scalar, participants []kyber.Point
 // actively issue new shares. Dpublic is needed for a participant in then
 // newNodes list to verify the validity of the new received shares.
 func NewReshareConfig(suite Suite, longterm kyber.Scalar, oldNodes, newNodes []kyber.Point,
-	share *DistKeyShare, dpublic kyber.Point) *Config {
+	share *DistKeyShare, pcoeffs []kyber.Point) *Config {
 	return &Config{
-		Suite:      suite,
-		Longterm:   longterm,
-		OldNodes:   oldNodes,
-		NewNodes:   newNodes,
-		Share:      share,
-		DistPublic: dpublic,
+		Suite:        suite,
+		Longterm:     longterm,
+		OldNodes:     oldNodes,
+		NewNodes:     newNodes,
+		Share:        share,
+		PublicCoeffs: pcoeffs,
+		Threshold:    vss.MinimumT(len(newNodes)),
 	}
 }
 
 // DistKeyGenerator is the struct that runs the DKG protocol.
 type DistKeyGenerator struct {
+	// config driving the behavior of DistKeyGenerator
+	c     *Config
 	suite Suite
 
-	long kyber.Scalar
-	pub  kyber.Point
-
-	participants []kyber.Point
-
-	t int
-
+	long   kyber.Scalar
+	pub    kyber.Point
+	dpub   *share.PubPoly
+	t      int
 	dealer *vss.Dealer
 	// verifiers indexed by dealer index
 	verifiers map[uint32]*vss.Verifier
@@ -92,12 +95,14 @@ type DistKeyGenerator struct {
 	oidx int
 	// index in the new list of nodes
 	nidx int
-	// indicates whether we are able to issue shares or not
-	canIssue bool
 	// indicates whether we are in the re-sharing protocol or basic DKG
 	isResharing bool
+	// indicates whether we are able to issue shares or not
+	canIssue bool
+	// Indicates whether we are able to receive a new share or not
+	canReceive bool
 	// commitments of the shares of the old polynomial
-	oldShareCommits []*PubShare
+	oldShareCommits []*share.PubShare
 }
 
 func NewDistKeyHandler(c *Config) (*DistKeyGenerator, error) {
@@ -107,18 +112,35 @@ func NewDistKeyHandler(c *Config) (*DistKeyGenerator, error) {
 		return nil, errors.New("dkg: can't run with old nodes but without new nodes")
 	}
 
+	// canReceive is true by default since in the default DKG mode everyone
+	// participates
+	var canReceive bool = true
 	var isResharing bool
-	if c.OldNodes != nil {
-		// if there are new nodes specified we are the resharing mode
+	if c.Share != nil || c.PublicCoeffs != nil {
 		isResharing = true
 	}
 
-	pub := suite.Point().Mul(longterm, nil)
-	oidx, oldPresent := findPub(c.OldNodes)
-	nidx, newPresent := findPub(c.NewNodes)
+	pub := c.Suite.Point().Mul(c.Longterm, nil)
+	oidx, oldPresent := findPub(c.OldNodes, pub)
+	nidx, newPresent := findPub(c.NewNodes, pub)
 	if !oldPresent && !newPresent {
 		return nil, errors.New("dkg: public key not found in old list or new list")
 	}
+
+	var dpub *share.PubPoly
+	if !newPresent {
+		// if we are not in the new list of nodes, then we definitely can't
+		// receive anything
+		canReceive = false
+	} else if isResharing && newPresent && c.PublicCoeffs == nil {
+		return nil, errors.New("dkg: can't receive new shares without the public polynomial")
+	} else {
+		// there are old nodes, new nodes, public coefficients and we are
+		// present in the new list => we can receive shares
+		canReceive = true
+		dpub = share.NewPubPoly(c.Suite, c.Suite.Point().Base(), c.PublicCoeffs)
+	}
+
 	var canIssue bool
 	if oldPresent && c.Share != nil {
 		// if we are present in the old list and there is a share given in the
@@ -132,94 +154,51 @@ func NewDistKeyHandler(c *Config) (*DistKeyGenerator, error) {
 
 	var secretCoeff kyber.Scalar
 	if c.Share != nil {
-		secretCoeff = c.Share.V
+		secretCoeff = c.Share.Share.V
 	} else {
-		ownSecret := c.Suite.Scalar().Pick(c.Suite.RandomStream())
+		secretCoeff = c.Suite.Scalar().Pick(c.Suite.RandomStream())
 	}
 
 	var threshold int
-	if c.Treshold != 0 {
+	if c.Threshold != 0 {
 		threshold = c.Threshold
 	} else {
 		threshold = vss.MinimumT(len(c.NewNodes))
 	}
 
-	dealer, err := vss.NewDealer(suite, c.Longterm, secretCoeff, c.NewNodes, threshold)
+	dealer, err := vss.NewDealer(c.Suite, c.Longterm, secretCoeff, c.NewNodes, threshold)
 	if err != nil {
 		return nil, err
 	}
 
 	return &DistKeyGenerator{
-		dealer:       dealer,
-		verifiers:    make(map[uint32]*vss.Verifier),
-		t:            threshold,
-		suite:        c.Suite,
-		long:         c.Longterm,
-		pub:          pub,
-		participants: participants,
-		canIssue:     canIssue,
-		isResharing:  isResharing,
+		dealer:      dealer,
+		verifiers:   make(map[uint32]*vss.Verifier),
+		t:           threshold,
+		suite:       c.Suite,
+		long:        c.Longterm,
+		pub:         pub,
+		canIssue:    canIssue,
+		canReceive:  canReceive,
+		isResharing: isResharing,
+		dpub:        dpub,
+		oidx:        oidx,
+		nidx:        nidx,
+		c:           c,
 	}, nil
 }
 
-// initDistKeyGenerator returns a dist key generator with the given secret as
-// the first coefficient of the polynomial of this dealer.
-func initDistKeyGenerator(suite Suite, longterm kyber.Scalar, participants []kyber.Point, t int, secret kyber.Scalar) (*DistKeyGenerator, error) {
-	pub := suite.Point().Mul(longterm, nil)
-	// find our index
-	var found bool
-	var index uint32
-	for i, p := range participants {
-		if p.Equal(pub) {
-			found = true
-			index = uint32(i)
-			break
-		}
-	}
-	if !found {
-		return nil, errors.New("dkg: own public key not found in list of participants")
-	}
-	var err error
-	// generate our dealer / deal
-	ownSec := secret
-	dealer, err := vss.NewDealer(suite, longterm, ownSec, participants, t)
-	if err != nil {
-		return nil, err
-	}
-
-	return &DistKeyGenerator{
-		dealer:    dealer,
-		verifiers: make(map[uint32]*vss.Verifier),
-		t:         t,
-		suite:     suite,
-		long:      longterm,
-		pub:       pub,
-		index:     index,
-		oindex:    int(index),
-		canIssue:  true,
-		config: &Config{
-			Suite:    suite,
-			Longterm: long,
-			NewNodes: participants,
-		},
-	}, nil
-}
-
-// NewDistKeyGenerator returns a DistKeyGenerator out of the suite, the longterm
-// secret key, the list of participants, the threshold t parameter and a given
-// secret. It returns an error if the secret key's commitment can't be found in
-// the list of participants.
+// NewDistKeyGenerator returns a dist key generator ready to create a new
+// distributed key.
 func NewDistKeyGenerator(suite Suite, longterm kyber.Scalar, participants []kyber.Point, t int) (*DistKeyGenerator, error) {
-	ownSecret := suite.Scalar().Pick(suite.RandomStream())
-	return initDistKeyGenerator(suite, longterm, participants, t, ownSecret)
-}
-
-// NewDistKeyGeneratorWithoutSecret simply returns a DistKeyGenerator with an
-// nil secret.  It is used to renew the private shares without affecting the
-// secret.
-func NewDistKeyGeneratorWithoutSecret(suite Suite, longterm kyber.Scalar, participants []kyber.Point, t int) (*DistKeyGenerator, error) {
-	ownSecret := suite.Scalar().Zero()
-	return initDistKeyGenerator(suite, longterm, participants, t, ownSecret)
+	c := &Config{
+		Suite:     suite,
+		Longterm:  longterm,
+		NewNodes:  participants,
+		OldNodes:  participants,
+		Threshold: t,
+	}
+	return NewDistKeyHandler(c)
 }
 
 // Deals returns all the deals that must be broadcasted to all
@@ -243,24 +222,11 @@ func (d *DistKeyGenerator) Deals() (map[int]*Deal, error) {
 	if err != nil {
 		return nil, err
 	}
-	var shareCommits []*PubShare
-	if d.isResharing {
-		// create share commitments of the polynomial to embed in the deals
-		commits := d.c.Share.Commits
-		poly := NewPubPoly(d.suite, d.suite.Point().Base(), commits)
-		shareCommits = poly.Shares(len(d.c.OldNodes))
-	}
-
 	dd := make(map[int]*Deal)
 	for i := range d.c.NewNodes {
 		distd := &Deal{
-			Index:        d.index,
-			Deal:         deals[i],
-			ShareCommits: shareCommits,
-		}
-		if d.isResharing {
-			// embeds the share commitments
-			distd.ShareCommits = shareCommits
+			Index: uint32(d.oidx),
+			Deal:  deals[i],
 		}
 		// sign the deal
 		buff, err := distd.MarshalBinary()
@@ -272,8 +238,8 @@ func (d *DistKeyGenerator) Deals() (map[int]*Deal, error) {
 			return nil, err
 		}
 
-		if i == int(d.index) {
-			if _, ok := d.verifiers[d.index]; ok {
+		if i == int(d.nidx) {
+			if _, ok := d.verifiers[uint32(d.nidx)]; ok {
 				// already processed our own deal
 				continue
 			}
@@ -326,10 +292,13 @@ func (d *DistKeyGenerator) ProcessDeal(dd *Deal) (*Response, error) {
 	}
 
 	reject := func() (*Response, error) {
-		// XXX Check if the dealer is also in the new list, and then set the
-		// complaint
-		//d.verifiers[dd.Index].UnsafeSetResponseDKG(dd.Index, vss.StatusComplaint)
-		d.verifiers[dd.Index].UnsafeSetResponseDKG(d.nidx, vss.StatusComplaint)
+		idx, present := findPub(d.c.NewNodes, pub)
+		if present {
+			d.verifiers[uint32(idx)].UnsafeSetResponseDKG(uint32(idx), vss.StatusComplaint)
+		}
+		// indicate to VSS that the new status is complaint, since the check is
+		// done outdone VSS package control.
+		d.verifiers[uint32(d.nidx)].UnsafeSetResponseDKG(uint32(d.nidx), vss.StatusComplaint)
 		resp.Status = vss.StatusComplaint
 		s, err := schnorr.Sign(d.suite, d.long, resp.Hash(d.suite))
 		if err != nil {
@@ -342,28 +311,15 @@ func (d *DistKeyGenerator) ProcessDeal(dd *Deal) (*Response, error) {
 		}, nil
 	}
 
-	if d.isResharing {
+	if d.isResharing && d.canReceive {
 		// verify share integrity wrt to the dist. secret
-		// 1. check that the commitment of the share is the same as the one received
-		// in the ShareCommitments field.
-		dealCommits := v.Commits()
-		if !dealCommits[0].Equal(dd.ShareCommits[dd.Index].V) {
+		dealCommits := ver.Commits()
+		// Check that the received committed share is equal to the one we
+		// generate from the known public polynomial
+		expectedPubShare := d.dpub.Eval(int(dd.Index))
+		if !expectedPubShare.V.Equal(dealCommits[0]) {
 			return reject()
 		}
-		// 2. check that the interpolation of all share commitments leads to dist
-		// public key
-		recovered, err := share.RecoverCommit(d.suite, dd.ShareCommits, d.c.Threshold, len(d.c.OldNodes))
-		if err != nil {
-			return reject()
-		}
-		if !publicKey.Equal(d.c.DistPublic) {
-			return reject()
-		}
-
-		// save it for later
-		// XXX Make sure all sharecommits received are the same and not an
-		// attacker defined slice
-		d.oldShareCommits = dd.ShareCommits
 	} else {
 		// Set StatusApproval for the verifier that represents the participant
 		// that distibuted the Deal
@@ -391,29 +347,27 @@ func (d *DistKeyGenerator) ProcessResponse(resp *Response) (*Justification, erro
 		return nil, err
 	}
 
-	if resp.Index != uint32(d.index) {
+	if !d.canIssue {
 		return nil, nil
 	}
 
-	var j *Justification
-
-	if d.canIssue {
-		j, err := d.dealer.ProcessResponse(resp.Response)
-		if err != nil {
-			return nil, err
-		}
-		if j == nil {
-			return nil, nil
-		}
-		if err := v.ProcessJustification(j); err != nil {
-			return nil, err
-		}
+	if d.canIssue && resp.Index != uint32(d.oidx) {
+		return nil, nil
 	}
 
-	// XXX Check for justification part in the resharing protocol ?
+	j, err := d.dealer.ProcessResponse(resp.Response)
+	if err != nil {
+		return nil, err
+	}
+	if j == nil {
+		return nil, nil
+	}
+	if err := v.ProcessJustification(j); err != nil {
+		return nil, err
+	}
 
 	return &Justification{
-		Index:         d.index,
+		Index:         uint32(d.oidx),
 		Justification: j,
 	}, nil
 }
@@ -490,10 +444,14 @@ func (d *DistKeyGenerator) DistKeyShare() (*DistKeyShare, error) {
 	if !d.Certified() {
 		return nil, errors.New("dkg: distributed key not certified")
 	}
+	if !d.canReceive {
+		return nil, errors.New("dkg: should not expect to compute any dist. share")
+	}
 
 	if d.isResharing {
 		return d.resharingKey()
 	}
+
 	return d.dkgKey()
 }
 
@@ -526,7 +484,7 @@ func (d *DistKeyGenerator) dkgKey() (*DistKeyShare, error) {
 	return &DistKeyShare{
 		Commits: commits,
 		Share: &share.PriShare{
-			I: int(d.index),
+			I: int(d.nidx),
 			V: sh,
 		},
 		PrivatePoly: d.dealer.PrivatePoly().Coefficients(),
@@ -535,27 +493,54 @@ func (d *DistKeyGenerator) dkgKey() (*DistKeyShare, error) {
 }
 
 func (d *DistKeyGenerator) resharingKey() (*DistKeyShare, error) {
-	shares := make([]*PriShare, 0, len(d.NewNodes))
+	// only old nodes sends shares
+	shares := make([]*share.PriShare, 0, len(d.c.OldNodes))
+	coeffs := make(map[int][]kyber.Point)
 	d.qualIter(func(i uint32, v *vss.Verifier) bool {
 		// share of dist. secret
 		deal := v.Deal()
 		deal.SecShare.I = int(i)
 		shares = append(shares, deal.SecShare)
+		coeffs[int(i)] = deal.Commitments
 		return true
 	})
 
+	// recover private share (with the rest of the polynomial)
+	priPoly, err := share.RecoverPriPoly(d.suite, shares, d.t, len(d.c.NewNodes))
 	if err != nil {
 		return nil, err
 	}
-	_, commits := pub.Info()
 
+	// recover public polynomial by interpolating coefficient-wise all
+	// polynomials
+	finalCoeffs := make([]kyber.Point, d.t)
+	for i := 0; i < d.t; i++ {
+		tmpCoeffs := make([]*share.PubShare, 0, len(coeffs))
+		// take all i-th coefficients
+		for j, coeffs := range coeffs {
+			tmpCoeffs = append(tmpCoeffs, &share.PubShare{I: j, V: coeffs[i]})
+		}
+		// recover the i-th public coefficient
+		coeff, err := share.RecoverCommit(d.suite, tmpCoeffs, d.t, len(d.c.OldNodes))
+		if err != nil {
+			return nil, fmt.Errorf("dkg: can't recover public coefficients %s", err)
+		}
+		finalCoeffs[i] = coeff
+	}
+	// Reconstruct the final public polynomial
+	pubPoly := share.NewPubPoly(d.suite, d.suite.Point().Base(), finalCoeffs)
+	share := &share.PriShare{
+		I: int(d.nidx),
+		V: priPoly.Secret(),
+	}
+
+	if !pubPoly.Check(share) {
+		return nil, errors.New("dkg: share do not correspond to public polynomial ><")
+	}
 	return &DistKeyShare{
-		Commits: commits,
-		Share: &share.PriShare{
-			I: int(d.index),
-			V: sh,
-		},
-		PrivatePoly: d.dealer.PrivatePoly().Coefficients(),
+		Commits:     finalCoeffs,
+		Share:       share,
+		PrivatePoly: priPoly.Coefficients(),
 	}, nil
 
 }

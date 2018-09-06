@@ -60,7 +60,7 @@ func TestDKGDeal(t *testing.T) {
 		assert.Equal(t, uint32(0), deals[i].Index)
 	}
 
-	v, ok := dkg.verifiers[dkg.index]
+	v, ok := dkg.verifiers[uint32(dkg.nidx)]
 	assert.True(t, ok)
 	assert.NotNil(t, v)
 }
@@ -74,15 +74,15 @@ func TestDKGProcessDeal(t *testing.T) {
 	rec := dkgs[1]
 	deal := deals[1]
 	assert.Equal(t, int(deal.Index), 0)
-	assert.Equal(t, uint32(1), rec.index)
+	assert.Equal(t, 1, rec.nidx)
 
 	// verifier don't find itself
-	goodP := rec.participants
-	rec.participants = make([]kyber.Point, 0)
+	goodP := rec.c.NewNodes
+	rec.c.NewNodes = make([]kyber.Point, 0)
 	resp, err := rec.ProcessDeal(deal)
 	assert.Nil(t, resp)
 	assert.Error(t, err)
-	rec.participants = goodP
+	rec.c.NewNodes = goodP
 
 	// good deal
 	resp, err = rec.ProcessDeal(deal)
@@ -240,7 +240,7 @@ func TestSetTimeout(t *testing.T) {
 		for _, dkg := range dkgs {
 			if !dkg.verifiers[resp.Index].EnoughApprovals() {
 				// ignore messages about ourself
-				if resp.Response.Index == dkg.index {
+				if resp.Response.Index == uint32(dkg.nidx) {
 					continue
 				}
 				j, err := dkg.ProcessResponse(resp)
@@ -253,7 +253,7 @@ func TestSetTimeout(t *testing.T) {
 	// 3. make sure everyone has the same QUAL set
 	for _, dkg := range dkgs {
 		for _, dkg2 := range dkgs {
-			require.False(t, dkg.isInQUAL(dkg2.index))
+			require.False(t, dkg.isInQUAL(uint32(dkg2.nidx)))
 		}
 	}
 
@@ -263,7 +263,7 @@ func TestSetTimeout(t *testing.T) {
 
 	for _, dkg := range dkgs {
 		for _, dkg2 := range dkgs {
-			require.True(t, dkg.isInQUAL(dkg2.index))
+			require.True(t, dkg.isInQUAL(uint32(dkg2.nidx)))
 		}
 	}
 
@@ -284,7 +284,7 @@ func TestDistKeyShare(t *testing.T) {
 		require.NotNil(t, dks)
 		require.NotNil(t, dks.PrivatePoly)
 		dkss[i] = dks
-		assert.Equal(t, dkg.index, uint32(dks.Share.I))
+		assert.Equal(t, dkg.nidx, dks.Share.I)
 
 		pripoly := share.CoefficientsToPriPoly(suite, dks.PrivatePoly)
 		if poly == nil {
@@ -321,113 +321,6 @@ func dkgGen() []*DistKeyGenerator {
 		dkgs[i] = dkg
 	}
 	return dkgs
-}
-
-func TestDistKeyShareReNew(t *testing.T) {
-	fullExchange(t)
-	fullExchangeWithRenewal(t)
-
-	dkss := make([]*DistKeyShare, nbParticipants)
-	for i, dkg := range dkgs {
-		dks, _ := dkg.DistKeyShare()
-		dksReNew, _ := dkgsReNew[i].DistKeyShare()
-		dkss[i], _ = dks.Renew(dkg.suite, dksReNew)
-	}
-
-	shares := make([]*share.PriShare, nbParticipants)
-	for i, dks := range dkss {
-		shares[i] = dks.Share
-	}
-	secret, err := share.RecoverSecret(suite, shares, nbParticipants, nbParticipants) // SUMf_j(0),j:0->#participants-
-	assert.Nil(t, err)
-
-	commitSecret := suite.Point().Mul(secret, nil)
-	assert.Equal(t, dkss[0].Public().String(), commitSecret.String())
-}
-
-func TestReNewDistKeyGenerator(t *testing.T) {
-	long := partSec[0]
-	dkgNew, err := NewDistKeyGeneratorWithoutSecret(suite, long, partPubs, nbParticipants/2+1)
-	assert.Nil(t, err)
-	assert.NotNil(t, dkgNew.dealer)
-
-}
-
-func TestDistKeyShare_Renew(t *testing.T) {
-	fullExchange(t)
-	fullExchangeWithRenewal(t)
-	dkg := dkgs[2]
-	dks, _ := dkg.DistKeyShare()
-
-	//Check when they don't have the same index
-	dkg1 := dkgsReNew[1]
-	dks1, _ := dkg1.DistKeyShare()
-	newDsk1, err := dks.Renew(dkg.suite, dks1)
-	assert.Nil(t, newDsk1)
-	assert.Error(t, err)
-
-	//Check the last coeff is not 0 in g(x)
-	dkg3 := dkgs[1]
-	dks3, _ := dkg3.DistKeyShare()
-	newDsk3, err3 := dks.Renew(dkg.suite, dks3)
-	assert.Nil(t, newDsk3)
-	assert.Error(t, err3)
-
-	//Finally, check whether it works
-	dkg2 := dkgsReNew[2]
-	dks2, _ := dkg2.DistKeyShare()
-	newDks, err := dks.Renew(dkg.suite, dks2)
-	assert.Nil(t, err)
-	assert.NotNil(t, newDks)
-
-}
-
-func TestReNewDistKeyShare(t *testing.T) {
-	fullExchange(t)
-	fullExchangeWithRenewal(t)
-
-	for _, dkg := range dkgs {
-		assert.True(t, dkg.Certified())
-
-	}
-	// verify integrity of shares etc
-	formerDks, _ := dkgs[0].DistKeyShare()
-	dkss := make([]*DistKeyShare, nbParticipants)
-	for i, dkg := range dkgs {
-		dks, err := dkg.DistKeyShare()
-
-		require.Nil(t, err)
-		require.NotNil(t, dks)
-		dksNew, _ := dkgsReNew[i].DistKeyShare()
-		dkss[i], _ = dks.Renew(dkg.suite, dksNew) //Renewal
-		assert.Equal(t, dkg.index, uint32(dks.Share.I))
-	}
-
-	shares := make([]*share.PriShare, nbParticipants)
-	for i, dks := range dkss {
-		assert.True(t, checkDks(dks, dkss[0]), "dist key share not equal %d vs %d", dks.Share.I, 0)
-		shares[i] = dks.Share
-	}
-
-	secret, err := share.RecoverSecret(suite, shares, nbParticipants, nbParticipants)
-	assert.Nil(t, err)
-
-	//Check is sum(f)*G == sum(F)
-	//a0*G
-	commitSecret := suite.Point().Mul(secret, nil)
-	assert.Equal(t, formerDks.Public().String(), commitSecret.String())
-}
-
-func reNewDkgGen() []*DistKeyGenerator {
-	dkgsNew := make([]*DistKeyGenerator, nbParticipants)
-	for i := 0; i < nbParticipants; i++ {
-		dkgNew, err := NewDistKeyGeneratorWithoutSecret(suite, partSec[i], partPubs, nbParticipants/2+1)
-		if err != nil {
-			panic(err)
-		}
-		dkgsNew[i] = dkgNew
-	}
-	return dkgsNew
 }
 
 func genPair() (kyber.Scalar, kyber.Point) {
@@ -471,7 +364,7 @@ func fullExchange(t *testing.T) {
 	for _, resp := range resps {
 		for _, dkg := range dkgs {
 			// Ignore messages about ourselves
-			if resp.Response.Index == dkg.index {
+			if resp.Response.Index == uint32(dkg.nidx) {
 				continue
 			}
 			j, err := dkg.ProcessResponse(resp)
@@ -483,34 +376,8 @@ func fullExchange(t *testing.T) {
 	// 3. make sure everyone has the same QUAL set
 	for _, dkg := range dkgs {
 		for _, dkg2 := range dkgs {
-			require.True(t, dkg.isInQUAL(dkg2.index))
+			require.True(t, dkg.isInQUAL(uint32(dkg2.nidx)))
 		}
 	}
 
-}
-
-func fullExchangeWithRenewal(t *testing.T) {
-	dkgsReNew = reNewDkgGen()
-	// full secret sharing exchange
-	// 1. broadcast deals
-	resps := make([]*Response, 0, nbParticipants*nbParticipants)
-	for _, dkg := range dkgsReNew {
-		deals, _ := dkg.Deals()
-		for i, d := range deals {
-			resp, _ := dkgsReNew[i].ProcessDeal(d)
-			resps = append(resps, resp)
-		}
-	}
-	// 2. Broadcast responses
-	for _, resp := range resps {
-		for _, dkg := range dkgsReNew {
-			// Ignore messages about ourselves
-			if resp.Response.Index == dkg.index {
-				continue
-			}
-			j, _ := dkg.ProcessResponse(resp)
-			//require.Nil(t, err)
-			require.Nil(t, j)
-		}
-	}
 }
