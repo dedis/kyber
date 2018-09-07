@@ -324,7 +324,7 @@ func TestRefreshDKG(test *testing.T) {
 	n := 10
 	t := n/2 + 1
 
-	// Run an (n-fold Pedersen) VSS
+	// Run an n-fold Pedersen VSS (= DKG)
 	priPolys := make([]*PriPoly, n)
 	priShares := make([][]*PriShare, n)
 	pubPolys := make([]*PubPoly, n)
