@@ -392,7 +392,6 @@ func TestRefreshDKG(test *testing.T) {
 
 	// Handout shares to new nodes column-wise and verify them
 	newDKGShares := make([]*PriShare, n)
-	newDKGCommits := make([]kyber.Point, t)
 	for i := 0; i < n; i++ {
 		tmpPriShares := make([]*PriShare, n) // column-wise reshuffled sub-shares
 		tmpPubShares := make([]*PubShare, n) // public commitments to old DKG private shares
@@ -420,6 +419,7 @@ func TestRefreshDKG(test *testing.T) {
 	}
 
 	// Refresh the DKG commitments (= verification vector)
+	newDKGCommits := make([]kyber.Point, t)
 	for i := 0; i < t; i++ {
 		pubShares := make([]*PubShare, n)
 		for j := 0; j < n; j++ {
