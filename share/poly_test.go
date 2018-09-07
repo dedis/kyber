@@ -342,9 +342,7 @@ func TestRefreshDKG(test *testing.T) {
 			sij := priShares[i][j]
 			// s_ij * G
 			sijG := g.Point().Base().Mul(sij.V, nil)
-			// Eval poly
-			prod := pubShares[i][j]
-			require.Equal(test, sijG.String(), prod.V.String())
+			require.True(test, sijG.Equal(pubShares[i][j].V))
 		}
 	}
 
@@ -387,7 +385,7 @@ func TestRefreshDKG(test *testing.T) {
 		subPriShares[i] = subPriPolys[i].Shares(n)
 		subPubPolys[i] = subPriPolys[i].Commit(nil)
 		subPubShares[i] = subPubPolys[i].Shares(n)
-		require.Equal(test, g.Point().Mul(subPriShares[i][0].V, nil).String(), subPubShares[i][0].V.String())
+		require.True(test, g.Point().Mul(subPriShares[i][0].V, nil).Equal(subPubShares[i][0].V))
 	}
 
 	// Handout shares to new nodes column-wise and verify them
@@ -399,18 +397,18 @@ func TestRefreshDKG(test *testing.T) {
 			// Check 1: Verify that the received individual private subshares s_ji
 			// is correct by evaluating the public commitment vector
 			tmpPriShares[j] = &PriShare{I: j, V: subPriShares[j][i].V} // Shares that participant i gets from j
-			require.Equal(test, g.Point().Mul(tmpPriShares[j].V, nil).String(), subPubPolys[j].Eval(i).V.String())
+			require.True(test, g.Point().Mul(tmpPriShares[j].V, nil).Equal(subPubPolys[j].Eval(i).V))
 
 			// Check 2: Verify that the received sub public shares are
 			// commitments to the original secret
 			tmpPubShares[j] = dkgPubPoly.Eval(j)
-			require.Equal(test, tmpPubShares[j].V.String(), subPubPolys[j].Commit().String())
+			require.True(test, tmpPubShares[j].V.Equal(subPubPolys[j].Commit()))
 		}
 		// Check 3: Verify that the received public shares interpolate to the
 		// original DKG public key
 		com, err := RecoverCommit(g, tmpPubShares, t, n)
 		require.NoError(test, err)
-		require.Equal(test, dkgCommits[0].String(), com.String())
+		require.True(test, dkgCommits[0].Equal(com))
 
 		// Compute the refreshed private DKG share of node i
 		s, err := RecoverSecret(g, tmpPriShares, t, n)
@@ -432,7 +430,12 @@ func TestRefreshDKG(test *testing.T) {
 	}
 
 	// Check that the old and new DKG public keys are the same
-	require.Equal(test, dkgCommits[0].String(), newDKGCommits[0].String())
+	require.True(test, dkgCommits[0].Equal(newDKGCommits[0]))
+
+	// Check that the old and new DKG private shares are different
+	for i := 0; i < n; i++ {
+		require.False(test, dkgShares[i].V.Equal(newDKGShares[i].V))
+	}
 
 	// Check that the refreshed private DKG shares verify against the refreshed public DKG commits
 	q := NewPubPoly(g, nil, newDKGCommits)
@@ -445,5 +448,5 @@ func TestRefreshDKG(test *testing.T) {
 	require.NoError(test, err)
 
 	// Check that the secret and the corresponding (old) public commit match
-	require.Equal(test, g.Point().Mul(refreshedPriPoly.Secret(), nil).String(), dkgCommits[0].String())
+	require.True(test, g.Point().Mul(refreshedPriPoly.Secret(), nil).Equal(dkgCommits[0]))
 }
