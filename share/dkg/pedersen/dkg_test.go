@@ -2,7 +2,6 @@ package dkg
 
 import (
 	"crypto/rand"
-	"fmt"
 	"testing"
 
 	"github.com/dedis/kyber"
@@ -382,6 +381,7 @@ func fullExchange(t *testing.T, dkgs []*DistKeyGenerator) {
 	}
 }
 
+// Test resharing of a DKG to the same set of nodes
 func TestDKGResharing(t *testing.T) {
 	dkgs = dkgGen()
 	fullExchange(t, dkgs)
@@ -435,6 +435,7 @@ func TestDKGResharing(t *testing.T) {
 	require.Equal(t, oldSecret.String(), newSecret.String())
 }
 
+// Test resharing to a completely disjoint set of new nodes.
 func TestDKGResharingNewNodes(t *testing.T) {
 	dkgs = dkgGen()
 	fullExchange(t, dkgs)
@@ -499,12 +500,10 @@ func TestDKGResharingNewNodes(t *testing.T) {
 		require.Equal(t, newDkgs[i].nidx, i)
 	}
 
-	fmt.Println("starting subsharing protocol")
 	// full secret sharing exchange
 	// 1. broadcast deals
 	resps := make([]*Response, 0, newN*newN)
-	for j, dkg := range oldDkgs {
-		fmt.Println("Deals() of old dkg", j)
+	for _, dkg := range oldDkgs {
 		deals, err := dkg.Deals()
 		require.Nil(t, err)
 		for i, d := range deals {
@@ -517,7 +516,6 @@ func TestDKGResharingNewNodes(t *testing.T) {
 
 	// 2. Broadcast responses
 	for _, resp := range resps {
-		fmt.Printf(" ---- New Response Processing ----\n")
 		for _, dkg := range oldDkgs {
 			// Ignore messages about ourselves
 			if resp.Response.Index == uint32(dkg.oidx) {
