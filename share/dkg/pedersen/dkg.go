@@ -103,7 +103,6 @@ type DistKeyGenerator struct {
 	long   kyber.Scalar
 	pub    kyber.Point
 	dpub   *share.PubPoly
-	t      int
 	dealer *vss.Dealer
 	// verifiers indexed by dealer index
 	verifiers map[uint32]*vss.Verifier
@@ -201,7 +200,6 @@ func NewDistKeyHandler(c *Config) (*DistKeyGenerator, error) {
 	return &DistKeyGenerator{
 		dealer:      dealer,
 		verifiers:   make(map[uint32]*vss.Verifier),
-		t:           newThreshold,
 		suite:       c.Suite,
 		long:        c.Longterm,
 		pub:         pub,
