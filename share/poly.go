@@ -238,7 +238,7 @@ func RecoverPriPoly(g kyber.Group, shares []*PriShare, t, n int) (*PriPoly, erro
 	// Notations follow the Wikipedia article on Lagrange interpolation
 	// https://en.wikipedia.org/wiki/Lagrange_polynomial
 	for j := range x {
-		basis := LagrangeBasis(g, j, x)
+		basis := lagrangeBasis(g, j, x)
 		for i := range basis.coeffs {
 			basis.coeffs[i] = basis.coeffs[i].Mul(basis.coeffs[i], shares[j].V)
 		}
@@ -436,7 +436,7 @@ func RecoverPubPoly(g kyber.Group, shares []*PubShare, t, n int) (*PubPoly, erro
 	var err error
 
 	for j := range x {
-		basis := LagrangeBasis(g, j, x)
+		basis := lagrangeBasis(g, j, x)
 
 		// compute the L_j * y_j polynomial in point space
 		tmp := basis.Commit(shares[j].V)
@@ -456,10 +456,10 @@ func RecoverPubPoly(g kyber.Group, shares []*PubShare, t, n int) (*PubPoly, erro
 
 }
 
-// LagrangeBasis returns a PriPoly containing the Lagrange coefficients for the
+// lagrangeBasis returns a PriPoly containing the Lagrange coefficients for the
 // i-th position. xs is a mapping between the indices and the values that the
 // interpolation is using, computed with xScalar().
-func LagrangeBasis(g kyber.Group, i int, xs map[int]kyber.Scalar) *PriPoly {
+func lagrangeBasis(g kyber.Group, i int, xs map[int]kyber.Scalar) *PriPoly {
 	var basis = &PriPoly{
 		g:      g,
 		coeffs: []kyber.Scalar{g.Scalar().One()},
