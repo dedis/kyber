@@ -2,6 +2,7 @@ package dkg
 
 import (
 	"crypto/rand"
+	"fmt"
 	"testing"
 
 	"github.com/dedis/kyber"
@@ -270,7 +271,8 @@ func TestSetTimeout(t *testing.T) {
 }
 
 func TestDistKeyShare(t *testing.T) {
-	fullExchange(t)
+	dkgs = dkgGen()
+	fullExchange(t, dkgs)
 
 	for _, dkg := range dkgs {
 		assert.True(t, dkg.Certified())
@@ -314,7 +316,7 @@ func TestDistKeyShare(t *testing.T) {
 func dkgGen() []*DistKeyGenerator {
 	dkgs := make([]*DistKeyGenerator, nbParticipants)
 	for i := 0; i < nbParticipants; i++ {
-		dkg, err := NewDistKeyGenerator(suite, partSec[i], partPubs, nbParticipants/2+1)
+		dkg, err := NewDistKeyGenerator(suite, partSec[i], partPubs, vss.MinimumT(nbParticipants))
 		if err != nil {
 			panic(err)
 		}
@@ -345,8 +347,7 @@ func checkDks(dks1, dks2 *DistKeyShare) bool {
 	return true
 }
 
-func fullExchange(t *testing.T) {
-	dkgs = dkgGen()
+func fullExchange(t *testing.T, dkgs []*DistKeyGenerator) {
 	// full secret sharing exchange
 	// 1. broadcast deals
 	resps := make([]*Response, 0, nbParticipants*nbParticipants)
@@ -379,5 +380,183 @@ func fullExchange(t *testing.T) {
 			require.True(t, dkg.isInQUAL(uint32(dkg2.nidx)))
 		}
 	}
+}
 
+func TestDKGResharing(t *testing.T) {
+	dkgs = dkgGen()
+	fullExchange(t, dkgs)
+
+	shares := make([]*DistKeyShare, len(dkgs))
+	sshares := make([]*share.PriShare, len(dkgs))
+	for i, dkg := range dkgs {
+		share, err := dkg.DistKeyShare()
+		require.NoError(t, err)
+		shares[i] = share
+		sshares[i] = shares[i].Share
+	}
+	// start resharing within the same group
+	newDkgs := make([]*DistKeyGenerator, len(dkgs))
+	var err error
+	for i := range dkgs {
+		c := &Config{
+			Suite:    suite,
+			Longterm: partSec[i],
+			OldNodes: partPubs,
+			NewNodes: partPubs,
+			Share:    shares[i],
+		}
+		newDkgs[i], err = NewDistKeyHandler(c)
+		require.NoError(t, err)
+	}
+	fullExchange(t, newDkgs)
+	newShares := make([]*DistKeyShare, len(dkgs))
+	newSShares := make([]*share.PriShare, len(dkgs))
+	for i := range newDkgs {
+		dks, err := newDkgs[i].DistKeyShare()
+		require.NoError(t, err)
+		newShares[i] = dks
+		newSShares[i] = newShares[i].Share
+	}
+	// check
+	// 1. shares are different between the two rounds
+	// 2. shares reconstruct to the same secret
+	// 3. public polynomial is different but for the first coefficient /public
+	// key/
+	// 1.
+	for i := 0; i < len(dkgs); i++ {
+		require.False(t, shares[i].Share.V.Equal(newShares[i].Share.V))
+	}
+	thr := vss.MinimumT(nbParticipants)
+	// 2.
+	oldSecret, err := share.RecoverSecret(suite, sshares, thr, nbParticipants)
+	require.NoError(t, err)
+	newSecret, err := share.RecoverSecret(suite, newSShares, thr, nbParticipants)
+	require.NoError(t, err)
+	require.Equal(t, oldSecret.String(), newSecret.String())
+}
+
+func TestDKGResharingNewNodes(t *testing.T) {
+	dkgs = dkgGen()
+	fullExchange(t, dkgs)
+
+	shares := make([]*DistKeyShare, len(dkgs))
+	sshares := make([]*share.PriShare, len(dkgs))
+	for i, dkg := range dkgs {
+		share, err := dkg.DistKeyShare()
+		require.NoError(t, err)
+		shares[i] = share
+		sshares[i] = shares[i].Share
+	}
+	// start resharing to a different group
+	oldN := nbParticipants
+	oldT := len(shares[0].Commits)
+	newN := oldN + 1
+	newT := oldT + 1
+	privates := make([]kyber.Scalar, newN)
+	publics := make([]kyber.Point, newN)
+	for i := 0; i < newN; i++ {
+		privates[i] = suite.Scalar().Pick(suite.RandomStream())
+		publics[i] = suite.Point().Mul(privates[i], nil)
+	}
+
+	// creating the old dkgs and new dkgs
+	oldDkgs := make([]*DistKeyGenerator, oldN)
+	newDkgs := make([]*DistKeyGenerator, newN)
+	var err error
+	for i := 0; i < oldN; i++ {
+		c := &Config{
+			Suite:     suite,
+			Longterm:  partSec[i],
+			OldNodes:  partPubs,
+			NewNodes:  publics,
+			Share:     shares[i],
+			Threshold: newT,
+		}
+		oldDkgs[i], err = NewDistKeyHandler(c)
+		require.NoError(t, err)
+		require.False(t, oldDkgs[i].canReceive)
+		require.True(t, oldDkgs[i].canIssue)
+		require.True(t, oldDkgs[i].isResharing)
+		require.False(t, oldDkgs[i].newPresent)
+		require.Equal(t, oldDkgs[i].oidx, i)
+	}
+
+	for i := 0; i < newN; i++ {
+		c := &Config{
+			Suite:        suite,
+			Longterm:     privates[i],
+			OldNodes:     partPubs,
+			NewNodes:     publics,
+			PublicCoeffs: shares[0].Commits,
+			Threshold:    newT,
+		}
+		newDkgs[i], err = NewDistKeyHandler(c)
+		require.NoError(t, err)
+		require.True(t, newDkgs[i].canReceive)
+		require.False(t, newDkgs[i].canIssue)
+		require.True(t, newDkgs[i].isResharing)
+		require.True(t, newDkgs[i].newPresent)
+		require.Equal(t, newDkgs[i].nidx, i)
+	}
+
+	fmt.Println("starting subsharing protocol")
+	// full secret sharing exchange
+	// 1. broadcast deals
+	resps := make([]*Response, 0, newN*newN)
+	for j, dkg := range oldDkgs {
+		fmt.Println("Deals() of old dkg", j)
+		deals, err := dkg.Deals()
+		require.Nil(t, err)
+		for i, d := range deals {
+			resp, err := newDkgs[i].ProcessDeal(d)
+			require.Nil(t, err)
+			require.Equal(t, vss.StatusApproval, resp.Response.Status)
+			resps = append(resps, resp)
+		}
+	}
+
+	// 2. Broadcast responses
+	for _, resp := range resps {
+		fmt.Printf(" ---- New Response Processing ----\n")
+		for _, dkg := range oldDkgs {
+			// Ignore messages about ourselves
+			if resp.Response.Index == uint32(dkg.oidx) {
+				continue
+			}
+			j, err := dkg.ProcessResponse(resp)
+			require.Nil(t, err)
+			require.Nil(t, j)
+		}
+
+		for _, dkg := range newDkgs {
+			if resp.Response.Index == uint32(dkg.nidx) {
+				continue
+			}
+			j, err := dkg.ProcessResponse(resp)
+			require.Nil(t, err)
+			require.Nil(t, j)
+		}
+	}
+
+	// 3. make sure everyone has the same QUAL set
+	for _, dkg := range newDkgs {
+		for _, dkg2 := range oldDkgs {
+			require.True(t, dkg.isInQUAL(uint32(dkg2.oidx)))
+		}
+	}
+
+	newShares := make([]*DistKeyShare, newN)
+	newSShares := make([]*share.PriShare, newN)
+	for i := range newDkgs {
+		dks, err := newDkgs[i].DistKeyShare()
+		require.NoError(t, err)
+		newShares[i] = dks
+		newSShares[i] = newShares[i].Share
+	}
+	// check shares reconstruct to the same secret
+	oldSecret, err := share.RecoverSecret(suite, sshares, oldT, oldN)
+	require.NoError(t, err)
+	newSecret, err := share.RecoverSecret(suite, newSShares, newT, newN)
+	require.NoError(t, err)
+	require.Equal(t, oldSecret.String(), newSecret.String())
 }

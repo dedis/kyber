@@ -2,13 +2,25 @@ package share
 
 import (
 	"fmt"
+	"math/rand"
 	"testing"
+	"time"
 
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/group/edwards25519"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func Shuffle(vals []*PubShare) []*PubShare {
+	r := rand.New(rand.NewSource(time.Now().Unix()))
+	ret := make([]*PubShare, len(vals))
+	perm := r.Perm(len(vals))
+	for i, randIndex := range perm {
+		ret[i] = vals[randIndex]
+	}
+	return ret
+}
 
 func TestSecretRecovery(test *testing.T) {
 	g := edwards25519.NewBlakeSHA256Ed25519()
@@ -25,6 +37,193 @@ func TestSecretRecovery(test *testing.T) {
 	if !recovered.Equal(poly.Secret()) {
 		test.Fatal("recovered secret does not match initial value")
 	}
+}
+func TestSecretRecoverySub3(test *testing.T) {
+	g := edwards25519.NewBlakeSHA256Ed25519()
+	n := 10
+	t := n/2 + 1
+
+	// ---
+	// Regular (n-fold) VSS
+	priPolys := make([]*PriPoly, n)
+	priShares := make([][]*PriShare, n)
+	pubPolys := make([]*PubPoly, n)
+	pubShares := make([][]*PubShare, n)
+
+	// Create shares and commitments
+	for i := 0; i < n; i++ {
+		priPolys[i] = NewPriPoly(g, t, nil, g.RandomStream())
+		priShares[i] = priPolys[i].Shares(n)
+		pubPolys[i] = priPolys[i].Commit(nil)
+		pubShares[i] = pubPolys[i].Shares(n)
+	}
+
+	// Verify VSS shares
+	for i := 0; i < n; i++ {
+		for j := 0; j < n; j++ {
+			sij := priShares[i][j]
+			// s_ij * G
+			sijG := g.Point().Base().Mul(sij.V, nil)
+			// Eval poly
+			prod := pubShares[i][j] //pubPolys[i].Eval(sij.I)
+			require.Equal(test, sijG.String(), prod.V.String())
+		}
+	}
+
+	// DKG shares
+	dkgShares := make([]*PriShare, n) // private DKG shares
+	for i := 0; i < n; i++ {
+		acc := g.Scalar().Zero()
+		for j := 0; j < n; j++ { // assuming all participants are in QUAL
+			acc = g.Scalar().Add(acc, priShares[j][i].V)
+		}
+		dkgShares[i] = &PriShare{i, acc}
+	}
+
+	// DKG verification vector
+	dkgCommits := make([]kyber.Point, t) // public DKG commitments
+	for k := 0; k < t; k++ {
+		acc := g.Point().Null()
+		for i := 0; i < n; i++ { // assuming all participants are in QUAL
+			_, coeff := pubPolys[i].Info()
+			acc = g.Point().Add(acc, coeff[k])
+		}
+		dkgCommits[k] = acc
+	}
+
+	// Verify that the aggregated private DKG shares commit to the aggregated
+	// public DKG shares
+	dkgPriPoly, _ := RecoverPriPoly(g, dkgShares, t, n)
+	dkgPubPoly := dkgPriPoly.Commit(nil)
+	_, coeffs := dkgPubPoly.Info()
+	for k := 0; k < t; k++ {
+		require.Equal(test, dkgCommits[k].String(), coeffs[k].String())
+	}
+
+	// ---
+	//poly := NewPriPoly(g, t, nil, g.RandomStream())
+	pubPoly := dkgPubPoly
+
+	oldShares := dkgShares
+	newShares := make([]*PriShare, n)
+
+	// start sub-sharing
+	subpolys := make([]*PriPoly, n)
+	subshares := make([][]*PriShare, n)
+
+	subPubPolys := make([]*PubPoly, n)
+	subPubCoefs := make([][]kyber.Point, n)
+	subPubShares := make([][]*PubShare, n)
+
+	// for each share, we compute a set of sub-shares
+	for i := 0; i < n; i++ {
+		// create subshares of the share of node i
+		subpolys[i] = NewPriPoly(g, t, oldShares[i].V, g.RandomStream())
+		subshares[i] = subpolys[i].Shares(n)
+
+		subPubPolys[i] = subpolys[i].Commit(nil)
+		subPubShares[i] = subPubPolys[i].Shares(n)
+		_, subPubCoefs[i] = subPubPolys[i].Info()
+
+		for j := 0; j < n; j++ {
+			// local check
+			require.True(test, subPubPolys[i].Eval(j).V.Equal(g.Point().Mul(subshares[i][j].V, nil)))
+		}
+
+		//  small test
+		// subshare * G == subPubShare
+		for j := 0; j < n; j++ {
+			require.Equal(test, subPubShares[i][j].V.String(), g.Point().Mul(subshares[i][j].V, nil).String())
+		}
+	}
+
+	// general shares test
+	// generate all s_i
+	sis := make([]*PubShare, n)
+	for i := 0; i < n; i++ {
+		sis[i] = pubPoly.Eval(i)
+		// check that the commitmennt shares received is equal to the one
+		// generated
+		require.True(test, sis[i].V.Equal(subPubPolys[i].Commit()))
+	}
+	gk, err := RecoverCommit(g, sis, t, n)
+	require.NoError(test, err)
+	require.True(test, gk.Equal(pubPoly.Commit()))
+
+	// give respective sub-shares to each node
+	for j := 0; j < n; j++ {
+		tmpshares := make([]*PriShare, n)
+		tmpPubShares := make([]*PubShare, n)
+		// take all j-th in the slice of sub-shares of everyone
+		for k := 0; k < n; k++ {
+			tmpshares[k] = subshares[k][j]
+			tmpshares[k].I = k // because this time, the creator has the index
+
+			tmpPubShares[k] = subPubShares[k][j]
+			tmpPubShares[k].I = k
+		}
+		for j := 0; j < n; j++ {
+			require.Equal(test, tmpPubShares[j].V.String(), g.Point().Mul(tmpshares[j].V, nil).String())
+		}
+		// reconstruct the new share
+		sec, err := RecoverSecret(g, tmpshares, t, n)
+		require.NoError(test, err)
+		newShares[j] = &PriShare{I: j, V: sec}
+
+		// reconstruct new pub share
+		pub, err := RecoverCommit(g, tmpPubShares, t, n)
+		require.NoError(test, err)
+
+		// Check if the commitment of the recovered secret is equal to the
+		// recovered public share
+		require.Equal(test, g.Point().Mul(sec, nil).String(), pub.String())
+	}
+
+	// check if it reconstructs to same secret
+	recovered, err := RecoverSecret(g, newShares, t, n)
+	require.NoError(test, err)
+	require.Equal(test, recovered.String(), dkgPriPoly.Secret().String())
+
+	// -----
+	// let's reconstruct the public polynomial coefficients by coefficients
+	finalCoeffs := make([]kyber.Point, t)
+	// for each coefficients in the final polynomial
+	for k := 0; k < t; k++ {
+		//  reconstruct one by taking the i-th coefficients of all polynomials
+		tmpSlice := make([]*PubShare, n)
+		for i := 0; i < n; i++ {
+			tmpSlice[i] = &PubShare{I: i, V: subPubCoefs[i][k]}
+			require.Len(test, subPubCoefs[i], t)
+		}
+		// lagrange interpolate those coefficients
+		fmt.Printf("Coefficient index %d\n", k)
+		for _, c := range Shuffle(tmpSlice) {
+			fmt.Printf("poly %d : %s \n", c.I, c.V.String())
+		}
+		fmt.Printf(" ---- ")
+		finalCoeff, err := RecoverCommit(g, tmpSlice, t, n)
+		/*finalCoeff, err := RecoverCommit(g, tmpSlice, t, n)*/
+		require.NoError(test, err)
+		finalCoeffs[k] = finalCoeff
+
+		tmpPubPoly, err := RecoverPubPoly(g, tmpSlice, t, n)
+		require.NoError(test, err)
+		require.Equal(test, tmpPubPoly.Commit().String(), finalCoeff.String())
+	}
+
+	finalPubPoly := NewPubPoly(g, nil, finalCoeffs)
+	require.Equal(test, g.Point().Mul(recovered, nil).String(), finalPubPoly.Commit().String())
+	for i := 0; i < n; i++ {
+		require.True(test, finalPubPoly.Check(newShares[i]))
+	}
+
+	// ----
+
+	//require.Equal(test, g.Point().Mul(recovered, nil).String(), pubPolyRecovered.Commit().String())
+	//share := pubPolyRecovered.Eval(0)
+	//require.Equal(test, g.Point().Mul(newShares[0].V, nil), share.V)
+	//require.True(test, pubPolyRecovered.Check(newShares[0]))
+
 }
 
 func TestSecretRecoverySub2(test *testing.T) {
@@ -162,6 +361,7 @@ func TestSecretRecoverySub2(test *testing.T) {
 }
 
 func TestSecretRecoverySub(test *testing.T) {
+	test.Skip()
 	g := edwards25519.NewBlakeSHA256Ed25519()
 	n := 10
 	t := n/2 + 1
@@ -362,6 +562,33 @@ func TestPublicCheck(test *testing.T) {
 	}
 }
 
+func TestPublicShuffling(test *testing.T) {
+	g := edwards25519.NewBlakeSHA256Ed25519()
+	n := 10
+	t := n/2 + 1
+
+	randomShares := make([]*PubShare, n)
+	for i := 0; i < n; i++ {
+		randomShares[i] = &PubShare{I: i, V: g.Point().Pick(g.RandomStream())}
+	}
+
+	commit, err := RecoverCommit(g, randomShares, t, n)
+	require.NoError(test, err)
+
+	pubPoly, err := RecoverPubPoly(g, randomShares, t, n)
+	require.NoError(test, err)
+
+	require.Equal(test, commit.String(), pubPoly.Commit().String())
+
+	fmt.Println(" ------------------------------- ")
+	pubPoly2, err := RecoverPubPoly(g, Shuffle(randomShares), t, n)
+	require.NoError(test, err)
+
+	for i := 0; i < n; i++ {
+		require.Equal(test, pubPoly.Eval(i).V.String(), pubPoly2.Eval(i).V.String())
+	}
+}
+
 func TestPublicRecovery(test *testing.T) {
 	g := edwards25519.NewBlakeSHA256Ed25519()
 	n := 10
@@ -383,6 +610,24 @@ func TestPublicRecovery(test *testing.T) {
 	polyRecovered, err := RecoverPubPoly(g, pubShares, t, n)
 	if err != nil {
 		test.Fatal(err)
+	}
+
+	commitRecovered, err := RecoverCommit(g, Shuffle(pubShares), t, n)
+	require.NoError(test, err)
+	polyRecovered, err = RecoverPubPoly(g, Shuffle(pubShares), t, n)
+	if err != nil {
+		test.Fatal(err)
+	}
+	require.Equal(test, polyRecovered.Commit().String(), commitRecovered.String())
+
+	polyRecovered2, err := RecoverPubPoly(g, Shuffle(Shuffle(pubShares)), t, n)
+	if err != nil {
+		test.Fatal(err)
+	}
+	_, commits1 := polyRecovered.Info()
+	_, commits2 := polyRecovered2.Info()
+	for i := 0; i < len(commits1); i++ {
+		require.Equal(test, commits1[i].String(), commits2[i].String())
 	}
 
 	require.True(test, pubPoly.Equal(polyRecovered))
