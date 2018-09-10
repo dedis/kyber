@@ -172,7 +172,7 @@ func (p *PriPoly) Coefficients() []kyber.Scalar {
 // RecoverSecret reconstructs the shared secret p(0) from a list of private
 // shares using Lagrange interpolation.
 func RecoverSecret(g kyber.Group, shares []*PriShare, t, n int) (kyber.Scalar, error) {
-	x := xScalar(g, shares, t, n)
+	x, y := xScalar(g, shares, t, n)
 	if len(x) < t {
 		return nil, errors.New("share: not enough shares to recover secret")
 	}
@@ -182,14 +182,11 @@ func RecoverSecret(g kyber.Group, shares []*PriShare, t, n int) (kyber.Scalar, e
 	den := g.Scalar()
 	tmp := g.Scalar()
 
-	for i, pair := range x {
-		xi := pair[0]
-		yi := pair[1]
+	for i, xi := range x {
+		yi := y[i]
 		num.Set(yi)
 		den.One()
-		for j, pair2 := range x {
-			xj := pair2[0]
-			/*yj := pair2[1]*/
+		for j, xj := range x {
 			if i == j {
 				continue
 			}
@@ -202,7 +199,10 @@ func RecoverSecret(g kyber.Group, shares []*PriShare, t, n int) (kyber.Scalar, e
 	return acc, nil
 }
 
-func xScalar(g kyber.Group, shares []*PriShare, t, n int) map[int][]kyber.Scalar {
+// xScalar returns the list of (x_i, y_i) pairs indexed. The first map returned
+// is the list of x_i and the second map is the list of y_i, both indexed in
+// their respective map at index i.
+func xScalar(g kyber.Group, shares []*PriShare, t, n int) (map[int]kyber.Scalar, map[int]kyber.Scalar) {
 	// we are sorting first the shares since the shares may be unrelated for
 	// some applications. In this case, all participants needs to interpolate on
 	// the exact same order shares.
@@ -217,18 +217,20 @@ func xScalar(g kyber.Group, shares []*PriShare, t, n int) map[int][]kyber.Scalar
 		panic("that should not happen")
 	}
 
-	x := make(map[int][]kyber.Scalar)
+	x := make(map[int]kyber.Scalar)
+	y := make(map[int]kyber.Scalar)
 	for _, s := range sorted {
 		if s == nil || s.V == nil || s.I < 0 || n <= s.I {
 			continue
 		}
 		idx := s.I
-		x[idx] = []kyber.Scalar{g.Scalar().SetInt64(int64(idx + 1)), s.V}
+		x[idx] = g.Scalar().SetInt64(int64(idx + 1))
+		y[idx] = s.V
 		if len(x) == t {
 			break
 		}
 	}
-	return x
+	return x, y
 }
 
 func xMinusConst(g kyber.Group, c kyber.Scalar) *PriPoly {
@@ -245,39 +247,20 @@ func xMinusConst(g kyber.Group, c kyber.Scalar) *PriPoly {
 // shares to correctly re-construct the polynomial. There must be at least t
 // shares.
 func RecoverPriPoly(g kyber.Group, shares []*PriShare, t, n int) (*PriPoly, error) {
-	x := xScalar(g, shares, t, n)
+	x, y := xScalar(g, shares, t, n)
 	if len(x) != t {
 		return nil, errors.New("share: not enough shares to recover private polynomial")
 	}
 
 	var accPoly *PriPoly
 	var err error
-	den := g.Scalar()
+	//den := g.Scalar()
 	// Notations follow the Wikipedia article on Lagrange interpolation
 	// https://en.wikipedia.org/wiki/Lagrange_polynomial
-	for j, pair := range x {
-		xj := pair[0]
-		yj := pair[1]
-		var basis = &PriPoly{
-			g:      g,
-			coeffs: []kyber.Scalar{g.Scalar().One()},
-		}
-		var acc = g.Scalar().Set(yj)
-		// compute lagrange basis l_j
-		for m, pair2 := range x {
-			xm := pair2[0]
-			if j == m {
-				continue
-			}
-			basis = basis.Mul(xMinusConst(g, xm)) // basis = basis * (x - xm)
-
-			den.Sub(xj, xm)   // den = xj - xm
-			den.Inv(den)      // den = 1 / den
-			acc.Mul(acc, den) // acc = acc * den
-		}
-
+	for j := range x {
+		basis := lagrangeBasis(g, j, x)
 		for i := range basis.coeffs {
-			basis.coeffs[i] = basis.coeffs[i].Mul(basis.coeffs[i], acc)
+			basis.coeffs[i] = basis.coeffs[i].Mul(basis.coeffs[i], y[j])
 		}
 
 		if accPoly == nil {
@@ -410,6 +393,7 @@ func (p *PubPoly) Check(s *PriShare) bool {
 	return pv.V.Equal(ps)
 }
 
+// xyCommits is the public version of xScalars.
 func xyCommit(g kyber.Group, shares []*PubShare, t, n int) (map[int]kyber.Scalar, map[int]kyber.Point) {
 	// we are sorting first the shares since the shares may be unrelated for
 	// some applications. In this case, all participants needs to interpolate on
@@ -484,32 +468,8 @@ func RecoverPubPoly(g kyber.Group, shares []*PubShare, t, n int) (*PubPoly, erro
 	var accPoly *PubPoly
 	var err error
 
-	num := g.Scalar()
-	den := g.Scalar()
-
-	for j, xj := range x {
-		var basis = &PriPoly{
-			g:      g,
-			coeffs: []kyber.Scalar{g.Scalar().One()},
-		}
-		// compute lagrange basis l_j
-		num.One()
-		den.One()
-		var acc = g.Scalar().One()
-		for m, xm := range x {
-			if j == m {
-				continue
-			}
-			basis = basis.Mul(xMinusConst(g, xm))
-			den.Sub(xj, xm)   // den = xj - xm
-			den.Inv(den)      // den = 1 / den
-			acc.Mul(acc, den) // acc = acc * den
-		}
-
-		// multiply all coefficients by the denominator
-		for i := range basis.coeffs {
-			basis.coeffs[i] = basis.coeffs[i].Mul(basis.coeffs[i], acc)
-		}
+	for j := range x {
+		basis := lagrangeBasis(g, j, x)
 
 		// compute the L_j * y_j polynomial in point space
 		tmp := basis.Commit(y[j])
@@ -527,4 +487,32 @@ func RecoverPubPoly(g kyber.Group, shares []*PubShare, t, n int) (*PubPoly, erro
 
 	return accPoly, nil
 
+}
+
+// lagrangeBasis returns a PriPoly containing the Lagrange coefficients for the
+// i-th position. xs is a mapping between the indices and the values that the
+// interpolation is using, computed with xScalar().
+func lagrangeBasis(g kyber.Group, i int, xs map[int]kyber.Scalar) *PriPoly {
+	var basis = &PriPoly{
+		g:      g,
+		coeffs: []kyber.Scalar{g.Scalar().One()},
+	}
+	// compute lagrange basis l_j
+	den := g.Scalar().One()
+	var acc = g.Scalar().One()
+	for m, xm := range xs {
+		if i == m {
+			continue
+		}
+		basis = basis.Mul(xMinusConst(g, xm))
+		den.Sub(xs[i], xm) // den = xi - xm
+		den.Inv(den)       // den = 1 / den
+		acc.Mul(acc, den)  // acc = acc * den
+	}
+
+	// multiply all coefficients by the denominator
+	for i := range basis.coeffs {
+		basis.coeffs[i] = basis.coeffs[i].Mul(basis.coeffs[i], acc)
+	}
+	return basis
 }
