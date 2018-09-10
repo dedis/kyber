@@ -3,6 +3,7 @@ package share
 import (
 	"testing"
 
+	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/group/edwards25519"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -323,4 +324,136 @@ func TestPriPolyCoefficients(test *testing.T) {
 	b := CoefficientsToPriPoly(suite, coeffs)
 	require.Equal(test, a.coeffs, b.coeffs)
 
+}
+
+func TestRefreshDKG(test *testing.T) {
+	g := edwards25519.NewBlakeSHA256Ed25519()
+	n := 10
+	t := n/2 + 1
+
+	// Run an n-fold Pedersen VSS (= DKG)
+	priPolys := make([]*PriPoly, n)
+	priShares := make([][]*PriShare, n)
+	pubPolys := make([]*PubPoly, n)
+	pubShares := make([][]*PubShare, n)
+	for i := 0; i < n; i++ {
+		priPolys[i] = NewPriPoly(g, t, nil, g.RandomStream())
+		priShares[i] = priPolys[i].Shares(n)
+		pubPolys[i] = priPolys[i].Commit(nil)
+		pubShares[i] = pubPolys[i].Shares(n)
+	}
+
+	// Verify VSS shares
+	for i := 0; i < n; i++ {
+		for j := 0; j < n; j++ {
+			sij := priShares[i][j]
+			// s_ij * G
+			sijG := g.Point().Base().Mul(sij.V, nil)
+			require.True(test, sijG.Equal(pubShares[i][j].V))
+		}
+	}
+
+	// Create private DKG shares
+	dkgShares := make([]*PriShare, n)
+	for i := 0; i < n; i++ {
+		acc := g.Scalar().Zero()
+		for j := 0; j < n; j++ { // assuming all participants are in the qualified set
+			acc = g.Scalar().Add(acc, priShares[j][i].V)
+		}
+		dkgShares[i] = &PriShare{i, acc}
+	}
+
+	// Create public DKG commitments (= verification vector)
+	dkgCommits := make([]kyber.Point, t)
+	for k := 0; k < t; k++ {
+		acc := g.Point().Null()
+		for i := 0; i < n; i++ { // assuming all participants are in the qualified set
+			_, coeff := pubPolys[i].Info()
+			acc = g.Point().Add(acc, coeff[k])
+		}
+		dkgCommits[k] = acc
+	}
+
+	// Check that the private DKG shares verify against the public DKG commits
+	dkgPubPoly := NewPubPoly(g, nil, dkgCommits)
+	for i := 0; i < n; i++ {
+		require.True(test, dkgPubPoly.Check(dkgShares[i]))
+	}
+
+	// Start verifiable resharing process
+	subPriPolys := make([]*PriPoly, n)
+	subPriShares := make([][]*PriShare, n)
+	subPubPolys := make([]*PubPoly, n)
+	subPubShares := make([][]*PubShare, n)
+
+	// Create subshares and subpolys
+	for i := 0; i < n; i++ {
+		subPriPolys[i] = NewPriPoly(g, t, dkgShares[i].V, g.RandomStream())
+		subPriShares[i] = subPriPolys[i].Shares(n)
+		subPubPolys[i] = subPriPolys[i].Commit(nil)
+		subPubShares[i] = subPubPolys[i].Shares(n)
+		require.True(test, g.Point().Mul(subPriShares[i][0].V, nil).Equal(subPubShares[i][0].V))
+	}
+
+	// Handout shares to new nodes column-wise and verify them
+	newDKGShares := make([]*PriShare, n)
+	for i := 0; i < n; i++ {
+		tmpPriShares := make([]*PriShare, n) // column-wise reshuffled sub-shares
+		tmpPubShares := make([]*PubShare, n) // public commitments to old DKG private shares
+		for j := 0; j < n; j++ {
+			// Check 1: Verify that the received individual private subshares s_ji
+			// is correct by evaluating the public commitment vector
+			tmpPriShares[j] = &PriShare{I: j, V: subPriShares[j][i].V} // Shares that participant i gets from j
+			require.True(test, g.Point().Mul(tmpPriShares[j].V, nil).Equal(subPubPolys[j].Eval(i).V))
+
+			// Check 2: Verify that the received sub public shares are
+			// commitments to the original secret
+			tmpPubShares[j] = dkgPubPoly.Eval(j)
+			require.True(test, tmpPubShares[j].V.Equal(subPubPolys[j].Commit()))
+		}
+		// Check 3: Verify that the received public shares interpolate to the
+		// original DKG public key
+		com, err := RecoverCommit(g, tmpPubShares, t, n)
+		require.NoError(test, err)
+		require.True(test, dkgCommits[0].Equal(com))
+
+		// Compute the refreshed private DKG share of node i
+		s, err := RecoverSecret(g, tmpPriShares, t, n)
+		require.NoError(test, err)
+		newDKGShares[i] = &PriShare{I: i, V: s}
+	}
+
+	// Refresh the DKG commitments (= verification vector)
+	newDKGCommits := make([]kyber.Point, t)
+	for i := 0; i < t; i++ {
+		pubShares := make([]*PubShare, n)
+		for j := 0; j < n; j++ {
+			_, c := subPubPolys[j].Info()
+			pubShares[j] = &PubShare{I: j, V: c[i]}
+		}
+		com, err := RecoverCommit(g, pubShares, t, n)
+		require.NoError(test, err)
+		newDKGCommits[i] = com
+	}
+
+	// Check that the old and new DKG public keys are the same
+	require.True(test, dkgCommits[0].Equal(newDKGCommits[0]))
+
+	// Check that the old and new DKG private shares are different
+	for i := 0; i < n; i++ {
+		require.False(test, dkgShares[i].V.Equal(newDKGShares[i].V))
+	}
+
+	// Check that the refreshed private DKG shares verify against the refreshed public DKG commits
+	q := NewPubPoly(g, nil, newDKGCommits)
+	for i := 0; i < n; i++ {
+		require.True(test, q.Check(newDKGShares[i]))
+	}
+
+	// Recover the private polynomial
+	refreshedPriPoly, err := RecoverPriPoly(g, newDKGShares, t, n)
+	require.NoError(test, err)
+
+	// Check that the secret and the corresponding (old) public commit match
+	require.True(test, g.Point().Mul(refreshedPriPoly.Secret(), nil).Equal(dkgCommits[0]))
 }
