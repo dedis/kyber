@@ -207,7 +207,7 @@ func xScalar(g kyber.Group, shares []*PriShare, t, n int) map[int][]kyber.Scalar
 	// some applications. In this case, all participants needs to interpolate on
 	// the exact same order shares.
 	// XXX naive n^2 sorting => move that to inplace golang native sort
-	sorted := make([]*PriShare, len(shares))
+	sorted := make([]*PriShare, n)
 	for i := 0; i < len(shares); i++ {
 		if shares[i] != nil {
 			sorted[shares[i].I] = shares[i]
@@ -415,7 +415,7 @@ func xyCommit(g kyber.Group, shares []*PubShare, t, n int) (map[int]kyber.Scalar
 	// some applications. In this case, all participants needs to interpolate on
 	// the exact same order shares.
 	// XXX naive n^2 sorting => move that to inplace golang native sort
-	sorted := make([]*PubShare, len(shares))
+	sorted := make([]*PubShare, n)
 	for i := 0; i < len(shares); i++ {
 		if shares[i] != nil {
 			sorted[shares[i].I] = shares[i]
