@@ -123,6 +123,13 @@ func TestPublicRecovery(test *testing.T) {
 	if !recovered.Equal(pubPoly.Commit()) {
 		test.Fatal("recovered commit does not match initial value")
 	}
+
+	polyRecovered, err := RecoverPubPoly(g, pubShares, t, n)
+	if err != nil {
+		test.Fatal(err)
+	}
+
+	require.True(test, pubPoly.Equal(polyRecovered))
 }
 
 func TestPublicRecoveryDelete(test *testing.T) {
