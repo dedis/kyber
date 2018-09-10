@@ -398,6 +398,9 @@ func RecoverCommit(g kyber.Group, shares []*PubShare, t, n int) (kyber.Point, er
 			continue
 		}
 		x[i] = g.Scalar().SetInt64(1 + int64(s.I))
+		if len(x) == t {
+			break
+		}
 	}
 
 	if len(x) < t {
@@ -425,4 +428,70 @@ func RecoverCommit(g kyber.Group, shares []*PubShare, t, n int) (kyber.Point, er
 	}
 
 	return Acc, nil
+}
+
+// RecoverPubPoly reconstructs the full public polynomial from a set of public
+// shares using Lagrange interpolation.
+func RecoverPubPoly(g kyber.Group, shares []*PubShare, t, n int) (*PubPoly, error) {
+	x := make(map[int]kyber.Scalar)
+	for i, s := range shares {
+		if s == nil || s.V == nil || s.I < 0 || n <= s.I {
+			continue
+		}
+		x[i] = g.Scalar().SetInt64(1 + int64(s.I))
+		if len(x) == t {
+			break
+		}
+	}
+
+	if len(x) < t {
+		return nil, errors.New("share: not enough good public shares to reconstruct secret commitment")
+	}
+
+	var accPoly *PubPoly
+	var err error
+
+	num := g.Scalar()
+	den := g.Scalar()
+
+	for j, xj := range x {
+		var basis = &PriPoly{
+			g:      g,
+			coeffs: []kyber.Scalar{g.Scalar().One()},
+		}
+		// compute lagrange basis l_j
+		num.One()
+		den.One()
+		var acc = g.Scalar().One()
+		for m, xm := range x {
+			if j == m {
+				continue
+			}
+			basis = basis.Mul(xMinusConst(g, xm))
+			den.Sub(xj, xm)   // den = xj - xm
+			den.Inv(den)      // den = 1 / den
+			acc.Mul(acc, den) // acc = acc * den
+		}
+
+		// multiply all coefficients by the denominator
+		for i := range basis.coeffs {
+			basis.coeffs[i] = basis.coeffs[i].Mul(basis.coeffs[i], acc)
+		}
+
+		// compute the L_j * y_j polynomial in point space
+		tmp := basis.Commit(shares[j].V)
+		if accPoly == nil {
+			accPoly = tmp
+			continue
+		}
+
+		// add all L_j * y_j together
+		accPoly, err = accPoly.Add(tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return accPoly, nil
+
 }
