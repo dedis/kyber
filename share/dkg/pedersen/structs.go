@@ -49,6 +49,8 @@ type Deal struct {
 	Signature []byte
 }
 
+// MarshalBinary returns a binary representation of this deal, which is the
+// message  signed in a dkg deal.
 func (d *Deal) MarshalBinary() ([]byte, error) {
 	var b bytes.Buffer
 	binary.Write(&b, binary.LittleEndian, d.Index)

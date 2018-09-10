@@ -1,5 +1,12 @@
-// Package dkg implements the protocol described in "A threshold cryptosystem without a trusted party"
-// by Torben Pryds Pedersen. https://dl.acm.org/citation.cfm?id=1754929.
+// Package dkg implements a general distributed key generation (DKG) framework. This
+// package servers two functionality: (1) to run a fresh new DKG from scratch
+// and (2) to reshare old shares to a potentially distinct new set of nodes (the
+// "resharing" protocol). The
+// former protocol is described in "A threshold cryptosystem without a trusted
+// party" by Torben Pryds Pedersen. https://dl.acm.org/citation.cfm?id=1754929.
+// The latter protocol is implemented in "Verifiable Secret Redistribution for
+// Threshold Signing Schemes", by T. Wong et
+// al.(https://www.cs.cmu.edu/~wing/publications/Wong-Wing02b.pdf)
 package dkg
 
 import (
@@ -16,6 +23,15 @@ import (
 // Suite wraps the functionalities needed by the dkg package
 type Suite vss.Suite
 
+// Config holds all required information to run a fresh DKG protocol or a
+// resharing protocol. In the case of a new fresh DKG protocol, one must fill
+// the following fields: Suite, Longterm, NewNodes, Threshold (opt). In the case
+// of a resharing protocol, one must fill the following: Suite, Longterm,
+// OldNodes, NewNodes. If the node using this config is creating new shares
+// (i.e. it belongs to the current group), the Share field must be filled in
+// with the current share of the node. If the node using this config is a new
+// addition and thus has no current share, the PublicCoeffs field be must be
+// filled in.
 type Config struct {
 	Suite Suite
 
@@ -50,6 +66,7 @@ type Config struct {
 	Threshold int
 }
 
+// NewDKGConfig returns a Config structure suited to give to `NewD
 func NewDKGConfig(suite Suite, longterm kyber.Scalar, participants []kyber.Point) *Config {
 	return &Config{
 		Suite:     suite,
@@ -109,6 +126,8 @@ type DistKeyGenerator struct {
 	newPresent bool
 }
 
+// NewDistKeyHandler takes a Config and returns a DistKeyGenerator that is able
+// to drive the DKG or resharing protocol.
 func NewDistKeyHandler(c *Config) (*DistKeyGenerator, error) {
 	if c.NewNodes == nil || c.OldNodes == nil {
 		return nil, errors.New("dkg: can't run with empty node list")
@@ -120,7 +139,7 @@ func NewDistKeyHandler(c *Config) (*DistKeyGenerator, error) {
 	}
 	// canReceive is true by default since in the default DKG mode everyone
 	// participates
-	var canReceive bool = true
+	var canReceive = true
 	pub := c.Suite.Point().Mul(c.Longterm, nil)
 	oidx, oldPresent := findPub(c.OldNodes, pub)
 	nidx, newPresent := findPub(c.NewNodes, pub)
@@ -199,8 +218,8 @@ func NewDistKeyHandler(c *Config) (*DistKeyGenerator, error) {
 	}, nil
 }
 
-// NewDistKeyGenerator returns a dist key generator ready to create a new
-// distributed key.
+// NewDistKeyGenerator returns a dist key generator ready to create a fresh
+// distributed key with the regular DKG protocol.
 func NewDistKeyGenerator(suite Suite, longterm kyber.Scalar, participants []kyber.Point, t int) (*DistKeyGenerator, error) {
 	c := &Config{
 		Suite:     suite,
@@ -227,7 +246,7 @@ func NewDistKeyGenerator(suite Suite, longterm kyber.Scalar, participants []kybe
 // results in a panic.
 func (d *DistKeyGenerator) Deals() (map[int]*Deal, error) {
 	if !d.canIssue {
-		return nil, errors.New("dkg: can't issue deals with this DKG. Check config.")
+		return nil, errors.New("dkg: can't issue deals with this DKG, please check config")
 	}
 	deals, err := d.dealer.EncryptedDeals()
 	if err != nil {
