@@ -129,7 +129,7 @@ type DistKeyGenerator struct {
 // NewDistKeyHandler takes a Config and returns a DistKeyGenerator that is able
 // to drive the DKG or resharing protocol.
 func NewDistKeyHandler(c *Config) (*DistKeyGenerator, error) {
-	if c.NewNodes == nil || c.OldNodes == nil {
+	if c.NewNodes == nil && c.OldNodes == nil {
 		return nil, errors.New("dkg: can't run with empty node list")
 	}
 
