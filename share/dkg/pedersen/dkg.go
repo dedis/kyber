@@ -1,5 +1,5 @@
 // Package dkg implements a general distributed key generation (DKG) framework. This
-// package servers two functionality: (1) to run a fresh new DKG from scratch
+// package serves two functionalities: (1) to run a fresh new DKG from scratch
 // and (2) to reshare old shares to a potentially distinct new set of nodes (the
 // "resharing" protocol). The
 // former protocol is described in "A threshold cryptosystem without a trusted
@@ -38,26 +38,26 @@ type Config struct {
 	// Longterm is the longterm secret key.
 	Longterm kyber.Scalar
 
-	// Current group of share holders. It can be nil for new DKG. These nodes
-	// will have invalid share after the protocol is ran. To be able to issue
-	// new fresh shares to a new group, one's public key must be inside this
-	// list alongside with the Share field. Keys can be disjoint or not with
-	// respect to the NewNodes list.
+	// Current group of share holders. It will be nil for new DKG. These nodes
+	// will have invalid shares after the protocol has been run. To be able to issue
+	// new shares to a new group, the group member's public key must be inside this
+	// list and in the Share field. Keys can be disjoint or not with respect to the
+	// NewNodes list.
 	OldNodes []kyber.Point
 
 	// PublicCoeffs are the coefficients of the distributed polynomial needed
-	// during the resharing protocol. The first coefficient is the key.It is
-	// required for new share holders.  It can be nil for new DKG.
+	// during the resharing protocol. The first coefficient is the key. It is
+	// required for new share holders.  It should be nil for new DKG.
 	PublicCoeffs []kyber.Point
 
 	// Expected new group of share holders. These public-key designated nodes
-	// will be in possession of new shares after the protocol is ran. To be a
+	// will be in possession of new shares after the protocol has been ran. To be a
 	// receiver a of new share, one's public key must be inside this list. Keys
 	// can be disjoint or not with respect to the OldNodes list.
 	NewNodes []kyber.Point
 
-	// Share to refresh. It must be nil for fresh DKG or new node wishing to
-	// join the group. To be able to issue new fresh shares to a new group,
+	// Share to refresh. It must be nil for a new node wishing to
+	// join or create a group. To be able to issue new fresh shares to a new group,
 	// one's share must be specified here, along with the public key inside the
 	// OldNodes field.
 	Share *DistKeyShare
@@ -66,7 +66,7 @@ type Config struct {
 	Threshold int
 }
 
-// NewDKGConfig returns a Config structure suited to give to `NewD
+// NewDKGConfig returns a Config that is made for a fresh new DKG run.
 func NewDKGConfig(suite Suite, longterm kyber.Scalar, participants []kyber.Point) *Config {
 	return &Config{
 		Suite:     suite,
@@ -77,10 +77,11 @@ func NewDKGConfig(suite Suite, longterm kyber.Scalar, participants []kyber.Point
 }
 
 // NewReshareConfig returns a new config to use with DistKeyGenerator to run the
-// re-sharing protocols between the old nodes and the new nodes,i.e. the future
+// re-sharing protocols between the old nodes and the new nodes, i.e. the future
 // share holders. Share must be non-nil for previously enrolled nodes to
-// actively issue new shares. Dpublic is needed for a participant in then
-// newNodes list to verify the validity of the new received shares.
+// actively issue new shares. The public coefficients, pcoeffs, are needed in
+// order for participants in newNodes to be able to verify the validity of newly
+// received shares.
 func NewReshareConfig(suite Suite, longterm kyber.Scalar, oldNodes, newNodes []kyber.Point,
 	share *DistKeyShare, pcoeffs []kyber.Point) *Config {
 	return &Config{
@@ -325,7 +326,7 @@ func (d *DistKeyGenerator) ProcessDeal(dd *Deal) (*Response, error) {
 			d.verifiers[uint32(idx)].UnsafeSetResponseDKG(uint32(idx), vss.StatusComplaint)
 		}
 		// indicate to VSS that the new status is complaint, since the check is
-		// done outdone VSS package control.
+		// done outside of  VSS package control.
 		d.verifiers[uint32(d.nidx)].UnsafeSetResponseDKG(uint32(d.nidx), vss.StatusComplaint)
 		resp.Status = vss.StatusComplaint
 		s, err := schnorr.Sign(d.suite, d.long, resp.Hash(d.suite))
@@ -371,7 +372,6 @@ func (d *DistKeyGenerator) ProcessDeal(dd *Deal) (*Response, error) {
 // If the response designates a deal this dkg has issued, then the dkg will process
 // the response, and returns a justification.
 func (d *DistKeyGenerator) ProcessResponse(resp *Response) (*Justification, error) {
-	/*fmt.Printf("\t response index %d, dkg index %d\n", resp.Index, d.oidx)*/
 	if d.isResharing && d.canIssue && !d.newPresent {
 		if int(resp.Index) == d.oidx {
 			return d.processResharingResponse(resp)
@@ -428,7 +428,7 @@ func (d *DistKeyGenerator) processResharingResponse(resp *Response) (*Justificat
 	err := schnorr.Verify(d.suite, npub, resp.Response.Hash(d.suite), resp.Response.Signature)
 	if err != nil {
 		// can't return justification with invalid signature otherwise leads to
-		// attack on other nodes. One attacker can simply put the target victimŝ
+		// attack on other nodes. One attacker can simply put the target victim
 		// index and write gibberish in the signature field. The attacker's
 		// response will have to be set to invalid with `SetTimeout` (a call
 		// anyway needed after a certain timeout).
