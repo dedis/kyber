@@ -72,6 +72,7 @@ func NewDKGConfig(suite Suite, longterm kyber.Scalar, participants []kyber.Point
 		Suite:     suite,
 		Longterm:  longterm,
 		NewNodes:  participants,
+		OldNodes:  participants,
 		Threshold: vss.MinimumT(len(participants)),
 	}
 }
@@ -245,7 +246,7 @@ func NewDistKeyGenerator(suite Suite, longterm kyber.Scalar, participants []kybe
 // results in a panic.
 func (d *DistKeyGenerator) Deals() (map[int]*Deal, error) {
 	if !d.canIssue {
-		return nil, errors.New("dkg: can't issue deals with this DKG, please check config")
+		return nil, errors.New("dkg: can't issue deals with this DKG, check config")
 	}
 	deals, err := d.dealer.EncryptedDeals()
 	if err != nil {
