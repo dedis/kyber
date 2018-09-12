@@ -172,8 +172,7 @@ func (p *PriPoly) Coefficients() []kyber.Scalar {
 // RecoverSecret reconstructs the shared secret p(0) from a list of private
 // shares using Lagrange interpolation.
 func RecoverSecret(g kyber.Group, shares []*PriShare, t, n int) (kyber.Scalar, error) {
-	x := xScalar(g, shares, t, n)
-
+	x, y := xScalar(g, shares, t, n)
 	if len(x) < t {
 		return nil, errors.New("share: not enough shares to recover secret")
 	}
@@ -184,7 +183,8 @@ func RecoverSecret(g kyber.Group, shares []*PriShare, t, n int) (kyber.Scalar, e
 	tmp := g.Scalar()
 
 	for i, xi := range x {
-		num.Set(shares[i].V)
+		yi := y[i]
+		num.Set(yi)
 		den.One()
 		for j, xj := range x {
 			if i == j {
@@ -199,18 +199,38 @@ func RecoverSecret(g kyber.Group, shares []*PriShare, t, n int) (kyber.Scalar, e
 	return acc, nil
 }
 
-func xScalar(g kyber.Group, shares []*PriShare, t, n int) map[int]kyber.Scalar {
+// xScalar returns the list of (x_i, y_i) pairs indexed. The first map returned
+// is the list of x_i and the second map is the list of y_i, both indexed in
+// their respective map at index i.
+func xScalar(g kyber.Group, shares []*PriShare, t, n int) (map[int]kyber.Scalar, map[int]kyber.Scalar) {
+	// we are sorting first the shares since the shares may be unrelated for
+	// some applications. In this case, all participants needs to interpolate on
+	// the exact same order shares.
+	// XXX naive n^2 sorting => move that to inplace golang native sort
+	sorted := make([]*PriShare, n)
+	for i := 0; i < len(shares); i++ {
+		if shares[i] != nil {
+			sorted[shares[i].I] = shares[i]
+		}
+	}
+	if len(sorted) < len(shares) {
+		panic("that should not happen")
+	}
+
 	x := make(map[int]kyber.Scalar)
-	for i, s := range shares {
+	y := make(map[int]kyber.Scalar)
+	for _, s := range sorted {
 		if s == nil || s.V == nil || s.I < 0 || n <= s.I {
 			continue
 		}
-		x[i] = g.Scalar().SetInt64(1 + int64(s.I))
+		idx := s.I
+		x[idx] = g.Scalar().SetInt64(int64(idx + 1))
+		y[idx] = s.V
 		if len(x) == t {
 			break
 		}
 	}
-	return x
+	return x, y
 }
 
 func xMinusConst(g kyber.Group, c kyber.Scalar) *PriPoly {
@@ -227,7 +247,7 @@ func xMinusConst(g kyber.Group, c kyber.Scalar) *PriPoly {
 // shares to correctly re-construct the polynomial. There must be at least t
 // shares.
 func RecoverPriPoly(g kyber.Group, shares []*PriShare, t, n int) (*PriPoly, error) {
-	x := xScalar(g, shares, t, n)
+	x, y := xScalar(g, shares, t, n)
 	if len(x) != t {
 		return nil, errors.New("share: not enough shares to recover private polynomial")
 	}
@@ -240,7 +260,7 @@ func RecoverPriPoly(g kyber.Group, shares []*PriShare, t, n int) (*PriPoly, erro
 	for j := range x {
 		basis := lagrangeBasis(g, j, x)
 		for i := range basis.coeffs {
-			basis.coeffs[i] = basis.coeffs[i].Mul(basis.coeffs[i], shares[j].V)
+			basis.coeffs[i] = basis.coeffs[i].Mul(basis.coeffs[i], y[j])
 		}
 
 		if accPoly == nil {
@@ -373,20 +393,43 @@ func (p *PubPoly) Check(s *PriShare) bool {
 	return pv.V.Equal(ps)
 }
 
-// RecoverCommit reconstructs the secret commitment p(0) from a list of public
-// shares using Lagrange interpolation.
-func RecoverCommit(g kyber.Group, shares []*PubShare, t, n int) (kyber.Point, error) {
+// xyCommits is the public version of xScalars.
+func xyCommit(g kyber.Group, shares []*PubShare, t, n int) (map[int]kyber.Scalar, map[int]kyber.Point) {
+	// we are sorting first the shares since the shares may be unrelated for
+	// some applications. In this case, all participants needs to interpolate on
+	// the exact same order shares.
+	// XXX naive n^2 sorting => move that to inplace golang native sort
+	sorted := make([]*PubShare, n)
+	for i := 0; i < len(shares); i++ {
+		if shares[i] != nil {
+			sorted[shares[i].I] = shares[i]
+		}
+	}
+
+	if len(sorted) < len(shares) {
+		panic("that should not happen")
+	}
 	x := make(map[int]kyber.Scalar)
-	for i, s := range shares {
+	y := make(map[int]kyber.Point)
+
+	for _, s := range sorted {
 		if s == nil || s.V == nil || s.I < 0 || n <= s.I {
 			continue
 		}
-		x[i] = g.Scalar().SetInt64(1 + int64(s.I))
+		idx := s.I
+		x[idx] = g.Scalar().SetInt64(int64(idx + 1))
+		y[idx] = s.V
 		if len(x) == t {
 			break
 		}
 	}
+	return x, y
+}
 
+// RecoverCommit reconstructs the secret commitment p(0) from a list of public
+// shares using Lagrange interpolation.
+func RecoverCommit(g kyber.Group, shares []*PubShare, t, n int) (kyber.Point, error) {
+	x, y := xyCommit(g, shares, t, n)
 	if len(x) < t {
 		return nil, errors.New("share: not enough good public shares to reconstruct secret commitment")
 	}
@@ -407,7 +450,7 @@ func RecoverCommit(g kyber.Group, shares []*PubShare, t, n int) (kyber.Point, er
 			num.Mul(num, xj)
 			den.Mul(den, tmp.Sub(xj, xi))
 		}
-		Tmp.Mul(num.Div(num, den), shares[i].V)
+		Tmp.Mul(num.Div(num, den), y[i])
 		Acc.Add(Acc, Tmp)
 	}
 
@@ -417,17 +460,7 @@ func RecoverCommit(g kyber.Group, shares []*PubShare, t, n int) (kyber.Point, er
 // RecoverPubPoly reconstructs the full public polynomial from a set of public
 // shares using Lagrange interpolation.
 func RecoverPubPoly(g kyber.Group, shares []*PubShare, t, n int) (*PubPoly, error) {
-	x := make(map[int]kyber.Scalar)
-	for i, s := range shares {
-		if s == nil || s.V == nil || s.I < 0 || n <= s.I {
-			continue
-		}
-		x[i] = g.Scalar().SetInt64(1 + int64(s.I))
-		if len(x) == t {
-			break
-		}
-	}
-
+	x, y := xyCommit(g, shares, t, n)
 	if len(x) < t {
 		return nil, errors.New("share: not enough good public shares to reconstruct secret commitment")
 	}
@@ -439,7 +472,7 @@ func RecoverPubPoly(g kyber.Group, shares []*PubShare, t, n int) (*PubPoly, erro
 		basis := lagrangeBasis(g, j, x)
 
 		// compute the L_j * y_j polynomial in point space
-		tmp := basis.Commit(shares[j].V)
+		tmp := basis.Commit(y[j])
 		if accPoly == nil {
 			accPoly = tmp
 			continue
