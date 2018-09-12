@@ -234,29 +234,13 @@ func RecoverPriPoly(g kyber.Group, shares []*PriShare, t, n int) (*PriPoly, erro
 
 	var accPoly *PriPoly
 	var err error
-	den := g.Scalar()
+	//den := g.Scalar()
 	// Notations follow the Wikipedia article on Lagrange interpolation
 	// https://en.wikipedia.org/wiki/Lagrange_polynomial
-	for j, xj := range x {
-		var basis = &PriPoly{
-			g:      g,
-			coeffs: []kyber.Scalar{g.Scalar().One()},
-		}
-		var acc = g.Scalar().Set(shares[j].V)
-		// compute lagrange basis l_j
-		for m, xm := range x {
-			if j == m {
-				continue
-			}
-			basis = basis.Mul(xMinusConst(g, xm)) // basis = basis * (x - xm)
-
-			den.Sub(xj, xm)   // den = xj - xm
-			den.Inv(den)      // den = 1 / den
-			acc.Mul(acc, den) // acc = acc * den
-		}
-
+	for j := range x {
+		basis := lagrangeBasis(g, j, x)
 		for i := range basis.coeffs {
-			basis.coeffs[i] = basis.coeffs[i].Mul(basis.coeffs[i], acc)
+			basis.coeffs[i] = basis.coeffs[i].Mul(basis.coeffs[i], shares[j].V)
 		}
 
 		if accPoly == nil {
@@ -398,6 +382,9 @@ func RecoverCommit(g kyber.Group, shares []*PubShare, t, n int) (kyber.Point, er
 			continue
 		}
 		x[i] = g.Scalar().SetInt64(1 + int64(s.I))
+		if len(x) == t {
+			break
+		}
 	}
 
 	if len(x) < t {
@@ -425,4 +412,74 @@ func RecoverCommit(g kyber.Group, shares []*PubShare, t, n int) (kyber.Point, er
 	}
 
 	return Acc, nil
+}
+
+// RecoverPubPoly reconstructs the full public polynomial from a set of public
+// shares using Lagrange interpolation.
+func RecoverPubPoly(g kyber.Group, shares []*PubShare, t, n int) (*PubPoly, error) {
+	x := make(map[int]kyber.Scalar)
+	for i, s := range shares {
+		if s == nil || s.V == nil || s.I < 0 || n <= s.I {
+			continue
+		}
+		x[i] = g.Scalar().SetInt64(1 + int64(s.I))
+		if len(x) == t {
+			break
+		}
+	}
+
+	if len(x) < t {
+		return nil, errors.New("share: not enough good public shares to reconstruct secret commitment")
+	}
+
+	var accPoly *PubPoly
+	var err error
+
+	for j := range x {
+		basis := lagrangeBasis(g, j, x)
+
+		// compute the L_j * y_j polynomial in point space
+		tmp := basis.Commit(shares[j].V)
+		if accPoly == nil {
+			accPoly = tmp
+			continue
+		}
+
+		// add all L_j * y_j together
+		accPoly, err = accPoly.Add(tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return accPoly, nil
+
+}
+
+// lagrangeBasis returns a PriPoly containing the Lagrange coefficients for the
+// i-th position. xs is a mapping between the indices and the values that the
+// interpolation is using, computed with xScalar().
+func lagrangeBasis(g kyber.Group, i int, xs map[int]kyber.Scalar) *PriPoly {
+	var basis = &PriPoly{
+		g:      g,
+		coeffs: []kyber.Scalar{g.Scalar().One()},
+	}
+	// compute lagrange basis l_j
+	den := g.Scalar().One()
+	var acc = g.Scalar().One()
+	for m, xm := range xs {
+		if i == m {
+			continue
+		}
+		basis = basis.Mul(xMinusConst(g, xm))
+		den.Sub(xs[i], xm) // den = xi - xm
+		den.Inv(den)       // den = 1 / den
+		acc.Mul(acc, den)  // acc = acc * den
+	}
+
+	// multiply all coefficients by the denominator
+	for i := range basis.coeffs {
+		basis.coeffs[i] = basis.coeffs[i].Mul(basis.coeffs[i], acc)
+	}
+	return basis
 }
