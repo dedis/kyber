@@ -6,7 +6,7 @@ package bn256
 // assembly implementations of these functions, provided that they exist.
 
 import (
-    "golang.org/x/sys/cpu"
+	"golang.org/x/sys/cpu"
 )
 
 var hasBMI2 = cpu.X86.HasBMI2
