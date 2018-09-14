@@ -1,4 +1,4 @@
-// +build amd64
+// +build amd64,!generic
 
 #define storeBlock(a0,a1,a2,a3, r) \
 	MOVQ a0,  0+r \
