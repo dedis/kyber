@@ -642,7 +642,7 @@ func (d *DistKeyGenerator) resharingKey() (*DistKeyShare, error) {
 	}, nil
 }
 
-func (d *DistKeyGenerator) Verifiers() (*map[uint32]*vss.Verifier, error) {
+func (d *DistKeyGenerator) Verifiers() (map[uint32]*vss.Verifier, error) {
 	return d.verifiers
 }
 
