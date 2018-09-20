@@ -10,7 +10,6 @@
 package dkg
 
 import (
-	"bytes"
 	"errors"
 
 	"github.com/dedis/kyber"
@@ -108,6 +107,8 @@ type DistKeyGenerator struct {
 	dealer *vss.Dealer
 	// verifiers indexed by dealer index
 	verifiers map[uint32]*vss.Verifier
+	// performs the part of the response verification for old nodes
+	oldAggregators map[uint32]*vss.Aggregator
 
 	// index in the old list of nodes
 	oidx int
@@ -200,21 +201,22 @@ func NewDistKeyHandler(c *Config) (*DistKeyGenerator, error) {
 		}
 	}
 	return &DistKeyGenerator{
-		dealer:      dealer,
-		verifiers:   make(map[uint32]*vss.Verifier),
-		suite:       c.Suite,
-		long:        c.Longterm,
-		pub:         pub,
-		canIssue:    canIssue,
-		canReceive:  canReceive,
-		isResharing: isResharing,
-		dpub:        dpub,
-		oidx:        oidx,
-		nidx:        nidx,
-		c:           c,
-		oldT:        oldThreshold,
-		newT:        newThreshold,
-		newPresent:  newPresent,
+		dealer:         dealer,
+		verifiers:      make(map[uint32]*vss.Verifier),
+		oldAggregators: make(map[uint32]*vss.Aggregator),
+		suite:          c.Suite,
+		long:           c.Longterm,
+		pub:            pub,
+		canIssue:       canIssue,
+		canReceive:     canReceive,
+		isResharing:    isResharing,
+		dpub:           dpub,
+		oidx:           oidx,
+		nidx:           nidx,
+		c:              c,
+		oldT:           oldThreshold,
+		newT:           newThreshold,
+		newPresent:     newPresent,
 	}, nil
 }
 
@@ -231,11 +233,10 @@ func NewDistKeyGenerator(suite Suite, longterm kyber.Scalar, participants []kybe
 	return NewDistKeyHandler(c)
 }
 
-// Deals returns all the deals that must be broadcasted to all
-// participants. The deal corresponding to this DKG is already added
-// to this DKG and is ommitted from the returned map. To know which
-// participant a deal belongs to, loop over the keys as indices in the
-// list of participants:
+// Deals returns all the deals that must be broadcasted to all participants in
+// the new list. The deal corresponding to this DKG is already added to this DKG
+// and is ommitted from the returned map. To know which participant a deal
+// belongs to, loop over the keys as indices in the list of new participants:
 //
 //   for i,dd := range distDeals {
 //      sendTo(participants[i],dd)
@@ -286,9 +287,9 @@ func (d *DistKeyGenerator) Deals() (map[int]*Deal, error) {
 }
 
 // ProcessDeal takes a Deal created by Deals() and stores and verifies it. It
-// returns a Response to broadcast to every other participant. It returns an
-// error in case the deal has already been stored, or if the deal is incorrect
-// (see vss.Verifier.ProcessEncryptedDeal).
+// returns a Response to broadcast to every other participant, including the old
+// participants. It returns an error in case the deal has already been stored,
+// or if the deal is incorrect (see vss.Verifier.ProcessEncryptedDeal).
 func (d *DistKeyGenerator) ProcessDeal(dd *Deal) (*Response, error) {
 	// public key of the dealer
 	pub, ok := getPub(d.c.OldNodes, dd.Index)
@@ -373,12 +374,7 @@ func (d *DistKeyGenerator) ProcessDeal(dd *Deal) (*Response, error) {
 // the response, and returns a justification.
 func (d *DistKeyGenerator) ProcessResponse(resp *Response) (*Justification, error) {
 	if d.isResharing && d.canIssue && !d.newPresent {
-		if int(resp.Index) == d.oidx {
-			return d.processResharingResponse(resp)
-		}
-		// nothing to do if the response is not about our deal since we don't
-		// keep anything
-		return nil, nil
+		return d.processResharingResponse(resp)
 	}
 
 	v, ok := d.verifiers[resp.Index]
@@ -420,30 +416,22 @@ func (d *DistKeyGenerator) ProcessResponse(resp *Response) (*Justification, erro
 // receive shares. This function makes some check on the response and returns a
 // justification if the response is invalid.
 func (d *DistKeyGenerator) processResharingResponse(resp *Response) (*Justification, error) {
-	// check the signature authenticity
-	npub, present := getPub(d.c.NewNodes, resp.Response.Index)
+	agg, present := d.oldAggregators[resp.Index]
 	if !present {
-		return nil, errors.New("dkg: resharing response invalid index")
+		agg = vss.NewEmptyAggregator(d.suite, d.c.NewNodes)
+		d.oldAggregators[resp.Index] = agg
 	}
-	err := schnorr.Verify(d.suite, npub, resp.Response.Hash(d.suite), resp.Response.Signature)
-	if err != nil {
-		// can't return justification with invalid signature otherwise leads to
-		// attack on other nodes. One attacker can simply put the target victim
-		// index and write gibberish in the signature field. The attacker's
-		// response will have to be set to invalid with `SetTimeout` (a call
-		// anyway needed after a certain timeout).
-		return nil, errors.New("dkg: resharing response invalid signature")
+
+	err := agg.ProcessResponse(resp.Response)
+	if int(resp.Index) != d.oidx {
+		return nil, err
 	}
-	// check the status
+
 	if resp.Response.Status == vss.StatusApproval {
 		return nil, nil
 	}
 
-	// check the sessionID
-	if bytes.Compare(d.dealer.SessionID(), resp.Response.SessionID) != 0 {
-		return nil, errors.New("dkg: resharing response invalid sessionID")
-	}
-	// complaint response is "valid"
+	// status is complaint and it is about our deal
 	deal, err := d.dealer.PlaintextDeal(int(resp.Response.Index))
 	if err != nil {
 		return nil, errors.New("dkg: resharing response can't get deal. BUG - REPORT")
@@ -492,11 +480,19 @@ func (d *DistKeyGenerator) Certified() bool {
 // XXX Have a method of retrieving invalid shares ?
 func (d *DistKeyGenerator) QUAL() []int {
 	var good []int
-	d.qualIter(func(i uint32, v *vss.Verifier) bool {
-		good = append(good, int(i))
-		return true
-	})
-	return good
+	if d.isResharing && d.canIssue && !d.newPresent {
+		d.oldQualIter(func(i uint32, v *vss.Aggregator) bool {
+			good = append(good, int(i))
+			return true
+		})
+		return good
+	} else {
+		d.qualIter(func(i uint32, v *vss.Verifier) bool {
+			good = append(good, int(i))
+			return true
+		})
+		return good
+	}
 }
 
 func (d *DistKeyGenerator) isInQUAL(idx uint32) bool {
@@ -513,6 +509,16 @@ func (d *DistKeyGenerator) isInQUAL(idx uint32) bool {
 
 func (d *DistKeyGenerator) qualIter(fn func(idx uint32, v *vss.Verifier) bool) {
 	for i, v := range d.verifiers {
+		if v.DealCertified() {
+			if !fn(i, v) {
+				break
+			}
+		}
+	}
+}
+
+func (d *DistKeyGenerator) oldQualIter(fn func(idx uint32, v *vss.Aggregator) bool) {
+	for i, v := range d.oldAggregators {
 		if v.DealCertified() {
 			if !fn(i, v) {
 				break
