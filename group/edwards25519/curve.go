@@ -52,7 +52,7 @@ func (c *Curve) NewKey(stream cipher.Stream) kyber.Scalar {
 	random.Bytes(buffer[:], stream)
 	scalar := sha512.Sum512(buffer[:])
 	scalar[0] &= 0xf8
-	scalar[31] &= 0x3f
+	scalar[31] &= 0x7f
 	scalar[31] |= 0x40
 
 	secret := c.Scalar().SetBytes(scalar[:32])
