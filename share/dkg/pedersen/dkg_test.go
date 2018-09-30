@@ -9,7 +9,6 @@ import (
 	"github.com/dedis/kyber/group/edwards25519"
 	"github.com/dedis/kyber/share"
 	vss "github.com/dedis/kyber/share/vss/pedersen"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -37,33 +36,40 @@ func init() {
 func TestDKGNewDistKeyGenerator(t *testing.T) {
 	long := partSec[0]
 	dkg, err := NewDistKeyGenerator(suite, long, partPubs, nbParticipants/2+1)
-	assert.Nil(t, err)
-	assert.NotNil(t, dkg.dealer)
+	require.Nil(t, err)
+	require.NotNil(t, dkg.dealer)
+	require.True(t, dkg.canIssue)
+	require.True(t, dkg.canReceive)
+	require.True(t, dkg.newPresent)
+	// because we set old = new
+	require.True(t, dkg.oldPresent)
+	require.True(t, dkg.canReceive)
+	require.False(t, dkg.isResharing)
 
 	sec, _ := genPair()
 	_, err = NewDistKeyGenerator(suite, sec, partPubs, nbParticipants/2+1)
-	assert.Error(t, err)
+	require.Error(t, err)
 }
 
 func TestDKGDeal(t *testing.T) {
 	dkg := dkgs[0]
 
 	dks, err := dkg.DistKeyShare()
-	assert.Error(t, err)
-	assert.Nil(t, dks)
+	require.Error(t, err)
+	require.Nil(t, dks)
 
 	deals, err := dkg.Deals()
 	require.Nil(t, err)
-	assert.Len(t, deals, nbParticipants-1)
+	require.Len(t, deals, nbParticipants-1)
 
 	for i := range deals {
-		assert.NotNil(t, deals[i])
-		assert.Equal(t, uint32(0), deals[i].Index)
+		require.NotNil(t, deals[i])
+		require.Equal(t, uint32(0), deals[i].Index)
 	}
 
 	v, ok := dkg.verifiers[uint32(dkg.nidx)]
-	assert.True(t, ok)
-	assert.NotNil(t, v)
+	require.True(t, ok)
+	require.NotNil(t, v)
 }
 
 func TestDKGProcessDeal(t *testing.T) {
@@ -74,45 +80,45 @@ func TestDKGProcessDeal(t *testing.T) {
 
 	rec := dkgs[1]
 	deal := deals[1]
-	assert.Equal(t, int(deal.Index), 0)
-	assert.Equal(t, 1, rec.nidx)
+	require.Equal(t, int(deal.Index), 0)
+	require.Equal(t, 1, rec.nidx)
 
 	// verifier don't find itself
 	goodP := rec.c.NewNodes
 	rec.c.NewNodes = make([]kyber.Point, 0)
 	resp, err := rec.ProcessDeal(deal)
-	assert.Nil(t, resp)
-	assert.Error(t, err)
+	require.Nil(t, resp)
+	require.Error(t, err)
 	rec.c.NewNodes = goodP
 
 	// good deal
 	resp, err = rec.ProcessDeal(deal)
-	assert.NotNil(t, resp)
-	assert.Equal(t, vss.StatusApproval, resp.Response.Status)
-	assert.Nil(t, err)
+	require.NotNil(t, resp)
+	require.Equal(t, vss.StatusApproval, resp.Response.Status)
+	require.Nil(t, err)
 	_, ok := rec.verifiers[deal.Index]
 	require.True(t, ok)
-	assert.Equal(t, uint32(0), resp.Index)
+	require.Equal(t, uint32(0), resp.Index)
 
 	// duplicate
 	resp, err = rec.ProcessDeal(deal)
-	assert.Nil(t, resp)
-	assert.Error(t, err)
+	require.Nil(t, resp)
+	require.Error(t, err)
 
 	// wrong index
 	goodIdx := deal.Index
 	deal.Index = uint32(nbParticipants + 1)
 	resp, err = rec.ProcessDeal(deal)
-	assert.Nil(t, resp)
-	assert.Error(t, err)
+	require.Nil(t, resp)
+	require.Error(t, err)
 	deal.Index = goodIdx
 
 	// wrong deal
 	goodSig := deal.Deal.Signature
 	deal.Deal.Signature = randomBytes(len(deal.Deal.Signature))
 	resp, err = rec.ProcessDeal(deal)
-	assert.Nil(t, resp)
-	assert.Error(t, err)
+	require.Nil(t, resp)
+	require.Error(t, err)
 	deal.Deal.Signature = goodSig
 
 }
@@ -136,9 +142,9 @@ func TestDKGProcessResponse(t *testing.T) {
 	encD := dd[idxRec]
 	require.Nil(t, err)
 	resp, err := rec.ProcessDeal(encD)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	require.NotNil(t, resp)
-	assert.Equal(t, vss.StatusComplaint, resp.Response.Status)
+	require.Equal(t, vss.StatusComplaint, resp.Response.Status)
 	deal.SecShare.V = goodSecret
 	dd, _ = dkg.Deals()
 	encD = dd[idxRec]
@@ -150,22 +156,22 @@ func TestDKGProcessResponse(t *testing.T) {
 	require.NotNil(t, v)
 	delete(dkg.verifiers, 0)
 	j, err := dkg.ProcessResponse(resp)
-	assert.Nil(t, j)
-	assert.NotNil(t, err)
+	require.Nil(t, j)
+	require.NotNil(t, err)
 	dkg.verifiers[0] = v
 
 	// invalid response
 	goodSig := resp.Response.Signature
 	resp.Response.Signature = randomBytes(len(goodSig))
 	j, err = dkg.ProcessResponse(resp)
-	assert.Nil(t, j)
-	assert.Error(t, err)
+	require.Nil(t, j)
+	require.Error(t, err)
 	resp.Response.Signature = goodSig
 
 	// valid complaint from our deal
 	j, err = dkg.ProcessResponse(resp)
-	assert.NotNil(t, j)
-	assert.Nil(t, err)
+	require.NotNil(t, j)
+	require.Nil(t, err)
 
 	// valid complaint from another deal from another peer
 	dkg2 := dkgs[2]
@@ -181,8 +187,11 @@ func TestDKGProcessResponse(t *testing.T) {
 	require.Nil(t, err)
 
 	resp12, err := rec.ProcessDeal(deals2[idxRec])
-	assert.NotNil(t, resp)
-	assert.Equal(t, vss.StatusComplaint, resp12.Response.Status)
+	require.NotNil(t, resp)
+	require.Equal(t, vss.StatusComplaint, resp12.Response.Status)
+	require.Equal(t, deals2[idxRec].Index, uint32(dkg2.nidx))
+	require.Equal(t, resp12.Index, uint32(dkg2.nidx))
+	require.Equal(t, vss.StatusComplaint, rec.verifiers[uint32(dkg2.oidx)].Responses()[uint32(rec.nidx)].Status)
 
 	deal21.SecShare.V = goodRnd21
 	deals2, err = dkg2.Deals()
@@ -191,31 +200,31 @@ func TestDKGProcessResponse(t *testing.T) {
 	// give it to the first peer
 	// process dealer 2's deal
 	r, err := dkg.ProcessDeal(deals2[0])
-	assert.Nil(t, err)
-	assert.NotNil(t, r)
+	require.Nil(t, err)
+	require.NotNil(t, r)
 
 	// process response from peer 1
 	j, err = dkg.ProcessResponse(resp12)
-	assert.Nil(t, j)
-	assert.Nil(t, err)
+	require.Nil(t, j)
+	require.Nil(t, err)
 
 	// Justification part:
 	// give the complaint to the dealer
 	j, err = dkg2.ProcessResponse(resp12)
-	assert.Nil(t, err)
-	assert.NotNil(t, j)
+	require.Nil(t, err)
+	require.NotNil(t, j)
 
 	// hack because all is local, and resp has been modified locally by dkg2's
 	// dealer, the status has became "justified"
 	resp12.Response.Status = vss.StatusComplaint
 	err = dkg.ProcessJustification(j)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	// remove verifiers
 	v = dkg.verifiers[j.Index]
 	delete(dkg.verifiers, j.Index)
 	err = dkg.ProcessJustification(j)
-	assert.Error(t, err)
+	require.Error(t, err)
 	dkg.verifiers[j.Index] = v
 
 }
@@ -275,7 +284,7 @@ func TestDistKeyShare(t *testing.T) {
 	fullExchange(t, dkgs)
 
 	for _, dkg := range dkgs {
-		assert.True(t, dkg.Certified())
+		require.True(t, dkg.Certified())
 	}
 	// verify integrity of shares etc
 	dkss := make([]*DistKeyShare, nbParticipants)
@@ -286,7 +295,7 @@ func TestDistKeyShare(t *testing.T) {
 		require.NotNil(t, dks)
 		require.NotNil(t, dks.PrivatePoly)
 		dkss[i] = dks
-		assert.Equal(t, dkg.nidx, dks.Share.I)
+		require.Equal(t, dkg.nidx, dks.Share.I)
 
 		pripoly := share.CoefficientsToPriPoly(suite, dks.PrivatePoly)
 		if poly == nil {
@@ -299,18 +308,18 @@ func TestDistKeyShare(t *testing.T) {
 
 	shares := make([]*share.PriShare, nbParticipants)
 	for i, dks := range dkss {
-		assert.True(t, checkDks(dks, dkss[0]), "dist key share not equal %d vs %d", dks.Share.I, 0)
+		require.True(t, checkDks(dks, dkss[0]), "dist key share not equal %d vs %d", dks.Share.I, 0)
 		shares[i] = dks.Share
 	}
 
 	secret, err := share.RecoverSecret(suite, shares, nbParticipants, nbParticipants)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	secretCoeffs := poly.Coefficients()
 	require.Equal(t, secret.String(), secretCoeffs[0].String())
 
 	commitSecret := suite.Point().Mul(secret, nil)
-	assert.Equal(t, dkss[0].Public().String(), commitSecret.String())
+	require.Equal(t, dkss[0].Public().String(), commitSecret.String())
 }
 
 func dkgGen() []*DistKeyGenerator {
