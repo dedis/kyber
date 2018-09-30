@@ -151,10 +151,6 @@ func NewDistKeyHandler(c *Config) (*DistKeyGenerator, error) {
 		return nil, errors.New("dkg: public key not found in old list or new list")
 	}
 
-	if oldPresent && !isResharing {
-		return nil, errors.New("dkg: pub. key present in old list but no share present")
-	}
-
 	var newThreshold int
 	if c.Threshold != 0 {
 		newThreshold = c.Threshold
