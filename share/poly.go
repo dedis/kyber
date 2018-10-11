@@ -172,7 +172,7 @@ func (p *PriPoly) Coefficients() []kyber.Scalar {
 // RecoverSecret reconstructs the shared secret p(0) from a list of private
 // shares using Lagrange interpolation.
 func RecoverSecret(g kyber.Group, shares []*PriShare, t, n int) (kyber.Scalar, error) {
-	x := xScalar(g, shares, t, n)
+	x := filterPriShares(g, shares, t, n)
 
 	if len(x) < t {
 		return nil, errors.New("share: not enough shares to recover secret")
@@ -199,7 +199,7 @@ func RecoverSecret(g kyber.Group, shares []*PriShare, t, n int) (kyber.Scalar, e
 	return acc, nil
 }
 
-func xScalar(g kyber.Group, shares []*PriShare, t, n int) map[int]kyber.Scalar {
+func filterPriShares(g kyber.Group, shares []*PriShare, t, n int) map[int]kyber.Scalar {
 	x := make(map[int]kyber.Scalar)
 	for i, s := range shares {
 		if s == nil || s.V == nil || s.I < 0 || n <= s.I {
@@ -213,7 +213,7 @@ func xScalar(g kyber.Group, shares []*PriShare, t, n int) map[int]kyber.Scalar {
 	return x
 }
 
-func xMinusConst(g kyber.Group, c kyber.Scalar) *PriPoly {
+func minusConst(g kyber.Group, c kyber.Scalar) *PriPoly {
 	neg := g.Scalar().Neg(c)
 	return &PriPoly{
 		g:      g,
@@ -227,7 +227,7 @@ func xMinusConst(g kyber.Group, c kyber.Scalar) *PriPoly {
 // shares to correctly re-construct the polynomial. There must be at least t
 // shares.
 func RecoverPriPoly(g kyber.Group, shares []*PriShare, t, n int) (*PriPoly, error) {
-	x := xScalar(g, shares, t, n)
+	x := filterPriShares(g, shares, t, n)
 	if len(x) != t {
 		return nil, errors.New("share: not enough shares to recover private polynomial")
 	}
@@ -458,7 +458,7 @@ func RecoverPubPoly(g kyber.Group, shares []*PubShare, t, n int) (*PubPoly, erro
 
 // lagrangeBasis returns a PriPoly containing the Lagrange coefficients for the
 // i-th position. xs is a mapping between the indices and the values that the
-// interpolation is using, computed with xScalar().
+// interpolation is using, computed with filterPriShares().
 func lagrangeBasis(g kyber.Group, i int, xs map[int]kyber.Scalar) *PriPoly {
 	var basis = &PriPoly{
 		g:      g,
@@ -471,7 +471,7 @@ func lagrangeBasis(g kyber.Group, i int, xs map[int]kyber.Scalar) *PriPoly {
 		if i == m {
 			continue
 		}
-		basis = basis.Mul(xMinusConst(g, xm))
+		basis = basis.Mul(minusConst(g, xm))
 		den.Sub(xs[i], xm) // den = xi - xm
 		den.Inv(den)       // den = 1 / den
 		acc.Mul(acc, den)  // acc = acc * den
