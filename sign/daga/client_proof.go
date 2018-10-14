@@ -503,7 +503,7 @@ func newClientProver(suite Suite, context AuthenticationContext, tagAndCommitmen
 		finalOrPred: client.Index(), // indicate to prover which clause is actually true
 	}
 	sval := map[string]kyber.Scalar{
-		"s":                              s,
+		"s":                                s,
 		"x" + strconv.Itoa(client.Index()): client.PrivateKey(),
 	}
 	// retrieve sigma-protocol Prover for the OR-predicate

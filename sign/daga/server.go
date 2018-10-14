@@ -17,8 +17,8 @@ type Server interface {
 	Index() int
 	RoundSecret() kyber.Scalar //Per round secret
 	SetRoundSecret(scalar kyber.Scalar)
-	PublicKey()   kyber.Point
-	PrivateKey()  kyber.Scalar
+	PublicKey() kyber.Point
+	PrivateKey() kyber.Scalar
 }
 
 type server struct {
@@ -261,10 +261,10 @@ func InitializeServerMessage(request *AuthenticationMessage) (msg *ServerMessage
 	}
 	return &ServerMessage{
 		request: *request,
-		tags: nil,
+		tags:    nil,
 		indexes: nil,
-		proofs: nil,
-		sigs: nil,
+		proofs:  nil,
+		sigs:    nil,
 	}, nil
 }
 

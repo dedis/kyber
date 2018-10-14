@@ -15,7 +15,7 @@ type Client interface {
 }
 
 type client struct {
-	key key.Pair
+	key   key.Pair
 	index int
 }
 
@@ -69,9 +69,9 @@ func NewClient(suite Suite, i int, s kyber.Scalar) (Client, error) {
 // p0 is the client's proof that he correctly followed the protocol and
 // that he belongs to the authorized clients in the context. (see clientProof).
 type AuthenticationMessage struct {
-	c AuthenticationContext
-	initialTagAndCommitments  // FIXME try to make it private
-	p0 clientProof
+	c                        AuthenticationContext
+	initialTagAndCommitments // FIXME try to make it private
+	p0                       clientProof
 }
 
 func NewAuthenticationMessage(suite Suite, context AuthenticationContext, client Client,

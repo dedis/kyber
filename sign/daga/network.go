@@ -302,7 +302,7 @@ func (netcom *NetCommitment) NetDecode(suite Suite) (*Commitment, error) {
 	sig := netcom.Sig.netDecode()
 
 	com := Commitment{
-		commit:commit,
+		commit:          commit,
 		serverSignature: sig,
 	}
 
