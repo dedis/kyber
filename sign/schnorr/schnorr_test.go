@@ -2,6 +2,7 @@ package schnorr
 
 import (
 	"testing"
+	"testing/quick"
 
 	"github.com/dedis/kyber/group/edwards25519"
 	"github.com/dedis/kyber/sign/eddsa"
@@ -61,4 +62,21 @@ func TestEdDSACompatibility(t *testing.T) {
 		t.Fatalf("Couldn't verify signature: \n%+v\nfor msg:'%s'. Error:\n%v", s, msg, err)
 	}
 
+}
+
+func TestQuickSchnorrSignature(t *testing.T) {
+	suite := edwards25519.NewBlakeSHA256Ed25519()
+
+	f := func(kp *key.Pair, msg []byte) bool {
+		s, err := Sign(suite, kp.Private, msg)
+		if err != nil {
+			return false
+		}
+
+		return Verify(suite, kp.Public, msg, s) == nil
+	}
+
+	if err := quick.Check(f, nil); err != nil {
+		t.Error(err)
+	}
 }
