@@ -3,11 +3,8 @@ package key
 
 import (
 	"crypto/cipher"
-	"math/rand"
-	"reflect"
 
 	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/group/edwards25519"
 )
 
 // Generator is a type that needs to implement a special case in order
@@ -75,20 +72,4 @@ func (p *Pair) GenHiding(suite Suite) {
 		p.Gen(suite)
 		Xh = p.Public.(kyber.Hiding)
 	}
-}
-
-// Use for property based testing. The stream is generated using a given Rand instance
-type quickstream struct {
-	rand *rand.Rand
-}
-
-func (s *quickstream) XORKeyStream(dst, src []byte) {
-	rand.Read(dst)
-}
-
-// Generate creates a keypair to be tested against quick tests
-func (p *Pair) Generate(rand *rand.Rand, size int) reflect.Value {
-	suite := edwards25519.NewBlakeSHA256Ed25519WithRand(&quickstream{})
-
-	return reflect.ValueOf(NewKeyPair(suite))
 }

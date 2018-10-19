@@ -1,6 +1,8 @@
 package schnorr
 
 import (
+	"math/rand"
+	"reflect"
 	"testing"
 	"testing/quick"
 
@@ -64,10 +66,24 @@ func TestEdDSACompatibility(t *testing.T) {
 
 }
 
-func TestQuickSchnorrSignature(t *testing.T) {
-	suite := edwards25519.NewBlakeSHA256Ed25519()
+// Simple random stream using the random instance provided by the testing tool
+type quickstream struct {
+	rand *rand.Rand
+}
 
-	f := func(kp *key.Pair, msg []byte) bool {
+func (s *quickstream) XORKeyStream(dst, src []byte) {
+	s.rand.Read(dst)
+}
+
+func (s *quickstream) Generate(rand *rand.Rand, size int) reflect.Value {
+	return reflect.ValueOf(&quickstream{rand: rand})
+}
+
+func TestQuickSchnorrSignature(t *testing.T) {
+	f := func(rand *quickstream, msg []byte) bool {
+		suite := edwards25519.NewBlakeSHA256Ed25519WithRand(rand)
+		kp := key.NewKeyPair(suite)
+
 		s, err := Sign(suite, kp.Private, msg)
 		if err != nil {
 			return false
