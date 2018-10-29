@@ -170,6 +170,9 @@ func Verify(suite Suite, publics []kyber.Point, message, sig []byte, policy Poli
 	}
 
 	lenCom := suite.PointLen()
+	if len(sig) < lenCom {
+		return errors.New("signature too short")
+	}
 	VBuff := sig[:lenCom]
 	V := suite.Point()
 	if err := V.UnmarshalBinary(VBuff); err != nil {
@@ -178,6 +181,9 @@ func Verify(suite Suite, publics []kyber.Point, message, sig []byte, policy Poli
 
 	// Unpack the aggregate response
 	lenRes := lenCom + suite.ScalarLen()
+	if len(sig) < lenRes {
+		return errors.New("signature too short")
+	}
 	rBuff := sig[lenCom:lenRes]
 	r := suite.Scalar().SetBytes(rBuff)
 
