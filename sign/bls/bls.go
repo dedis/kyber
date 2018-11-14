@@ -31,6 +31,29 @@ func Sign(suite pairing.Suite, x kyber.Scalar, msg []byte) ([]byte, error) {
 	return s, nil
 }
 
+// AggregateSignatures combines signatures created using the Sign function
+func AggregateSignatures(suite pairing.Suite, sigs ...[]byte) ([]byte, error) {
+	sig := suite.G1().Point()
+	for _, sigBytes := range sigs {
+		sigToAdd := suite.G1().Point()
+		if err := sigToAdd.UnmarshalBinary(sigBytes); err != nil {
+			return nil, err
+		}
+		sig.Add(sig, sigToAdd)
+	}
+	return sig.MarshalBinary()
+}
+
+// AggregatePublicKeys takes a slice of public G2 points and returns
+// the sum of those points. This is used to verify multisignatures.
+func AggregatePublicKeys(suite pairing.Suite, Xs ...kyber.Point) kyber.Point {
+	aggregated := suite.G2().Point()
+	for _, X := range Xs {
+		aggregated.Add(aggregated, X)
+	}
+	return aggregated
+}
+
 // Verify checks the given BLS signature S on the message m using the public
 // key X by verifying that the equality e(H(m), X) == e(H(m), x*B2) ==
 // e(x*H(m), B2) == e(S, B2) holds where e is the pairing operation and B2 is
