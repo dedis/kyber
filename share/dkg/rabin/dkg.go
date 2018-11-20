@@ -43,6 +43,7 @@ import (
 
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/sign/schnorr"
+	"github.com/dedis/protobuf"
 
 	"github.com/dedis/kyber/share"
 	vss "github.com/dedis/kyber/share/vss/rabin"
@@ -671,7 +672,7 @@ func (cc *ComplaintCommits) Hash(s Suite) []byte {
 	_, _ = h.Write([]byte("commitcomplaint"))
 	_ = binary.Write(h, binary.LittleEndian, cc.Index)
 	_ = binary.Write(h, binary.LittleEndian, cc.DealerIndex)
-	buff, _ := cc.Deal.MarshalBinary()
+	buff, _ := protobuf.Encode(cc.Deal)
 	_, _ = h.Write(buff)
 	return h.Sum(nil)
 }
