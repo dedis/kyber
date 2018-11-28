@@ -46,12 +46,12 @@ type Config struct {
 
 	// PublicCoeffs are the coefficients of the distributed polynomial needed
 	// during the resharing protocol. The first coefficient is the key. It is
-	// required for new share holders.  It should be nil for new DKG.
+	// required for new share holders.  It should be nil for a new DKG.
 	PublicCoeffs []kyber.Point
 
 	// Expected new group of share holders. These public-key designated nodes
-	// will be in possession of new shares after the protocol has been ran. To be a
-	// receiver a of new share, one's public key must be inside this list. Keys
+	// will be in possession of new shares after the protocol has been run. To be a
+	// receiver of a new share, one's public key must be inside this list. Keys
 	// can be disjoint or not with respect to the OldNodes list.
 	NewNodes []kyber.Point
 
@@ -240,9 +240,12 @@ func NewDistKeyGenerator(suite Suite, longterm kyber.Scalar, participants []kybe
 //   }
 //
 // If this method cannot process its own Deal, that indicates a
-// sever problem with the configuration or implementation and
+// severe problem with the configuration or implementation and
 // results in a panic.
 func (d *DistKeyGenerator) Deals() (map[int]*Deal, error) {
+	if !d.canIssue {
+		return nil, nil
+	}
 	deals, err := d.dealer.EncryptedDeals()
 	if err != nil {
 		return nil, err
@@ -473,6 +476,19 @@ func (d *DistKeyGenerator) Certified() bool {
 	return len(d.QUAL()) >= len(d.c.NewNodes)
 }
 
+// ExpectedDeals returns the number of deals that this node will
+// receive from the other participants.
+func (d *DistKeyGenerator) ExpectedDeals() int {
+	switch {
+	case d.newPresent && d.oldPresent:
+		return len(d.c.OldNodes) - 1
+	case d.newPresent && !d.oldPresent:
+		return len(d.c.OldNodes)
+	default:
+		return 0
+	}
+}
+
 // QUAL returns the index in the list of participants that forms the QUALIFIED
 // set as described in the "New-DKG" protocol by Rabin. Basically, it consists
 // of all valid deals at the end of the protocols. It does NOT take into account
@@ -532,7 +548,7 @@ func (d *DistKeyGenerator) oldQualIter(fn func(idx uint32, v *vss.Aggregator) bo
 // The shared secret can be computed when all deals have been sent and
 // basically consists of a public point and a share. The public point is the sum
 // of all aggregated individual public commits of each individual secrets.
-// the share is evaluated from the global Private Polynomial, basically SUM of
+// The share is evaluated from the global Private Polynomial, basically SUM of
 // fj(i) for a receiver i.
 func (d *DistKeyGenerator) DistKeyShare() (*DistKeyShare, error) {
 	if !d.Certified() {

@@ -8,6 +8,7 @@ import (
 	"github.com/dedis/kyber/group/edwards25519"
 	"github.com/dedis/kyber/sign/schnorr"
 	"github.com/dedis/kyber/xof/blake2xb"
+	"github.com/dedis/protobuf"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -205,8 +206,8 @@ func TestVSSVerifierDecryptDeal(t *testing.T) {
 	require.Nil(t, err)
 	decD, err := v.decryptDeal(encD)
 	require.Nil(t, err)
-	b1, _ := d.MarshalBinary()
-	b2, _ := decD.MarshalBinary()
+	b1, _ := protobuf.Encode(d)
+	b2, _ := protobuf.Encode(decD)
 	assert.Equal(t, b1, b2)
 
 	// wrong dh key

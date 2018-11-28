@@ -197,7 +197,7 @@ func (d *Dealer) EncryptedDeal(i int) (*EncryptedDeal, error) {
 	}
 
 	nonce := make([]byte, gcm.NonceSize())
-	dealBuff, err := d.deals[i].MarshalBinary()
+	dealBuff, err := protobuf.Encode(d.deals[i])
 	if err != nil {
 		return nil, err
 	}
@@ -415,7 +415,7 @@ func (v *Verifier) decryptDeal(e *EncryptedDeal) (*Deal, error) {
 		return nil, err
 	}
 	deal := &Deal{}
-	err = deal.UnmarshalBinary(v.suite, decrypted)
+	err = deal.decode(v.suite, decrypted)
 	return deal, err
 }
 
@@ -755,14 +755,7 @@ func (r *Response) Hash(s Suite) []byte {
 	return h.Sum(nil)
 }
 
-// MarshalBinary returns the binary representations of a Deal.
-// The encryption of a deal operates on this binary representation.
-func (d *Deal) MarshalBinary() ([]byte, error) {
-	return protobuf.Encode(d)
-}
-
-// UnmarshalBinary reads the Deal from the binary represenstation.
-func (d *Deal) UnmarshalBinary(s Suite, buff []byte) error {
+func (d *Deal) decode(s Suite, buff []byte) error {
 	constructors := make(protobuf.Constructors)
 	var point kyber.Point
 	var secret kyber.Scalar
@@ -777,7 +770,7 @@ func (j *Justification) Hash(s Suite) []byte {
 	_, _ = h.Write([]byte("justification"))
 	_, _ = h.Write(j.SessionID)
 	_ = binary.Write(h, binary.LittleEndian, j.Index)
-	buff, _ := j.Deal.MarshalBinary()
+	buff, _ := protobuf.Encode(j.Deal)
 	_, _ = h.Write(buff)
 	return h.Sum(nil)
 }

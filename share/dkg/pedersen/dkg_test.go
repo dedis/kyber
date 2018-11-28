@@ -663,7 +663,6 @@ func TestDKGResharingPartialNewNodes(t *testing.T) {
 			Share:     shares[i],
 			Threshold: newT,
 		}
-		//oldDkgs[i], err = NewDistKeyHandler(c)
 		totalDkgs[i], err = NewDistKeyHandler(c)
 		require.NoError(t, err)
 		if i >= 1 {
@@ -692,7 +691,6 @@ func TestDKGResharingPartialNewNodes(t *testing.T) {
 			PublicCoeffs: shares[0].Commits,
 			Threshold:    newT,
 		}
-		//newDkgs[i], err = NewDistKeyHandler(c)
 		totalDkgs[i], err = NewDistKeyHandler(c)
 		require.NoError(t, err)
 		require.True(t, totalDkgs[i].canReceive)
@@ -760,7 +758,6 @@ func TestDKGResharingPartialNewNodes(t *testing.T) {
 			}
 		}
 	}
-
 	for _, dkg := range newDkgs {
 		for i := 0; i < oldN; i++ {
 			require.True(t, dkg.verifiers[uint32(i)].DealCertified(), "new dkg %d has not certified deal %d => %v", dkg.nidx, i, dkg.verifiers[uint32(i)].Responses())

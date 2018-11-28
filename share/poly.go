@@ -14,6 +14,7 @@ import (
 	"crypto/subtle"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/dedis/kyber"
@@ -27,6 +28,10 @@ var errorCoeffs = errors.New("different number of coefficients")
 type PriShare struct {
 	I int          // Index of the private share
 	V kyber.Scalar // Value of the private share
+}
+
+func (p *PriShare) String() string {
+	return fmt.Sprintf("PriShare{%d:%v}", p.I, p.V)
 }
 
 // Hash returns the hash representation of this share
