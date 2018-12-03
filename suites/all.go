@@ -3,6 +3,7 @@ package suites
 import (
 	"github.com/dedis/kyber/group/edwards25519"
 	"github.com/dedis/kyber/group/nist"
+	"github.com/dedis/kyber/pairing"
 	"github.com/dedis/kyber/pairing/bn256"
 )
 
@@ -17,4 +18,5 @@ func init() {
 	// This is a constant time implementation that should be
 	// used as much as possible
 	register(edwards25519.NewBlakeSHA256Ed25519())
+	register(pairing.NewSuiteBn256())
 }
