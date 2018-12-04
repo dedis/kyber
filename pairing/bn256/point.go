@@ -300,6 +300,12 @@ func (p *pointG2) MarshalBinary() ([]byte, error) {
 	return ret, nil
 }
 
+func (p *pointG2) MarshalID() [8]byte {
+	id := [8]byte{}
+	copy(id[:], "bn256.pt")
+	return id
+}
+
 func (p *pointG2) MarshalTo(w io.Writer) (int, error) {
 	buf, err := p.MarshalBinary()
 	if err != nil {

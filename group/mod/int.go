@@ -328,6 +328,13 @@ func (i *Int) MarshalBinary() ([]byte, error) {
 	return b, nil
 }
 
+// MarshalID returns a unique identifier for this type
+func (i *Int) MarshalID() [8]byte {
+	id := [8]byte{}
+	copy(id[:], "mod.int")
+	return id
+}
+
 // UnmarshalBinary tries to decode a Int from a byte-slice buffer.
 // Returns an error if the buffer is not exactly Len() bytes long
 // or if the contents of the buffer represents an out-of-range integer.

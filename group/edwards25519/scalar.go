@@ -160,6 +160,12 @@ func (s *scalar) MarshalBinary() ([]byte, error) {
 	return s.toInt().MarshalBinary()
 }
 
+func (s *scalar) MarshalID() [8]byte {
+	id := [8]byte{}
+	copy(id[:], "ed.scala")
+	return id
+}
+
 // UnmarshalBinary reads the binary representation of a scalar.
 func (s *scalar) UnmarshalBinary(buf []byte) error {
 	if len(buf) != 32 {

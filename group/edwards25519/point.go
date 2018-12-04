@@ -45,6 +45,12 @@ func (P *point) MarshalBinary() ([]byte, error) {
 	return b[:], nil
 }
 
+func (P *point) MarshalID() [8]byte {
+	id := [8]byte{}
+	copy(id[:], "ed.point")
+	return id
+}
+
 func (P *point) UnmarshalBinary(b []byte) error {
 	if !P.ge.FromBytes(b) {
 		return errors.New("invalid Ed25519 curve point")
