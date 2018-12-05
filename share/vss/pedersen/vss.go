@@ -672,6 +672,7 @@ func (a *Aggregator) EnoughApprovals() bool {
 	return app >= a.t
 }
 
+// Responses returns the current mapping from indexes to Responses.
 func (a *Aggregator) Responses() map[uint32]*Response {
 	return a.responses
 }

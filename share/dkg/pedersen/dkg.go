@@ -663,6 +663,7 @@ func (d *DistKeyGenerator) resharingKey() (*DistKeyShare, error) {
 	}, nil
 }
 
+// Verifiers returns the current mapping of indexes to verifiers.
 func (d *DistKeyGenerator) Verifiers() map[uint32]*vss.Verifier {
 	return d.verifiers
 }
