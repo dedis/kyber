@@ -14,15 +14,9 @@ import (
 
 var suite = edwards25519.NewBlakeSHA256Ed25519()
 
-var nbParticipants = 5
+const nbParticipants = 5
 
-var partPubs []kyber.Point
-var partSec []kyber.Scalar
-
-var dkgs []*DistKeyGenerator
-var dkgsReNew []*DistKeyGenerator
-
-func init() {
+func generate() (partPubs []kyber.Point, partSec []kyber.Scalar, dkgs []*DistKeyGenerator) {
 	partPubs = make([]kyber.Point, nbParticipants)
 	partSec = make([]kyber.Scalar, nbParticipants)
 	for i := 0; i < nbParticipants; i++ {
@@ -30,10 +24,13 @@ func init() {
 		partPubs[i] = pub
 		partSec[i] = sec
 	}
-	dkgs = dkgGen()
+	dkgs = dkgGen(partPubs, partSec)
+	return
 }
 
 func TestDKGNewDistKeyGenerator(t *testing.T) {
+	partPubs, partSec, _ := generate()
+
 	long := partSec[0]
 	dkg, err := NewDistKeyGenerator(suite, long, partPubs, nbParticipants/2+1)
 	require.Nil(t, err)
@@ -52,6 +49,7 @@ func TestDKGNewDistKeyGenerator(t *testing.T) {
 }
 
 func TestDKGDeal(t *testing.T) {
+	_, _, dkgs := generate()
 	dkg := dkgs[0]
 
 	dks, err := dkg.DistKeyShare()
@@ -73,7 +71,8 @@ func TestDKGDeal(t *testing.T) {
 }
 
 func TestDKGProcessDeal(t *testing.T) {
-	dkgs = dkgGen()
+	_, _, dkgs := generate()
+
 	dkg := dkgs[0]
 	deals, err := dkg.Deals()
 	require.Nil(t, err)
@@ -128,7 +127,7 @@ func TestDKGProcessResponse(t *testing.T) {
 	// second peer processes it and returns a complaint
 	// first peer process the complaint
 
-	dkgs = dkgGen()
+	_, _, dkgs := generate()
 	dkg := dkgs[0]
 	idxRec := 1
 	rec := dkgs[idxRec]
@@ -230,7 +229,8 @@ func TestDKGProcessResponse(t *testing.T) {
 }
 
 func TestSetTimeout(t *testing.T) {
-	dkgs = dkgGen()
+	_, _, dkgs := generate()
+
 	// full secret sharing exchange
 	// 1. broadcast deals
 	resps := make([]*Response, 0, nbParticipants*nbParticipants)
@@ -280,7 +280,7 @@ func TestSetTimeout(t *testing.T) {
 }
 
 func TestDistKeyShare(t *testing.T) {
-	dkgs = dkgGen()
+	_, _, dkgs := generate()
 	fullExchange(t, dkgs)
 
 	for _, dkg := range dkgs {
@@ -322,7 +322,7 @@ func TestDistKeyShare(t *testing.T) {
 	require.Equal(t, dkss[0].Public().String(), commitSecret.String())
 }
 
-func dkgGen() []*DistKeyGenerator {
+func dkgGen(partPubs []kyber.Point, partSec []kyber.Scalar) []*DistKeyGenerator {
 	dkgs := make([]*DistKeyGenerator, nbParticipants)
 	for i := 0; i < nbParticipants; i++ {
 		dkg, err := NewDistKeyGenerator(suite, partSec[i], partPubs, vss.MinimumT(nbParticipants))
@@ -394,7 +394,7 @@ func fullExchange(t *testing.T, dkgs []*DistKeyGenerator) {
 
 // Test resharing of a DKG to the same set of nodes
 func TestDKGResharing(t *testing.T) {
-	dkgs = dkgGen()
+	partPubs, partSec, dkgs := generate()
 	fullExchange(t, dkgs)
 
 	shares := make([]*DistKeyShare, len(dkgs))
@@ -448,7 +448,7 @@ func TestDKGResharing(t *testing.T) {
 
 // Test resharing to a different set of nodes with one common
 func TestDKGResharingNewNodes(t *testing.T) {
-	dkgs = dkgGen()
+	partPubs, partSec, dkgs := generate()
 	fullExchange(t, dkgs)
 
 	shares := make([]*DistKeyShare, len(dkgs))
@@ -620,7 +620,7 @@ func TestDKGResharingNewNodes(t *testing.T) {
 }
 
 func TestDKGResharingPartialNewNodes(t *testing.T) {
-	dkgs = dkgGen()
+	partPubs, partSec, dkgs := generate()
 	fullExchange(t, dkgs)
 
 	shares := make([]*DistKeyShare, len(dkgs))
