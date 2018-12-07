@@ -1,10 +1,12 @@
 package edwards25519
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/util/random"
+	"github.com/stretchr/testify/require"
 )
 
 // SimpleCTScalar implements the scalar operations only using `ScMulAdd` by
@@ -105,6 +107,11 @@ func TestString(t *testing.T) {
 	if s.String() != "0101000000000000000000000000000000000000000000000000000000000000" {
 		t.Fatal("unexpected result from String():", s.String())
 	}
+}
+
+func TestScalar_Marshal(t *testing.T) {
+	s := &scalar{}
+	require.Equal(t, "ed.scala", fmt.Sprintf("%s", s.MarshalID()))
 }
 
 func TestSetBytesLE(t *testing.T) {

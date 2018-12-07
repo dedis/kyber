@@ -10,6 +10,8 @@ import (
 	"github.com/dedis/kyber/group/mod"
 )
 
+var marshalPointID = [8]byte{'b', 'n', '2', '5', '6', '.', 'p', 't'}
+
 type pointG1 struct {
 	g *curvePoint
 }
@@ -301,9 +303,7 @@ func (p *pointG2) MarshalBinary() ([]byte, error) {
 }
 
 func (p *pointG2) MarshalID() [8]byte {
-	id := [8]byte{}
-	copy(id[:], "bn256.pt")
-	return id
+	return marshalPointID
 }
 
 func (p *pointG2) MarshalTo(w io.Writer) (int, error) {

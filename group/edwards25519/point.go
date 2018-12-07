@@ -24,6 +24,8 @@ import (
 	"github.com/dedis/kyber/group/internal/marshalling"
 )
 
+var marshalPointID = [8]byte{'e', 'd', '.', 'p', 'o', 'i', 'n', 't'}
+
 type point struct {
 	ge      extendedGroupElement
 	varTime bool
@@ -45,10 +47,9 @@ func (P *point) MarshalBinary() ([]byte, error) {
 	return b[:], nil
 }
 
+// MarshalID returns the type tag used in encoding/decoding
 func (P *point) MarshalID() [8]byte {
-	id := [8]byte{}
-	copy(id[:], "ed.point")
-	return id
+	return marshalPointID
 }
 
 func (P *point) UnmarshalBinary(b []byte) error {

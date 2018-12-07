@@ -23,6 +23,8 @@ import (
 
 // The scalars are GF(2^252 + 27742317777372353535851937790883648493).
 
+var marshalScalarID = [8]byte{'e', 'd', '.', 's', 'c', 'a', 'l', 'a'}
+
 type scalar struct {
 	v [32]byte
 }
@@ -160,10 +162,9 @@ func (s *scalar) MarshalBinary() ([]byte, error) {
 	return s.toInt().MarshalBinary()
 }
 
+// MarshalID returns the type tag used in encoding/decoding
 func (s *scalar) MarshalID() [8]byte {
-	id := [8]byte{}
-	copy(id[:], "ed.scala")
-	return id
+	return marshalScalarID
 }
 
 // UnmarshalBinary reads the binary representation of a scalar.
