@@ -281,7 +281,7 @@ func TestSetTimeout(t *testing.T) {
 
 func TestDistKeyShare(t *testing.T) {
 	dkgs = dkgGen()
-	fullExchange(t, dkgs)
+	fullExchange(t, dkgs, true)
 
 	for _, dkg := range dkgs {
 		require.True(t, dkg.Certified())
@@ -356,7 +356,7 @@ func checkDks(dks1, dks2 *DistKeyShare) bool {
 	return true
 }
 
-func fullExchange(t *testing.T, dkgs []*DistKeyGenerator) {
+func fullExchange(t *testing.T, dkgs []*DistKeyGenerator, checkQUAL bool) {
 	// full secret sharing exchange
 	// 1. broadcast deals
 	resps := make([]*Response, 0, nbParticipants*nbParticipants)
@@ -384,10 +384,12 @@ func fullExchange(t *testing.T, dkgs []*DistKeyGenerator) {
 		}
 	}
 
-	// 3. make sure everyone has the same QUAL set
-	for _, dkg := range dkgs {
-		for _, dkg2 := range dkgs {
-			require.True(t, dkg.isInQUAL(uint32(dkg2.nidx)))
+	if checkQUAL {
+		// 3. make sure everyone has the same QUAL set
+		for _, dkg := range dkgs {
+			for _, dkg2 := range dkgs {
+				require.True(t, dkg.isInQUAL(uint32(dkg2.nidx)))
+			}
 		}
 	}
 }
@@ -395,7 +397,7 @@ func fullExchange(t *testing.T, dkgs []*DistKeyGenerator) {
 // Test resharing of a DKG to the same set of nodes
 func TestDKGResharing(t *testing.T) {
 	dkgs = dkgGen()
-	fullExchange(t, dkgs)
+	fullExchange(t, dkgs, true)
 
 	shares := make([]*DistKeyShare, len(dkgs))
 	sshares := make([]*share.PriShare, len(dkgs))
@@ -419,7 +421,7 @@ func TestDKGResharing(t *testing.T) {
 		newDkgs[i], err = NewDistKeyHandler(c)
 		require.NoError(t, err)
 	}
-	fullExchange(t, newDkgs)
+	fullExchange(t, newDkgs, true)
 	newShares := make([]*DistKeyShare, len(dkgs))
 	newSShares := make([]*share.PriShare, len(dkgs))
 	for i := range newDkgs {
@@ -446,10 +448,68 @@ func TestDKGResharing(t *testing.T) {
 	require.Equal(t, oldSecret.String(), newSecret.String())
 }
 
+func TestDKGResharingRemoveNode(t *testing.T) {
+	dkgs = dkgGen()
+	fullExchange(t, dkgs, true)
+
+	newN := len(partPubs) - 1
+	shares := make([]*DistKeyShare, len(dkgs))
+	sshares := make([]*share.PriShare, len(dkgs))
+	for i, dkg := range dkgs {
+		share, err := dkg.DistKeyShare()
+		require.NoError(t, err)
+		shares[i] = share
+		sshares[i] = shares[i].Share
+	}
+
+	// start resharing within the same group
+	newDkgs := make([]*DistKeyGenerator, len(dkgs))
+	var err error
+	for i := range dkgs {
+		c := &Config{
+			Suite:    suite,
+			Longterm: partSec[i],
+			OldNodes: partPubs,
+			NewNodes: partPubs[:newN],
+			Share:    shares[i],
+		}
+		newDkgs[i], err = NewDistKeyHandler(c)
+		require.NoError(t, err)
+	}
+
+	fullExchange(t, newDkgs, false)
+	newShares := make([]*DistKeyShare, len(dkgs))
+	newSShares := make([]*share.PriShare, len(dkgs)-1)
+	for i := range newDkgs[:newN] {
+		dks, err := newDkgs[i].DistKeyShare()
+		require.NoError(t, err)
+		newShares[i] = dks
+		newSShares[i] = newShares[i].Share
+	}
+
+	// check
+	// 1. shares are different between the two rounds
+	// 2. shares reconstruct to the same secret
+	// 3. public polynomial is different but for the first coefficient /public
+	// key/
+
+	// 1.
+	for i := 0; i < newN; i++ {
+		require.False(t, shares[i].Share.V.Equal(newShares[i].Share.V))
+	}
+	thr := vss.MinimumT(nbParticipants)
+	// 2.
+	oldSecret, err := share.RecoverSecret(suite, sshares[:newN], thr, newN)
+	require.NoError(t, err)
+	newSecret, err := share.RecoverSecret(suite, newSShares, thr, newN)
+	require.NoError(t, err)
+	require.Equal(t, oldSecret.String(), newSecret.String())
+}
+
 // Test resharing to a different set of nodes with one common
 func TestDKGResharingNewNodes(t *testing.T) {
 	dkgs = dkgGen()
-	fullExchange(t, dkgs)
+	fullExchange(t, dkgs, true)
 
 	shares := make([]*DistKeyShare, len(dkgs))
 	sshares := make([]*share.PriShare, len(dkgs))
@@ -624,7 +684,7 @@ func TestDKGResharingNewNodes(t *testing.T) {
 
 func TestDKGResharingPartialNewNodes(t *testing.T) {
 	dkgs = dkgGen()
-	fullExchange(t, dkgs)
+	fullExchange(t, dkgs, true)
 
 	shares := make([]*DistKeyShare, len(dkgs))
 	sshares := make([]*share.PriShare, len(dkgs))
