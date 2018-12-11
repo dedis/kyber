@@ -121,7 +121,7 @@ func TestVSSShare(t *testing.T) {
 	require.Equal(t, StatusApproval, resp.Status)
 	require.Nil(t, err)
 
-	aggr := ver.aggregator
+	aggr := ver.Aggregator
 
 	for i := 1; i < aggr.t-1; i++ {
 		aggr.responses[uint32(i)] = &Response{Status: StatusApproval}
@@ -145,7 +145,7 @@ func TestVSSShare(t *testing.T) {
 
 func TestVSSAggregatorEnoughApprovals(t *testing.T) {
 	dealer := genDealer()
-	aggr := dealer.aggregator
+	aggr := dealer.Aggregator
 	// just below
 	for i := 0; i < aggr.t-1; i++ {
 		aggr.responses[uint32(i)] = &Response{Status: StatusApproval}
@@ -169,7 +169,7 @@ func TestVSSAggregatorEnoughApprovals(t *testing.T) {
 
 func TestVSSAggregatorDealCertified(t *testing.T) {
 	dealer := genDealer()
-	aggr := dealer.aggregator
+	aggr := dealer.Aggregator
 
 	for i := 0; i < aggr.t; i++ {
 		aggr.responses[uint32(i)] = &Response{Status: StatusApproval}
@@ -284,10 +284,10 @@ func TestVSSVerifierReceiveDeal(t *testing.T) {
 	resp, err = v.ProcessEncryptedDeal(encD)
 	assert.Nil(t, resp)
 	assert.Error(t, err)
-	v.aggregator.deal = nil
+	v.Aggregator.deal = nil
 
 	// approval already existing from same origin, should never happen right ?
-	v.aggregator.responses[uint32(v.index)] = &Response{Status: StatusApproval}
+	v.Aggregator.responses[uint32(v.index)] = &Response{Status: StatusApproval}
 	d.Commitments[0] = suite.Point().Pick(rng)
 	resp, err = v.ProcessEncryptedDeal(encD)
 	assert.Nil(t, resp)
@@ -295,8 +295,8 @@ func TestVSSVerifierReceiveDeal(t *testing.T) {
 	d.Commitments[0] = goodCommit
 
 	// valid complaint
-	v.aggregator.deal = nil
-	delete(v.aggregator.responses, uint32(v.index))
+	v.Aggregator.deal = nil
+	delete(v.Aggregator.responses, uint32(v.index))
 	//d.RndShare.V = suite.Scalar().SetBytes(randomBytes(32))
 	resp, err = v.ProcessEncryptedDeal(encD)
 	assert.NotNil(t, resp)
@@ -328,9 +328,9 @@ func TestVSSAggregatorVerifyJustification(t *testing.T) {
 	j.Deal.SecShare.V = wrongV
 	err = v.ProcessJustification(j)
 	assert.Error(t, err)
-	assert.True(t, v.aggregator.badDealer)
+	assert.True(t, v.Aggregator.badDealer)
 	j.Deal.SecShare.V = goodV
-	v.aggregator.badDealer = false
+	v.Aggregator.badDealer = false
 
 	// valid complaint
 	assert.Nil(t, v.ProcessJustification(j))
@@ -343,9 +343,9 @@ func TestVSSAggregatorVerifyJustification(t *testing.T) {
 	resp.SessionID = dealer.sid
 
 	// no complaints for this justification before
-	delete(v.aggregator.responses, uint32(v.index))
+	delete(v.Aggregator.responses, uint32(v.index))
 	assert.Error(t, v.ProcessJustification(j))
-	v.aggregator.responses[uint32(v.index)] = resp
+	v.Aggregator.responses[uint32(v.index)] = resp
 
 }
 
@@ -370,15 +370,15 @@ func TestVSSAggregatorVerifyResponseDuplicate(t *testing.T) {
 
 	err = v1.ProcessResponse(resp2)
 	assert.Nil(t, err)
-	r, ok := v1.aggregator.responses[uint32(v2.index)]
+	r, ok := v1.Aggregator.responses[uint32(v2.index)]
 	assert.True(t, ok)
 	assert.Equal(t, resp2, r)
 
 	err = v1.ProcessResponse(resp2)
 	assert.Error(t, err)
 
-	delete(v1.aggregator.responses, uint32(v2.index))
-	v1.aggregator.responses[uint32(v2.index)] = &Response{Status: StatusApproval}
+	delete(v1.Aggregator.responses, uint32(v2.index))
+	v1.Aggregator.responses[uint32(v2.index)] = &Response{Status: StatusApproval}
 	err = v1.ProcessResponse(resp2)
 	assert.Error(t, err)
 }
@@ -396,10 +396,10 @@ func TestVSSAggregatorVerifyResponse(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, resp)
 	assert.Equal(t, StatusComplaint, resp.Status)
-	assert.NotNil(t, v.aggregator)
+	assert.NotNil(t, v.Aggregator)
 	assert.Equal(t, resp.SessionID, dealer.sid)
 
-	aggr := v.aggregator
+	aggr := v.Aggregator
 	r, ok := aggr.responses[uint32(v.index)]
 	assert.True(t, ok)
 	assert.Equal(t, StatusComplaint, r.Status)
@@ -427,7 +427,7 @@ func TestVSSAggregatorVerifyResponse(t *testing.T) {
 
 func TestVSSAggregatorAllResponses(t *testing.T) {
 	dealer := genDealer()
-	aggr := dealer.aggregator
+	aggr := dealer.Aggregator
 
 	for i := 0; i < aggr.t; i++ {
 		aggr.responses[uint32(i)] = &Response{Status: StatusApproval}
@@ -445,7 +445,7 @@ func TestVSSAggregatorAllResponses(t *testing.T) {
 
 func TestVSSDealerTimeout(t *testing.T) {
 	dealer := genDealer()
-	aggr := dealer.aggregator
+	aggr := dealer.Aggregator
 
 	for i := 0; i < aggr.t; i++ {
 		aggr.responses[uint32(i)] = &Response{Status: StatusApproval}
@@ -471,12 +471,12 @@ func TestVSSVerifierTimeout(t *testing.T) {
 
 	require.Nil(t, err)
 
-	// Make verifier create it's aggregator by processing EncDeal
+	// Make verifier create it's Aggregator by processing EncDeal
 	resp, err := v.ProcessEncryptedDeal(encDeal)
 	require.NotNil(t, resp)
 	require.Nil(t, err)
 
-	aggr := v.aggregator
+	aggr := v.Aggregator
 
 	// Add t responses
 	for i := 0; i < aggr.t; i++ {
@@ -498,7 +498,7 @@ func TestVSSVerifierTimeout(t *testing.T) {
 
 func TestVSSAggregatorVerifyDeal(t *testing.T) {
 	dealer := genDealer()
-	aggr := dealer.aggregator
+	aggr := dealer.Aggregator
 	deals := dealer.deals
 
 	// OK
@@ -544,7 +544,7 @@ func TestVSSAggregatorVerifyDeal(t *testing.T) {
 
 func TestVSSAggregatorAddComplaint(t *testing.T) {
 	dealer := genDealer()
-	aggr := dealer.aggregator
+	aggr := dealer.Aggregator
 
 	var idx uint32 = 1
 	c := &Response{
