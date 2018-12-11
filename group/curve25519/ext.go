@@ -81,11 +81,11 @@ func (P *extPoint) HideDecode(rep []byte) {
 //		iff
 //	(X1*Z2,Y1*Z2) == (X2*Z1,Y2*Z1)
 //
-func (P1 *extPoint) Equal(CP2 kyber.Point) bool {
+func (P *extPoint) Equal(CP2 kyber.Point) bool {
 	P2 := CP2.(*extPoint)
 	var t1, t2 mod.Int
-	xeq := t1.Mul(&P1.X, &P2.Z).Equal(t2.Mul(&P2.X, &P1.Z))
-	yeq := t1.Mul(&P1.Y, &P2.Z).Equal(t2.Mul(&P2.Y, &P1.Z))
+	xeq := t1.Mul(&P.X, &P2.Z).Equal(t2.Mul(&P2.X, &P.Z))
+	yeq := t1.Mul(&P.Y, &P2.Z).Equal(t2.Mul(&P2.Y, &P.Z))
 	return xeq && yeq
 }
 
@@ -299,7 +299,7 @@ func (c *ExtendedCurve) Point() kyber.Point {
 	return P
 }
 
-// Initialize the curve with given parameters.
+// Init initializes the curve with given parameters.
 func (c *ExtendedCurve) Init(p *Param, fullGroup bool) *ExtendedCurve {
 	c.curve.init(c, p, fullGroup, &c.null, &c.base)
 	return c

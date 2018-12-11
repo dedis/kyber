@@ -15,19 +15,23 @@ import (
 	"github.com/dedis/kyber/xof/blake2xb"
 )
 
+// QrSuite is a quadratic residue suite
 type QrSuite struct {
 	ResidueGroup
 }
 
-// SHA256 hash function
+// Hash returns the instance associated with the suite
 func (s QrSuite) Hash() hash.Hash {
 	return sha256.New()
 }
 
+// XOF creates the XOF associated with the suite
 func (s QrSuite) XOF(key []byte) kyber.XOF {
 	return blake2xb.New(key)
 }
 
+// RandomStream returns a cipher.Stream that returns a key stream
+// from crypto/rand.
 func (s QrSuite) RandomStream() cipher.Stream {
 	return random.New()
 }
@@ -40,6 +44,7 @@ func (s *QrSuite) Write(w io.Writer, objs ...interface{}) error {
 	return fixbuf.Write(w, objs)
 }
 
+// New implements the kyber.encoding interface
 func (s *QrSuite) New(t reflect.Type) interface{} {
 	return marshalling.GroupNew(s, t)
 }

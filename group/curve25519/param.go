@@ -18,7 +18,7 @@ import (
 	"github.com/dedis/kyber/group/mod"
 )
 
-// Parameters defining a Twisted Edwards curve (TEC).
+// Param defines a Twisted Edwards curve (TEC).
 type Param struct {
 	Name string // Name of curve
 
@@ -40,7 +40,7 @@ func (p *Param) String() string {
 	return p.Name
 }
 
-// Parameters defining Curve1174, as specified in:
+// Param1174 defines Curve1174, as specified in:
 // Bernstein et al, "Elligator: Elliptic-curve points indistinguishable
 // from uniform random strings"
 // http://elligator.cr.yp.to/elligator-20130828.pdf
@@ -69,7 +69,7 @@ func Param1174() *Param {
 	return &p
 }
 
-// Parameters defining the Edwards version of Curve25519, as specified in:
+// Param25519 defines the Edwards version of Curve25519, as specified in:
 // Bernstein et al, "High-speed high-security signatures",
 // http://ed25519.cr.yp.to/ed25519-20110926.pdf
 //
@@ -93,7 +93,7 @@ func Param25519() *Param {
 	return &p
 }
 
-// Parameters for the E-382 curve specified in:
+// ParamE382 defines the E-382 curve specified in:
 // Aranha et al, "A note on high-security general-purpose elliptic curves",
 // http://eprint.iacr.org/2013/647.pdf
 //
@@ -117,7 +117,7 @@ func ParamE382() *Param {
 	return &p
 }
 
-// Parameters for Curve41417, as specified in:
+// Param41417 defines the Curve41417 curve, as specified in:
 // Bernstein et al, "Curve41417: Karatsuba revisited",
 // http://eprint.iacr.org/2014/526.pdf
 func Param41417() *Param {
@@ -135,7 +135,7 @@ func Param41417() *Param {
 	return &p
 }
 
-// Parameters for the E-521 curve specified in:
+// ParamE521 defines the E-521 curve specified in:
 // Aranha et al, "A note on high-security general-purpose elliptic curves",
 // http://eprint.iacr.org/2013/647.pdf
 //

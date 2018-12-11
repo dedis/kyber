@@ -67,10 +67,10 @@ func (curve *p256) sqrt(c *big.Int) *big.Int {
 	return r
 }
 
-// Initialize standard Curve instances
-func (c *p256) Init() curve {
-	c.curve.Curve = elliptic.P256()
-	c.p = c.Params()
-	c.curveOps = c
-	return c.curve
+// Init initializes standard Curve instances
+func (curve *p256) Init() curve {
+	curve.curve.Curve = elliptic.P256()
+	curve.p = curve.Params()
+	curve.curveOps = curve
+	return curve.curve
 }

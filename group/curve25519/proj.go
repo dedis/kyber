@@ -73,11 +73,11 @@ func (P *projPoint) HideDecode(rep []byte) {
 //		iff
 //	(X1*Z2,Y1*Z2) == (X2*Z1,Y2*Z1)
 //
-func (P1 *projPoint) Equal(CP2 kyber.Point) bool {
+func (P *projPoint) Equal(CP2 kyber.Point) bool {
 	P2 := CP2.(*projPoint)
 	var t1, t2 mod.Int
-	xeq := t1.Mul(&P1.X, &P2.Z).Equal(t2.Mul(&P2.X, &P1.Z))
-	yeq := t1.Mul(&P1.Y, &P2.Z).Equal(t2.Mul(&P2.Y, &P1.Z))
+	xeq := t1.Mul(&P.X, &P2.Z).Equal(t2.Mul(&P2.X, &P.Z))
+	yeq := t1.Mul(&P.Y, &P2.Z).Equal(t2.Mul(&P2.Y, &P.Z))
 	return xeq && yeq
 }
 
@@ -259,7 +259,7 @@ type ProjectiveCurve struct {
 	base  projPoint // Standard base point
 }
 
-// Create a new Point on this curve.
+// Point creates a new Point on this curve.
 func (c *ProjectiveCurve) Point() kyber.Point {
 	P := new(projPoint)
 	P.c = c
@@ -267,7 +267,7 @@ func (c *ProjectiveCurve) Point() kyber.Point {
 	return P
 }
 
-// Initialize the curve with given parameters.
+// Init initializes the curve with given parameters.
 func (c *ProjectiveCurve) Init(p *Param, fullGroup bool) *ProjectiveCurve {
 	c.curve.init(c, p, fullGroup, &c.null, &c.base)
 	return c

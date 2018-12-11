@@ -14,19 +14,23 @@ import (
 	"github.com/dedis/kyber/xof/blake2xb"
 )
 
+// Suite128 is the suite for P256 curve
 type Suite128 struct {
 	p256
 }
 
-// SHA256 hash function
+// Hash returns the instance associated with the suite
 func (s *Suite128) Hash() hash.Hash {
 	return sha256.New()
 }
 
+// XOF creates the XOF associated with the suite
 func (s *Suite128) XOF(key []byte) kyber.XOF {
 	return blake2xb.New(key)
 }
 
+// RandomStream returns a cipher.Stream that returns a key stream
+// from crypto/rand.
 func (s *Suite128) RandomStream() cipher.Stream {
 	return random.New()
 }
@@ -39,6 +43,7 @@ func (s *Suite128) Write(w io.Writer, objs ...interface{}) error {
 	return fixbuf.Write(w, objs)
 }
 
+// New implements the kyber.encoding interface
 func (s *Suite128) New(t reflect.Type) interface{} {
 	return marshalling.GroupNew(s, t)
 }
