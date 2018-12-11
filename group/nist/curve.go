@@ -1,5 +1,3 @@
-// +build vartime
-
 package nist
 
 import (

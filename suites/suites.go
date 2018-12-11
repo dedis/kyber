@@ -1,12 +1,7 @@
 // Package suites allows callers to look up Kyber suites by name.
 //
-// Currently, only the "ed25519" suite is available by default. To
-// have access to "curve25519" and the NIST suites (i.e. "P256"),
-// one needs to call the "go" tool with the tag "vartime", such as:
-//
-//   go build -tags vartime
-//   go install -tags vartime
-//   go test -tags vartime
+// Currently, only the "ed25519" suite is available with a constant
+// time implementation and the other ones use variable time algorithms.
 package suites
 
 import (

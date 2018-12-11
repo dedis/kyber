@@ -1,5 +1,3 @@
-// +build vartime
-
 package nist
 
 import (
@@ -9,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"math/big"
-	//"encoding/hex"
 
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/group/internal/marshalling"

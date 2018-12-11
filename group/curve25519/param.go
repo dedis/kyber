@@ -1,5 +1,3 @@
-// +build vartime
-
 // Package curve25519 contains several implementations of Twisted Edwards Curves,
 // from general and unoptimized to highly specialized and optimized.
 //

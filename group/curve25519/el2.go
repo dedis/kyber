@@ -1,11 +1,8 @@
-// +build vartime
-
 package curve25519
 
 import (
-	"math/big"
-	//"encoding/hex"
 	"crypto/cipher"
+	"math/big"
 
 	"github.com/dedis/kyber/group/mod"
 )

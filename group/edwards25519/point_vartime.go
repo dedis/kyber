@@ -1,5 +1,3 @@
-// +build vartime
-
 package edwards25519
 
 // AllowVarTime sets a flag in this object which determines if a faster

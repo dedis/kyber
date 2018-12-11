@@ -1,5 +1,3 @@
-// +build vartime
-
 package nist
 
 import (
@@ -10,7 +8,6 @@ import (
 	"reflect"
 
 	"github.com/dedis/fixbuf"
-
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/group/internal/marshalling"
 	"github.com/dedis/kyber/util/random"

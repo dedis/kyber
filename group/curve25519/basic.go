@@ -1,4 +1,4 @@
-// +build experimental vartime
+// +build experimental
 
 package curve25519
 
