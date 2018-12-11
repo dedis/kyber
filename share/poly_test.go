@@ -25,7 +25,6 @@ func TestSecretRecovery(test *testing.T) {
 		test.Fatal("recovered secret does not match initial value")
 	}
 }
-
 func TestSecretRecoveryDelete(test *testing.T) {
 	g := edwards25519.NewBlakeSHA256Ed25519()
 	n := 10

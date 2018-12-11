@@ -148,3 +148,12 @@ func (e *gfP2) Invert(a *gfP2) *gfP2 {
 	gfpMul(&e.y, &a.y, inv)
 	return e
 }
+
+// Clone makes a hard copy of the field
+func (e *gfP2) Clone() gfP2 {
+	n := gfP2{}
+	copy(n.x[:], e.x[:])
+	copy(n.y[:], e.y[:])
+
+	return n
+}

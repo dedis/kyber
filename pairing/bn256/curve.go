@@ -229,3 +229,14 @@ func (c *curvePoint) Neg(a *curvePoint) {
 	c.z.Set(&a.z)
 	c.t = gfP{0}
 }
+
+// Clone makes a hard copy of the curve point
+func (c *curvePoint) Clone() *curvePoint {
+	n := &curvePoint{}
+	copy(n.x[:], c.x[:])
+	copy(n.y[:], c.y[:])
+	copy(n.z[:], c.z[:])
+	copy(n.t[:], c.t[:])
+
+	return n
+}
