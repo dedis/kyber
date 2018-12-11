@@ -197,3 +197,15 @@ func (c *twistPoint) Neg(a *twistPoint) {
 	c.z.Set(&a.z)
 	c.t.SetZero()
 }
+
+// Clone makes a hard copy of the point
+func (c *twistPoint) Clone() *twistPoint {
+	n := &twistPoint{
+		x: c.x.Clone(),
+		y: c.y.Clone(),
+		z: c.z.Clone(),
+		t: c.t.Clone(),
+	}
+
+	return n
+}

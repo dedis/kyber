@@ -116,6 +116,10 @@ func testCoSi(t *testing.T, n, f int) {
 		} else {
 			p = NewThresholdPolicy(n - f)
 		}
+		// send a short sig in, expect an error
+		if err := Verify(testSuite, publics, message, sig[0:10], p); err == nil {
+			t.Fatal("expected error on short sig")
+		}
 		if err := Verify(testSuite, publics, message, sig, p); err != nil {
 			t.Fatal(err)
 		}

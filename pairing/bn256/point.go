@@ -48,15 +48,10 @@ func (p *pointG1) Set(q kyber.Point) kyber.Point {
 	return p
 }
 
+// Clone makes a hard copy of the point
 func (p *pointG1) Clone() kyber.Point {
 	q := newPointG1()
-	buf, err := p.MarshalBinary()
-	if err != nil {
-		panic(err)
-	}
-	if err := q.UnmarshalBinary(buf); err != nil {
-		panic(err)
-	}
+	q.g = p.g.Clone()
 	return q
 }
 
@@ -107,6 +102,9 @@ func (p *pointG1) Mul(s kyber.Scalar, q kyber.Point) kyber.Point {
 }
 
 func (p *pointG1) MarshalBinary() ([]byte, error) {
+	// Clone is required as we change the point
+	p = p.Clone().(*pointG1)
+
 	n := p.ElementSize()
 	// Take a copy so that p is not written to, so calls to MarshalBinary
 	// are threadsafe.
@@ -225,15 +223,10 @@ func (p *pointG2) Set(q kyber.Point) kyber.Point {
 	return p
 }
 
+// Clone makes a hard copy of the field
 func (p *pointG2) Clone() kyber.Point {
 	q := newPointG2()
-	buf, err := p.MarshalBinary()
-	if err != nil {
-		panic(err)
-	}
-	if err := q.UnmarshalBinary(buf); err != nil {
-		panic(err)
-	}
+	q.g = p.g.Clone()
 	return q
 }
 
@@ -278,6 +271,9 @@ func (p *pointG2) Mul(s kyber.Scalar, q kyber.Point) kyber.Point {
 }
 
 func (p *pointG2) MarshalBinary() ([]byte, error) {
+	// Clone is required as we change the point during the operation
+	p = p.Clone().(*pointG2)
+
 	n := p.ElementSize()
 	if p.g == nil {
 		p.g = &twistPoint{}
@@ -412,15 +408,10 @@ func (p *pointGT) Set(q kyber.Point) kyber.Point {
 	return p
 }
 
+// Clone makes a hard copy of the point
 func (p *pointGT) Clone() kyber.Point {
 	q := newPointGT()
-	buf, err := p.MarshalBinary()
-	if err != nil {
-		panic(err)
-	}
-	if err := q.UnmarshalBinary(buf); err != nil {
-		panic(err)
-	}
+	q.g = p.g.Clone()
 	return q
 }
 

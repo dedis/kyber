@@ -211,3 +211,14 @@ func (e *gfP6) Invert(a *gfP6) *gfP6 {
 	e.z.Mul(A, F)
 	return e
 }
+
+// Clone makes a hard copy of the field
+func (e *gfP6) Clone() gfP6 {
+	n := gfP6{
+		x: e.x.Clone(),
+		y: e.y.Clone(),
+		z: e.z.Clone(),
+	}
+
+	return n
+}
