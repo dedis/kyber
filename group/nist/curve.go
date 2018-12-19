@@ -1,5 +1,3 @@
-// +build vartime
-
 package nist
 
 import (
@@ -184,7 +182,7 @@ func (p *curvePoint) UnmarshalBinary(buf []byte) error {
 	// Check whether all bytes after first one are 0, so we
 	// just return the initial point. Read everything to
 	// prevent timing-leakage.
-	var c byte = 0
+	var c byte
 	for _, b := range buf[1:] {
 		c |= b
 	}

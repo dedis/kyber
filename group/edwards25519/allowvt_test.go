@@ -1,5 +1,3 @@
-// +build vartime
-
 package edwards25519
 
 import (

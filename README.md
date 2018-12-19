@@ -52,28 +52,6 @@ You can recursively test all the packages in the library as follows:
 
 	go test -v ./...
 
-Constant Time Implementation
-----------------------------
-
-By default, this package builds groups that implements constant time arithmetic
-operations. Currently, only the Edwards25519 group has a constant time implementation,
-and thus by default only the Edwards25519 group is compiled in.
-
-If you need to have access to variable time arithmetic groups such as P256 or
-Curve25519, you need to build the repository with the "vartime" tag:
-
-    go build -tags vartime
-
-And you can test the vartime packages with:
-
-    go test -tags vartime ./...
-
-When a given implementation provides both constant time and variable time
-operations, the constant time operations are used in preference to the variable
-time ones, in order to reduce the risk of timing side-channel attack.
-See [AllowsVarTime](https://godoc.org/gopkg.in/dedis/kyber.v1#AllowsVarTime) for how
-to opt-in to variable time implementations when it is safe to do so.
-
 A note on deriving shared secrets
 ---------------------------------
 

@@ -22,10 +22,11 @@ var curveGen = &curvePoint{
 }
 
 func (c *curvePoint) String() string {
-	c.MakeAffine()
+	cpy := c.Clone()
+	cpy.MakeAffine()
 	x, y := &gfP{}, &gfP{}
-	montDecode(x, &c.x)
-	montDecode(y, &c.y)
+	montDecode(x, &cpy.x)
+	montDecode(y, &cpy.y)
 	return fmt.Sprintf("(%s, %s)", x.String(), y.String())
 }
 

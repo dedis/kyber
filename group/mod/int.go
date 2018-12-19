@@ -16,6 +16,7 @@ import (
 
 var one = big.NewInt(1)
 var two = big.NewInt(2)
+var marshalScalarID = [8]byte{'m', 'o', 'd', '.', 'i', 'n', 't', ' '}
 
 // ByteOrder denotes the endianness of the operation.
 type ByteOrder bool
@@ -326,6 +327,11 @@ func (i *Int) MarshalBinary() ([]byte, error) {
 		b = nb
 	}
 	return b, nil
+}
+
+// MarshalID returns a unique identifier for this type
+func (i *Int) MarshalID() [8]byte {
+	return marshalScalarID
 }
 
 // UnmarshalBinary tries to decode a Int from a byte-slice buffer.
