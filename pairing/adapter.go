@@ -5,10 +5,13 @@ import (
 	"github.com/dedis/kyber/pairing/bn256"
 )
 
-// SuiteBn256 is an adapter from the different bn256 suites to a single one
-// that can be used by onet to encode/decode key pairs. The public key comes
-// from the field G2 and the private key comes from G1 thus the Point and
-// Scalar functions return the corresponding type.
+// SuiteBn256 is an adapter that implements the suites.Suite interface so that
+// bn256 can be used as a common suite to generate key pairs for instance but
+// still preserves the properties of the pairing (e.g. the Pair function).
+//
+// It's important to note that the Point function will generate a point
+// compatible with public keys only (group G2) where the signature must be
+// used as a point from the group G1.
 type SuiteBn256 struct {
 	Suite
 	kyber.Group
@@ -21,7 +24,8 @@ func NewSuiteBn256() *SuiteBn256 {
 	}
 }
 
-// Point returns a new point from the G2 field
+// Point generates a point from the G2 group that can only be used
+// for public keys
 func (s *SuiteBn256) Point() kyber.Point {
 	return s.G2().Point()
 }
@@ -31,12 +35,12 @@ func (s *SuiteBn256) PointLen() int {
 	return s.G2().PointLen()
 }
 
-// Scalar returns the scalar of the G1 field
+// Scalar generates a scalar
 func (s *SuiteBn256) Scalar() kyber.Scalar {
 	return s.G1().Scalar()
 }
 
-// ScalarLen returns the lenght of a scalar of the G1 field
+// ScalarLen returns the lenght of a scalar
 func (s *SuiteBn256) ScalarLen() int {
 	return s.G1().ScalarLen()
 }
