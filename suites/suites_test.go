@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_Find(t *testing.T) {
+func TestSuites_Find(t *testing.T) {
 	ss := []string{
 		"ed25519",
 		"bn256.G1",
@@ -26,7 +26,7 @@ func Test_Find(t *testing.T) {
 	}
 }
 
-func Test_ConstTime(t *testing.T) {
+func TestSuites_ConstTime(t *testing.T) {
 	RequireConstantTime()
 	defer func() { requireConstTime = false }()
 
