@@ -5,7 +5,9 @@ package bls
 
 import (
 	"crypto/cipher"
+	"crypto/sha256"
 	"errors"
+	"fmt"
 
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/pairing"
@@ -54,6 +56,41 @@ func AggregatePublicKeys(suite pairing.Suite, Xs ...kyber.Point) kyber.Point {
 	return aggregated
 }
 
+// BatchVerify verifies a large number of publicKey/msg pairings with a single aggregated signature.
+// Since aggregation is generally much faster than verification, this can be a speed enhancement.
+// Benchmarks show a roughly 50% performance increase over individual signature verification
+// Every msg must be unique or there is the possibility to accept an invalid signature
+// see: https://crypto.stackexchange.com/questions/56288/is-bls-signature-scheme-strongly-unforgeable/56290
+// for a description of why each message must be unique.
+func BatchVerify(suite pairing.Suite, publics []kyber.Point, msgs [][]byte, sig []byte) error {
+	if !distinct(msgs) {
+		return fmt.Errorf("bls: error, messages must be distinct")
+	}
+
+	s := suite.G1().Point()
+	if err := s.UnmarshalBinary(sig); err != nil {
+		return err
+	}
+
+	var aggregatedLeft kyber.Point
+	for i := range msgs {
+		hm := hashToPoint(suite, msgs[i])
+		pair := suite.Pair(hm, publics[i])
+
+		if i == 0 {
+			aggregatedLeft = pair
+		} else {
+			aggregatedLeft.Add(aggregatedLeft, pair)
+		}
+	}
+
+	right := suite.Pair(s, suite.G2().Point().Base())
+	if !aggregatedLeft.Equal(right) {
+		return errors.New("bls: invalid signature")
+	}
+	return nil
+}
+
 // Verify checks the given BLS signature S on the message m using the public
 // key X by verifying that the equality e(H(m), X) == e(H(m), x*B2) ==
 // e(x*H(m), B2) == e(S, B2) holds where e is the pairing operation and B2 is
@@ -79,4 +116,16 @@ func hashToPoint(suite pairing.Suite, msg []byte) kyber.Point {
 	h.Write(msg)
 	x := suite.G1().Scalar().SetBytes(h.Sum(nil))
 	return suite.G1().Point().Mul(x, nil)
+}
+
+func distinct(msgs [][]byte) bool {
+	m := make(map[[32]byte]bool)
+	for _, msg := range msgs {
+		h := sha256.Sum256(msg)
+		if m[h] {
+			return false
+		}
+		m[h] = true
+	}
+	return true
 }
