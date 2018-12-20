@@ -11,11 +11,16 @@ Please see the
 [Godoc documentation for this package](http://godoc.org/github.com/dedis/kyber)
 for details on the library's purpose and API functionality.
 
+This package includes a mix of variable time and constant time
+implementations. If your application is sensitive to timing-based attacks
+and you need to constrain Kyber to offering only constant time implementations,
+you should use the [suites.RequireConstantTime()](https://godoc.org/github.com/dedis/kyber/suites#RequireConstantTime)
+function in the `init()` function of your `main` package.
+
 Versioning - Development
 ------------------------
 
-With the new interface in the kyber-library we use the following development
-model:
+We use the following versioning model:
 
 * crypto.v0 was the previous semi-stable version. See
   [migration notes](https://github.com/dedis/kyber/wiki/Migration-from-gopkg.in-dedis-crypto.v0).
