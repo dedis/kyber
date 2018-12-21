@@ -120,7 +120,6 @@ func TestG2(t *testing.T) {
 	require.Nil(t, err)
 	pb := new(bn256.G2).ScalarBaseMult(&k.(*mod.Int).V)
 	mb := pb.Marshal()
-	mb = append([]byte{0x01}, mb...)
 	require.Equal(t, ma, mb)
 }
 
