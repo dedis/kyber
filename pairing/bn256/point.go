@@ -10,7 +10,7 @@ import (
 	"github.com/dedis/kyber/group/mod"
 )
 
-var marshalPointID = [8]byte{'b', 'n', '2', '5', '6', '.', 'p', 't'}
+var marshalPointID = [8]byte{'b', 'n', '2', '5', '6', '.', 'g', '2'}
 
 type pointG1 struct {
 	g *curvePoint
