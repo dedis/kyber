@@ -115,12 +115,11 @@ func TestG2(t *testing.T) {
 	k := suite.G2().Scalar().Pick(random.New())
 	require.Equal(t, "mod.int ", fmt.Sprintf("%s", k.(*mod.Int).MarshalID()))
 	pa := suite.G2().Point().Mul(k, nil)
-	require.Equal(t, "bn256.pt", fmt.Sprintf("%s", pa.(*pointG2).MarshalID()))
+	require.Equal(t, "bn256.g2", fmt.Sprintf("%s", pa.(*pointG2).MarshalID()))
 	ma, err := pa.MarshalBinary()
 	require.Nil(t, err)
 	pb := new(bn256.G2).ScalarBaseMult(&k.(*mod.Int).V)
 	mb := pb.Marshal()
-	mb = append([]byte{0x01}, mb...)
 	require.Equal(t, ma, mb)
 }
 

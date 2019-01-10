@@ -10,7 +10,7 @@ import (
 	"github.com/dedis/kyber/group/mod"
 )
 
-var marshalPointID = [8]byte{'b', 'n', '2', '5', '6', '.', 'p', 't'}
+var marshalPointID = [8]byte{'b', 'n', '2', '5', '6', '.', 'g', '2'}
 
 type pointG1 struct {
 	g *curvePoint
@@ -282,22 +282,18 @@ func (p *pointG2) MarshalBinary() ([]byte, error) {
 	}
 
 	p.g.MakeAffine()
-	if p.g.IsInfinity() {
-		return make([]byte, 1), nil
-	}
 
 	ret := make([]byte, p.MarshalSize())
-	ret[0] = 0x01
 	temp := &gfP{}
 
 	montDecode(temp, &p.g.x.x)
-	temp.Marshal(ret[1+0*n:])
+	temp.Marshal(ret[0*n:])
 	montDecode(temp, &p.g.x.y)
-	temp.Marshal(ret[1+1*n:])
+	temp.Marshal(ret[1*n:])
 	montDecode(temp, &p.g.y.x)
-	temp.Marshal(ret[1+2*n:])
+	temp.Marshal(ret[2*n:])
 	montDecode(temp, &p.g.y.y)
-	temp.Marshal(ret[1+3*n:])
+	temp.Marshal(ret[3*n:])
 
 	return ret, nil
 }
@@ -320,20 +316,14 @@ func (p *pointG2) UnmarshalBinary(buf []byte) error {
 		p.g = &twistPoint{}
 	}
 
-	if len(buf) > 0 && buf[0] == 0x00 {
-		p.g.SetInfinity()
-		//return buf[1:], nil
-		return nil
-	} else if len(buf) > 0 && buf[0] != 0x01 {
-		return errors.New("bn256.G2: malformed point")
-	} else if len(buf) < p.MarshalSize() {
+	if len(buf) < p.MarshalSize() {
 		return errors.New("bn256.G2: not enough data")
 	}
 
-	p.g.x.x.Unmarshal(buf[1+0*n:])
-	p.g.x.y.Unmarshal(buf[1+1*n:])
-	p.g.y.x.Unmarshal(buf[1+2*n:])
-	p.g.y.y.Unmarshal(buf[1+3*n:])
+	p.g.x.x.Unmarshal(buf[0*n:])
+	p.g.x.y.Unmarshal(buf[1*n:])
+	p.g.y.x.Unmarshal(buf[2*n:])
+	p.g.y.y.Unmarshal(buf[3*n:])
 	montEncode(&p.g.x.x, &p.g.x.x)
 	montEncode(&p.g.x.y, &p.g.x.y)
 	montEncode(&p.g.y.x, &p.g.y.x)
@@ -365,7 +355,7 @@ func (p *pointG2) UnmarshalFrom(r io.Reader) (int, error) {
 }
 
 func (p *pointG2) MarshalSize() int {
-	return 4*p.ElementSize() + 1
+	return 4 * p.ElementSize()
 }
 
 func (p *pointG2) ElementSize() int {
