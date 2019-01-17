@@ -137,6 +137,19 @@ func TestG2Marshal(t *testing.T) {
 	require.Equal(t, ma, mb)
 }
 
+func TestG2MarshalZero(t *testing.T) {
+	suite := NewSuite()
+	pa := suite.G2().Point()
+	ma, err := pa.MarshalBinary()
+	require.Nil(t, err)
+	pb := suite.G2().Point()
+	err = pb.UnmarshalBinary(ma)
+	require.Nil(t, err)
+	mb, err := pb.MarshalBinary()
+	require.Nil(t, err)
+	require.Equal(t, ma, mb)
+}
+
 func TestG2Ops(t *testing.T) {
 	suite := NewSuite()
 	a := suite.G2().Point().Pick(random.New())

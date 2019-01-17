@@ -1,6 +1,7 @@
 package bn256
 
 import (
+	"bytes"
 	"crypto/cipher"
 	"crypto/subtle"
 	"errors"
@@ -282,6 +283,9 @@ func (p *pointG2) MarshalBinary() ([]byte, error) {
 	}
 
 	p.g.MakeAffine()
+	if p.g.IsInfinity() {
+		return make([]byte, p.MarshalSize()), nil
+	}
 
 	ret := make([]byte, p.MarshalSize())
 	temp := &gfP{}
@@ -318,6 +322,12 @@ func (p *pointG2) UnmarshalBinary(buf []byte) error {
 
 	if len(buf) < p.MarshalSize() {
 		return errors.New("bn256.G2: not enough data")
+	}
+
+	zeros := make([]byte, p.MarshalSize())
+	if bytes.Equal(buf, zeros) {
+		p.g.SetInfinity()
+		return nil
 	}
 
 	p.g.x.x.Unmarshal(buf[0*n:])
