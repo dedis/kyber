@@ -62,18 +62,6 @@ func (P *extPoint) UnmarshalFrom(r io.Reader) (int, error) {
 	return marshalling.PointUnmarshalFrom(P, r)
 }
 
-func (P *extPoint) HideLen() int {
-	return P.c.hide.HideLen()
-}
-
-func (P *extPoint) HideEncode(rand cipher.Stream) []byte {
-	return P.c.hide.HideEncode(P, rand)
-}
-
-func (P *extPoint) HideDecode(rep []byte) {
-	P.c.hide.HideDecode(P, rep)
-}
-
 // Equality test for two Points on the same curve.
 // We can avoid inversions here because:
 //

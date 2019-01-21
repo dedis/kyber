@@ -3,9 +3,7 @@ package curve25519
 import (
 	"testing"
 
-	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/group/edwards25519"
-	"github.com/dedis/kyber/util/random"
 	"github.com/dedis/kyber/util/test"
 )
 
@@ -114,43 +112,6 @@ func TestCompareEd25519(t *testing.T) {
 		new(edwards25519.Curve))
 }
 
-// Test point hiding functionality
-
-func testHiding(g kyber.Group, k int) {
-	rand := random.New()
-
-	// Test conversion from random strings to points and back
-	p := g.Point()
-	p2 := g.Point()
-	l := p.(kyber.Hiding).HideLen()
-	buf := make([]byte, l)
-	for i := 0; i < k; i++ {
-		rand.XORKeyStream(buf, buf)
-		//println("R "+hex.EncodeToString(buf))
-		p.(kyber.Hiding).HideDecode(buf)
-		//println("P "+p.String())
-		b2 := p.(kyber.Hiding).HideEncode(rand)
-		if b2 == nil {
-			panic("HideEncode failed")
-		}
-		//println("R'"+hex.EncodeToString(b2))
-		p2.(kyber.Hiding).HideDecode(b2)
-		//println("P'"+p2.String())
-		if !p.Equal(p2) {
-			panic("HideDecode produced wrong point")
-		}
-		//println("")
-	}
-}
-
-func TestElligator1(t *testing.T) {
-	testHiding(new(ExtendedCurve).Init(Param1174(), true), 10)
-}
-
-func TestElligator2(t *testing.T) {
-	testHiding(new(ExtendedCurve).Init(Param25519(), true), 10)
-}
-
 // Benchmark contrasting implementations of the Ed25519 curve
 
 var projBench = test.NewGroupBench(new(ProjectiveCurve).Init(Param25519(), false))
@@ -180,11 +141,3 @@ func BenchmarkPointDecodeOptimized(b *testing.B)  { optBench.PointDecode(b.N) }
 func BenchmarkPointPickProjective(b *testing.B) { projBench.PointPick(b.N) }
 func BenchmarkPointPickExtended(b *testing.B)   { extBench.PointPick(b.N) }
 func BenchmarkPointPickOptimized(b *testing.B)  { optBench.PointPick(b.N) }
-
-func BenchmarkElligator1(b *testing.B) {
-	testHiding(new(ExtendedCurve).Init(Param1174(), true), b.N)
-}
-
-func BenchmarkElligator2(b *testing.B) {
-	testHiding(new(ExtendedCurve).Init(Param25519(), true), b.N)
-}
