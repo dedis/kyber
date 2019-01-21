@@ -284,8 +284,11 @@ func (p *pointG2) MarshalBinary() ([]byte, error) {
 	p.g.MakeAffine()
 
 	ret := make([]byte, p.MarshalSize())
-	temp := &gfP{}
+	if p.g.IsInfinity() {
+		return ret, nil
+	}
 
+	temp := &gfP{}
 	montDecode(temp, &p.g.x.x)
 	temp.Marshal(ret[0*n:])
 	montDecode(temp, &p.g.x.y)
