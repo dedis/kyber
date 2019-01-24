@@ -7,11 +7,11 @@ import (
 	"io"
 	"reflect"
 
-	"github.com/dedis/fixbuf"
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/group/internal/marshalling"
 	"github.com/dedis/kyber/util/random"
 	"github.com/dedis/kyber/xof/blake2xb"
+	"go.dedis.ch/fixbuf"
 )
 
 // SuiteEd25519 implements some basic functionalities such as Group, HashFactory,
