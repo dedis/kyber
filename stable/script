@@ -1,8 +1,0 @@
-SRC="$1"
-DST="$2"
-
-(
-cp -a $SRC/sign/dss $DST/share/
-find . -name $DST/"*.go" | xargs \
-  perl -pi -e "s:(gopkg.in/dedis/kyber.v2/)sign/dss:\1share/dss:"
-)
