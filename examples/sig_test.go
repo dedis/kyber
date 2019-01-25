@@ -7,8 +7,8 @@ import (
 	"errors"
 	"fmt"
 
-	"go.dedis.ch/kyber"
-	"go.dedis.ch/kyber/group/edwards25519"
+	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/group/edwards25519"
 )
 
 type Suite interface {

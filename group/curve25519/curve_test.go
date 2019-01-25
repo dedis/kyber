@@ -3,8 +3,8 @@ package curve25519
 import (
 	"testing"
 
-	"go.dedis.ch/kyber/group/edwards25519"
-	"go.dedis.ch/kyber/util/test"
+	"go.dedis.ch/kyber/v3/group/edwards25519"
+	"go.dedis.ch/kyber/v3/util/test"
 )
 
 var testSuite = NewBlakeSHA256Curve25519(false)

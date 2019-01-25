@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"math/big"
 
-	"go.dedis.ch/kyber"
-	"go.dedis.ch/kyber/group/mod"
-	"go.dedis.ch/kyber/util/random"
+	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/group/mod"
+	"go.dedis.ch/kyber/v3/util/random"
 )
 
 var zero = big.NewInt(0)

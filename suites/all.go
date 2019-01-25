@@ -1,10 +1,10 @@
 package suites
 
 import (
-	"go.dedis.ch/kyber/group/edwards25519"
-	"go.dedis.ch/kyber/group/nist"
-	"go.dedis.ch/kyber/pairing"
-	"go.dedis.ch/kyber/pairing/bn256"
+	"go.dedis.ch/kyber/v3/group/edwards25519"
+	"go.dedis.ch/kyber/v3/group/nist"
+	"go.dedis.ch/kyber/v3/pairing"
+	"go.dedis.ch/kyber/v3/pairing/bn256"
 )
 
 func init() {

@@ -3,7 +3,7 @@ package nist
 import (
 	"testing"
 
-	"go.dedis.ch/kyber/util/test"
+	"go.dedis.ch/kyber/v3/util/test"
 )
 
 var testQR512 = NewBlakeSHA256QR512()

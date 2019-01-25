@@ -3,7 +3,7 @@ package edwards25519
 import (
 	"testing"
 
-	"go.dedis.ch/kyber/util/test"
+	"go.dedis.ch/kyber/v3/util/test"
 )
 
 var tSuite = NewBlakeSHA256Ed25519()

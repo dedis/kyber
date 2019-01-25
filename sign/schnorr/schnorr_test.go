@@ -7,9 +7,9 @@ import (
 	"testing/quick"
 
 	"github.com/stretchr/testify/assert"
-	"go.dedis.ch/kyber/group/edwards25519"
-	"go.dedis.ch/kyber/sign/eddsa"
-	"go.dedis.ch/kyber/util/key"
+	"go.dedis.ch/kyber/v3/group/edwards25519"
+	"go.dedis.ch/kyber/v3/sign/eddsa"
+	"go.dedis.ch/kyber/v3/util/key"
 )
 
 func TestSchnorrSignature(t *testing.T) {
