@@ -7,11 +7,11 @@ import (
 	"io"
 	"reflect"
 
-	"github.com/dedis/fixbuf"
-	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/group/internal/marshalling"
-	"github.com/dedis/kyber/util/random"
-	"github.com/dedis/kyber/xof/blake2xb"
+	"go.dedis.ch/fixbuf"
+	"go.dedis.ch/kyber"
+	"go.dedis.ch/kyber/group/internal/marshalling"
+	"go.dedis.ch/kyber/util/random"
+	"go.dedis.ch/kyber/xof/blake2xb"
 )
 
 // SuiteCurve25519 is the suite for the 25519 curve
@@ -49,7 +49,7 @@ func (s *SuiteCurve25519) RandomStream() cipher.Stream {
 }
 
 // NewBlakeSHA256Curve25519 returns a cipher suite based on package
-// github.com/dedis/kyber/xof/blake2xb, SHA-256, and Curve25519.
+// go.dedis.ch/kyber/xof/blake2xb, SHA-256, and Curve25519.
 //
 // If fullGroup is false, then the group is the prime-order subgroup.
 //

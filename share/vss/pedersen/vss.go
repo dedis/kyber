@@ -12,10 +12,10 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/share"
-	"github.com/dedis/kyber/sign/schnorr"
-	"github.com/dedis/protobuf"
+	"go.dedis.ch/kyber"
+	"go.dedis.ch/kyber/share"
+	"go.dedis.ch/kyber/sign/schnorr"
+	"go.dedis.ch/protobuf"
 )
 
 // Suite defines the capabilities required by the vss package.

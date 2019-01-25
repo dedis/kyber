@@ -3,9 +3,9 @@ package examples
 import (
 	"fmt"
 
-	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/group/edwards25519"
-	"github.com/dedis/kyber/util/random"
+	"go.dedis.ch/kyber"
+	"go.dedis.ch/kyber/group/edwards25519"
+	"go.dedis.ch/kyber/util/random"
 )
 
 func ElGamalEncrypt(group kyber.Group, pubkey kyber.Point, message []byte) (

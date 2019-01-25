@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/dedis/kyber/group/mod"
-	"github.com/dedis/kyber/util/random"
 	"github.com/stretchr/testify/require"
+	"go.dedis.ch/kyber/group/mod"
+	"go.dedis.ch/kyber/util/random"
 	"golang.org/x/crypto/bn256"
 )
 

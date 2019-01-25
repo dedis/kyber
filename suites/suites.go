@@ -8,7 +8,7 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/dedis/kyber"
+	"go.dedis.ch/kyber"
 )
 
 // Suite is the sum of all suites mix-ins in Kyber.

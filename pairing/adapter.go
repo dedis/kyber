@@ -1,8 +1,8 @@
 package pairing
 
 import (
-	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/pairing/bn256"
+	"go.dedis.ch/kyber"
+	"go.dedis.ch/kyber/pairing/bn256"
 )
 
 // SuiteBn256 is an adapter that implements the suites.Suite interface so that

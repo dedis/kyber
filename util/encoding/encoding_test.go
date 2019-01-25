@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/dedis/kyber/group/edwards25519"
 	"github.com/stretchr/testify/require"
+	"go.dedis.ch/kyber/group/edwards25519"
 )
 
 var s = edwards25519.NewBlakeSHA256Ed25519()

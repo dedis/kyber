@@ -9,8 +9,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/pairing"
+	"go.dedis.ch/kyber"
+	"go.dedis.ch/kyber/pairing"
 )
 
 // NewKeyPair creates a new BLS signing key pair. The private key x is a scalar
