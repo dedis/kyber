@@ -12,11 +12,11 @@ package dkg
 import (
 	"errors"
 
-	"github.com/dedis/kyber"
+	"go.dedis.ch/kyber"
 
-	"github.com/dedis/kyber/share"
-	vss "github.com/dedis/kyber/share/vss/pedersen"
-	"github.com/dedis/kyber/sign/schnorr"
+	"go.dedis.ch/kyber/share"
+	vss "go.dedis.ch/kyber/share/vss/pedersen"
+	"go.dedis.ch/kyber/sign/schnorr"
 )
 
 // Suite wraps the functionalities needed by the dkg package

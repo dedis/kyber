@@ -1,7 +1,7 @@
 package anon
 
 import (
-	"github.com/dedis/kyber"
+	"go.dedis.ch/kyber"
 )
 
 // Suite represents the set of functionalities needed by the package anon.

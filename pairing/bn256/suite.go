@@ -7,10 +7,10 @@ import (
 	"io"
 	"reflect"
 
-	"github.com/dedis/fixbuf"
-	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/util/random"
-	"github.com/dedis/kyber/xof/blake2xb"
+	"go.dedis.ch/fixbuf"
+	"go.dedis.ch/kyber"
+	"go.dedis.ch/kyber/util/random"
+	"go.dedis.ch/kyber/xof/blake2xb"
 )
 
 // Suite implements the pairing.Suite interface for the BN256 bilinear pairing.

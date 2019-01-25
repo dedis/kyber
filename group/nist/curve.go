@@ -7,10 +7,10 @@ import (
 	"io"
 	"math/big"
 
-	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/group/internal/marshalling"
-	"github.com/dedis/kyber/group/mod"
-	"github.com/dedis/kyber/util/random"
+	"go.dedis.ch/kyber"
+	"go.dedis.ch/kyber/group/internal/marshalling"
+	"go.dedis.ch/kyber/group/mod"
+	"go.dedis.ch/kyber/util/random"
 )
 
 type curvePoint struct {

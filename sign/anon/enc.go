@@ -4,8 +4,8 @@ import (
 	"crypto/subtle"
 	"errors"
 
-	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/util/key"
+	"go.dedis.ch/kyber"
+	"go.dedis.ch/kyber/util/key"
 )
 
 func header(suite Suite, X kyber.Point, x kyber.Scalar,

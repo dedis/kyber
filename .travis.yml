@@ -1,5 +1,10 @@
 language: go
 
+go:
+  - "1.11.x"
+
+go_import_path: go.dedis.ch/kyber
+
 install:
   - go get -t ./...
   - go get github.com/dedis/Coding || true

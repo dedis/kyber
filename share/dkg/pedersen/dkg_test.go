@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/group/edwards25519"
-	"github.com/dedis/kyber/share"
-	vss "github.com/dedis/kyber/share/vss/pedersen"
 	"github.com/stretchr/testify/require"
+	"go.dedis.ch/kyber"
+	"go.dedis.ch/kyber/group/edwards25519"
+	"go.dedis.ch/kyber/share"
+	vss "go.dedis.ch/kyber/share/vss/pedersen"
 )
 
 var suite = edwards25519.NewBlakeSHA256Ed25519()

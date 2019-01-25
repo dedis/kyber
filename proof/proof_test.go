@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/group/edwards25519"
-	"github.com/dedis/kyber/xof/blake2xb"
+	"go.dedis.ch/kyber"
+	"go.dedis.ch/kyber/group/edwards25519"
+	"go.dedis.ch/kyber/xof/blake2xb"
 )
 
 func TestRep(t *testing.T) {

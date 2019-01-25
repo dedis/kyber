@@ -3,7 +3,7 @@ package edwards25519
 import (
 	"testing"
 
-	"github.com/dedis/kyber"
+	"go.dedis.ch/kyber"
 )
 
 func TestVartime(t *testing.T) {
