@@ -116,4 +116,4 @@ to is the Charm rapid prototyping library for Python
 This library incorporates and/or builds on existing code from a variety of
 sources, as documented in the relevant sub-packages.
 */
-package kyber
+package kyber // import "go.dedis.ch/kyber"

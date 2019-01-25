@@ -6,8 +6,8 @@ import (
 	"errors"
 	"io"
 
-	"go.dedis.ch/kyber"
-	"go.dedis.ch/kyber/group/mod"
+	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/group/mod"
 )
 
 var marshalPointID = [8]byte{'b', 'n', '2', '5', '6', '.', 'g', '2'}

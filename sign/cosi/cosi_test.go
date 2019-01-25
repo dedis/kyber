@@ -7,11 +7,11 @@ import (
 	"hash"
 	"testing"
 
-	"go.dedis.ch/kyber"
-	"go.dedis.ch/kyber/group/edwards25519"
-	"go.dedis.ch/kyber/sign/eddsa"
-	"go.dedis.ch/kyber/util/key"
-	"go.dedis.ch/kyber/xof/blake2xb"
+	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/group/edwards25519"
+	"go.dedis.ch/kyber/v3/sign/eddsa"
+	"go.dedis.ch/kyber/v3/util/key"
+	"go.dedis.ch/kyber/v3/xof/blake2xb"
 )
 
 // Specify cipher suite using AES-128, SHA512, and the Edwards25519 curve.

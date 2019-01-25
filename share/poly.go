@@ -17,7 +17,7 @@ import (
 	"fmt"
 	"strings"
 
-	"go.dedis.ch/kyber"
+	"go.dedis.ch/kyber/v3"
 )
 
 // Some error definitions
