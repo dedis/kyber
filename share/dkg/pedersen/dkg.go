@@ -652,14 +652,14 @@ func (d *DistKeyGenerator) Verifiers() map[uint32]*vss.Verifier {
 	return d.verifiers
 }
 
-//Renew adds the new distributed key share g (with secret 0) to the distributed key share d.
+// Renew adds the new distributed key share g (with secret 0) to the distributed key share d.
 func (d *DistKeyShare) Renew(suite Suite, g *DistKeyShare) (*DistKeyShare, error) {
-	//Check G(0) = 0*G.
+	// Check G(0) = 0*G.
 	if !g.Public().Equal(suite.Point().Base().Mul(suite.Scalar().Zero(), nil)) {
 		return nil, errors.New("wrong renewal function")
 	}
 
-	//Check whether they have the same index
+	// Check whether they have the same index
 	if d.Share.I != g.Share.I {
 		return nil, errors.New("not the same party")
 	}
