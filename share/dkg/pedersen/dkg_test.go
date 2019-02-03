@@ -31,7 +31,7 @@ func init() {
 		partPubs[i] = pub
 		partSec[i] = sec
 	}
-	dkgs = dkgGen()
+	dkgs = dkgGen(nbParticipants, vss.MinimumT(nbParticipants))
 }
 
 func TestDKGNewDistKeyGenerator(t *testing.T) {
@@ -74,7 +74,7 @@ func TestDKGDeal(t *testing.T) {
 }
 
 func TestDKGProcessDeal(t *testing.T) {
-	dkgs = dkgGen()
+	dkgs = dkgGen(nbParticipants, vss.MinimumT(nbParticipants))
 	dkg := dkgs[0]
 	deals, err := dkg.Deals()
 	require.Nil(t, err)
@@ -129,7 +129,7 @@ func TestDKGProcessResponse(t *testing.T) {
 	// second peer processes it and returns a complaint
 	// first peer process the complaint
 
-	dkgs = dkgGen()
+	dkgs = dkgGen(nbParticipants, vss.MinimumT(nbParticipants))
 	dkg := dkgs[0]
 	idxRec := 1
 	rec := dkgs[idxRec]
@@ -230,6 +230,148 @@ func TestDKGProcessResponse(t *testing.T) {
 
 }
 
+func TestDKGResharingThreshold(t *testing.T) {
+	n := 7
+	oldT := vss.MinimumT(n)
+	dkgs = dkgGen(n, oldT)
+	fullExchange(t, dkgs, true)
+
+	newN := len(partPubs) + 1
+	shares := make([]*DistKeyShare, len(dkgs))
+	sshares := make([]*share.PriShare, len(dkgs))
+	for i, dkg := range dkgs {
+		share, err := dkg.DistKeyShare()
+		require.NoError(t, err)
+		shares[i] = share
+		sshares[i] = shares[i].Share
+	}
+
+	newPubs := make([]kyber.Point, newN)
+	for i := range dkgs {
+		newPubs[i] = dkgs[i].pub
+	}
+	newPriv, newPub := genPair()
+	newPubs[len(dkgs)] = newPub
+	newDkgs := make([]*DistKeyGenerator, newN)
+	var err error
+	for i := range dkgs {
+		c := &Config{
+			Suite:    suite,
+			Longterm: partSec[i],
+			OldNodes: partPubs,
+			NewNodes: newPubs,
+			Share:    shares[i],
+		}
+		newDkgs[i], err = NewDistKeyHandler(c)
+		require.NoError(t, err)
+	}
+	newDkgs[len(dkgs)], err = NewDistKeyHandler(&Config{
+		Suite:        suite,
+		Longterm:     newPriv,
+		OldNodes:     partPubs,
+		NewNodes:     newPubs,
+		PublicCoeffs: shares[0].Commits,
+	})
+	require.NoError(t, err)
+
+	newT := vss.MinimumT(newN)
+	selectedDkgs := make([]*DistKeyGenerator, 0, newT)
+	selected := make(map[string]bool)
+	// add the new node
+	selectedDkgs = append(selectedDkgs, newDkgs[len(dkgs)])
+	selected[selectedDkgs[0].long.String()] = true
+	// select a subset of the new group
+	// XXX TODO make two threshold - default threshold for the old list number
+	// of deals, and the config threshold for the new polynomials
+	for len(selected) < newT+1 {
+		idx := mathRand.Intn(len(newDkgs))
+		str := newDkgs[idx].long.String()
+		if selected[str] {
+			continue
+		}
+		selected[str] = true
+		selectedDkgs = append(selectedDkgs, newDkgs[idx])
+	}
+
+	deals := make([]map[int]*Deal, 0, newN*newN)
+	for _, dkg := range selectedDkgs {
+		if !dkg.oldPresent {
+			continue
+		}
+		localDeals, err := dkg.Deals()
+		require.NoError(t, err)
+		deals = append(deals, localDeals)
+	}
+
+	resps := make(map[int][]*Response)
+	for i, localDeals := range deals {
+		for j, d := range localDeals {
+			for _, dkg := range selectedDkgs {
+				if dkg.newPresent && dkg.nidx == j {
+					resp, err := dkg.ProcessDeal(d)
+					require.Nil(t, err)
+					require.Equal(t, vss.StatusApproval, resp.Response.Status)
+					resps[i] = append(resps[i], resp)
+				}
+			}
+		}
+	}
+
+	for _, dealResponses := range resps {
+		for _, resp := range dealResponses {
+			for _, dkg := range selectedDkgs {
+				// Ignore messages from ourselves
+				if resp.Response.Index == uint32(dkg.nidx) {
+					continue
+				}
+				j, err := dkg.ProcessResponse(resp)
+				if err != nil {
+					fmt.Printf("old dkg at (oidx %d, nidx %d) has received response from idx %d for dealer idx %d\n", dkg.oidx, dkg.nidx, resp.Response.Index, resp.Index)
+				}
+				require.Nil(t, err)
+				require.Nil(t, j)
+			}
+		}
+	}
+
+	for _, dkg := range selectedDkgs {
+		dkg.SetTimeout()
+	}
+
+	dkss := make([]*DistKeyShare, 0, len(selectedDkgs))
+	newShares := make([]*share.PriShare, 0, len(selectedDkgs))
+	for _, dkg := range selectedDkgs {
+		if dkg.newPresent {
+			require.False(t, dkg.FullyCertified())
+			require.True(t, dkg.Certified())
+			dks, err := dkg.DistKeyShare()
+			require.NoError(t, err)
+			dkss = append(dkss, dks)
+			newShares = append(newShares, dks.Share)
+		}
+	}
+
+	// check
+	// 1. shares are different between the two rounds
+	// 2. shares reconstruct to the same secret
+	// 3. public polynomial is different but for the first coefficient /public
+	// key/
+
+	for _, newDks := range dkss {
+		for _, oldDks := range shares {
+			require.NotEqual(t, newDks.Share.V.String(), oldDks.Share.V.String())
+		}
+	}
+	//thr := vss.MinimumT(nbParticipants)
+	//// 2.
+	oldSecret, err := share.RecoverSecret(suite, sshares, oldT, n)
+	require.NoError(t, err)
+	newSecret, err := share.RecoverSecret(suite, newShares, newT, newN)
+	require.NoError(t, err)
+	require.Equal(t, oldSecret.String(), newSecret.String())
+
+}
+
 // TestDKGThreshold tests the "threshold dkg" where only a subset of nodes succeed
 // at the DKG
 func TestDKGThreshold(t *testing.T) {
@@ -256,8 +398,14 @@ func TestDKGThreshold(t *testing.T) {
 
 	// only take a threshold of them
 	thrDKGs := make(map[uint32]*DistKeyGenerator)
-	for i := 0; i < newTotal; i++ {
-		dkg := dkgs[mathRand.Intn(nbParticipants)]
+	alreadyTaken := make(map[int]bool)
+	for len(thrDKGs) < newTotal {
+		idx := mathRand.Intn(nbParticipants)
+		if alreadyTaken[idx] {
+			continue
+		}
+		alreadyTaken[idx] = true
+		dkg := dkgs[idx]
 		thrDKGs[uint32(dkg.nidx)] = dkg
 	}
 
@@ -284,11 +432,6 @@ func TestDKGThreshold(t *testing.T) {
 	// 2. Broadcast responses
 	for _, resp := range resps {
 		for _, dkg := range thrDKGs {
-			// ignore messages about ourself
-			if resp.Index == uint32(dkg.nidx) {
-				// skip the deals this dkg sent out
-				continue
-			}
 			if resp.Response.Index == uint32(dkg.nidx) {
 				// skip the responses this dkg sent out
 				continue
@@ -301,16 +444,39 @@ func TestDKGThreshold(t *testing.T) {
 
 	// 3. make sure nobody has a QUAL set
 	for _, dkg := range thrDKGs {
+		require.False(t, dkg.Certified())
+		require.Equal(t, 0, len(dkg.QUAL()))
 		for _, dkg2 := range thrDKGs {
 			require.False(t, dkg.isInQUAL(uint32(dkg2.nidx)))
 		}
 	}
 
 	for _, dkg := range thrDKGs {
+		for i, v := range dkg.verifiers {
+			if alreadyTaken[int(i)] {
+				require.True(t, v.EnoughApprovals())
+			} else {
+				//XXX to fix - namely dkg that reeives first packet (deal) will set
+				//the treshold to the received value - no check if it's corect of
+				//not compared to the config
+				var app int
+				for _, r := range v.Responses() {
+					if r.Status == vss.StatusApproval {
+						app++
+					}
+				}
+				require.Equal(t, 0, app)
+				require.False(t, v.EnoughApprovals())
+			}
+		}
 		dkg.SetTimeout()
 	}
 
 	for _, dkg := range thrDKGs {
+		require.Equal(t, newTotal, len(dkg.QUAL()))
+		require.True(t, dkg.Certified())
+		_, err := dkg.DistKeyShare()
+		require.NoError(t, err)
 		for _, dkg2 := range thrDKGs {
 			require.True(t, dkg.isInQUAL(uint32(dkg2.nidx)))
 		}
@@ -319,7 +485,7 @@ func TestDKGThreshold(t *testing.T) {
 }
 
 func TestDistKeyShare(t *testing.T) {
-	dkgs = dkgGen()
+	dkgs = dkgGen(nbParticipants, vss.MinimumT(nbParticipants))
 	fullExchange(t, dkgs, true)
 
 	for _, dkg := range dkgs {
@@ -361,10 +527,17 @@ func TestDistKeyShare(t *testing.T) {
 	require.Equal(t, dkss[0].Public().String(), commitSecret.String())
 }
 
-func dkgGen() []*DistKeyGenerator {
-	dkgs := make([]*DistKeyGenerator, nbParticipants)
-	for i := 0; i < nbParticipants; i++ {
-		dkg, err := NewDistKeyGenerator(suite, partSec[i], partPubs, vss.MinimumT(nbParticipants))
+func dkgGen(n, t int) []*DistKeyGenerator {
+	partPubs = make([]kyber.Point, n)
+	partSec = make([]kyber.Scalar, n)
+	for i := 0; i < n; i++ {
+		sec, pub := genPair()
+		partPubs[i] = pub
+		partSec[i] = sec
+	}
+	dkgs := make([]*DistKeyGenerator, n)
+	for i := 0; i < n; i++ {
+		dkg, err := NewDistKeyGenerator(suite, partSec[i], partPubs, t)
 		if err != nil {
 			panic(err)
 		}
@@ -399,11 +572,10 @@ func fullExchange(t *testing.T, dkgs []*DistKeyGenerator, checkQUAL bool) {
 	// full secret sharing exchange
 	// 1. broadcast deals
 	resps := make([]*Response, 0, nbParticipants*nbParticipants)
-	for idx, dkg := range dkgs {
+	for _, dkg := range dkgs {
 		deals, err := dkg.Deals()
 		require.Nil(t, err)
 		for i, d := range deals {
-			require.True(t, i != idx)
 			resp, err := dkgs[i].ProcessDeal(d)
 			require.Nil(t, err)
 			require.Equal(t, vss.StatusApproval, resp.Response.Status)
@@ -435,7 +607,7 @@ func fullExchange(t *testing.T, dkgs []*DistKeyGenerator, checkQUAL bool) {
 
 // Test resharing of a DKG to the same set of nodes
 func TestDKGResharing(t *testing.T) {
-	dkgs = dkgGen()
+	dkgs = dkgGen(nbParticipants, vss.MinimumT(nbParticipants))
 	fullExchange(t, dkgs, true)
 
 	shares := make([]*DistKeyShare, len(dkgs))
@@ -488,7 +660,7 @@ func TestDKGResharing(t *testing.T) {
 }
 
 func TestDKGResharingRemoveNode(t *testing.T) {
-	dkgs = dkgGen()
+	dkgs = dkgGen(nbParticipants, vss.MinimumT(nbParticipants))
 	fullExchange(t, dkgs, true)
 
 	newN := len(partPubs) - 1
@@ -547,7 +719,7 @@ func TestDKGResharingRemoveNode(t *testing.T) {
 
 // Test resharing to a different set of nodes with one common
 func TestDKGResharingNewNodes(t *testing.T) {
-	dkgs = dkgGen()
+	dkgs = dkgGen(nbParticipants, vss.MinimumT(nbParticipants))
 	fullExchange(t, dkgs, true)
 
 	shares := make([]*DistKeyShare, len(dkgs))
@@ -725,7 +897,7 @@ func TestDKGResharingNewNodes(t *testing.T) {
 }
 
 func TestDKGResharingPartialNewNodes(t *testing.T) {
-	dkgs = dkgGen()
+	dkgs = dkgGen(nbParticipants, vss.MinimumT(nbParticipants))
 	fullExchange(t, dkgs, true)
 
 	shares := make([]*DistKeyShare, len(dkgs))

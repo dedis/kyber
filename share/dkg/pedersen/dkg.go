@@ -499,9 +499,9 @@ func (d *DistKeyGenerator) SetTimeout() {
 // 2, 3 and 4.
 func (d *DistKeyGenerator) Certified() bool {
 	if d.isResharing {
-		return len(d.QUAL()) >= len(d.c.OldNodes)
+		return len(d.QUAL()) >= d.c.Threshold
 	}
-	return len(d.QUAL()) >= len(d.c.NewNodes)
+	return len(d.QUAL()) >= d.c.Threshold
 }
 
 // FullyCertified returns true if *all* deals are certified. This method should
@@ -706,6 +706,7 @@ func (d *DistKeyGenerator) initVerifiers(c *Config) error {
 		if err != nil {
 			return err
 		}
+		ver.SetThreshold(c.Threshold)
 		verifiers[uint32(i)] = ver
 	}
 	d.verifiers = verifiers

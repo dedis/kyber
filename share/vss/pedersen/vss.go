@@ -368,10 +368,6 @@ func (v *Verifier) ProcessEncryptedDeal(e *EncryptedDeal) (*Response, error) {
 		return nil, err
 	}
 
-	if v.Aggregator == nil {
-		v.Aggregator = newAggregator(v.suite, v.dealer, v.verifiers, d.Commitments, t, d.SessionID)
-	}
-
 	r := &Response{
 		SessionID: sid,
 		Index:     uint32(v.index),
@@ -565,10 +561,15 @@ func (a *Aggregator) VerifyDeal(d *Deal, inclusion bool) error {
 		a.commits = d.Commitments
 		a.sid = d.SessionID
 		a.deal = d
+		a.t = int(d.T)
 	}
 
 	if !validT(int(d.T), a.verifiers) {
 		return errors.New("vss: invalid t received in Deal")
+	}
+
+	if int(d.T) != a.t {
+		return errors.New("vss: incompatible threshold - potential attack")
 	}
 
 	if !bytes.Equal(a.sid, d.SessionID) {
@@ -591,8 +592,8 @@ func (a *Aggregator) VerifyDeal(d *Deal, inclusion bool) error {
 	return nil
 }
 
-// cleanVerifiers checks the Aggregator's response array and creates a StatusComplaint
-// response for all verifiers that did not respond to the Deal.
+// cleanVerifiers checks the Aggregator's response array and creates a
+// StatusComplaint response for all verifiers that did not respond to the Deal.
 func (a *Aggregator) cleanVerifiers() {
 	for i := range a.verifiers {
 		if _, ok := a.responses[uint32(i)]; !ok {
@@ -603,6 +604,15 @@ func (a *Aggregator) cleanVerifiers() {
 			}
 		}
 	}
+}
+
+// SetThreshold is used to specify the expected threshold *before* the verifier
+// receives anything. Sometimes, a verifier knows the treshold in advance and
+// should make sure the one it receives from the dealer is consistent. If this
+// method is not called, the first threshold received is considered as the
+// "truth".
+func (a *Aggregator) SetThreshold(t int) {
+	a.t = t
 }
 
 // ProcessResponse verifies the validity of the given response and stores it
@@ -670,6 +680,7 @@ func (a *Aggregator) EnoughApprovals() bool {
 			app++
 		}
 	}
+	//fmt.Println("enoughApproval ", app, " >= ", a.t, " -> ", app >= a.t)
 	return app >= a.t
 }
 
@@ -682,23 +693,20 @@ func (a *Aggregator) Responses() map[uint32]*Response {
 // DealCertified returns true if there has been less than t complaints, all
 // Justifications were correct and if EnoughApprovals() returns true.
 func (a *Aggregator) DealCertified() bool {
-	var verifiersUnstable int
-
-	// XXX currently it can still happen that an Aggregator has not been set,
-	// because it did not receive any deals yet or responses.
-	if a == nil {
-		return false
-	}
+	var absentVerifiers int
+	var complaints int
 
 	// Check either a StatusApproval or StatusComplaint for all known verifiers
 	// i.e. make sure all verifiers are either timed-out or OK.
 	for i := range a.verifiers {
-		if _, ok := a.responses[uint32(i)]; !ok {
-			verifiersUnstable++
+		if r, ok := a.responses[uint32(i)]; !ok {
+			absentVerifiers++
+		} else if r.Status == StatusComplaint {
+			complaints++
 		}
 	}
 
-	tooMuchComplaints := verifiersUnstable > 0 || a.badDealer
+	tooMuchComplaints := absentVerifiers > 0 || a.badDealer || complaints > a.t
 	return a.EnoughApprovals() && !tooMuchComplaints
 }
 
