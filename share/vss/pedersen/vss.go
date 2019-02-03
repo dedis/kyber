@@ -338,6 +338,7 @@ func NewVerifier(suite Suite, longterm kyber.Scalar, dealerKey kyber.Point,
 		pub:         pub,
 		index:       index,
 		hkdfContext: context(suite, dealerKey, verifiers),
+		Aggregator:  NewEmptyAggregator(suite, verifiers),
 	}
 	return v, nil
 }
@@ -672,6 +673,8 @@ func (a *Aggregator) EnoughApprovals() bool {
 	return app >= a.t
 }
 
+// Responses returns the list of responses received and processed by this
+// aggregator
 func (a *Aggregator) Responses() map[uint32]*Response {
 	return a.responses
 }

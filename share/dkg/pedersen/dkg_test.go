@@ -3,6 +3,7 @@ package dkg
 import (
 	"crypto/rand"
 	"fmt"
+	mathRand "math/rand"
 	"testing"
 
 	"github.com/dedis/kyber"
@@ -229,16 +230,51 @@ func TestDKGProcessResponse(t *testing.T) {
 
 }
 
-func TestSetTimeout(t *testing.T) {
-	dkgs = dkgGen()
+// TestDKGThreshold tests the "threshold dkg" where only a subset of nodes succeed
+// at the DKG
+func TestDKGThreshold(t *testing.T) {
+	n := 7
+	// should succeed with only this number of nodes
+	newTotal := vss.MinimumT(n)
+
+	dkgs := make([]*DistKeyGenerator, n)
+	privates := make([]kyber.Scalar, n)
+	publics := make([]kyber.Point, n)
+	for i := 0; i < n; i++ {
+		priv, pub := genPair()
+		privates[i] = priv
+		publics[i] = pub
+	}
+
+	for i := 0; i < n; i++ {
+		dkg, err := NewDistKeyGenerator(suite, privates[i], publics, newTotal)
+		if err != nil {
+			panic(err)
+		}
+		dkgs[i] = dkg
+	}
+
+	// only take a threshold of them
+	thrDKGs := make(map[uint32]*DistKeyGenerator)
+	for i := 0; i < newTotal; i++ {
+		dkg := dkgs[mathRand.Intn(nbParticipants)]
+		thrDKGs[uint32(dkg.nidx)] = dkg
+	}
+
 	// full secret sharing exchange
 	// 1. broadcast deals
-	resps := make([]*Response, 0, nbParticipants*nbParticipants)
-	for _, dkg := range dkgs {
+	resps := make([]*Response, 0, newTotal*newTotal)
+	for _, dkg := range thrDKGs {
 		deals, err := dkg.Deals()
 		require.Nil(t, err)
 		for i, d := range deals {
-			resp, err := dkgs[i].ProcessDeal(d)
+			// give the deal anyway - simpler
+			recipient, exists := thrDKGs[uint32(i)]
+			if !exists {
+				// one of the "offline" dkg
+				continue
+			}
+			resp, err := recipient.ProcessDeal(d)
 			require.Nil(t, err)
 			require.Equal(t, vss.StatusApproval, resp.Response.Status)
 			resps = append(resps, resp)
@@ -247,32 +283,35 @@ func TestSetTimeout(t *testing.T) {
 
 	// 2. Broadcast responses
 	for _, resp := range resps {
-		for _, dkg := range dkgs {
-			if !dkg.verifiers[resp.Index].EnoughApprovals() {
-				// ignore messages about ourself
-				if resp.Response.Index == uint32(dkg.nidx) {
-					continue
-				}
-				j, err := dkg.ProcessResponse(resp)
-				require.Nil(t, err)
-				require.Nil(t, j)
+		for _, dkg := range thrDKGs {
+			// ignore messages about ourself
+			if resp.Index == uint32(dkg.nidx) {
+				// skip the deals this dkg sent out
+				continue
 			}
+			if resp.Response.Index == uint32(dkg.nidx) {
+				// skip the responses this dkg sent out
+				continue
+			}
+			j, err := dkg.ProcessResponse(resp)
+			require.Nil(t, err)
+			require.Nil(t, j)
 		}
 	}
 
-	// 3. make sure everyone has the same QUAL set
-	for _, dkg := range dkgs {
-		for _, dkg2 := range dkgs {
+	// 3. make sure nobody has a QUAL set
+	for _, dkg := range thrDKGs {
+		for _, dkg2 := range thrDKGs {
 			require.False(t, dkg.isInQUAL(uint32(dkg2.nidx)))
 		}
 	}
 
-	for _, dkg := range dkgs {
+	for _, dkg := range thrDKGs {
 		dkg.SetTimeout()
 	}
 
-	for _, dkg := range dkgs {
-		for _, dkg2 := range dkgs {
+	for _, dkg := range thrDKGs {
+		for _, dkg2 := range thrDKGs {
 			require.True(t, dkg.isInQUAL(uint32(dkg2.nidx)))
 		}
 	}
@@ -590,11 +629,14 @@ func TestDKGResharingNewNodes(t *testing.T) {
 		localDeals, err := dkg.Deals()
 		require.Nil(t, err)
 		deals = append(deals, localDeals)
+		v, exists := dkg.verifiers[uint32(dkg.oidx)]
 		if dkg.canReceive && dkg.nidx == 0 {
-			// because it stores its own deal / response
-			require.Equal(t, 1, len(dkg.verifiers))
+			// this node should save its own response for its own deal
+			lenResponses := len(v.Aggregator.Responses())
+			require.Equal(t, 1, lenResponses)
 		} else {
-			require.Equal(t, 0, len(dkg.verifiers))
+			// no verifiers since these dkg are not in in the new list
+			require.False(t, exists)
 		}
 	}
 
@@ -776,11 +818,14 @@ func TestDKGResharingPartialNewNodes(t *testing.T) {
 		localDeals, err := dkg.Deals()
 		require.Nil(t, err)
 		deals = append(deals, localDeals)
+		v, exists := dkg.verifiers[uint32(dkg.oidx)]
 		if dkg.canReceive && dkg.newPresent {
-			// because it stores its own deal / response
-			require.Equal(t, 1, len(dkg.verifiers))
+			// this node should save its own response for its own deal
+			lenResponses := len(v.Aggregator.Responses())
+			require.True(t, exists)
+			require.Equal(t, 1, lenResponses)
 		} else {
-			require.Equal(t, 0, len(dkg.verifiers))
+			require.False(t, exists)
 		}
 	}
 
