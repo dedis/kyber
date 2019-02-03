@@ -426,7 +426,7 @@ var ErrNoDealBeforeResponse = errors.New("verifier: need to receive deal before 
 // error if it's not a valid response.
 // Call `v.DealCertified()` to check if the whole protocol is finished.
 func (v *Verifier) ProcessResponse(resp *Response) error {
-	if v.Aggregator == nil {
+	if v.Aggregator.deal == nil {
 		return ErrNoDealBeforeResponse
 	}
 	return v.Aggregator.verifyResponse(resp)
@@ -627,6 +627,7 @@ func (a *Aggregator) verifyResponse(r *Response) error {
 		return errors.New("vss: receiving inconsistent sessionID in response")
 	}
 
+	fmt.Println("response ", r)
 	pub, ok := findPub(a.verifiers, r.Index)
 	if !ok {
 		return errors.New("vss: index out of bounds in response")
