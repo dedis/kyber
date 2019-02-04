@@ -627,7 +627,6 @@ func (a *Aggregator) verifyResponse(r *Response) error {
 		return errors.New("vss: receiving inconsistent sessionID in response")
 	}
 
-	fmt.Println("response ", r)
 	pub, ok := findPub(a.verifiers, r.Index)
 	if !ok {
 		return errors.New("vss: index out of bounds in response")

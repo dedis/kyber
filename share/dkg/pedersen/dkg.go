@@ -61,39 +61,22 @@ type Config struct {
 	// OldNodes field.
 	Share *DistKeyShare
 
-	// New threshold to use regarding the NewNodes. If unspecified, default is
-	// set to `vss.MinimumT(len(NewNodes))`
-	Threshold int
-}
+	// New threshold to use in order to reconstruct the secret with the produced
+	// shares. This threshold is with respect to the number of nodes in the
+	// NewNodes list. If unspecified, default is set to
+	// `vss.MinimumT(len(NewNodes))`. This threshold indicates the degree of the
+	// polynomials used to create the shares, and the minimum number of
+	// verification required for each deal.
+	NewThreshold int
 
-// NewDKGConfig returns a Config that is made for a fresh new DKG run.
-func NewDKGConfig(suite Suite, longterm kyber.Scalar, participants []kyber.Point) *Config {
-	return &Config{
-		Suite:     suite,
-		Longterm:  longterm,
-		NewNodes:  participants,
-		OldNodes:  participants,
-		Threshold: vss.MinimumT(len(participants)),
-	}
-}
-
-// NewReshareConfig returns a new config to use with DistKeyGenerator to run the
-// re-sharing protocols between the old nodes and the new nodes, i.e. the future
-// share holders. Share must be non-nil for previously enrolled nodes to
-// actively issue new shares. The public coefficients, pcoeffs, are needed in
-// order for participants in newNodes to be able to verify the validity of newly
-// received shares.
-func NewReshareConfig(suite Suite, longterm kyber.Scalar, oldNodes, newNodes []kyber.Point,
-	share *DistKeyShare, pcoeffs []kyber.Point) *Config {
-	return &Config{
-		Suite:        suite,
-		Longterm:     longterm,
-		OldNodes:     oldNodes,
-		NewNodes:     newNodes,
-		Share:        share,
-		PublicCoeffs: pcoeffs,
-		Threshold:    vss.MinimumT(len(newNodes)),
-	}
+	// OldThreshold holds the threshold value that was used in the previous
+	// configuration. This field MUST be specified when doing resharing, but is
+	// not needed when doing a fresh DKG. This value is required to gather a
+	// correct number of valid deals before creating the distributed key share.
+	// NOTE: this field is always required (instead of taking the default when
+	// absent) when doing a resharing to avoid a downgrade attack, where a resharing
+	// the number of deals required is less than what it is supposed to be.
+	OldThreshold int
 }
 
 // DistKeyGenerator is the struct that runs the DKG protocol.
@@ -144,6 +127,14 @@ func NewDistKeyHandler(c *Config) (*DistKeyGenerator, error) {
 	if c.Share != nil || c.PublicCoeffs != nil {
 		isResharing = true
 	}
+	if isResharing {
+		if c.OldNodes == nil {
+			return nil, errors.New("dkg: resharing config needs old nodes list")
+		}
+		if c.OldThreshold == 0 {
+			return nil, errors.New("dkg: resharing case needs old threshold field")
+		}
+	}
 	// canReceive is true by default since in the default DKG mode everyone
 	// participates
 	var canReceive = true
@@ -155,8 +146,8 @@ func NewDistKeyHandler(c *Config) (*DistKeyGenerator, error) {
 	}
 
 	var newThreshold int
-	if c.Threshold != 0 {
-		newThreshold = c.Threshold
+	if c.NewThreshold != 0 {
+		newThreshold = c.NewThreshold
 	} else {
 		newThreshold = vss.MinimumT(len(c.NewNodes))
 	}
@@ -174,6 +165,7 @@ func NewDistKeyHandler(c *Config) (*DistKeyGenerator, error) {
 		secretCoeff := c.Suite.Scalar().Pick(c.Suite.RandomStream())
 		dealer, err = vss.NewDealer(c.Suite, c.Longterm, secretCoeff, c.NewNodes, newThreshold)
 		canIssue = true
+		// so the logic stays the same for the rest of the dkg code
 		c.OldNodes = c.NewNodes
 		oidx, oldPresent = findPub(c.OldNodes, pub)
 	}
@@ -231,10 +223,10 @@ func NewDistKeyHandler(c *Config) (*DistKeyGenerator, error) {
 // distributed key with the regular DKG protocol.
 func NewDistKeyGenerator(suite Suite, longterm kyber.Scalar, participants []kyber.Point, t int) (*DistKeyGenerator, error) {
 	c := &Config{
-		Suite:     suite,
-		Longterm:  longterm,
-		NewNodes:  participants,
-		Threshold: t,
+		Suite:        suite,
+		Longterm:     longterm,
+		NewNodes:     participants,
+		NewThreshold: t,
 	}
 	return NewDistKeyHandler(c)
 }
@@ -499,26 +491,23 @@ func (d *DistKeyGenerator) SetTimeout() {
 // aggregated shares from 1, 2, 3 and node 2 could have aggregated shares from
 // 2, 3 and 4.
 func (d *DistKeyGenerator) Certified() bool {
-	// XXX should use a different threshold for
-	// 1. the number of deals issued
-	// 2. the number  of confirmations for each deals
-	// In 1. we want at least a threshold (n/2) of old nodes to  reissue their
-	// shares. In 2. we want at least a threshold > n/2 of new nodes to confirm
-	// the received shares.
 	if d.isResharing {
-		return len(d.QUAL()) >= d.c.Threshold
+		// in resharing case, we have two threshold. Here we want the number of
+		// deals to be at least what the old threshold was. (and for each deal,
+		// we want the number of approval to be a least what the new threshold
+		// is).
+		return len(d.QUAL()) >= d.c.OldThreshold
 	}
-	return len(d.QUAL()) >= d.c.Threshold
+
+	// in dkg case, the threshold is symmetric -> # verifiers = # dealers
+	return len(d.QUAL()) >= d.c.NewThreshold
 }
 
 // FullyCertified returns true if *all* deals are certified. This method should
 // be called before the timeout occurs, as to pre-emptively stop the DKG
 // protocol if it is already finished before the timeout.
 func (d *DistKeyGenerator) FullyCertified() bool {
-	if d.isResharing {
-		return len(d.QUAL()) >= len(d.c.OldNodes)
-	}
-	return len(d.QUAL()) >= len(d.c.NewNodes)
+	return len(d.QUAL()) >= len(d.c.OldNodes)
 }
 
 // QUAL returns the index in the list of participants that forms the QUALIFIED
@@ -713,7 +702,9 @@ func (d *DistKeyGenerator) initVerifiers(c *Config) error {
 		if err != nil {
 			return err
 		}
-		ver.SetThreshold(c.Threshold)
+		// set that the number of approval for this deal must be at the given
+		// threshold regarding the new nodes. (see config.
+		ver.SetThreshold(c.NewThreshold)
 		verifiers[uint32(i)] = ver
 	}
 	d.verifiers = verifiers
