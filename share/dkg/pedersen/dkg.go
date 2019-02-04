@@ -61,7 +61,8 @@ type Config struct {
 	// OldNodes field.
 	Share *DistKeyShare
 
-	// New threshold to use if set. Default will be returned by `vss.MinimumT()`
+	// New threshold to use regarding the NewNodes. If unspecified, default is
+	// set to `vss.MinimumT(len(NewNodes))`
 	Threshold int
 }
 
@@ -498,6 +499,12 @@ func (d *DistKeyGenerator) SetTimeout() {
 // aggregated shares from 1, 2, 3 and node 2 could have aggregated shares from
 // 2, 3 and 4.
 func (d *DistKeyGenerator) Certified() bool {
+	// XXX should use a different threshold for
+	// 1. the number of deals issued
+	// 2. the number  of confirmations for each deals
+	// In 1. we want at least a threshold (n/2) of old nodes to  reissue their
+	// shares. In 2. we want at least a threshold > n/2 of new nodes to confirm
+	// the received shares.
 	if d.isResharing {
 		return len(d.QUAL()) >= d.c.Threshold
 	}
