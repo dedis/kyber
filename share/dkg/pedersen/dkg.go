@@ -11,6 +11,7 @@ package dkg
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/dedis/kyber"
 
@@ -379,24 +380,9 @@ func (d *DistKeyGenerator) ProcessResponse(resp *Response) (*Justification, erro
 	if d.isResharing && d.canIssue && !d.newPresent {
 		return d.processResharingResponse(resp)
 	}
-	if !d.newPresent {
-		// an old node that is not present in the new list don't have any
-		// verifiers, so we directly process the response with the dealer
-		j, err := d.dealer.ProcessResponse(resp.Response)
-		if err != nil {
-			return nil, err
-		}
-		if j == nil {
-			return nil, nil
-		}
-		return &Justification{
-			Index:         uint32(d.oidx),
-			Justification: j,
-		}, nil
-	}
 	v, ok := d.verifiers[resp.Index]
 	if !ok {
-		return nil, errors.New("dkg: response received but no deal for it")
+		return nil, fmt.Errorf("dkg: responses received for unknown dealer %d", resp.Index)
 	}
 
 	if err := v.ProcessResponse(resp.Response); err != nil {
