@@ -283,7 +283,7 @@ func (d *Dealer) SessionID() []byte {
 // for this DKG protocol round. The caller is expected to call this after a long timeout
 // so each DKG node can still compute its share if enough Deals are valid.
 func (d *Dealer) SetTimeout() {
-	d.Aggregator.cleanVerifiers()
+	d.Aggregator.timeout = true
 }
 
 // PrivatePoly returns the private polynomial used to generate the deal. This
@@ -490,11 +490,12 @@ func RecoverSecret(suite Suite, deals []*Deal, n, t int) (kyber.Scalar, error) {
 	return share.RecoverSecret(suite, shares, t, n)
 }
 
-// SetTimeout marks the end of a round, invalidating any missing (or future) response
-// for this DKG protocol round. The caller is expected to call this after a long timeout
-// so each DKG node can still compute its share if enough Deals are valid.
+// SetTimeout marks the end of the protocol. The caller is expected to call this
+// after a long timeout so each verifier can still deem its share valid if
+// enough deals were approved. One should call `DealCertified()` after this
+// method in order to know if the deal is valid or the protocol should abort.
 func (v *Verifier) SetTimeout() {
-	v.Aggregator.cleanVerifiers()
+	v.Aggregator.timeout = true
 }
 
 // UnsafeSetResponseDKG is an UNSAFE bypass method to allow DKG to use VSS
@@ -522,6 +523,7 @@ type Aggregator struct {
 	deal      *Deal
 	t         int
 	badDealer bool
+	timeout   bool
 }
 
 func newAggregator(suite Suite, dealer kyber.Point, verifiers, commitments []kyber.Point, t int, sid []byte) *Aggregator {
@@ -652,7 +654,7 @@ func (a *Aggregator) verifyJustification(j *Justification) error {
 	}
 
 	if err := a.VerifyDeal(j.Deal, false); err != nil {
-		// if one response is bad, flag the dealer as malicious
+		// if one justification is bad, then flag the dealer as malicious
 		a.badDealer = true
 		return err
 	}
@@ -690,24 +692,41 @@ func (a *Aggregator) Responses() map[uint32]*Response {
 	return a.responses
 }
 
-// DealCertified returns true if there has been less than t complaints, all
-// Justifications were correct and if EnoughApprovals() returns true.
+// DealCertified returns true if the deal is certified.
+// For a deal to be certified, it needs to comply to the following
+// conditions in two different cases, since we are not working with the
+// synchrony assumptions from Feldman's VSS:
+// Before the timeout (i.e. before the "period" ends):
+// 1. there is at least t approvals
+// 2. all complaints must be justified (a complaint becomes an approval when
+// justified) -> no complaints
+// 3. there must not be absent responses
+// After the timeout, when the "period" ended, we replace the third condition:
+// 3. there must not be more than n-t missing responses (otherwise it is not
+// possible to retrieve the secret).
+// If the caller previously called `SetTimeout` and `DealCertified()` returns
+// false, the protocol MUST abort as the deal is not and never will be validated.
 func (a *Aggregator) DealCertified() bool {
 	var absentVerifiers int
-	var complaints int
+	var approvals int
+	var isComplaint bool
 
-	// Check either a StatusApproval or StatusComplaint for all known verifiers
-	// i.e. make sure all verifiers are either timed-out or OK.
 	for i := range a.verifiers {
 		if r, ok := a.responses[uint32(i)]; !ok {
 			absentVerifiers++
 		} else if r.Status == StatusComplaint {
-			complaints++
+			isComplaint = true
+		} else if r.Status == StatusApproval {
+			approvals++
 		}
 	}
-
-	tooMuchComplaints := absentVerifiers > 0 || a.badDealer || complaints > a.t
-	return a.EnoughApprovals() && !tooMuchComplaints
+	tooMuchAbsents := absentVerifiers > len(a.verifiers)-a.t
+	enoughApprovals := approvals >= a.t
+	baseCondition := !a.badDealer && enoughApprovals && !isComplaint
+	if a.timeout {
+		return baseCondition && !tooMuchAbsents
+	}
+	return baseCondition && !(absentVerifiers > 0)
 }
 
 // MinimumT returns the minimum safe T that is proven to be secure with this

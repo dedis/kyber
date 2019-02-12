@@ -451,15 +451,15 @@ func TestVSSDealerTimeout(t *testing.T) {
 	}
 
 	// Enough approvals, but all remaining responses missing
-	assert.True(t, aggr.EnoughApprovals())
-	assert.False(t, aggr.DealCertified())
+	require.True(t, aggr.EnoughApprovals())
+	require.False(t, aggr.DealCertified())
 
 	// Tell dealer to consider other verifiers timed-out
 	dealer.SetTimeout()
 
 	// Deal should be certified
-	assert.True(t, aggr.DealCertified())
-	assert.NotNil(t, dealer.SecretCommit())
+	require.True(t, aggr.DealCertified())
+	require.NotNil(t, dealer.SecretCommit())
 }
 
 func TestVSSVerifierTimeout(t *testing.T) {
