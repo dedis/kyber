@@ -43,10 +43,6 @@ as follows:
 
 	go get go.dedis.ch/kyber
 
-You should then be able to test its basic function as follows:
-
-	go test -v
-
 You can recursively test all the packages in the library as follows:
 
 	go test -v ./...
