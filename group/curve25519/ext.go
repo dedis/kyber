@@ -253,6 +253,10 @@ func (P *extPoint) Mul(s kyber.Scalar, G kyber.Point) kyber.Point {
 	return P
 }
 
+func (P *extPoint) Hash(msg []byte) kyber.Point {
+	panic("not implemented")
+}
+
 // ExtendedCurve implements Twisted Edwards curves
 // using projective coordinate representation (X:Y:Z),
 // satisfying the identities x = X/Z, y = Y/Z.

@@ -24,7 +24,7 @@ func NewKeyPair(suite pairing.Suite, random cipher.Stream) (kyber.Scalar, kyber.
 // Sign creates a BLS signature S = x * H(m) on a message m using the private
 // key x. The signature S is a point on curve G1.
 func Sign(suite pairing.Suite, x kyber.Scalar, msg []byte) ([]byte, error) {
-	HM := hashToPoint(suite, msg)
+	HM := suite.G1().Point().Hash(msg)
 	xHM := HM.Mul(x, HM)
 	s, err := xHM.MarshalBinary()
 	if err != nil {
@@ -74,7 +74,7 @@ func BatchVerify(suite pairing.Suite, publics []kyber.Point, msgs [][]byte, sig 
 
 	var aggregatedLeft kyber.Point
 	for i := range msgs {
-		hm := hashToPoint(suite, msgs[i])
+		hm := suite.G1().Point().Hash(msgs[i])
 		pair := suite.Pair(hm, publics[i])
 
 		if i == 0 {
@@ -96,7 +96,7 @@ func BatchVerify(suite pairing.Suite, publics []kyber.Point, msgs [][]byte, sig 
 // e(x*H(m), B2) == e(S, B2) holds where e is the pairing operation and B2 is
 // the base point from curve G2.
 func Verify(suite pairing.Suite, X kyber.Point, msg, sig []byte) error {
-	HM := hashToPoint(suite, msg)
+	HM := suite.G1().Point().Hash(msg)
 	left := suite.Pair(HM, X)
 	s := suite.G1().Point()
 	if err := s.UnmarshalBinary(sig); err != nil {
@@ -107,15 +107,6 @@ func Verify(suite pairing.Suite, X kyber.Point, msg, sig []byte) error {
 		return errors.New("bls: invalid signature")
 	}
 	return nil
-}
-
-// hashToPoint hashes a message to a point on curve G1. XXX: This should be replaced
-// eventually by a proper hash-to-point mapping like Elligator.
-func hashToPoint(suite pairing.Suite, msg []byte) kyber.Point {
-	h := suite.Hash()
-	h.Write(msg)
-	x := suite.G1().Scalar().SetBytes(h.Sum(nil))
-	return suite.G1().Point().Mul(x, nil)
 }
 
 func distinct(msgs [][]byte) bool {

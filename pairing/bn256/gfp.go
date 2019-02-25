@@ -1,6 +1,8 @@
 package bn256
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type gfP [4]uint64
 

@@ -2,9 +2,11 @@ package bn256
 
 import (
 	"crypto/cipher"
+	"crypto/sha256"
 	"crypto/subtle"
 	"errors"
 	"io"
+	"math/big"
 
 	"go.dedis.ch/kyber/v3"
 	"go.dedis.ch/kyber/v3/group/mod"
@@ -187,6 +189,53 @@ func (p *pointG1) String() string {
 	return "bn256.G1:" + p.g.String()
 }
 
+func (p *pointG1) Hash(m []byte) kyber.Point {
+	bigX, bigY := hashToPoint(m)
+	if p.g == nil {
+		p.g = new(curvePoint)
+	}
+
+	x, y := new(gfP), new(gfP)
+	x.Unmarshal(bigX.Bytes())
+	y.Unmarshal(bigY.Bytes())
+	montEncode(x, x)
+	montEncode(y, y)
+
+	p.g.Set(&curvePoint{*x, *y, *newGFp(1), *newGFp(1)})
+	return p
+}
+
+// hashes a byte slice into two points on a curve represented by big.Int
+// ideally we want to do this using gfP, but gfP doesn't have a ModSqrt function
+func hashToPoint(m []byte) (*big.Int, *big.Int) {
+	// we need to convert curveB into a bigInt for our computation
+	intCurveB := new(big.Int)
+	{
+		decodedCurveB := new(gfP)
+		montDecode(decodedCurveB, curveB)
+		bufCurveB := make([]byte, 32)
+		decodedCurveB.Marshal(bufCurveB)
+		intCurveB.SetBytes(bufCurveB)
+	}
+
+	h := sha256.Sum256(m)
+	x := new(big.Int).SetBytes(h[:])
+	x.Mod(x, p)
+
+	for {
+		xxx := new(big.Int).Mul(x, x)
+		xxx.Mul(xxx, x)
+		t := new(big.Int).Add(xxx, intCurveB)
+
+		y := new(big.Int).ModSqrt(t, p)
+		if y != nil {
+			return x, y
+		}
+
+		x.Add(x, big.NewInt(1))
+	}
+}
+
 type pointG2 struct {
 	g *twistPoint
 }
@@ -367,6 +416,10 @@ func (p *pointG2) ElementSize() int {
 
 func (p *pointG2) String() string {
 	return "bn256.G2:" + p.g.String()
+}
+
+func (p *pointG2) Hash(msg []byte) kyber.Point {
+	panic("not implemented")
 }
 
 type pointGT struct {
@@ -574,4 +627,8 @@ func (p *pointGT) Pair(p1, p2 kyber.Point) kyber.Point {
 	b := p2.(*pointG2).g
 	p.g.Set(optimalAte(b, a))
 	return p
+}
+
+func (p *pointGT) Hash(msg []byte) kyber.Point {
+	panic("not implemented")
 }
