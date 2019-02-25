@@ -229,7 +229,3 @@ func (P *point) Mul(s kyber.Scalar, A kyber.Point) kyber.Point {
 
 	return P
 }
-
-func (P *point) Hash(msg []byte) kyber.Point {
-	panic("not implemented")
-}

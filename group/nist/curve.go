@@ -260,10 +260,6 @@ func (p *curvePoint) Clone() kyber.Point {
 	return &curvePoint{x: p.x, y: p.y, c: p.c}
 }
 
-func (p *curvePoint) Hash(msg []byte) kyber.Point {
-	panic("not implemented")
-}
-
 // Return the order of this curve: the prime N in the curve parameters.
 func (c *curve) Order() *big.Int {
 	return c.p.N

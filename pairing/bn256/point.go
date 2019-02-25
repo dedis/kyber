@@ -418,10 +418,6 @@ func (p *pointG2) String() string {
 	return "bn256.G2:" + p.g.String()
 }
 
-func (p *pointG2) Hash(msg []byte) kyber.Point {
-	panic("not implemented")
-}
-
 type pointGT struct {
 	g *gfP12
 }
@@ -629,6 +625,3 @@ func (p *pointGT) Pair(p1, p2 kyber.Point) kyber.Point {
 	return p
 }
 
-func (p *pointGT) Hash(msg []byte) kyber.Point {
-	panic("not implemented")
-}

@@ -13,6 +13,10 @@ import (
 	"go.dedis.ch/kyber/v3/pairing"
 )
 
+type hashablePoint interface {
+	Hash([]byte) kyber.Point
+}
+
 // NewKeyPair creates a new BLS signing key pair. The private key x is a scalar
 // and the public key X is a point on curve G2.
 func NewKeyPair(suite pairing.Suite, random cipher.Stream) (kyber.Scalar, kyber.Point) {
@@ -24,7 +28,11 @@ func NewKeyPair(suite pairing.Suite, random cipher.Stream) (kyber.Scalar, kyber.
 // Sign creates a BLS signature S = x * H(m) on a message m using the private
 // key x. The signature S is a point on curve G1.
 func Sign(suite pairing.Suite, x kyber.Scalar, msg []byte) ([]byte, error) {
-	HM := suite.G1().Point().Hash(msg)
+	hashable, ok := suite.G1().Point().(hashablePoint)
+	if !ok {
+		return nil, errors.New("point needs to implement hashablePoint")
+	}
+	HM := hashable.Hash(msg)
 	xHM := HM.Mul(x, HM)
 	s, err := xHM.MarshalBinary()
 	if err != nil {
@@ -74,7 +82,11 @@ func BatchVerify(suite pairing.Suite, publics []kyber.Point, msgs [][]byte, sig 
 
 	var aggregatedLeft kyber.Point
 	for i := range msgs {
-		hm := suite.G1().Point().Hash(msgs[i])
+		hashable, ok := suite.G1().Point().(hashablePoint)
+		if !ok {
+			return errors.New("bls: point needs to implement hashablePoint")
+		}
+		hm := hashable.Hash(msgs[i])
 		pair := suite.Pair(hm, publics[i])
 
 		if i == 0 {
@@ -96,7 +108,11 @@ func BatchVerify(suite pairing.Suite, publics []kyber.Point, msgs [][]byte, sig 
 // e(x*H(m), B2) == e(S, B2) holds where e is the pairing operation and B2 is
 // the base point from curve G2.
 func Verify(suite pairing.Suite, X kyber.Point, msg, sig []byte) error {
-	HM := suite.G1().Point().Hash(msg)
+	hashable, ok := suite.G1().Point().(hashablePoint)
+	if !ok {
+		return errors.New("bls: point needs to implement hashablePoint")
+	}
+	HM := hashable.Hash(msg)
 	left := suite.Pair(HM, X)
 	s := suite.G1().Point()
 	if err := s.UnmarshalBinary(sig); err != nil {
