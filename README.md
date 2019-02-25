@@ -35,7 +35,7 @@ main package is.
 Installing
 ----------
 
-First make sure you have [Go](https://golang.org) version 1.8 or newer installed.
+First make sure you have [Go](https://golang.org) version 1.11 or newer installed.
 
 The basic crypto library requires only Go and a few
 third-party Go-language dependencies that can be installed automatically
@@ -58,6 +58,19 @@ Traditionally, ECDH (Elliptic curve Diffie-Hellman) derives the shared secret
 from the x point only. In this framework, you can either manually retrieve the
 value or use the MarshalBinary method to take the combined (x, y) value as the
 shared secret. We recommend the latter process for new softare/protocols using
-this framework as it is cleaner and generalizes across different types of
-groups (e.g., both integer and elliptic curves), although it will likely be
-incompatible with other implementations of ECDH. See [the Wikipedia page](http://en.wikipedia.org/wiki/Elliptic_curve_Diffie%E2%80%93Hellman) on ECDH.
+this framework as it is cleaner and generalizes across different types of groups
+(e.g., both integer and elliptic curves), although it will likely be
+incompatible with other implementations of ECDH. See [the Wikipedia
+page](http://en.wikipedia.org/wiki/Elliptic_curve_Diffie%E2%80%93Hellman) on
+ECDH.
+
+Reporting security problems
+---------------------------
+
+This library is offered as-is, and without a guarantee. It will need an
+independent security review before it should be considered ready for use in
+security-critical applications. If you integrate Kyber into your application it
+is YOUR RESPONSIBILITY to arrange for that audit.
+
+If you notice a possible security problem, please report it
+to dedis-security@epfl.ch.
