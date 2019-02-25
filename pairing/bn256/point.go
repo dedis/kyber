@@ -190,14 +190,24 @@ func (p *pointG1) String() string {
 }
 
 func (p *pointG1) Hash(m []byte) kyber.Point {
+	leftPad32 := func(in []byte) []byte {
+		if len(in) > 32 {
+			panic("input cannot be more than 32 bytes")
+		}
+
+		out := make([]byte, 32)
+		copy(out[32-len(in):], in)
+		return out
+	}
+
 	bigX, bigY := hashToPoint(m)
 	if p.g == nil {
 		p.g = new(curvePoint)
 	}
 
 	x, y := new(gfP), new(gfP)
-	x.Unmarshal(bigX.Bytes())
-	y.Unmarshal(bigY.Bytes())
+	x.Unmarshal(leftPad32(bigX.Bytes()))
+	y.Unmarshal(leftPad32(bigY.Bytes()))
 	montEncode(x, x)
 	montEncode(y, y)
 
@@ -225,8 +235,9 @@ func hashToPoint(m []byte) (*big.Int, *big.Int) {
 	for {
 		xxx := new(big.Int).Mul(x, x)
 		xxx.Mul(xxx, x)
-		t := new(big.Int).Add(xxx, intCurveB)
+		xxx.Mod(xxx, p)
 
+		t := new(big.Int).Add(xxx, intCurveB)
 		y := new(big.Int).ModSqrt(t, p)
 		if y != nil {
 			return x, y
@@ -624,4 +635,3 @@ func (p *pointGT) Pair(p1, p2 kyber.Point) kyber.Point {
 	p.g.Set(optimalAte(b, a))
 	return p
 }
-
