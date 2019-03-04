@@ -91,14 +91,7 @@ that keep the sources of individual votes or bids private
 without anyone having to trust more than one of the shuffler(s) to shuffle
 votes/bids honestly.
 
-Disclaimer
-
-For now this library should currently be considered experimental: it will
-definitely be changing in non-backward-compatible ways, and it will need
-independent security review before it should be considered ready for use in
-security-critical applications. However, we intend to bring the library closer
-to stability and real-world usability as quickly as development resources
-permit, and as interest and application demand dictates.
+Target Use-cases
 
 As should be obvious, this library is intended to be used by
 developers who are at least moderately knowledgeable about
@@ -115,5 +108,16 @@ to is the Charm rapid prototyping library for Python
 
 This library incorporates and/or builds on existing code from a variety of
 sources, as documented in the relevant sub-packages.
+
+Reporting Security Problems
+
+This library is offered as-is, and without a guarantee. It will need an
+independent security review before it should be considered ready for use in
+security-critical applications. If you integrate Kyber into your application it
+is YOUR RESPONSIBILITY to arrange for that audit.
+
+If you notice a possible security problem, please report it
+to dedis-security@epfl.ch.
+
 */
 package kyber
