@@ -1,7 +1,9 @@
 package bn256
 
 import (
+	"bytes"
 	"fmt"
+	"go.dedis.ch/kyber/v3"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -269,4 +271,18 @@ func basicPointTest(t *testing.T, s *Suite) {
 	pb1 := s.Point().Mul(b, nil)
 	pb2 := s.Point().Add(pa, s.Point().Base())
 	require.True(t, pb1.Equal(pb2))
+}
+
+// Test that the suite.Read works correctly.
+func TestSuiteRead(t *testing.T) {
+	suite := NewSuite()
+	pOrig := suite.G2().Point().Base()
+	var pBuf bytes.Buffer
+	err := suite.Write(&pBuf, pOrig)
+	require.Nil(t, err)
+
+	var pCopy kyber.Point
+	err = suite.Read(&pBuf, &pCopy)
+	require.Nil(t, err)
+	require.True(t, pCopy.Equal(pOrig))
 }

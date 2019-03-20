@@ -105,9 +105,11 @@ type commonSuite struct {
 func (c *commonSuite) New(t reflect.Type) interface{} {
 	switch t {
 	case tScalar:
-		return c.Scalar()
+		g2 := groupG2{}
+		return g2.Scalar()
 	case tPoint:
-		return c.Point()
+		g2 := groupG2{}
+		return g2.Point()
 	case tPointG1:
 		g1 := groupG1{}
 		return g1.Point()
