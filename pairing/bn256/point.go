@@ -12,7 +12,9 @@ import (
 	"go.dedis.ch/kyber/v3/group/mod"
 )
 
-var marshalPointID = [8]byte{'b', 'n', '2', '5', '6', '.', 'g', '2'}
+var marshalPointID1 = [8]byte{'b', 'n', '2', '5', '6', '.', 'g', '1'}
+var marshalPointID2 = [8]byte{'b', 'n', '2', '5', '6', '.', 'g', '2'}
+var marshalPointIDT = [8]byte{'b', 'n', '2', '5', '6', '.', 'g', 't'}
 
 type pointG1 struct {
 	g *curvePoint
@@ -124,6 +126,10 @@ func (p *pointG1) MarshalBinary() ([]byte, error) {
 	montDecode(tmp, &pgtemp.y)
 	tmp.Marshal(ret[n:])
 	return ret, nil
+}
+
+func (p *pointG1) MarshalID() [8]byte {
+	return marshalPointID1
 }
 
 func (p *pointG1) MarshalTo(w io.Writer) (int, error) {
@@ -362,7 +368,7 @@ func (p *pointG2) MarshalBinary() ([]byte, error) {
 }
 
 func (p *pointG2) MarshalID() [8]byte {
-	return marshalPointID
+	return marshalPointID2
 }
 
 func (p *pointG2) MarshalTo(w io.Writer) (int, error) {
@@ -545,6 +551,10 @@ func (p *pointGT) MarshalBinary() ([]byte, error) {
 	temp.Marshal(ret[11*n:])
 
 	return ret, nil
+}
+
+func (p *pointGT) MarshalID() [8]byte {
+	return marshalPointIDT
 }
 
 func (p *pointGT) MarshalTo(w io.Writer) (int, error) {
