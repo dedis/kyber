@@ -92,7 +92,6 @@ type DistKeyGenerator struct {
 	dealer *vss.Dealer
 	// verifiers indexed by dealer index
 	verifiers map[uint32]*vss.Verifier
-	rcvdDeals map[uint32]bool
 	// performs the part of the response verification for old nodes
 	oldAggregators map[uint32]*vss.Aggregator
 	// index in the old list of nodes
@@ -115,6 +114,8 @@ type DistKeyGenerator struct {
 	oldPresent bool
 	// already processed our own deal
 	processed bool
+	// did the timeout / period / already occured or not
+	timeout bool
 }
 
 // NewDistKeyHandler takes a Config and returns a DistKeyGenerator that is able
@@ -461,6 +462,7 @@ func (d *DistKeyGenerator) ProcessJustification(j *Justification) error {
 // SetTimeout triggers the timeout on all verifiers, and thus makes sure
 // all verifiers have either responded, or have a StatusComplaint response.
 func (d *DistKeyGenerator) SetTimeout() {
+	d.timeout = true
 	for _, v := range d.verifiers {
 		v.SetTimeout()
 	}
@@ -484,7 +486,6 @@ func (d *DistKeyGenerator) Certified() bool {
 		// is).
 		return len(d.QUAL()) >= d.c.OldThreshold
 	}
-
 	// in dkg case, the threshold is symmetric -> # verifiers = # dealers
 	return len(d.QUAL()) >= d.c.NewThreshold
 }
@@ -493,14 +494,88 @@ func (d *DistKeyGenerator) Certified() bool {
 // be called before the timeout occurs, as to pre-emptively stop the DKG
 // protocol if it is already finished before the timeout.
 func (d *DistKeyGenerator) FullyCertified() bool {
-	return len(d.QUAL()) >= len(d.c.OldNodes)
+	var good []int
+	if d.isResharing && d.canIssue && !d.newPresent {
+		d.oldQualIter(func(i uint32, v *vss.Aggregator) bool {
+			if len(v.MissingResponses()) > 0 {
+				return false
+			}
+			good = append(good, int(i))
+			return true
+		})
+	} else {
+		d.qualIter(func(i uint32, v *vss.Verifier) bool {
+			if len(v.MissingResponses()) > 0 {
+				return false
+			}
+			good = append(good, int(i))
+			return true
+		})
+	}
+	return len(good) >= len(d.c.OldNodes)
+	//return len(d.QUAL()) >= len(d.c.OldNodes)
+}
+
+// QualifiedShares returns the set of shares holder index that are considered
+// valid. In particular, it computes the list of common share holders that
+// replied with an approval (or with a complaint later on justified) for each
+// deal received.  These node indexes are the new share holders with valid (or
+// justified) shares from certified deals.  Detailled explanation:
+// To compute this list, we consider the scenario where a share holder replied
+// to one share but not the other, as invalid, as the library is not currently
+// equipped to deal with that scenario.
+// 1.  If there is a valid complaint non-justified for a deal, the deal is deemed
+// invalid
+// 2. if there are no response from a share holder, the share holder is
+// removed from the list.
+func (d *DistKeyGenerator) QualifiedShares() []int {
+	// list of invalid share holders
+	var invalidSh = make(map[int]bool)
+	// list of invalid deals
+	var invalidDeals = make(map[int]bool)
+	// compute list of invalid deals
+	for dealerIndex, verifier := range d.verifiers {
+		responses := verifier.Responses()
+		// iterate over all holder's indexes to detect 2 rules
+		for holderIndex := range d.c.NewNodes {
+			resp, ok := responses[uint32(holderIndex)]
+			if ok && resp.Status == vss.StatusComplaint {
+				// 1. rule
+				invalidDeals[int(dealerIndex)] = true
+				break
+			}
+		}
+	}
+
+	// compute list of invalid share holders for valid deals
+	for dealerIndex, verifier := range d.verifiers {
+		if _, present := invalidDeals[int(dealerIndex)]; present {
+			continue
+		}
+		responses := verifier.Responses()
+		for holderIndex := range d.c.NewNodes {
+			_, ok := responses[uint32(holderIndex)]
+			if !ok {
+				// 2. rule - absent response
+				invalidSh[holderIndex] = true
+			}
+		}
+	}
+
+	var validHolders []int
+	for i := range d.c.NewNodes {
+		if _, included := invalidSh[i]; included {
+			continue
+		}
+		validHolders = append(validHolders, i)
+	}
+	return validHolders
 }
 
 // QUAL returns the index in the list of participants that forms the QUALIFIED
-// set. Basically, it consists of all valid deals at the end of the protocols.
+// set, i.e. the list of Certified deals.
 // It does NOT take into account any malicious share holder which share may have
 // been revealed, due to invalid complaint.
-// XXX Have a method of retrieving invalid shares ?
 func (d *DistKeyGenerator) QUAL() []int {
 	var good []int
 	if d.isResharing && d.canIssue && !d.newPresent {
@@ -510,6 +585,7 @@ func (d *DistKeyGenerator) QUAL() []int {
 		})
 		return good
 	}
+
 	d.qualIter(func(i uint32, v *vss.Verifier) bool {
 		good = append(good, int(i))
 		return true

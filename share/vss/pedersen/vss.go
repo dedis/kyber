@@ -256,7 +256,7 @@ func (d *Dealer) ProcessResponse(r *Response) (*Justification, error) {
 // dealer. This function is only to be called once the deal has enough approvals
 // and is verified otherwise it returns nil.
 func (d *Dealer) SecretCommit() kyber.Point {
-	if !d.EnoughApprovals() || !d.DealCertified() {
+	if !d.DealCertified() {
 		return nil
 	}
 	return d.suite.Point().Mul(d.secret, nil)
@@ -442,7 +442,7 @@ func (v *Verifier) Commits() []kyber.Point {
 // Deal returns the Deal that this verifier has received. It returns
 // nil if the deal is not certified or there is not enough approvals.
 func (v *Verifier) Deal() *Deal {
-	if !v.EnoughApprovals() || !v.DealCertified() {
+	if !v.DealCertified() {
 		return nil
 	}
 	return v.deal
@@ -451,7 +451,7 @@ func (v *Verifier) Deal() *Deal {
 // ProcessJustification takes a DealerResponse and returns an error if
 // something went wrong during the verification. If it is the case, that
 // probably means the Dealer is acting maliciously. In order to be sure, call
-// `v.EnoughApprovals()` and if true, `v.DealCertified()`.
+// `v.DealCertified()`.
 func (v *Verifier) ProcessJustification(dr *Justification) error {
 	return v.Aggregator.verifyJustification(dr)
 }
@@ -682,7 +682,6 @@ func (a *Aggregator) EnoughApprovals() bool {
 			app++
 		}
 	}
-	//fmt.Println("enoughApproval ", app, " >= ", a.t, " -> ", app >= a.t)
 	return app >= a.t
 }
 
@@ -720,13 +719,24 @@ func (a *Aggregator) DealCertified() bool {
 			approvals++
 		}
 	}
-	tooMuchAbsents := absentVerifiers > len(a.verifiers)-a.t
 	enoughApprovals := approvals >= a.t
+	tooMuchAbsents := absentVerifiers > len(a.verifiers)-a.t
 	baseCondition := !a.badDealer && enoughApprovals && !isComplaint
 	if a.timeout {
 		return baseCondition && !tooMuchAbsents
 	}
 	return baseCondition && !(absentVerifiers > 0)
+}
+
+// MissingResponses returns the indexes of the expected but missing responses.
+func (a *Aggregator) MissingResponses() []int {
+	var absents []int
+	for i := range a.verifiers {
+		if _, ok := a.responses[uint32(i)]; !ok {
+			absents = append(absents, i)
+		}
+	}
+	return absents
 }
 
 // MinimumT returns the minimum safe T that is proven to be secure with this

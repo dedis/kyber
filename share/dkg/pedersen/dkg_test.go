@@ -237,6 +237,7 @@ func TestDKGResharingThreshold(t *testing.T) {
 	fullExchange(t, dkgs, true)
 
 	newN := len(partPubs) + 1
+	newT := vss.MinimumT(newN)
 	shares := make([]*DistKeyShare, len(dkgs))
 	sshares := make([]*share.PriShare, len(dkgs))
 	for i, dkg := range dkgs {
@@ -261,7 +262,7 @@ func TestDKGResharingThreshold(t *testing.T) {
 			OldNodes:     partPubs,
 			NewNodes:     newPubs,
 			Share:        shares[i],
-			NewThreshold: oldT,
+			NewThreshold: newT,
 			OldThreshold: oldT,
 		}
 		newDkgs[i], err = NewDistKeyHandler(c)
@@ -274,10 +275,10 @@ func TestDKGResharingThreshold(t *testing.T) {
 		NewNodes:     newPubs,
 		PublicCoeffs: shares[0].Commits,
 		OldThreshold: oldT,
+		NewThreshold: newT,
 	})
 	require.NoError(t, err)
 
-	newT := vss.MinimumT(newN)
 	selectedDkgs := make([]*DistKeyGenerator, 0, newT)
 	selected := make(map[string]bool)
 	// add the new node
