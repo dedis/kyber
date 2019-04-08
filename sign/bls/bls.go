@@ -1,6 +1,8 @@
 // Package bls implements the Boneh-Lynn-Shacham (BLS) signature scheme which
 // was introduced in the paper "Short Signatures from the Weil Pairing". BLS
 // requires pairing-based cryptography.
+//
+// Deprecated: This version is vulnerable to rogue public-key attack
 package bls
 
 import (
@@ -34,6 +36,7 @@ func Sign(suite pairing.Suite, x kyber.Scalar, msg []byte) ([]byte, error) {
 	}
 	HM := hashable.Hash(msg)
 	xHM := HM.Mul(x, HM)
+
 	s, err := xHM.MarshalBinary()
 	if err != nil {
 		return nil, err
