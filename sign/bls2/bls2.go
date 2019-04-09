@@ -5,7 +5,6 @@ package bls2
 
 import (
 	"crypto/cipher"
-	"crypto/md5"
 	"errors"
 	"math/big"
 
@@ -13,26 +12,34 @@ import (
 	"go.dedis.ch/kyber/v3/group/mod"
 	"go.dedis.ch/kyber/v3/pairing"
 	"go.dedis.ch/kyber/v3/sign/bls"
+	"golang.org/x/crypto/blake2b"
 )
 
 var modulus128 = new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 128), big.NewInt(1))
 
 // For the choice of H, we're mostly worried about the second preimage attack. In
 // other words, find H(m) == H(m')
-func hashPointToR(point kyber.Point) (kyber.Scalar, error) {
-	h := md5.New()
-
-	buf, err := point.MarshalBinary()
+// We also use the entire roster so that the coefficient will vary for the same
+// public key used in different roster
+func hashPointToR(point []byte, roster [][]byte) (kyber.Scalar, error) {
+	h, err := blake2b.New(16, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = h.Write(buf)
+	_, err = h.Write(point)
 	if err != nil {
 		return nil, err
 	}
 
-	r := mod.NewIntBytes(buf, modulus128, mod.LittleEndian)
+	for _, peer := range roster {
+		_, err := h.Write(peer)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	r := mod.NewIntBytes(h.Sum(nil), modulus128, mod.LittleEndian)
 	return r, nil
 }
 
@@ -63,9 +70,14 @@ func AggregateSignatures(suite pairing.Suite, sigs [][]byte, pubs []kyber.Point)
 		return nil, errors.New("length of signatures and public keys must match")
 	}
 
+	peers, err := marshalPublicKeys(pubs)
+	if err != nil {
+		return nil, err
+	}
+
 	agg := suite.G1().Point()
 	for i, buf := range sigs {
-		c, err := hashPointToR(pubs[i])
+		c, err := hashPointToR(peers[i], peers)
 		if err != nil {
 			return nil, err
 		}
@@ -88,9 +100,14 @@ func AggregateSignatures(suite pairing.Suite, sigs [][]byte, pubs []kyber.Point)
 // AggregatePublicKeys aggregates the same way as for the signatures using
 // the same H: G2 -> R{1, ..., 2^128} as the hash function.
 func AggregatePublicKeys(pubs []kyber.Point) (kyber.Point, error) {
+	peers, err := marshalPublicKeys(pubs)
+	if err != nil {
+		return nil, err
+	}
+
 	agg := pubs[0].Clone().Null()
-	for _, pub := range pubs {
-		c, err := hashPointToR(pub)
+	for i, pub := range pubs {
+		c, err := hashPointToR(peers[i], peers)
 		if err != nil {
 			return nil, err
 		}
@@ -101,4 +118,18 @@ func AggregatePublicKeys(pubs []kyber.Point) (kyber.Point, error) {
 	}
 
 	return agg, nil
+}
+
+func marshalPublicKeys(pubs []kyber.Point) ([][]byte, error) {
+	peers := make([][]byte, len(pubs))
+	for i, pub := range pubs {
+		peer, err := pub.MarshalBinary()
+		if err != nil {
+			return nil, err
+		}
+
+		peers[i] = peer
+	}
+
+	return peers, nil
 }

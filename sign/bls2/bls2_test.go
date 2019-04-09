@@ -12,12 +12,16 @@ import (
 
 var suite = pairing.NewSuiteBn256()
 
+// Reference test for other languages
 func TestBLS2_HashPointToR(t *testing.T) {
 	p := suite.Point().Base()
-	r, err := hashPointToR(p)
+	b, err := p.MarshalBinary()
+	require.NoError(t, err)
+
+	r, err := hashPointToR(b, [][]byte{b})
 
 	require.NoError(t, err)
-	require.Equal(t, "c9f14672d945b3ff18aba35cb3f28f75", r.String())
+	require.Equal(t, "ff7c62b770491a3ac511ff12f25621cb", r.String())
 	require.Equal(t, 16, r.MarshalSize())
 }
 
