@@ -7,6 +7,7 @@ import (
 	"go.dedis.ch/kyber/v3"
 	"go.dedis.ch/kyber/v3/pairing"
 	"go.dedis.ch/kyber/v3/pairing/bn256"
+	"go.dedis.ch/kyber/v3/sign/bls"
 	"go.dedis.ch/kyber/v3/util/random"
 )
 
@@ -50,6 +51,32 @@ func TestBLS2_AggregateSignatures(t *testing.T) {
 
 	err = Verify(suite, aggregatedKey, msg, sig)
 	require.Error(t, err)
+}
+
+func TestBLS2_RogueAttack(t *testing.T) {
+	msg := []byte("Hello Boneh-Lynn-Shacham")
+	suite := bn256.NewSuite()
+	// honest
+	_, public1 := NewKeyPair(suite, random.New())
+	// attacker
+	private2, public2 := NewKeyPair(suite, random.New())
+
+	// create a forged public-key for public1
+	rogue := public1.Clone().Sub(public2, public1)
+
+	pubs := []kyber.Point{public1, rogue}
+
+	sig, err := Sign(suite, private2, msg)
+	require.NoError(t, err)
+
+	// Old scheme not resistant to the attack
+	agg := bls.AggregatePublicKeys(suite, pubs...)
+	require.NoError(t, bls.Verify(suite, agg, msg, sig))
+
+	// New scheme that should detect
+	agg, err = AggregatePublicKeys(pubs)
+	require.NoError(t, err)
+	require.Error(t, Verify(suite, agg, msg, sig))
 }
 
 func Benchmark_BLS2_AggregateSigs(b *testing.B) {
