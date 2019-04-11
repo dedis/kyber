@@ -65,19 +65,26 @@ func Verify(suite pairing.Suite, x kyber.Point, msg, sig []byte) error {
 
 // AggregateSignatures aggregates the signatures using a coefficient for each
 // one of them where c = H(pk) and H: G2 -> R{1, ..., 2^128}
-func AggregateSignatures(suite pairing.Suite, sigs [][]byte, pubs []kyber.Point) (kyber.Point, error) {
-	if len(sigs) != len(pubs) {
+func AggregateSignatures(suite pairing.Suite, sigs [][]byte, mask *bls.Mask) (kyber.Point, error) {
+	if len(sigs) != mask.CountEnabled() {
 		return nil, errors.New("length of signatures and public keys must match")
 	}
 
-	peers, err := marshalPublicKeys(pubs)
+	peers, err := marshalPublicKeys(mask.Publics())
 	if err != nil {
 		return nil, err
 	}
 
 	agg := suite.G1().Point()
 	for i, buf := range sigs {
-		c, err := hashPointToR(peers[i], peers)
+		peerIndex := mask.IndexOfNthEnabled(i)
+		if peerIndex < 0 {
+			// this should never happen as we check the lenths at the beginning
+			// an error here is probably a bug in the mask
+			return nil, errors.New("couldn't find the index")
+		}
+
+		c, err := hashPointToR(peers[peerIndex], peers)
 		if err != nil {
 			return nil, err
 		}
@@ -99,19 +106,27 @@ func AggregateSignatures(suite pairing.Suite, sigs [][]byte, pubs []kyber.Point)
 
 // AggregatePublicKeys aggregates the same way as for the signatures using
 // the same H: G2 -> R{1, ..., 2^128} as the hash function.
-func AggregatePublicKeys(pubs []kyber.Point) (kyber.Point, error) {
-	peers, err := marshalPublicKeys(pubs)
+func AggregatePublicKeys(suite pairing.Suite, mask *bls.Mask) (kyber.Point, error) {
+	peers, err := marshalPublicKeys(mask.Publics())
 	if err != nil {
 		return nil, err
 	}
 
-	agg := pubs[0].Clone().Null()
-	for i, pub := range pubs {
-		c, err := hashPointToR(peers[i], peers)
+	agg := suite.G2().Point()
+	for i := 0; i < mask.CountEnabled(); i++ {
+		peerIndex := mask.IndexOfNthEnabled(i)
+		if peerIndex < 0 {
+			// this should never happen because of the loop boundary
+			// an error here is probably a bug in the mask implementation
+			return nil, errors.New("couldn't find the index")
+		}
+
+		c, err := hashPointToR(peers[peerIndex], peers)
 		if err != nil {
 			return nil, err
 		}
 
+		pub := mask.Publics()[peerIndex]
 		pubC := pub.Clone().Mul(c, pub)
 		pubC = pubC.Add(pubC, pub)
 		agg = agg.Add(agg, pubC)

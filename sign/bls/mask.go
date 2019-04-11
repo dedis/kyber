@@ -74,6 +74,57 @@ func (m *Mask) SetBit(i int, enable bool) error {
 	return nil
 }
 
+// forEachBitEnabled is a helper to iterate over the bits set to 1 in the mask
+// and to return the result of the callback only if it is positive
+func (m *Mask) forEachBitEnabled(f func(i, j, n int) int) int {
+	n := 0
+	for i, b := range m.mask {
+		for j := uint(0); j < 8; j++ {
+			mm := byte(1) << (j & 7)
+
+			if b&mm != 0 {
+				if res := f(i, int(j), n); res >= 0 {
+					return res
+				}
+
+				n++
+			}
+		}
+	}
+
+	return -1
+}
+
+// IndexOfNthEnabled returns the index of the nth enabled bit or -1 if out of bound
+func (m *Mask) IndexOfNthEnabled(nth int) int {
+	return m.forEachBitEnabled(func(i, j, n int) int {
+		if n == nth {
+			return i*8 + int(j)
+		}
+
+		return -1
+	})
+}
+
+// NthEnabledAtIndex returns the sum of bits set to 1 until the given index. In other
+// words, it returns how many bits are enabled before the given index.
+func (m *Mask) NthEnabledAtIndex(idx int) int {
+	return m.forEachBitEnabled(func(i, j, n int) int {
+		if i*8+int(j) == idx {
+			return n
+		}
+
+		return -1
+	})
+}
+
+// Publics returns a copy of the list of public keys
+func (m *Mask) Publics() []kyber.Point {
+	pubs := make([]kyber.Point, len(m.publics))
+	copy(pubs, m.publics)
+	return pubs
+}
+
 // Participants returns the list of public keys participating
 func (m *Mask) Participants() []kyber.Point {
 	pp := []kyber.Point{}

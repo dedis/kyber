@@ -36,10 +36,14 @@ func TestBLS2_AggregateSignatures(t *testing.T) {
 	sig2, err := Sign(suite, private2, msg)
 	require.NoError(t, err)
 
-	aggregatedSig, err := AggregateSignatures(suite, [][]byte{sig1, sig2}, []kyber.Point{public1, public2})
+	mask, _ := bls.NewMask(suite, []kyber.Point{public1, public2}, nil)
+	mask.SetBit(0, true)
+	mask.SetBit(1, true)
+
+	aggregatedSig, err := AggregateSignatures(suite, [][]byte{sig1, sig2}, mask)
 	require.NoError(t, err)
 
-	aggregatedKey, err := AggregatePublicKeys([]kyber.Point{public1, public2})
+	aggregatedKey, err := AggregatePublicKeys(suite, mask)
 
 	sig, err := aggregatedSig.MarshalBinary()
 	require.NoError(t, err)
@@ -47,10 +51,38 @@ func TestBLS2_AggregateSignatures(t *testing.T) {
 	err = Verify(suite, aggregatedKey, msg, sig)
 	require.NoError(t, err)
 
-	aggregatedKey, err = AggregatePublicKeys([]kyber.Point{public2})
+	mask.SetBit(1, false)
+	aggregatedKey, err = AggregatePublicKeys(suite, mask)
 
 	err = Verify(suite, aggregatedKey, msg, sig)
 	require.Error(t, err)
+}
+
+func TestBLS2_SubsetSignature(t *testing.T) {
+	msg := []byte("Hello Boneh-Lynn-Shacham")
+	suite := bn256.NewSuite()
+	private1, public1 := NewKeyPair(suite, random.New())
+	private2, public2 := NewKeyPair(suite, random.New())
+	_, public3 := NewKeyPair(suite, random.New())
+	sig1, err := Sign(suite, private1, msg)
+	require.NoError(t, err)
+	sig2, err := Sign(suite, private2, msg)
+	require.NoError(t, err)
+
+	mask, _ := bls.NewMask(suite, []kyber.Point{public1, public2, public3}, nil)
+	mask.SetBit(0, true)
+	mask.SetBit(1, true)
+
+	aggregatedSig, err := AggregateSignatures(suite, [][]byte{sig1, sig2}, mask)
+	require.NoError(t, err)
+
+	aggregatedKey, err := AggregatePublicKeys(suite, mask)
+
+	sig, err := aggregatedSig.MarshalBinary()
+	require.NoError(t, err)
+
+	err = Verify(suite, aggregatedKey, msg, sig)
+	require.NoError(t, err)
 }
 
 func TestBLS2_RogueAttack(t *testing.T) {
@@ -74,7 +106,10 @@ func TestBLS2_RogueAttack(t *testing.T) {
 	require.NoError(t, bls.Verify(suite, agg, msg, sig))
 
 	// New scheme that should detect
-	agg, err = AggregatePublicKeys(pubs)
+	mask, _ := bls.NewMask(suite, pubs, nil)
+	mask.SetBit(0, true)
+	mask.SetBit(1, true)
+	agg, err = AggregatePublicKeys(suite, mask)
 	require.NoError(t, err)
 	require.Error(t, Verify(suite, agg, msg, sig))
 }
@@ -89,8 +124,12 @@ func Benchmark_BLS2_AggregateSigs(b *testing.B) {
 	sig2, err := Sign(suite, private2, msg)
 	require.Nil(b, err)
 
+	mask, _ := bls.NewMask(suite, []kyber.Point{public1, public2}, nil)
+	mask.SetBit(0, true)
+	mask.SetBit(1, false)
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		AggregateSignatures(suite, [][]byte{sig1, sig2}, []kyber.Point{public1, public2})
+		AggregateSignatures(suite, [][]byte{sig1, sig2}, mask)
 	}
 }
