@@ -103,6 +103,9 @@ type commonSuite struct {
 
 // New implements the kyber.Encoding interface.
 func (c *commonSuite) New(t reflect.Type) interface{} {
+	if c.Group == nil {
+		panic("cannot create Point from NewGroup - please use bn256.NewGroupG1")
+	}
 	switch t {
 	case tScalar:
 		return c.Scalar()
