@@ -1,7 +1,11 @@
-// Package bls2 implements the robust BLS scheme that prevents rogue public-key
-// to be used to forge signatures
+// Package asmbls implements the Accountable-Subgroup Multi-BLS scheme which is
+// a robust implement of the bls package against rogue public-key attacks. Those
+// attacks could allow an attacker to forge a public-key and then make a verifiable
+// signature for an aggregation of signatures. It basically fixes the situation by
+// adding coefficients to the aggregate.
+//
 // See the paper: https://crypto.stanford.edu/~dabo/pubs/papers/BLSmultisig.html
-package bls2
+package asmbls
 
 import (
 	"crypto/cipher"
@@ -11,36 +15,54 @@ import (
 	"go.dedis.ch/kyber/v3"
 	"go.dedis.ch/kyber/v3/group/mod"
 	"go.dedis.ch/kyber/v3/pairing"
+	"go.dedis.ch/kyber/v3/sign"
 	"go.dedis.ch/kyber/v3/sign/bls"
-	"golang.org/x/crypto/blake2b"
+	"golang.org/x/crypto/blake2s"
 )
 
+// modulus128 can be provided to the big integer implementation to create numbers
+// over 128 bits
 var modulus128 = new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 128), big.NewInt(1))
 
 // For the choice of H, we're mostly worried about the second preimage attack. In
-// other words, find H(m) == H(m')
+// other words, find m' where H(m) == H(m')
 // We also use the entire roster so that the coefficient will vary for the same
 // public key used in different roster
-func hashPointToR(point []byte, roster [][]byte) (kyber.Scalar, error) {
-	h, err := blake2b.New(16, nil)
+func hashPointToR(pubs []kyber.Point) ([]kyber.Scalar, error) {
+	peers := make([][]byte, len(pubs))
+	for i, pub := range pubs {
+		peer, err := pub.MarshalBinary()
+		if err != nil {
+			return nil, err
+		}
+
+		peers[i] = peer
+	}
+
+	h, err := blake2s.NewXOF(blake2s.OutputLengthUnknown, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = h.Write(point)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, peer := range roster {
+	for _, peer := range peers {
 		_, err := h.Write(peer)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	r := mod.NewIntBytes(h.Sum(nil), modulus128, mod.LittleEndian)
-	return r, nil
+	out := make([]byte, 16*len(pubs))
+	_, err = h.Read(out)
+	if err != nil {
+		return nil, err
+	}
+
+	coefs := make([]kyber.Scalar, len(pubs))
+	for i := range coefs {
+		coefs[i] = mod.NewIntBytes(out[i*16:(i+1)*16], modulus128, mod.LittleEndian)
+	}
+
+	return coefs, nil
 }
 
 // NewKeyPair creates a new BLS signing key pair. The private key x is a scalar
@@ -64,13 +86,13 @@ func Verify(suite pairing.Suite, x kyber.Point, msg, sig []byte) error {
 }
 
 // AggregateSignatures aggregates the signatures using a coefficient for each
-// one of them where c = H(pk) and H: G2 -> R{1, ..., 2^128}
-func AggregateSignatures(suite pairing.Suite, sigs [][]byte, mask *bls.Mask) (kyber.Point, error) {
+// one of them where c = H(pk) and H: G2 -> R with R = {1, ..., 2^128}
+func AggregateSignatures(suite pairing.Suite, sigs [][]byte, mask *sign.Mask) (kyber.Point, error) {
 	if len(sigs) != mask.CountEnabled() {
 		return nil, errors.New("length of signatures and public keys must match")
 	}
 
-	peers, err := marshalPublicKeys(mask.Publics())
+	coefs, err := hashPointToR(mask.Publics())
 	if err != nil {
 		return nil, err
 	}
@@ -84,18 +106,13 @@ func AggregateSignatures(suite pairing.Suite, sigs [][]byte, mask *bls.Mask) (ky
 			return nil, errors.New("couldn't find the index")
 		}
 
-		c, err := hashPointToR(peers[peerIndex], peers)
-		if err != nil {
-			return nil, err
-		}
-
 		sig := suite.G1().Point()
 		err = sig.UnmarshalBinary(buf)
 		if err != nil {
 			return nil, err
 		}
 
-		sigC := sig.Clone().Mul(c, sig)
+		sigC := sig.Clone().Mul(coefs[peerIndex], sig)
 		// c+1 because R is in the range [1, 2^128] and not [0, 2^128-1]
 		sigC = sigC.Add(sigC, sig)
 		agg = agg.Add(agg, sigC)
@@ -104,10 +121,11 @@ func AggregateSignatures(suite pairing.Suite, sigs [][]byte, mask *bls.Mask) (ky
 	return agg, nil
 }
 
-// AggregatePublicKeys aggregates the same way as for the signatures using
-// the same H: G2 -> R{1, ..., 2^128} as the hash function.
-func AggregatePublicKeys(suite pairing.Suite, mask *bls.Mask) (kyber.Point, error) {
-	peers, err := marshalPublicKeys(mask.Publics())
+// AggregatePublicKeys aggregates a set of public keys (similarly to
+// AggregateSignatures for signatures) using the hash function
+// H: G2 -> R with R = {1, ..., 2^128}.
+func AggregatePublicKeys(suite pairing.Suite, mask *sign.Mask) (kyber.Point, error) {
+	coefs, err := hashPointToR(mask.Publics())
 	if err != nil {
 		return nil, err
 	}
@@ -121,30 +139,11 @@ func AggregatePublicKeys(suite pairing.Suite, mask *bls.Mask) (kyber.Point, erro
 			return nil, errors.New("couldn't find the index")
 		}
 
-		c, err := hashPointToR(peers[peerIndex], peers)
-		if err != nil {
-			return nil, err
-		}
-
 		pub := mask.Publics()[peerIndex]
-		pubC := pub.Clone().Mul(c, pub)
+		pubC := pub.Clone().Mul(coefs[peerIndex], pub)
 		pubC = pubC.Add(pubC, pub)
 		agg = agg.Add(agg, pubC)
 	}
 
 	return agg, nil
-}
-
-func marshalPublicKeys(pubs []kyber.Point) ([][]byte, error) {
-	peers := make([][]byte, len(pubs))
-	for i, pub := range pubs {
-		peer, err := pub.MarshalBinary()
-		if err != nil {
-			return nil, err
-		}
-
-		peers[i] = peer
-	}
-
-	return peers, nil
 }

@@ -1,4 +1,4 @@
-package bls2
+package asmbls
 
 import (
 	"testing"
@@ -7,6 +7,7 @@ import (
 	"go.dedis.ch/kyber/v3"
 	"go.dedis.ch/kyber/v3/pairing"
 	"go.dedis.ch/kyber/v3/pairing/bn256"
+	"go.dedis.ch/kyber/v3/sign"
 	"go.dedis.ch/kyber/v3/sign/bls"
 	"go.dedis.ch/kyber/v3/util/random"
 )
@@ -16,14 +17,12 @@ var suite = pairing.NewSuiteBn256()
 // Reference test for other languages
 func TestBLS2_HashPointToR(t *testing.T) {
 	p := suite.Point().Base()
-	b, err := p.MarshalBinary()
-	require.NoError(t, err)
 
-	r, err := hashPointToR(b, [][]byte{b})
+	coefs, err := hashPointToR([]kyber.Point{p})
 
 	require.NoError(t, err)
-	require.Equal(t, "ff7c62b770491a3ac511ff12f25621cb", r.String())
-	require.Equal(t, 16, r.MarshalSize())
+	require.Equal(t, "5c9ae2d3aca26205c9073baeb57044e1", coefs[0].String())
+	require.Equal(t, 16, coefs[0].MarshalSize())
 }
 
 func TestBLS2_AggregateSignatures(t *testing.T) {
@@ -36,7 +35,7 @@ func TestBLS2_AggregateSignatures(t *testing.T) {
 	sig2, err := Sign(suite, private2, msg)
 	require.NoError(t, err)
 
-	mask, _ := bls.NewMask(suite, []kyber.Point{public1, public2}, nil)
+	mask, _ := sign.NewMask(suite, []kyber.Point{public1, public2}, nil)
 	mask.SetBit(0, true)
 	mask.SetBit(1, true)
 
@@ -69,9 +68,9 @@ func TestBLS2_SubsetSignature(t *testing.T) {
 	sig2, err := Sign(suite, private2, msg)
 	require.NoError(t, err)
 
-	mask, _ := bls.NewMask(suite, []kyber.Point{public1, public2, public3}, nil)
+	mask, _ := sign.NewMask(suite, []kyber.Point{public1, public3, public2}, nil)
 	mask.SetBit(0, true)
-	mask.SetBit(1, true)
+	mask.SetBit(2, true)
 
 	aggregatedSig, err := AggregateSignatures(suite, [][]byte{sig1, sig2}, mask)
 	require.NoError(t, err)
@@ -106,7 +105,7 @@ func TestBLS2_RogueAttack(t *testing.T) {
 	require.NoError(t, bls.Verify(suite, agg, msg, sig))
 
 	// New scheme that should detect
-	mask, _ := bls.NewMask(suite, pubs, nil)
+	mask, _ := sign.NewMask(suite, pubs, nil)
 	mask.SetBit(0, true)
 	mask.SetBit(1, true)
 	agg, err = AggregatePublicKeys(suite, mask)
@@ -124,7 +123,7 @@ func Benchmark_BLS2_AggregateSigs(b *testing.B) {
 	sig2, err := Sign(suite, private2, msg)
 	require.Nil(b, err)
 
-	mask, _ := bls.NewMask(suite, []kyber.Point{public1, public2}, nil)
+	mask, _ := sign.NewMask(suite, []kyber.Point{public1, public2}, nil)
 	mask.SetBit(0, true)
 	mask.SetBit(1, false)
 
