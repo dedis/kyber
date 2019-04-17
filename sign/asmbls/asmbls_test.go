@@ -13,15 +13,21 @@ import (
 )
 
 var suite = pairing.NewSuiteBn256()
+var two = suite.Scalar().Add(suite.Scalar().One(), suite.Scalar().One())
+var three = suite.Scalar().Add(two, suite.Scalar().One())
 
 // Reference test for other languages
-func TestBLS2_HashPointToR(t *testing.T) {
-	p := suite.Point().Base()
+func TestBLS2_HashPointToR_BN256(t *testing.T) {
+	p1 := suite.Point().Base()
+	p2 := suite.Point().Mul(two, suite.Point().Base())
+	p3 := suite.Point().Mul(three, suite.Point().Base())
 
-	coefs, err := hashPointToR([]kyber.Point{p})
+	coefs, err := hashPointToR([]kyber.Point{p1, p2, p3})
 
 	require.NoError(t, err)
-	require.Equal(t, "5c9ae2d3aca26205c9073baeb57044e1", coefs[0].String())
+	require.Equal(t, "35b5b395f58aba3b192fb7e1e5f2abd3", coefs[0].String())
+	require.Equal(t, "14dcc79d46b09b93075266e47cd4b19e", coefs[1].String())
+	require.Equal(t, "933f6013eb3f654f9489d6d45ad04eaf", coefs[2].String())
 	require.Equal(t, 16, coefs[0].MarshalSize())
 }
 
@@ -38,6 +44,9 @@ func TestBLS2_AggregateSignatures(t *testing.T) {
 	mask, _ := sign.NewMask(suite, []kyber.Point{public1, public2}, nil)
 	mask.SetBit(0, true)
 	mask.SetBit(1, true)
+
+	_, err = AggregateSignatures(suite, [][]byte{sig1}, mask)
+	require.Error(t, err)
 
 	aggregatedSig, err := AggregateSignatures(suite, [][]byte{sig1, sig2}, mask)
 	require.NoError(t, err)

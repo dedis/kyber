@@ -1,3 +1,4 @@
+// Package sign contains useful tools for the different signin algorithms
 package sign
 
 import (
