@@ -73,7 +73,7 @@ func TestVSSWhole(t *testing.T) {
 
 	// 5. recover
 	sec, err := RecoverSecret(suite, deals, nbVerifiers, MinimumT(nbVerifiers))
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	require.NotNil(t, sec)
 	assert.Equal(t, dealer.secret.String(), sec.String())
 }
@@ -280,9 +280,9 @@ func TestVSSVerifierReceiveDeal(t *testing.T) {
 	delete(v.aggregator.responses, uint32(v.index))
 	d.RndShare.V = suite.Scalar().SetBytes(randomBytes(32))
 	resp, err = v.ProcessEncryptedDeal(encD)
-	assert.NotNil(t, resp)
+	require.Nil(t, err)
+	require.NotNil(t, resp)
 	assert.Equal(t, false, resp.Approved)
-	assert.Nil(t, err)
 }
 
 func TestVSSAggregatorVerifyJustification(t *testing.T) {
@@ -293,16 +293,18 @@ func TestVSSAggregatorVerifyJustification(t *testing.T) {
 	wrongV := suite.Scalar().Pick(suite.RandomStream())
 	goodV := d.SecShare.V
 	d.SecShare.V = wrongV
-	encD, _ := dealer.EncryptedDeal(0)
+	encD, err := dealer.EncryptedDeal(0)
+	require.Nil(t, err)
 	resp, err := v.ProcessEncryptedDeal(encD)
-	assert.NotNil(t, resp)
+	require.Nil(t, err)
+	require.NotNil(t, resp)
 	assert.Equal(t, false, resp.Approved)
-	assert.Nil(t, err)
 	assert.Equal(t, v.responses[uint32(v.index)], resp)
 	// in tests, pointers point to the same underlying share..
 	d.SecShare.V = goodV
 
 	j, err := dealer.ProcessResponse(resp)
+	require.Nil(t, err)
 
 	// invalid deal justified
 	goodV = j.Deal.SecShare.V
@@ -336,17 +338,19 @@ func TestVSSAggregatorVerifyResponseDuplicate(t *testing.T) {
 	v2 := verifiers[1]
 	//d1 := dealer.deals[0]
 	//d2 := dealer.deals[1]
-	encD1, _ := dealer.EncryptedDeal(0)
-	encD2, _ := dealer.EncryptedDeal(1)
+	encD1, err := dealer.EncryptedDeal(0)
+	require.Nil(t, err)
+	encD2, err := dealer.EncryptedDeal(1)
+	require.Nil(t, err)
 
 	resp1, err := v1.ProcessEncryptedDeal(encD1)
-	assert.Nil(t, err)
-	assert.NotNil(t, resp1)
+	require.Nil(t, err)
+	require.NotNil(t, resp1)
 	assert.Equal(t, true, resp1.Approved)
 
 	resp2, err := v2.ProcessEncryptedDeal(encD2)
-	assert.Nil(t, err)
-	assert.NotNil(t, resp2)
+	require.Nil(t, err)
+	require.NotNil(t, resp2)
 	assert.Equal(t, true, resp2.Approved)
 
 	err = v1.ProcessResponse(resp2)
@@ -371,11 +375,12 @@ func TestVSSAggregatorVerifyResponse(t *testing.T) {
 	//goodSec := deal.SecShare.V
 	wrongSec, _ := genPair()
 	deal.SecShare.V = wrongSec
-	encD, _ := dealer.EncryptedDeal(0)
+	encD, err := dealer.EncryptedDeal(0)
+	require.Nil(t, err)
 	// valid complaint
 	resp, err := v.ProcessEncryptedDeal(encD)
-	assert.Nil(t, err)
-	assert.NotNil(t, resp)
+	require.Nil(t, err)
+	require.NotNil(t, resp)
 	assert.Equal(t, false, resp.Approved)
 	assert.NotNil(t, v.aggregator)
 	assert.Equal(t, resp.SessionID, dealer.sid)

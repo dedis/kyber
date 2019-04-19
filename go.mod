@@ -1,6 +1,7 @@
 module go.dedis.ch/kyber/v3
 
 require (
+	github.com/btcsuite/btcd v0.0.0-20190410025418-9bfb2ca0346b
 	github.com/stretchr/testify v1.3.0
 	go.dedis.ch/fixbuf v1.0.3
 	go.dedis.ch/protobuf v1.0.5
