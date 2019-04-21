@@ -7,11 +7,11 @@ import (
 	"io"
 	"reflect"
 
-	"github.com/dedis/fixbuf"
-	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/group/internal/marshalling"
-	"github.com/dedis/kyber/util/random"
-	"github.com/dedis/kyber/xof/blake2xb"
+	"go.dedis.ch/fixbuf"
+	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/group/internal/marshalling"
+	"go.dedis.ch/kyber/v3/util/random"
+	"go.dedis.ch/kyber/v3/xof/blake2xb"
 )
 
 // SuiteEd25519 implements some basic functionalities such as Group, HashFactory,
@@ -54,7 +54,7 @@ func (s *SuiteEd25519) RandomStream() cipher.Stream {
 }
 
 // NewBlakeSHA256Ed25519 returns a cipher suite based on package
-// github.com/dedis/kyber/xof/blake2xb, SHA-256, and the Ed25519 curve.
+// go.dedis.ch/kyber/v3/xof/blake2xb, SHA-256, and the Ed25519 curve.
 // It produces cryptographically random numbers via package crypto/rand.
 func NewBlakeSHA256Ed25519() *SuiteEd25519 {
 	suite := new(SuiteEd25519)
@@ -62,7 +62,7 @@ func NewBlakeSHA256Ed25519() *SuiteEd25519 {
 }
 
 // NewBlakeSHA256Ed25519WithRand returns a cipher suite based on package
-// github.com/dedis/kyber/xof/blake2xb, SHA-256, and the Ed25519 curve.
+// go.dedis.ch/kyber/v3/xof/blake2xb, SHA-256, and the Ed25519 curve.
 // It produces cryptographically random numbers via the provided stream r.
 func NewBlakeSHA256Ed25519WithRand(r cipher.Stream) *SuiteEd25519 {
 	suite := new(SuiteEd25519)

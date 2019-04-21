@@ -7,11 +7,11 @@ import (
 	"hash"
 	"testing"
 
-	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/group/edwards25519"
-	"github.com/dedis/kyber/sign/eddsa"
-	"github.com/dedis/kyber/util/key"
-	"github.com/dedis/kyber/xof/blake2xb"
+	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/group/edwards25519"
+	"go.dedis.ch/kyber/v3/sign/eddsa"
+	"go.dedis.ch/kyber/v3/util/key"
+	"go.dedis.ch/kyber/v3/xof/blake2xb"
 )
 
 // Specify cipher suite using AES-128, SHA512, and the Edwards25519 curve.
@@ -115,6 +115,10 @@ func testCoSi(t *testing.T, n, f int) {
 			p = nil
 		} else {
 			p = NewThresholdPolicy(n - f)
+		}
+		// send a short sig in, expect an error
+		if err := Verify(testSuite, publics, message, sig[0:10], p); err == nil {
+			t.Fatal("expected error on short sig")
 		}
 		if err := Verify(testSuite, publics, message, sig, p); err != nil {
 			t.Fatal(err)

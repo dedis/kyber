@@ -7,10 +7,10 @@ import (
 	"io"
 	"reflect"
 
-	"github.com/dedis/fixbuf"
-	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/util/random"
-	"github.com/dedis/kyber/xof/blake2xb"
+	"go.dedis.ch/fixbuf"
+	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/util/random"
+	"go.dedis.ch/kyber/v3/xof/blake2xb"
 )
 
 // Suite implements the pairing.Suite interface for the BN256 bilinear pairing.
@@ -103,6 +103,9 @@ type commonSuite struct {
 
 // New implements the kyber.Encoding interface.
 func (c *commonSuite) New(t reflect.Type) interface{} {
+	if c.Group == nil {
+		panic("cannot create Point from NewGroup - please use bn256.NewGroupG1")
+	}
 	switch t {
 	case tScalar:
 		return c.Scalar()

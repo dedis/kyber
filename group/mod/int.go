@@ -9,13 +9,14 @@ import (
 	"io"
 	"math/big"
 
-	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/group/internal/marshalling"
-	"github.com/dedis/kyber/util/random"
+	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/group/internal/marshalling"
+	"go.dedis.ch/kyber/v3/util/random"
 )
 
 var one = big.NewInt(1)
 var two = big.NewInt(2)
+var marshalScalarID = [8]byte{'m', 'o', 'd', '.', 'i', 'n', 't', ' '}
 
 // ByteOrder denotes the endianness of the operation.
 type ByteOrder bool
@@ -328,6 +329,11 @@ func (i *Int) MarshalBinary() ([]byte, error) {
 	return b, nil
 }
 
+// MarshalID returns a unique identifier for this type
+func (i *Int) MarshalID() [8]byte {
+	return marshalScalarID
+}
+
 // UnmarshalBinary tries to decode a Int from a byte-slice buffer.
 // Returns an error if the buffer is not exactly Len() bytes long
 // or if the contents of the buffer represents an out-of-range integer.
@@ -405,60 +411,6 @@ func (i *Int) LittleEndian(min, max int) []byte {
 	buf := make([]byte, pad)
 	reverse(buf[:act], vBytes)
 	return buf
-}
-
-// HideLen returns the length in bytes of a uniform byte-string encoding of this Int,
-// satisfying the requirements of the Hiding interface.
-// For a Int this is always the same length as the normal encoding.
-func (i *Int) HideLen() int {
-	return i.MarshalSize()
-}
-
-// HideEncode a Int such that it appears indistinguishable
-// from a HideLen()-byte string chosen uniformly at random,
-// assuming the Int contains a uniform integer modulo M.
-// For a Int this always succeeds and returns non-nil.
-func (i *Int) HideEncode(rand cipher.Stream) []byte {
-
-	// Lengh of required encoding
-	hidelen := i.HideLen()
-
-	// Bit-position of the most-significant bit of the modular integer
-	// in the most-significant byte of its encoding.
-	highbit := uint((i.M.BitLen() - 1) & 7)
-
-	var enc big.Int
-	for {
-		// Pick a random multiplier of a suitable bit-length.
-		var b [1]byte
-		rand.XORKeyStream(b[:], b[:])
-		mult := int64(b[0] >> highbit)
-
-		// Multiply, and see if we end up with
-		// a Int of the proper byte-length.
-		// Reroll if we get a result larger than HideLen(),
-		// to ensure uniformity of the resulting encoding.
-		enc.SetInt64(mult).Mul(&i.V, &enc)
-		if enc.BitLen() <= hidelen*8 {
-			break
-		}
-	}
-
-	b := enc.Bytes() // may be shorter than l
-	if ofs := hidelen - len(b); ofs != 0 {
-		b = append(make([]byte, ofs), b...)
-	}
-	return b
-}
-
-// HideDecode a uniform representation of this object from a slice,
-// whose length must be exactly HideLen().
-func (i *Int) HideDecode(buf []byte) {
-	if len(buf) != i.HideLen() {
-		panic("Int.HideDecode: wrong size buffer")
-	}
-	i.V.SetBytes(buf)
-	i.V.Mod(&i.V, i.M)
 }
 
 // reverse copies src into dst in byte-reversed order and returns dst,

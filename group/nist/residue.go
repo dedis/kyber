@@ -1,5 +1,3 @@
-// +build vartime
-
 package nist
 
 import (
@@ -9,12 +7,11 @@ import (
 	"fmt"
 	"io"
 	"math/big"
-	//"encoding/hex"
 
-	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/group/internal/marshalling"
-	"github.com/dedis/kyber/group/mod"
-	"github.com/dedis/kyber/util/random"
+	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/group/internal/marshalling"
+	"go.dedis.ch/kyber/v3/group/mod"
+	"go.dedis.ch/kyber/v3/util/random"
 )
 
 var one = big.NewInt(1)
@@ -203,21 +200,21 @@ func (g *ResidueGroup) String() string {
 	return fmt.Sprintf("Residue%d", g.P.BitLen())
 }
 
-// Return the number of bytes in the encoding of a Scalar
+// ScalarLen returns the number of bytes in the encoding of a Scalar
 // for this Residue group.
 func (g *ResidueGroup) ScalarLen() int { return (g.Q.BitLen() + 7) / 8 }
 
-// Create a Scalar associated with this Residue group,
+// Scalar creates a Scalar associated with this Residue group,
 // with an initial value of nil.
 func (g *ResidueGroup) Scalar() kyber.Scalar {
 	return mod.NewInt64(0, g.Q)
 }
 
-// Return the number of bytes in the encoding of a Point
+// PointLen returns the number of bytes in the encoding of a Point
 // for this Residue group.
 func (g *ResidueGroup) PointLen() int { return (g.P.BitLen() + 7) / 8 }
 
-// Create a Point associated with this Residue group,
+// Point creates a Point associated with this Residue group,
 // with an initial value of nil.
 func (g *ResidueGroup) Point() kyber.Point {
 	p := new(residuePoint)
@@ -225,12 +222,12 @@ func (g *ResidueGroup) Point() kyber.Point {
 	return p
 }
 
-// Returns the order of this Residue group, namely the prime Q.
+// Order returns the order of this Residue group, namely the prime Q.
 func (g *ResidueGroup) Order() *big.Int {
 	return g.Q
 }
 
-// Validate the parameters for a Residue group,
+// Valid validates the parameters for a Residue group,
 // checking that P and Q are prime, P=Q*R+1,
 // and that G is a valid generator for this group.
 func (g *ResidueGroup) Valid() bool {
@@ -256,7 +253,7 @@ func (g *ResidueGroup) Valid() bool {
 	return true
 }
 
-// Explicitly initialize a ResidueGroup with given parameters.
+// SetParams explicitly initializes a ResidueGroup with given parameters.
 func (g *ResidueGroup) SetParams(P, Q, R, G *big.Int) {
 	g.P = P
 	g.Q = Q
@@ -267,7 +264,7 @@ func (g *ResidueGroup) SetParams(P, Q, R, G *big.Int) {
 	}
 }
 
-// Initialize Residue group parameters for a quadratic residue group,
+// QuadraticResidueGroup initializes Residue group parameters for a quadratic residue group,
 // by picking primes P and Q such that P=2Q+1
 // and the smallest valid generator G for this group.
 func (g *ResidueGroup) QuadraticResidueGroup(bitlen uint, rand cipher.Stream) {

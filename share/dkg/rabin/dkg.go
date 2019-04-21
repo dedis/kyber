@@ -41,11 +41,12 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/sign/schnorr"
+	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/sign/schnorr"
+	"go.dedis.ch/protobuf"
 
-	"github.com/dedis/kyber/share"
-	vss "github.com/dedis/kyber/share/vss/rabin"
+	"go.dedis.ch/kyber/v3/share"
+	vss "go.dedis.ch/kyber/v3/share/vss/rabin"
 )
 
 // Suite wraps the functionalities needed by the dkg package
@@ -671,7 +672,7 @@ func (cc *ComplaintCommits) Hash(s Suite) []byte {
 	_, _ = h.Write([]byte("commitcomplaint"))
 	_ = binary.Write(h, binary.LittleEndian, cc.Index)
 	_ = binary.Write(h, binary.LittleEndian, cc.DealerIndex)
-	buff, _ := cc.Deal.MarshalBinary()
+	buff, _ := protobuf.Encode(cc.Deal)
 	_, _ = h.Write(buff)
 	return h.Sum(nil)
 }

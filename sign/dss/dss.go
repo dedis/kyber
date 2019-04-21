@@ -18,12 +18,11 @@ import (
 	"bytes"
 	"crypto/sha512"
 	"errors"
-	"fmt"
 
-	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/share"
-	"github.com/dedis/kyber/sign/eddsa"
-	"github.com/dedis/kyber/sign/schnorr"
+	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/share"
+	"go.dedis.ch/kyber/v3/sign/eddsa"
+	"go.dedis.ch/kyber/v3/sign/schnorr"
 )
 
 // Suite represents the functionalities needed by the dss package
@@ -189,7 +188,6 @@ func (d *DSS) Signature() ([]byte, error) {
 	}
 	gamma, err := share.RecoverSecret(d.suite, d.partials, d.T, len(d.participants))
 	if err != nil {
-		fmt.Println("or here")
 		return nil, err
 	}
 	// RandomPublic || gamma

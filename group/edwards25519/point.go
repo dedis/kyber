@@ -20,9 +20,11 @@ import (
 	"errors"
 	"io"
 
-	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/group/internal/marshalling"
+	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/group/internal/marshalling"
 )
+
+var marshalPointID = [8]byte{'e', 'd', '.', 'p', 'o', 'i', 'n', 't'}
 
 type point struct {
 	ge      extendedGroupElement
@@ -48,6 +50,11 @@ func (P *point) MarshalBinary() ([]byte, error) {
 	var b [32]byte
 	P.ge.ToBytes(&b)
 	return b[:], nil
+}
+
+// MarshalID returns the type tag used in encoding/decoding
+func (P *point) MarshalID() [8]byte {
+	return marshalPointID
 }
 
 func (P *point) UnmarshalBinary(b []byte) error {

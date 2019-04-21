@@ -1,10 +1,16 @@
 package bn256
 
 import (
+	"bytes"
+	"fmt"
 	"testing"
 
-	"github.com/dedis/kyber/util/random"
+	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/protobuf"
+
 	"github.com/stretchr/testify/require"
+	"go.dedis.ch/kyber/v3/group/mod"
+	"go.dedis.ch/kyber/v3/util/random"
 	"golang.org/x/crypto/bn256"
 )
 
@@ -111,12 +117,13 @@ func TestG1Ops(t *testing.T) {
 func TestG2(t *testing.T) {
 	suite := NewSuite()
 	k := suite.G2().Scalar().Pick(random.New())
+	require.Equal(t, "mod.int ", fmt.Sprintf("%s", k.(*mod.Int).MarshalID()))
 	pa := suite.G2().Point().Mul(k, nil)
+	require.Equal(t, "bn256.g2", fmt.Sprintf("%s", pa.(*pointG2).MarshalID()))
 	ma, err := pa.MarshalBinary()
 	require.Nil(t, err)
 	pb := new(bn256.G2).ScalarBaseMult(&k.(*scalarDescribing).Int.V)
 	mb := pb.Marshal()
-	mb = append([]byte{0x01}, mb...)
 	require.Equal(t, ma, mb)
 }
 
@@ -124,6 +131,19 @@ func TestG2Marshal(t *testing.T) {
 	suite := NewSuite()
 	k := suite.G2().Scalar().Pick(random.New())
 	pa := suite.G2().Point().Mul(k, nil)
+	ma, err := pa.MarshalBinary()
+	require.Nil(t, err)
+	pb := suite.G2().Point()
+	err = pb.UnmarshalBinary(ma)
+	require.Nil(t, err)
+	mb, err := pb.MarshalBinary()
+	require.Nil(t, err)
+	require.Equal(t, ma, mb)
+}
+
+func TestG2MarshalZero(t *testing.T) {
+	suite := NewSuite()
+	pa := suite.G2().Point()
 	ma, err := pa.MarshalBinary()
 	require.Nil(t, err)
 	pb := suite.G2().Point()
@@ -253,4 +273,80 @@ func basicPointTest(t *testing.T, s *Suite) {
 	pb1 := s.Point().Mul(b, nil)
 	pb2 := s.Point().Add(pa, s.Point().Base())
 	require.True(t, pb1.Equal(pb2))
+
+	aBuf, err := a.MarshalBinary()
+	require.Nil(t, err)
+	aCopy := s.Scalar()
+	err = aCopy.UnmarshalBinary(aBuf)
+	require.Nil(t, err)
+	require.True(t, a.Equal(aCopy))
+
+	paBuf, err := pa.MarshalBinary()
+	require.Nil(t, err)
+	paCopy := s.Point()
+	err = paCopy.UnmarshalBinary(paBuf)
+	require.Nil(t, err)
+	require.True(t, pa.Equal(paCopy))
+}
+
+// Test that the suite.Read works correctly for suites with a defined `Point()`.
+func TestSuiteRead(t *testing.T) {
+	s := NewSuite()
+	tsr(t, NewSuiteG1(), s.G1().Point().Base())
+	tsr(t, NewSuiteG2(), s.G2().Point().Base())
+	tsr(t, NewSuiteGT(), s.GT().Point().Base())
+}
+
+// Test that the suite.Read fails for undefined `Point()`
+func TestSuiteReadFail(t *testing.T) {
+	defer func() {
+		require.NotNil(t, recover())
+	}()
+	s := NewSuite()
+	tsr(t, s, s.G1().Point().Base())
+}
+
+func tsr(t *testing.T, s *Suite, pOrig kyber.Point) {
+	var pBuf bytes.Buffer
+	err := s.Write(&pBuf, pOrig)
+	require.Nil(t, err)
+
+	var pCopy kyber.Point
+	err = s.Read(&pBuf, &pCopy)
+	require.Nil(t, err)
+	require.True(t, pCopy.Equal(pOrig))
+}
+
+type tsrPoint struct {
+	P kyber.Point
+}
+
+func TestSuiteProtobuf(t *testing.T) {
+	//bn := suites.MustFind("bn256.adapter")
+	bn1 := NewSuiteG1()
+	bn2 := NewSuiteG2()
+	bnT := NewSuiteGT()
+
+	protobuf.RegisterInterface(func() interface{} { return bn1.Point() })
+	protobuf.RegisterInterface(func() interface{} { return bn1.Scalar() })
+	protobuf.RegisterInterface(func() interface{} { return bn2.Point() })
+	protobuf.RegisterInterface(func() interface{} { return bn2.Scalar() })
+	protobuf.RegisterInterface(func() interface{} { return bnT.Point() })
+	protobuf.RegisterInterface(func() interface{} { return bnT.Scalar() })
+
+	testTsr(t, NewSuiteG1())
+	testTsr(t, NewSuiteG2())
+	testTsr(t, NewSuiteGT())
+}
+
+func testTsr(t *testing.T, s *Suite) {
+	p := s.Point().Base()
+	tp := tsrPoint{P: p}
+	tpBuf, err := protobuf.Encode(&tp)
+	require.NoError(t, err)
+
+	tpCopy := tsrPoint{}
+	err = protobuf.Decode(tpBuf, &tpCopy)
+	require.NoError(t, err)
+	require.True(t, tpCopy.P.Equal(tp.P))
 }

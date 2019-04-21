@@ -1,5 +1,3 @@
-// +build vartime
-
 package nist
 
 import (
@@ -9,10 +7,10 @@ import (
 	"io"
 	"math/big"
 
-	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/group/internal/marshalling"
-	"github.com/dedis/kyber/group/mod"
-	"github.com/dedis/kyber/util/random"
+	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/group/internal/marshalling"
+	"go.dedis.ch/kyber/v3/group/mod"
+	"go.dedis.ch/kyber/v3/util/random"
 )
 
 type curvePoint struct {
@@ -184,7 +182,7 @@ func (p *curvePoint) UnmarshalBinary(buf []byte) error {
 	// Check whether all bytes after first one are 0, so we
 	// just return the initial point. Read everything to
 	// prevent timing-leakage.
-	var c byte = 0
+	var c byte
 	for _, b := range buf[1:] {
 		c |= b
 	}

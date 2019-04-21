@@ -120,9 +120,6 @@ type Point interface {
 // operations may be faster, but also risk leaking information via a
 // timing side channel. Thus they are only safe to use on public
 // Scalars and Points, never on secret ones.
-//
-// To compile variable time suites into the library, you must give the
-// option "-tags vertime" to "go build" or "go test".
 type AllowsVarTime interface {
 	AllowVarTime(bool)
 }

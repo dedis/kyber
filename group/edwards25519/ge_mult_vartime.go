@@ -1,5 +1,3 @@
-// +build vartime
-
 package edwards25519
 
 // geScalarMultVartime computes h = a*B, where

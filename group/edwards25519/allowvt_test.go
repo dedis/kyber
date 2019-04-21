@@ -1,11 +1,9 @@
-// +build vartime
-
 package edwards25519
 
 import (
 	"testing"
 
-	"github.com/dedis/kyber"
+	"go.dedis.ch/kyber/v3"
 )
 
 func TestVartime(t *testing.T) {

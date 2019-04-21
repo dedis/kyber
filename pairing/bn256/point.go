@@ -2,13 +2,19 @@ package bn256
 
 import (
 	"crypto/cipher"
+	"crypto/sha256"
 	"crypto/subtle"
 	"errors"
 	"io"
+	"math/big"
 
-	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/group/mod"
+	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/group/mod"
 )
+
+var marshalPointID1 = [8]byte{'b', 'n', '2', '5', '6', '.', 'g', '1'}
+var marshalPointID2 = [8]byte{'b', 'n', '2', '5', '6', '.', 'g', '2'}
+var marshalPointIDT = [8]byte{'b', 'n', '2', '5', '6', '.', 'g', 't'}
 
 type pointG1 struct {
 	g     *curvePoint
@@ -53,15 +59,10 @@ func (p *pointG1) Set(q kyber.Point) kyber.Point {
 	return p
 }
 
+// Clone makes a hard copy of the point
 func (p *pointG1) Clone() kyber.Point {
-	q := newPointG1(p.group)
-	buf, err := p.MarshalBinary()
-	if err != nil {
-		panic(err)
-	}
-	if err := q.UnmarshalBinary(buf); err != nil {
-		panic(err)
-	}
+	q := newPointG1()
+	q.g = p.g.Clone()
 	return q
 }
 
@@ -112,6 +113,9 @@ func (p *pointG1) Mul(s kyber.Scalar, q kyber.Point) kyber.Point {
 }
 
 func (p *pointG1) MarshalBinary() ([]byte, error) {
+	// Clone is required as we change the point
+	p = p.Clone().(*pointG1)
+
 	n := p.ElementSize()
 	// Take a copy so that p is not written to, so calls to MarshalBinary
 	// are threadsafe.
@@ -127,6 +131,10 @@ func (p *pointG1) MarshalBinary() ([]byte, error) {
 	montDecode(tmp, &pgtemp.y)
 	tmp.Marshal(ret[n:])
 	return ret, nil
+}
+
+func (p *pointG1) MarshalID() [8]byte {
+	return marshalPointID1
 }
 
 func (p *pointG1) MarshalTo(w io.Writer) (int, error) {
@@ -192,6 +200,64 @@ func (p *pointG1) String() string {
 	return "bn256.G1:" + p.g.String()
 }
 
+func (p *pointG1) Hash(m []byte) kyber.Point {
+	leftPad32 := func(in []byte) []byte {
+		if len(in) > 32 {
+			panic("input cannot be more than 32 bytes")
+		}
+
+		out := make([]byte, 32)
+		copy(out[32-len(in):], in)
+		return out
+	}
+
+	bigX, bigY := hashToPoint(m)
+	if p.g == nil {
+		p.g = new(curvePoint)
+	}
+
+	x, y := new(gfP), new(gfP)
+	x.Unmarshal(leftPad32(bigX.Bytes()))
+	y.Unmarshal(leftPad32(bigY.Bytes()))
+	montEncode(x, x)
+	montEncode(y, y)
+
+	p.g.Set(&curvePoint{*x, *y, *newGFp(1), *newGFp(1)})
+	return p
+}
+
+// hashes a byte slice into two points on a curve represented by big.Int
+// ideally we want to do this using gfP, but gfP doesn't have a ModSqrt function
+func hashToPoint(m []byte) (*big.Int, *big.Int) {
+	// we need to convert curveB into a bigInt for our computation
+	intCurveB := new(big.Int)
+	{
+		decodedCurveB := new(gfP)
+		montDecode(decodedCurveB, curveB)
+		bufCurveB := make([]byte, 32)
+		decodedCurveB.Marshal(bufCurveB)
+		intCurveB.SetBytes(bufCurveB)
+	}
+
+	h := sha256.Sum256(m)
+	x := new(big.Int).SetBytes(h[:])
+	x.Mod(x, p)
+
+	for {
+		xxx := new(big.Int).Mul(x, x)
+		xxx.Mul(xxx, x)
+		xxx.Mod(xxx, p)
+
+		t := new(big.Int).Add(xxx, intCurveB)
+		y := new(big.Int).ModSqrt(t, p)
+		if y != nil {
+			return x, y
+		}
+
+		x.Add(x, big.NewInt(1))
+	}
+}
+
 type pointG2 struct {
 	g     *twistPoint
 	group kyber.Group
@@ -235,15 +301,10 @@ func (p *pointG2) Set(q kyber.Point) kyber.Point {
 	return p
 }
 
+// Clone makes a hard copy of the field
 func (p *pointG2) Clone() kyber.Point {
-	q := newPointG2(p.group)
-	buf, err := p.MarshalBinary()
-	if err != nil {
-		panic(err)
-	}
-	if err := q.UnmarshalBinary(buf); err != nil {
-		panic(err)
-	}
+	q := newPointG2()
+	q.g = p.g.Clone()
 	return q
 }
 
@@ -288,30 +349,36 @@ func (p *pointG2) Mul(s kyber.Scalar, q kyber.Point) kyber.Point {
 }
 
 func (p *pointG2) MarshalBinary() ([]byte, error) {
+	// Clone is required as we change the point during the operation
+	p = p.Clone().(*pointG2)
+
 	n := p.ElementSize()
 	if p.g == nil {
 		p.g = &twistPoint{}
 	}
 
 	p.g.MakeAffine()
-	if p.g.IsInfinity() {
-		return make([]byte, 1), nil
-	}
 
 	ret := make([]byte, p.MarshalSize())
-	ret[0] = 0x01
-	temp := &gfP{}
+	if p.g.IsInfinity() {
+		return ret, nil
+	}
 
+	temp := &gfP{}
 	montDecode(temp, &p.g.x.x)
-	temp.Marshal(ret[1+0*n:])
+	temp.Marshal(ret[0*n:])
 	montDecode(temp, &p.g.x.y)
-	temp.Marshal(ret[1+1*n:])
+	temp.Marshal(ret[1*n:])
 	montDecode(temp, &p.g.y.x)
-	temp.Marshal(ret[1+2*n:])
+	temp.Marshal(ret[2*n:])
 	montDecode(temp, &p.g.y.y)
-	temp.Marshal(ret[1+3*n:])
+	temp.Marshal(ret[3*n:])
 
 	return ret, nil
+}
+
+func (p *pointG2) MarshalID() [8]byte {
+	return marshalPointID2
 }
 
 func (p *pointG2) MarshalTo(w io.Writer) (int, error) {
@@ -328,20 +395,14 @@ func (p *pointG2) UnmarshalBinary(buf []byte) error {
 		p.g = &twistPoint{}
 	}
 
-	if len(buf) > 0 && buf[0] == 0x00 {
-		p.g.SetInfinity()
-		//return buf[1:], nil
-		return nil
-	} else if len(buf) > 0 && buf[0] != 0x01 {
-		return errors.New("bn256.G2: malformed point")
-	} else if len(buf) < p.MarshalSize() {
+	if len(buf) < p.MarshalSize() {
 		return errors.New("bn256.G2: not enough data")
 	}
 
-	p.g.x.x.Unmarshal(buf[1+0*n:])
-	p.g.x.y.Unmarshal(buf[1+1*n:])
-	p.g.y.x.Unmarshal(buf[1+2*n:])
-	p.g.y.y.Unmarshal(buf[1+3*n:])
+	p.g.x.x.Unmarshal(buf[0*n:])
+	p.g.x.y.Unmarshal(buf[1*n:])
+	p.g.y.x.Unmarshal(buf[2*n:])
+	p.g.y.y.Unmarshal(buf[3*n:])
 	montEncode(&p.g.x.x, &p.g.x.x)
 	montEncode(&p.g.x.y, &p.g.x.y)
 	montEncode(&p.g.y.x, &p.g.y.x)
@@ -373,7 +434,7 @@ func (p *pointG2) UnmarshalFrom(r io.Reader) (int, error) {
 }
 
 func (p *pointG2) MarshalSize() int {
-	return 4*p.ElementSize() + 1
+	return 4 * p.ElementSize()
 }
 
 func (p *pointG2) ElementSize() int {
@@ -427,15 +488,10 @@ func (p *pointGT) Set(q kyber.Point) kyber.Point {
 	return p
 }
 
+// Clone makes a hard copy of the point
 func (p *pointGT) Clone() kyber.Point {
-	q := newPointGT(p.group)
-	buf, err := p.MarshalBinary()
-	if err != nil {
-		panic(err)
-	}
-	if err := q.UnmarshalBinary(buf); err != nil {
-		panic(err)
-	}
+	q := newPointGT()
+	q.g = p.g.Clone()
 	return q
 }
 
@@ -510,6 +566,10 @@ func (p *pointGT) MarshalBinary() ([]byte, error) {
 	temp.Marshal(ret[11*n:])
 
 	return ret, nil
+}
+
+func (p *pointGT) MarshalID() [8]byte {
+	return marshalPointIDT
 }
 
 func (p *pointGT) MarshalTo(w io.Writer) (int, error) {

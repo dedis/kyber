@@ -3,10 +3,10 @@ package shuffle
 import (
 	"testing"
 
-	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/group/edwards25519"
-	"github.com/dedis/kyber/proof"
-	"github.com/dedis/kyber/xof/blake2xb"
+	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/group/edwards25519"
+	"go.dedis.ch/kyber/v3/proof"
+	"go.dedis.ch/kyber/v3/xof/blake2xb"
 )
 
 var k = 5

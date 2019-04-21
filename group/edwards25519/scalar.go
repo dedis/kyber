@@ -12,16 +12,18 @@ import (
 	"io"
 	"math/big"
 
-	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/group/internal/marshalling"
-	"github.com/dedis/kyber/group/mod"
-	"github.com/dedis/kyber/util/random"
+	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/group/internal/marshalling"
+	"go.dedis.ch/kyber/v3/group/mod"
+	"go.dedis.ch/kyber/v3/util/random"
 )
 
 // This code is a port of the public domain, "ref10" implementation of ed25519
 // from SUPERCOP. More information at https://bench.cr.yp.to/supercop.html.
 
 // The scalars are GF(2^252 + 27742317777372353535851937790883648493).
+
+var marshalScalarID = [8]byte{'e', 'd', '.', 's', 'c', 'a', 'l', 'a'}
 
 type scalar struct {
 	v     [32]byte
@@ -163,6 +165,11 @@ func (s *scalar) MarshalSize() int {
 // MarshalBinary returns the binary representation of this scalar.
 func (s *scalar) MarshalBinary() ([]byte, error) {
 	return s.toInt().MarshalBinary()
+}
+
+// MarshalID returns the type tag used in encoding/decoding
+func (s *scalar) MarshalID() [8]byte {
+	return marshalScalarID
 }
 
 // UnmarshalBinary reads the binary representation of a scalar.

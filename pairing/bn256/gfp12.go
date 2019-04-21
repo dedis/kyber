@@ -220,3 +220,12 @@ func (e *gfP12) Invert(a *gfP12) *gfP12 {
 	e.MulScalar(e, t2)
 	return e
 }
+
+// Clone makes a hard copy of the field
+func (e *gfP12) Clone() *gfP12 {
+	n := &gfP12{}
+	n.x = e.x.Clone()
+	n.y = e.y.Clone()
+
+	return n
+}

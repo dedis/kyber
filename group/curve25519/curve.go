@@ -1,5 +1,3 @@
-// +build vartime
-
 package curve25519
 
 import (
@@ -9,9 +7,9 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/group/mod"
-	"github.com/dedis/kyber/util/random"
+	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/group/mod"
+	"go.dedis.ch/kyber/v3/util/random"
 )
 
 var zero = big.NewInt(0)
@@ -24,14 +22,6 @@ type point interface {
 	initXY(x, y *big.Int, curve kyber.Group)
 
 	getXY() (x, y *mod.Int)
-}
-
-// Interface representing curve-specific methods of encoding points
-// into a uniform representation (e.g., Elligator 1, 2, or Squared).
-type hiding interface {
-	HideLen() int
-	HideEncode(p point, rand cipher.Stream) []byte
-	HideDecode(p point, representative []byte)
 }
 
 // Generic "kyber.base class" for Edwards curves,
@@ -47,8 +37,6 @@ type curve struct {
 	cofact mod.Int // Group's cofactor as a ModInt
 
 	null kyber.Point // Identity point for this group
-
-	hide hiding // Uniform point encoding method
 }
 
 func (c *curve) String() string {
@@ -163,17 +151,6 @@ func (c *curve) init(self kyber.Group, p *Param, fullGroup bool,
 		bx, by = &x.V, &y.V
 	}
 	base.initXY(bx, by, self)
-
-	// Uniform representation encoding methods,
-	// only useful when using the full group.
-	// (Points taken from the subgroup would be trivially recognizable.)
-	if fullGroup {
-		if p.Elligator1s.Sign() != 0 {
-			c.hide = new(el1param).init(c, &p.Elligator1s)
-		} else if p.Elligator2u.Sign() != 0 {
-			c.hide = new(el2param).init(c, &p.Elligator2u)
-		}
-	}
 
 	// Sanity checks
 	if !c.validPoint(null) {

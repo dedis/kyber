@@ -1,11 +1,9 @@
-// +build vartime
-
 package shuffle
 
 import (
 	"testing"
 
-	"github.com/dedis/kyber/group/nist"
+	"go.dedis.ch/kyber/v3/group/nist"
 )
 
 func BenchmarkBiffleP256(b *testing.B) {

@@ -22,10 +22,11 @@ var curveGen = &curvePoint{
 }
 
 func (c *curvePoint) String() string {
-	c.MakeAffine()
+	cpy := c.Clone()
+	cpy.MakeAffine()
 	x, y := &gfP{}, &gfP{}
-	montDecode(x, &c.x)
-	montDecode(y, &c.y)
+	montDecode(x, &cpy.x)
+	montDecode(y, &cpy.y)
 	return fmt.Sprintf("(%s, %s)", x.String(), y.String())
 }
 
@@ -228,4 +229,15 @@ func (c *curvePoint) Neg(a *curvePoint) {
 	gfpNeg(&c.y, &a.y)
 	c.z.Set(&a.z)
 	c.t = gfP{0}
+}
+
+// Clone makes a hard copy of the curve point
+func (c *curvePoint) Clone() *curvePoint {
+	n := &curvePoint{}
+	copy(n.x[:], c.x[:])
+	copy(n.y[:], c.y[:])
+	copy(n.z[:], c.z[:])
+	copy(n.t[:], c.t[:])
+
+	return n
 }

@@ -1,11 +1,11 @@
-// Package dkg implements a general distributed key generation (DKG) framework. This
-// package serves two functionalities: (1) to run a fresh new DKG from scratch
-// and (2) to reshare old shares to a potentially distinct new set of nodes (the
-// "resharing" protocol). The
-// former protocol is described in "A threshold cryptosystem without a trusted
-// party" by Torben Pryds Pedersen. https://dl.acm.org/citation.cfm?id=1754929.
-// The latter protocol is implemented in "Verifiable Secret Redistribution for
-// Threshold Signing Schemes", by T. Wong et
+// Package dkg implements a general distributed key generation (DKG) framework.
+// This package serves two functionalities: (1) to run a fresh new DKG from
+// scratch and (2) to reshare old shares to a potentially distinct new set of
+// nodes (the "resharing" protocol). The former protocol is described in "A
+// threshold cryptosystem without a trusted party" by Torben Pryds Pedersen.
+// https://dl.acm.org/citation.cfm?id=1754929. The latter protocol is
+// implemented in "Verifiable Secret Redistribution for Threshold Signing
+// Schemes", by T. Wong et
 // al.(https://www.cs.cmu.edu/~wing/publications/Wong-Wing02b.pdf)
 package dkg
 
@@ -13,11 +13,11 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/dedis/kyber"
+	"go.dedis.ch/kyber/v3"
 
-	"github.com/dedis/kyber/share"
-	vss "github.com/dedis/kyber/share/vss/pedersen"
-	"github.com/dedis/kyber/sign/schnorr"
+	"go.dedis.ch/kyber/v3/share"
+	vss "go.dedis.ch/kyber/v3/share/vss/pedersen"
+	"go.dedis.ch/kyber/v3/sign/schnorr"
 )
 
 // Suite wraps the functionalities needed by the dkg package
@@ -47,12 +47,12 @@ type Config struct {
 
 	// PublicCoeffs are the coefficients of the distributed polynomial needed
 	// during the resharing protocol. The first coefficient is the key. It is
-	// required for new share holders.  It should be nil for new DKG.
+	// required for new share holders.  It should be nil for a new DKG.
 	PublicCoeffs []kyber.Point
 
 	// Expected new group of share holders. These public-key designated nodes
-	// will be in possession of new shares after the protocol has been ran. To be a
-	// receiver a of new share, one's public key must be inside this list. Keys
+	// will be in possession of new shares after the protocol has been run. To be a
+	// receiver of a new share, one's public key must be inside this list. Keys
 	// can be disjoint or not with respect to the OldNodes list.
 	NewNodes []kyber.Point
 
@@ -167,7 +167,6 @@ func NewDistKeyHandler(c *Config) (*DistKeyGenerator, error) {
 		secretCoeff := c.Suite.Scalar().Pick(c.Suite.RandomStream())
 		dealer, err = vss.NewDealer(c.Suite, c.Longterm, secretCoeff, c.NewNodes, newThreshold)
 		canIssue = true
-		// so the logic stays the same for the rest of the dkg code
 		c.OldNodes = c.NewNodes
 		oidx, oldPresent = findPub(c.OldNodes, pub)
 	}
@@ -243,9 +242,12 @@ func NewDistKeyGenerator(suite Suite, longterm kyber.Scalar, participants []kybe
 //   }
 //
 // If this method cannot process its own Deal, that indicates a
-// sever problem with the configuration or implementation and
+// severe problem with the configuration or implementation and
 // results in a panic.
 func (d *DistKeyGenerator) Deals() (map[int]*Deal, error) {
+	if !d.canIssue {
+		return nil, errors.New("dkg: new participant can't issue a deal")
+	}
 	deals, err := d.dealer.EncryptedDeals()
 	if err != nil {
 		return nil, err
@@ -513,13 +515,12 @@ func (d *DistKeyGenerator) FullyCertified() bool {
 		})
 	}
 	return len(good) >= len(d.c.OldNodes)
-	//return len(d.QUAL()) >= len(d.c.OldNodes)
 }
 
 // QualifiedShares returns the set of shares holder index that are considered
 // valid. In particular, it computes the list of common share holders that
 // replied with an approval (or with a complaint later on justified) for each
-// deal received.  These node indexes are the new share holders with valid (or
+// deal received. These indexes represent the new share holders with valid (or
 // justified) shares from certified deals.  Detailled explanation:
 // To compute this list, we consider the scenario where a share holder replied
 // to one share but not the other, as invalid, as the library is not currently
@@ -529,14 +530,16 @@ func (d *DistKeyGenerator) FullyCertified() bool {
 // 2. if there are no response from a share holder, the share holder is
 // removed from the list.
 func (d *DistKeyGenerator) QualifiedShares() []int {
-	// list of invalid share holders
 	var invalidSh = make(map[int]bool)
-	// list of invalid deals
 	var invalidDeals = make(map[int]bool)
-	// compute list of invalid deals
+	// compute list of invalid deals according to 1.
 	for dealerIndex, verifier := range d.verifiers {
 		responses := verifier.Responses()
-		// iterate over all holder's indexes to detect 2 rules
+		if len(responses) == 0 {
+			// don't analyzes "empty" deals - i.e. dealers that never sent
+			// their deal in the first place.
+			invalidDeals[int(dealerIndex)] = true
+		}
 		for holderIndex := range d.c.NewNodes {
 			resp, ok := responses[uint32(holderIndex)]
 			if ok && resp.Status == vss.StatusComplaint {
@@ -549,6 +552,7 @@ func (d *DistKeyGenerator) QualifiedShares() []int {
 
 	// compute list of invalid share holders for valid deals
 	for dealerIndex, verifier := range d.verifiers {
+		// skip analyze of invalid deals
 		if _, present := invalidDeals[int(dealerIndex)]; present {
 			continue
 		}
@@ -572,6 +576,19 @@ func (d *DistKeyGenerator) QualifiedShares() []int {
 	return validHolders
 }
 
+// ExpectedDeals returns the number of deals that this node will
+// receive from the other participants.
+func (d *DistKeyGenerator) ExpectedDeals() int {
+	switch {
+	case d.newPresent && d.oldPresent:
+		return len(d.c.OldNodes) - 1
+	case d.newPresent && !d.oldPresent:
+		return len(d.c.OldNodes)
+	default:
+		return 0
+	}
+}
+
 // QUAL returns the index in the list of participants that forms the QUALIFIED
 // set, i.e. the list of Certified deals.
 // It does NOT take into account any malicious share holder which share may have
@@ -585,7 +602,6 @@ func (d *DistKeyGenerator) QUAL() []int {
 		})
 		return good
 	}
-
 	d.qualIter(func(i uint32, v *vss.Verifier) bool {
 		good = append(good, int(i))
 		return true
@@ -630,7 +646,7 @@ func (d *DistKeyGenerator) oldQualIter(fn func(idx uint32, v *vss.Aggregator) bo
 // The shared secret can be computed when all deals have been sent and
 // basically consists of a public point and a share. The public point is the sum
 // of all aggregated individual public commits of each individual secrets.
-// the share is evaluated from the global Private Polynomial, basically SUM of
+// The share is evaluated from the global Private Polynomial, basically SUM of
 // fj(i) for a receiver i.
 func (d *DistKeyGenerator) DistKeyShare() (*DistKeyShare, error) {
 	if !d.Certified() {

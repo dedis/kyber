@@ -1,4 +1,4 @@
-// +build experimental vartime
+// +build experimental
 
 package curve25519
 
@@ -7,9 +7,9 @@ import (
 	"io"
 	"math/big"
 
-	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/group/internal/marshalling"
-	"github.com/dedis/kyber/group/mod"
+	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/group/internal/marshalling"
+	"go.dedis.ch/kyber/v3/group/mod"
 )
 
 type basicPoint struct {
@@ -57,18 +57,6 @@ func (P *basicPoint) MarshalTo(w io.Writer) (int, error) {
 
 func (P *basicPoint) UnmarshalFrom(r io.Reader) (int, error) {
 	return marshalling.PointUnmarshalFrom(P, r)
-}
-
-func (P *basicPoint) HideLen() int {
-	return P.c.hide.HideLen()
-}
-
-func (P *basicPoint) HideEncode(rand cipher.Stream) []byte {
-	return P.c.hide.HideEncode(P, rand)
-}
-
-func (P *basicPoint) HideDecode(rep []byte) {
-	P.c.hide.HideDecode(P, rep)
 }
 
 // Equal tests for two Points on the same curve

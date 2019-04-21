@@ -1,11 +1,9 @@
-// +build vartime
-
 package nist
 
 import (
 	"testing"
 
-	"github.com/dedis/kyber/util/test"
+	"go.dedis.ch/kyber/v3/util/test"
 )
 
 var testQR512 = NewBlakeSHA256QR512()

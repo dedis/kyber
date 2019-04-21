@@ -1,12 +1,15 @@
 package schnorr
 
 import (
+	"math/rand"
+	"reflect"
 	"testing"
+	"testing/quick"
 
-	"github.com/dedis/kyber/group/edwards25519"
-	"github.com/dedis/kyber/sign/eddsa"
-	"github.com/dedis/kyber/util/key"
 	"github.com/stretchr/testify/assert"
+	"go.dedis.ch/kyber/v3/group/edwards25519"
+	"go.dedis.ch/kyber/v3/sign/eddsa"
+	"go.dedis.ch/kyber/v3/util/key"
 )
 
 func TestSchnorrSignature(t *testing.T) {
@@ -61,4 +64,35 @@ func TestEdDSACompatibility(t *testing.T) {
 		t.Fatalf("Couldn't verify signature: \n%+v\nfor msg:'%s'. Error:\n%v", s, msg, err)
 	}
 
+}
+
+// Simple random stream using the random instance provided by the testing tool
+type quickstream struct {
+	rand *rand.Rand
+}
+
+func (s *quickstream) XORKeyStream(dst, src []byte) {
+	s.rand.Read(dst)
+}
+
+func (s *quickstream) Generate(rand *rand.Rand, size int) reflect.Value {
+	return reflect.ValueOf(&quickstream{rand: rand})
+}
+
+func TestQuickSchnorrSignature(t *testing.T) {
+	f := func(rand *quickstream, msg []byte) bool {
+		suite := edwards25519.NewBlakeSHA256Ed25519WithRand(rand)
+		kp := key.NewKeyPair(suite)
+
+		s, err := Sign(suite, kp.Private, msg)
+		if err != nil {
+			return false
+		}
+
+		return Verify(suite, kp.Public, msg, s) == nil
+	}
+
+	if err := quick.Check(f, nil); err != nil {
+		t.Error(err)
+	}
 }
