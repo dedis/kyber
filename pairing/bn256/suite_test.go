@@ -3,10 +3,9 @@ package bn256
 import (
 	"bytes"
 	"fmt"
-	"testing"
-
 	"go.dedis.ch/kyber/v3"
 	"go.dedis.ch/protobuf"
+	"testing"
 
 	"github.com/stretchr/testify/require"
 	"go.dedis.ch/kyber/v3/group/mod"
@@ -70,7 +69,7 @@ func TestG1(t *testing.T) {
 	ma, err := pa.MarshalBinary()
 	require.Nil(t, err)
 
-	pb := new(bn256.G1).ScalarBaseMult(&k.(*scalarDescribing).Int.V)
+	pb := new(bn256.G1).ScalarBaseMult(&k.(*mod.Int).V)
 	mb := pb.Marshal()
 
 	require.Equal(t, ma, mb)
@@ -122,7 +121,7 @@ func TestG2(t *testing.T) {
 	require.Equal(t, "bn256.g2", fmt.Sprintf("%s", pa.(*pointG2).MarshalID()))
 	ma, err := pa.MarshalBinary()
 	require.Nil(t, err)
-	pb := new(bn256.G2).ScalarBaseMult(&k.(*scalarDescribing).Int.V)
+	pb := new(bn256.G2).ScalarBaseMult(&k.(*mod.Int).V)
 	mb := pb.Marshal()
 	require.Equal(t, ma, mb)
 }
@@ -187,7 +186,7 @@ func TestGT(t *testing.T) {
 	if !ok {
 		t.Fatal("unmarshal not ok")
 	}
-	pb.ScalarMult(pb, &k.(*scalarDescribing).Int.V)
+	pb.ScalarMult(pb, &k.(*mod.Int).V)
 	mb := pb.Marshal()
 	require.Equal(t, ma, mb)
 }
