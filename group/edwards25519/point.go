@@ -29,11 +29,6 @@ var marshalPointID = [8]byte{'e', 'd', '.', 'p', 'o', 'i', 'n', 't'}
 type point struct {
 	ge      extendedGroupElement
 	varTime bool
-	curve   *Curve
-}
-
-func (P *point) Group() kyber.Group {
-	return P.curve
 }
 
 func (P *point) String() string {

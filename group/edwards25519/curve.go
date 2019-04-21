@@ -31,7 +31,7 @@ func (c *Curve) ScalarLen() int {
 // compatible with other Ed25519 implementations, and with the standard implementation
 // of the EdDSA signature.
 func (c *Curve) Scalar() kyber.Scalar {
-	return &scalar{curve: c}
+	return &scalar{}
 }
 
 // PointLen returns 32, the size in bytes of an encoded Point on the Ed25519 curve.
@@ -42,7 +42,6 @@ func (c *Curve) PointLen() int {
 // Point creates a new Point on the Ed25519 curve.
 func (c *Curve) Point() kyber.Point {
 	P := new(point)
-	P.curve = c
 	return P
 }
 

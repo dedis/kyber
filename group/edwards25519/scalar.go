@@ -26,12 +26,7 @@ import (
 var marshalScalarID = [8]byte{'e', 'd', '.', 's', 'c', 'a', 'l', 'a'}
 
 type scalar struct {
-	v     [32]byte
-	curve *Curve
-}
-
-func (s *scalar) Group() kyber.Group {
-	return s.curve
+	v [32]byte
 }
 
 // Equality test for two Scalars derived from the same Group
