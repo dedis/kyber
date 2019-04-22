@@ -264,7 +264,6 @@ func (d *DistKeyGenerator) Deals() (map[int]*Deal, error) {
 			return nil, err
 		}
 		distd.Signature, err = schnorr.Sign(d.suite, d.long, buff)
-		//fmt.Println("dkg", d.oidx, d.nidx, " msg = ", hex.EncodeToString(buff)[0:16], "signature = ", hex.EncodeToString(distd.Signature)[0:16], err)
 		if err != nil {
 			return nil, err
 		}
@@ -316,10 +315,7 @@ func (d *DistKeyGenerator) ProcessDeal(dd *Deal) (*Response, error) {
 		return nil, err
 	}
 
-	ver, exists := d.verifiers[dd.Index]
-	if !exists {
-		panic("aieAieaie")
-	}
+	ver, _ := d.verifiers[dd.Index]
 
 	resp, err := ver.ProcessEncryptedDeal(dd.Deal)
 	if err != nil {
@@ -786,26 +782,6 @@ func (d *DistKeyGenerator) initVerifiers(c *Config) error {
 		verifiers[uint32(i)] = ver
 	}
 	d.verifiers = verifiers
-
-	/*// we include some of the old nodes that are not in the new list because the*/
-	//// old nodes are generating the deals, so all nodes need to have a verifier
-	//// to process those deals (those coming from old nodes not in the new list)
-	//for i, pub := range c.OldNodes {
-	//if _, exists := alreadyTaken[pub.String()]; exists {
-	//continue
-	//}
-	//ver, err := vss.NewVerifier(c.Suite, c.Longterm, pub, list)
-	//if err != nil {
-	//return err
-	//}
-	//// however, if we have a old group disjoint, we will overwrite this
-	//// entry. That is the reason we go via public key
-	//if _, ok := verifiers[pub]; ok {
-	//panic(fmt.Sprintf("we should prevent that index %d", i))
-	//}
-	//verifiers[pub] = ver
-	/*}*/
-
 	return nil
 }
 
