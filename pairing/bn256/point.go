@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"crypto/subtle"
 	"errors"
+	"fmt"
 	"io"
 	"math/big"
 
@@ -62,7 +63,34 @@ func (p *pointG1) Clone() kyber.Point {
 }
 
 func (p *pointG1) EmbedLen() int {
-	panic("bn256.G1: unsupported operation")
+	return (255 - 8 - 8) / 8
+}
+
+func gfpToBig(gfp *gfP) *big.Int {
+	bigInt := new(big.Int)
+	decoded := new(gfP)
+	montDecode(decoded, gfp)
+	buf := make([]byte, 32)
+	decoded.Marshal(buf)
+	bigInt.SetBytes(buf)
+	return bigInt
+}
+
+func bigToGfp(bigX *big.Int) *gfP {
+	leftPad32 := func(in []byte) []byte {
+		if len(in) > 32 {
+			panic("input cannot be more than 32 bytes")
+		}
+
+		out := make([]byte, 32)
+		copy(out[32-len(in):], in)
+		return out
+	}
+
+	x := new(gfP)
+	x.Unmarshal(leftPad32(bigX.Bytes()))
+	montEncode(x, x)
+	return x
 }
 
 func (p *pointG1) Embed(data []byte, rand cipher.Stream) kyber.Point {
@@ -72,11 +100,61 @@ func (p *pointG1) Embed(data []byte, rand cipher.Stream) kyber.Point {
 	//   filled with random values, i.e., x = rand || data || len(data).
 	// - Use the Tonelli-Shanks algorithm to compute the y-coordinate.
 	// - Convert the new point to Jacobian coordinates and set it as p.
-	panic("bn256.G1: unsupported operation")
+
+	// How many bytes to embed?
+	dl := p.EmbedLen()
+	if dl > len(data) {
+		dl = len(data)
+	}
+
+	intCurveB := gfpToBig(curveB)
+
+	// For debugging bad inputs
+	counter := 0
+	for {
+		// Pick a random point, with optional embedded data
+		var b [32]byte
+		rand.XORKeyStream(b[:], b[:])
+		if data != nil {
+			b[0] = byte(dl)       // Encode length in low 8 bits
+			copy(b[1:1+dl], data) // Copy in data to embed
+		}
+		x := new(big.Int).SetBytes(b[:])
+
+		xxx := new(big.Int).Mul(x, x)
+		xxx.Mul(xxx, x)
+		xxx.Mod(xxx, P)
+
+		t := new(big.Int).Add(xxx, intCurveB)
+		y := new(big.Int).ModSqrt(t, P)
+		if y != nil {
+			p.g.x = *bigToGfp(x)
+			p.g.y = *bigToGfp(y)
+			p.g.z = *newGFp(1)
+			if p.g.IsOnCurve() {
+				return p
+			}
+		}
+		// Debug bad inputs
+		counter++
+		if counter%10000 == 0 {
+			fmt.Println(counter)
+		}
+	}
 }
 
 func (p *pointG1) Data() ([]byte, error) {
-	panic("bn256.G1: unsupported operation")
+	var b [32]byte
+	x := new(gfP)
+	x.Set(&p.g.x)
+	montDecode(x, x)
+	x.Marshal(b[:])
+
+	dl := int(b[0]) // extract length byte
+	if dl > p.EmbedLen() {
+		return nil, errors.New("invalid embedded data length")
+	}
+	return b[1 : 1+dl], nil
 }
 
 func (p *pointG1) Add(a, b kyber.Point) kyber.Point {
