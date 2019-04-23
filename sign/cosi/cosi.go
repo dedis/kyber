@@ -225,6 +225,15 @@ func Verify(suite Suite, publics []kyber.Point, message, sig []byte, policy Poli
 	return nil
 }
 
+// ParticipationMask is an interface to get the total number of candidates
+// and the number of participants.
+type ParticipationMask interface {
+	// CountEnabled returns the number of participants
+	CountEnabled() int
+	// CountTotal returns the number of candidates
+	CountTotal() int
+}
+
 // Mask represents a cosigning participation bitmask.
 type Mask struct {
 	mask            []byte
@@ -372,7 +381,7 @@ func AggregateMasks(a, b []byte) ([]byte, error) {
 // the operation relying on the collective signature is) in determining whether
 // the collective signature was produced by an acceptable set of cosigners.
 type Policy interface {
-	Check(m *Mask) bool
+	Check(m ParticipationMask) bool
 }
 
 // CompletePolicy is the default policy requiring that all participants have
@@ -382,7 +391,7 @@ type CompletePolicy struct {
 
 // Check verifies that all participants have contributed to a collective
 // signature.
-func (p CompletePolicy) Check(m *Mask) bool {
+func (p CompletePolicy) Check(m ParticipationMask) bool {
 	return m.CountEnabled() == m.CountTotal()
 }
 
@@ -400,6 +409,6 @@ func NewThresholdPolicy(thold int) *ThresholdPolicy {
 
 // Check verifies that at least a threshold number of participants have
 // contributed to a collective signature.
-func (p ThresholdPolicy) Check(m *Mask) bool {
+func (p ThresholdPolicy) Check(m ParticipationMask) bool {
 	return m.CountEnabled() >= p.thold
 }
