@@ -1,4 +1,4 @@
-// Package sign contains useful tools for the different signin algorithms
+// Package sign contains useful tools for the different signing algorithms.
 package sign
 
 import (
@@ -9,14 +9,14 @@ import (
 	"go.dedis.ch/kyber/v3/pairing"
 )
 
-// Mask is a bitmask of the participation to a collective signature
+// Mask is a bitmask of the participation to a collective signature.
 type Mask struct {
 	mask    []byte
 	publics []kyber.Point
 }
 
 // NewMask creates a new mask from a list of public keys. If a key is provided, it
-// will set the bit of the key to 1 or return an error if it is not found
+// will set the bit of the key to 1 or return an error if it is not found.
 func NewMask(suite pairing.Suite, publics []kyber.Point, myKey kyber.Point) (*Mask, error) {
 	m := &Mask{
 		publics: publics,
@@ -37,19 +37,19 @@ func NewMask(suite pairing.Suite, publics []kyber.Point, myKey kyber.Point) (*Ma
 	return m, nil
 }
 
-// Mask returns the bitmask as a byte array
+// Mask returns the bitmask as a byte array.
 func (m *Mask) Mask() []byte {
 	clone := make([]byte, len(m.mask))
 	copy(clone[:], m.mask)
 	return clone
 }
 
-// Len returns the length of the byte array necessary to store the bitmask
+// Len returns the length of the byte array necessary to store the bitmask.
 func (m *Mask) Len() int {
 	return (len(m.publics) + 7) / 8
 }
 
-// SetMask replaces the current mask by the new one if the length matches
+// SetMask replaces the current mask by the new one if the length matches.
 func (m *Mask) SetMask(mask []byte) error {
 	if m.Len() != len(mask) {
 		return fmt.Errorf("mismatching mask lengths")
@@ -59,7 +59,7 @@ func (m *Mask) SetMask(mask []byte) error {
 	return nil
 }
 
-// SetBit turns on or off the bit at the given index
+// SetBit turns on or off the bit at the given index.
 func (m *Mask) SetBit(i int, enable bool) error {
 	if i >= len(m.publics) || i < 0 {
 		return errors.New("index out of range")
@@ -76,7 +76,7 @@ func (m *Mask) SetBit(i int, enable bool) error {
 }
 
 // forEachBitEnabled is a helper to iterate over the bits set to 1 in the mask
-// and to return the result of the callback only if it is positive
+// and to return the result of the callback only if it is positive.
 func (m *Mask) forEachBitEnabled(f func(i, j, n int) int) int {
 	n := 0
 	for i, b := range m.mask {
@@ -96,7 +96,7 @@ func (m *Mask) forEachBitEnabled(f func(i, j, n int) int) int {
 	return -1
 }
 
-// IndexOfNthEnabled returns the index of the nth enabled bit or -1 if out of bound
+// IndexOfNthEnabled returns the index of the nth enabled bit or -1 if out of bounds.
 func (m *Mask) IndexOfNthEnabled(nth int) int {
 	return m.forEachBitEnabled(func(i, j, n int) int {
 		if n == nth {
@@ -119,14 +119,14 @@ func (m *Mask) NthEnabledAtIndex(idx int) int {
 	})
 }
 
-// Publics returns a copy of the list of public keys
+// Publics returns a copy of the list of public keys.
 func (m *Mask) Publics() []kyber.Point {
 	pubs := make([]kyber.Point, len(m.publics))
 	copy(pubs, m.publics)
 	return pubs
 }
 
-// Participants returns the list of public keys participating
+// Participants returns the list of public keys participating.
 func (m *Mask) Participants() []kyber.Point {
 	pp := []kyber.Point{}
 	for i, p := range m.publics {

@@ -226,7 +226,7 @@ func Verify(suite Suite, publics []kyber.Point, message, sig []byte, policy Poli
 }
 
 // ParticipationMask is an interface to get the total number of candidates
-// and the number of participants
+// and the number of participants.
 type ParticipationMask interface {
 	// CountEnabled returns the number of participants
 	CountEnabled() int

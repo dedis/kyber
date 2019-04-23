@@ -1,7 +1,7 @@
 // Package asmbls implements the Accountable-Subgroup Multi-BLS scheme which is
-// a robust implement of the bls package against rogue public-key attacks. Those
+// an implementation of the bls package which is robust against rogue public-key attacks. Those
 // attacks could allow an attacker to forge a public-key and then make a verifiable
-// signature for an aggregation of signatures. It basically fixes the situation by
+// signature for an aggregation of signatures. It fixes the situation by
 // adding coefficients to the aggregate.
 //
 // See the paper: https://crypto.stanford.edu/~dabo/pubs/papers/BLSmultisig.html
