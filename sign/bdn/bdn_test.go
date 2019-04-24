@@ -1,4 +1,4 @@
-package asmbls
+package bdn
 
 import (
 	"testing"
@@ -17,7 +17,7 @@ var two = suite.Scalar().Add(suite.Scalar().One(), suite.Scalar().One())
 var three = suite.Scalar().Add(two, suite.Scalar().One())
 
 // Reference test for other languages
-func TestBLS2_HashPointToR_BN256(t *testing.T) {
+func TestBDN_HashPointToR_BN256(t *testing.T) {
 	p1 := suite.Point().Base()
 	p2 := suite.Point().Mul(two, suite.Point().Base())
 	p3 := suite.Point().Mul(three, suite.Point().Base())
@@ -31,7 +31,7 @@ func TestBLS2_HashPointToR_BN256(t *testing.T) {
 	require.Equal(t, 16, coefs[0].MarshalSize())
 }
 
-func TestBLS2_AggregateSignatures(t *testing.T) {
+func TestBDN_AggregateSignatures(t *testing.T) {
 	msg := []byte("Hello Boneh-Lynn-Shacham")
 	suite := bn256.NewSuite()
 	private1, public1 := NewKeyPair(suite, random.New())
@@ -66,7 +66,7 @@ func TestBLS2_AggregateSignatures(t *testing.T) {
 	require.Error(t, err)
 }
 
-func TestBLS2_SubsetSignature(t *testing.T) {
+func TestBDN_SubsetSignature(t *testing.T) {
 	msg := []byte("Hello Boneh-Lynn-Shacham")
 	suite := bn256.NewSuite()
 	private1, public1 := NewKeyPair(suite, random.New())
@@ -93,7 +93,7 @@ func TestBLS2_SubsetSignature(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestBLS2_RogueAttack(t *testing.T) {
+func TestBDN_RogueAttack(t *testing.T) {
 	msg := []byte("Hello Boneh-Lynn-Shacham")
 	suite := bn256.NewSuite()
 	// honest
@@ -122,7 +122,7 @@ func TestBLS2_RogueAttack(t *testing.T) {
 	require.Error(t, Verify(suite, agg, msg, sig))
 }
 
-func Benchmark_BLS2_AggregateSigs(b *testing.B) {
+func Benchmark_BDN_AggregateSigs(b *testing.B) {
 	suite := bn256.NewSuite()
 	private1, public1 := NewKeyPair(suite, random.New())
 	private2, public2 := NewKeyPair(suite, random.New())

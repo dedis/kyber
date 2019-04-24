@@ -1,11 +1,13 @@
-// Package asmbls implements the Accountable-Subgroup Multi-BLS scheme which is
+// Package bdn implements the Boneh-Drijvers-Neven signature scheme which is
 // an implementation of the bls package which is robust against rogue public-key attacks. Those
 // attacks could allow an attacker to forge a public-key and then make a verifiable
 // signature for an aggregation of signatures. It fixes the situation by
 // adding coefficients to the aggregate.
 //
-// See the paper: https://crypto.stanford.edu/~dabo/pubs/papers/BLSmultisig.html
-package asmbls
+// See the papers:
+// https://eprint.iacr.org/2018/483.pdf
+// https://crypto.stanford.edu/~dabo/pubs/papers/BLSmultisig.html
+package bdn
 
 import (
 	"crypto/cipher"
