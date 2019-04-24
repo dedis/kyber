@@ -5,7 +5,7 @@
 // Deprecated: This version is vulnerable to rogue public-key attack and the
 // new version of the protocol should be used to make sure a signature
 // aggregate cannot be verified by a forged key. You can find the protocol
-// in kyber/sign/asmbls. Note that only the aggregation is broken against the
+// in kyber/sign/bdn. Note that only the aggregation is broken against the
 // attack and a later version will merge bls and asmbls.
 //
 // See the paper: https://crypto.stanford.edu/~dabo/pubs/papers/BLSmultisig.html
