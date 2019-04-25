@@ -229,7 +229,7 @@ func xyScalar(g kyber.Group, shares []*PriShare, t, n int) (map[int]kyber.Scalar
 	x := make(map[int]kyber.Scalar)
 	y := make(map[int]kyber.Scalar)
 	for _, s := range sorted {
-		if s == nil || s.V == nil || s.I < 0 || n <= s.I {
+		if s == nil || s.V == nil || s.I < 0 {
 			continue
 		}
 		idx := s.I
@@ -425,7 +425,7 @@ func xyCommit(g kyber.Group, shares []*PubShare, t, n int) (map[int]kyber.Scalar
 	y := make(map[int]kyber.Point)
 
 	for _, s := range sorted {
-		if s == nil || s.V == nil || s.I < 0 || n <= s.I {
+		if s == nil || s.V == nil || s.I < 0 {
 			continue
 		}
 		idx := s.I

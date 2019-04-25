@@ -47,7 +47,7 @@ func TestSecretRecoveryOutIndex(test *testing.T) {
 	require.Len(test, selected, t)
 	newN := t + 1
 
-	recovered, err := RecoverSecret(g, shares, t, newN)
+	recovered, err := RecoverSecret(g, selected, t, newN)
 	if err != nil {
 		test.Fatal(err)
 	}
@@ -176,7 +176,7 @@ func TestPublicRecoveryOutIndex(test *testing.T) {
 	require.Len(test, selected, t)
 	newN := t + 1
 
-	recovered, err := RecoverCommit(g, pubShares, t, newN)
+	recovered, err := RecoverCommit(g, selected, t, newN)
 	if err != nil {
 		test.Fatal(err)
 	}
