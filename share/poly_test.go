@@ -25,6 +25,38 @@ func TestSecretRecovery(test *testing.T) {
 		test.Fatal("recovered secret does not match initial value")
 	}
 }
+
+// tests the recovery of a secret when one of the share has an index
+// higher than the given `n`. This is a valid scenario that can happens during
+// a DKG-resharing:
+// 1. we add a new node n6 to an already-established group of 5 nodes.
+// 2. DKG runs without the first node in the group, i.e. without n1
+// 3. The list of qualified shares are [n2 ... n6] so the new resulting group
+//    has 5 members (no need to keep the 1st node around).
+// 4. When n6 wants to reconstruct, it will give its index given during the
+// resharing, i.e. 6 (or 5 in 0-based indexing) whereas n = 5.
+// See TestPublicRecoveryOutIndex for testing with the commitment.
+func TestSecretRecoveryOutIndex(test *testing.T) {
+	g := edwards25519.NewBlakeSHA256Ed25519()
+	n := 10
+	t := n/2 + 1
+	poly := NewPriPoly(g, t, nil, g.RandomStream())
+	shares := poly.Shares(n)
+
+	selected := shares[n-t:]
+	require.Len(test, selected, t)
+	newN := t + 1
+
+	recovered, err := RecoverSecret(g, shares, t, newN)
+	if err != nil {
+		test.Fatal(err)
+	}
+
+	if !recovered.Equal(poly.Secret()) {
+		test.Fatal("recovered secret does not match initial value")
+	}
+}
+
 func TestSecretRecoveryDelete(test *testing.T) {
 	g := edwards25519.NewBlakeSHA256Ed25519()
 	n := 10
@@ -115,6 +147,36 @@ func TestPublicRecovery(test *testing.T) {
 	pubShares := pubPoly.Shares(n)
 
 	recovered, err := RecoverCommit(g, pubShares, t, n)
+	if err != nil {
+		test.Fatal(err)
+	}
+
+	if !recovered.Equal(pubPoly.Commit()) {
+		test.Fatal("recovered commit does not match initial value")
+	}
+
+	polyRecovered, err := RecoverPubPoly(g, pubShares, t, n)
+	if err != nil {
+		test.Fatal(err)
+	}
+
+	require.True(test, pubPoly.Equal(polyRecovered))
+}
+
+func TestPublicRecoveryOutIndex(test *testing.T) {
+	g := edwards25519.NewBlakeSHA256Ed25519()
+	n := 10
+	t := n/2 + 1
+
+	priPoly := NewPriPoly(g, t, nil, g.RandomStream())
+	pubPoly := priPoly.Commit(nil)
+	pubShares := pubPoly.Shares(n)
+
+	selected := pubShares[n-t:]
+	require.Len(test, selected, t)
+	newN := t + 1
+
+	recovered, err := RecoverCommit(g, pubShares, t, newN)
 	if err != nil {
 		test.Fatal(err)
 	}

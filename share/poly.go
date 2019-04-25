@@ -15,6 +15,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 
 	"go.dedis.ch/kyber/v3"
@@ -204,6 +205,12 @@ func RecoverSecret(g kyber.Group, shares []*PriShare, t, n int) (kyber.Scalar, e
 	return acc, nil
 }
 
+type byIndexScalar []*PriShare
+
+func (s byIndexScalar) Len() int           { return len(s) }
+func (s byIndexScalar) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
+func (s byIndexScalar) Less(i, j int) bool { return s[i].I < s[j].I }
+
 // xyScalar returns the list of (x_i, y_i) pairs indexed. The first map returned
 // is the list of x_i and the second map is the list of y_i, both indexed in
 // their respective map at index i.
@@ -211,16 +218,13 @@ func xyScalar(g kyber.Group, shares []*PriShare, t, n int) (map[int]kyber.Scalar
 	// we are sorting first the shares since the shares may be unrelated for
 	// some applications. In this case, all participants needs to interpolate on
 	// the exact same order shares.
-	// XXX naive n^2 sorting => move that to inplace golang native sort
-	sorted := make([]*PriShare, n)
-	for i := 0; i < len(shares); i++ {
-		if shares[i] != nil {
-			sorted[shares[i].I] = shares[i]
+	sorted := make([]*PriShare, 0, n)
+	for _, share := range shares {
+		if share != nil {
+			sorted = append(sorted, share)
 		}
 	}
-	if len(sorted) < len(shares) {
-		panic("that should not happen")
-	}
+	sort.Sort(byIndexScalar(sorted))
 
 	x := make(map[int]kyber.Scalar)
 	y := make(map[int]kyber.Scalar)
@@ -398,22 +402,25 @@ func (p *PubPoly) Check(s *PriShare) bool {
 	return pv.V.Equal(ps)
 }
 
+type byIndexPub []*PubShare
+
+func (s byIndexPub) Len() int           { return len(s) }
+func (s byIndexPub) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
+func (s byIndexPub) Less(i, j int) bool { return s[i].I < s[j].I }
+
 // xyCommits is the public version of xScalars.
 func xyCommit(g kyber.Group, shares []*PubShare, t, n int) (map[int]kyber.Scalar, map[int]kyber.Point) {
 	// we are sorting first the shares since the shares may be unrelated for
 	// some applications. In this case, all participants needs to interpolate on
 	// the exact same order shares.
-	// XXX naive n^2 sorting => move that to inplace golang native sort
-	sorted := make([]*PubShare, n)
-	for i := 0; i < len(shares); i++ {
-		if shares[i] != nil {
-			sorted[shares[i].I] = shares[i]
+	sorted := make([]*PubShare, 0, n)
+	for _, share := range shares {
+		if share != nil {
+			sorted = append(sorted, share)
 		}
 	}
+	sort.Sort(byIndexPub(sorted))
 
-	if len(sorted) < len(shares) {
-		panic("that should not happen")
-	}
 	x := make(map[int]kyber.Scalar)
 	y := make(map[int]kyber.Point)
 
