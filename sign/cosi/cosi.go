@@ -380,12 +380,16 @@ func AggregateMasks(a, b []byte) ([]byte, error) {
 // use any other relevant contextual information (e.g., how security-critical
 // the operation relying on the collective signature is) in determining whether
 // the collective signature was produced by an acceptable set of cosigners.
+//
+// Deprecated: the policies have moved to the package kyber/sign
 type Policy interface {
 	Check(m ParticipationMask) bool
 }
 
 // CompletePolicy is the default policy requiring that all participants have
 // cosigned to make a collective signature valid.
+//
+// Deprecated: the policy has moved to the package kyber/sign
 type CompletePolicy struct {
 }
 
@@ -398,11 +402,15 @@ func (p CompletePolicy) Check(m ParticipationMask) bool {
 // ThresholdPolicy allows to specify a simple t-of-n policy requring that at
 // least the given threshold number of participants t have cosigned to make a
 // collective signature valid.
+//
+// Deprecated: the policy has moved to the package kyber/sign
 type ThresholdPolicy struct {
 	thold int
 }
 
 // NewThresholdPolicy returns a new ThresholdPolicy with the given threshold.
+//
+// Deprecated: the policy has moved to the package kyber/sign
 func NewThresholdPolicy(thold int) *ThresholdPolicy {
 	return &ThresholdPolicy{thold: thold}
 }
