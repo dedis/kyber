@@ -466,17 +466,17 @@ func (d *DistKeyGenerator) SetTimeout() {
 	}
 }
 
-// Certified returns true if a THRESHOLD of deals are certified. To know the
+// ThresholdCertified returns true if a THRESHOLD of deals are certified. To know the
 // list of correct receiver, one can call d.QUAL()
 // NOTE:
 // This method should only be used after a certain timeout - mimicking the
 // synchronous assumption of the Pedersen's protocol. One can call
-// `FullyCertified()` to check if the DKG is finished and stops it pre-emptively
+// `Certified()` to check if the DKG is finished and stops it pre-emptively
 // if all deals are correct.  If called *before* the timeout, there may be
 // inconsistencies in the shares produced. For example, node 1 could have
 // aggregated shares from 1, 2, 3 and node 2 could have aggregated shares from
 // 2, 3 and 4.
-func (d *DistKeyGenerator) Certified() bool {
+func (d *DistKeyGenerator) ThresholdCertified() bool {
 	if d.isResharing {
 		// in resharing case, we have two threshold. Here we want the number of
 		// deals to be at least what the old threshold was. (and for each deal,
@@ -488,10 +488,10 @@ func (d *DistKeyGenerator) Certified() bool {
 	return len(d.QUAL()) >= d.c.NewThreshold
 }
 
-// FullyCertified returns true if *all* deals are certified. This method should
+// Certified returns true if *all* deals are certified. This method should
 // be called before the timeout occurs, as to pre-emptively stop the DKG
 // protocol if it is already finished before the timeout.
-func (d *DistKeyGenerator) FullyCertified() bool {
+func (d *DistKeyGenerator) Certified() bool {
 	var good []int
 	if d.isResharing && d.canIssue && !d.newPresent {
 		d.oldQualIter(func(i uint32, v *vss.Aggregator) bool {
@@ -645,7 +645,7 @@ func (d *DistKeyGenerator) oldQualIter(fn func(idx uint32, v *vss.Aggregator) bo
 // The share is evaluated from the global Private Polynomial, basically SUM of
 // fj(i) for a receiver i.
 func (d *DistKeyGenerator) DistKeyShare() (*DistKeyShare, error) {
-	if !d.Certified() {
+	if !d.ThresholdCertified() {
 		return nil, errors.New("dkg: distributed key not certified")
 	}
 	if !d.canReceive {

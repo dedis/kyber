@@ -355,8 +355,8 @@ func TestDKGResharingThreshold(t *testing.T) {
 		if !dkg.newPresent {
 			continue
 		}
-		require.False(t, dkg.FullyCertified())
-		require.True(t, dkg.Certified())
+		require.False(t, dkg.Certified())
+		require.True(t, dkg.ThresholdCertified())
 		dks, err := dkg.DistKeyShare()
 		require.NoError(t, err)
 		dkss = append(dkss, dks)
@@ -489,8 +489,8 @@ func TestDKGThreshold(t *testing.T) {
 
 	for _, dkg := range thrDKGs {
 		require.Equal(t, newTotal, len(dkg.QUAL()))
-		require.True(t, dkg.Certified())
-		require.False(t, dkg.FullyCertified())
+		require.True(t, dkg.ThresholdCertified())
+		require.False(t, dkg.Certified())
 		qualShares := dkg.QualifiedShares()
 		for _, dkg2 := range thrDKGs {
 			require.Contains(t, qualShares, dkg2.nidx)
