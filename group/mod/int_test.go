@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestIntEndianness(t *testing.T) {
@@ -74,6 +75,15 @@ func TestInits(t *testing.T) {
 	assert.True(t, i1.Equal(i3))
 	i4 := NewIntString(i1.String(), "", 16, i1.M)
 	assert.True(t, i1.Equal(i4))
+}
+
+func TestInit128bits(t *testing.T) {
+	m := new(big.Int).Lsh(big.NewInt(1), 128)
+	m = m.Sub(m, big.NewInt(1))
+
+	i1 := NewInt(big.NewInt(1), m)
+	// size in bytes
+	require.Equal(t, 16, i1.MarshalSize())
 }
 
 func TestIntClone(t *testing.T) {
