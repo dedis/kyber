@@ -1,6 +1,7 @@
 package bdn
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -29,6 +30,19 @@ func TestBDN_HashPointToR_BN256(t *testing.T) {
 	require.Equal(t, "14dcc79d46b09b93075266e47cd4b19e", coefs[1].String())
 	require.Equal(t, "933f6013eb3f654f9489d6d45ad04eaf", coefs[2].String())
 	require.Equal(t, 16, coefs[0].MarshalSize())
+
+	mask, _ := sign.NewMask(suite, []kyber.Point{p1, p2, p3}, nil)
+	mask.SetBit(0, true)
+	mask.SetBit(1, true)
+	mask.SetBit(2, true)
+
+	agg, err := AggregatePublicKeys(suite, mask)
+	require.NoError(t, err)
+
+	buf, err := agg.MarshalBinary()
+	require.NoError(t, err)
+	ref := "1432ef60379c6549f7e0dbaf289cb45487c9d7da91fc20648f319a9fbebb23164abea76cdf7b1a3d20d539d9fe096b1d6fb3ee31bf1d426cd4a0d09d603b09f55f473fde972aa27aa991c249e890c1e4a678d470592dd09782d0fb3774834f0b2e20074a49870f039848a6b1aff95e1a1f8170163c77098e1f3530744d1826ce"
+	require.Equal(t, ref, fmt.Sprintf("%x", buf))
 }
 
 func TestBDN_AggregateSignatures(t *testing.T) {
