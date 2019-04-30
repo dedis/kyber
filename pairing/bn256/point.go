@@ -120,10 +120,10 @@ func (p *pointG1) Embed(data []byte, rand cipher.Stream) kyber.Point {
 
 		xxx := new(big.Int).Mul(x, x)
 		xxx.Mul(xxx, x)
-		xxx.Mod(xxx, P)
+		xxx.Mod(xxx, Order)
 
 		t := new(big.Int).Add(xxx, intCurveB)
-		y := new(big.Int).ModSqrt(t, P)
+		y := new(big.Int).ModSqrt(t, Order)
 		if y != nil {
 			p.g.x = *bigToGfp(x)
 			p.g.y = *bigToGfp(y)
@@ -139,10 +139,15 @@ func (p *pointG1) Embed(data []byte, rand cipher.Stream) kyber.Point {
 
 func (p *pointG1) Data() ([]byte, error) {
 	var b [32]byte
-	x := new(gfP)
-	x.Set(&p.g.x)
-	montDecode(x, x)
-	x.Marshal(b[:])
+
+	pgtemp := *p.g
+	pgtemp.MakeAffine()
+	if pgtemp.IsInfinity() {
+		return b[:], nil
+	}
+	tmp := &gfP{}
+	montDecode(tmp, &pgtemp.x)
+	tmp.Marshal(b[:])
 
 	dl := int(b[0]) // extract length byte
 	if dl > p.EmbedLen() {
