@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"crypto/subtle"
 	"errors"
-	"fmt"
 	"io"
 	"math/big"
 
@@ -109,8 +108,6 @@ func (p *pointG1) Embed(data []byte, rand cipher.Stream) kyber.Point {
 
 	intCurveB := gfpToBig(curveB)
 
-	// For debugging bad inputs
-	counter := 0
 	for {
 		// Pick a random point, with optional embedded data
 		var b [32]byte
@@ -131,14 +128,11 @@ func (p *pointG1) Embed(data []byte, rand cipher.Stream) kyber.Point {
 			p.g.x = *bigToGfp(x)
 			p.g.y = *bigToGfp(y)
 			p.g.z = *newGFp(1)
-			if p.g.IsOnCurve() {
+			q := newPointG1()
+			t := q.Sub(p, p)
+			if t.Equal(q.Null()) {
 				return p
 			}
-		}
-		// Debug bad inputs
-		counter++
-		if counter%10000 == 0 {
-			fmt.Println(counter)
 		}
 	}
 }
