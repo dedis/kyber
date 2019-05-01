@@ -471,17 +471,16 @@ func TestDKGThreshold(t *testing.T) {
 
 	for _, dkg := range thrDKGs {
 		for i, v := range dkg.verifiers {
-			if alreadyTaken[int(i)] {
-				require.True(t, v.EnoughApprovals())
-			} else {
-				var app int
-				for _, r := range v.Responses() {
-					if r.Status == vss.StatusApproval {
-						app++
-					}
+			var app int
+			for _, r := range v.Responses() {
+				if r.Status == vss.StatusApproval {
+					app++
 				}
+			}
+			if alreadyTaken[int(i)] {
+				require.Equal(t, len(alreadyTaken), app)
+			} else {
 				require.Equal(t, 0, app)
-				require.False(t, v.EnoughApprovals())
 			}
 		}
 		dkg.SetTimeout()
