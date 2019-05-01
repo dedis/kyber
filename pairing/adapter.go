@@ -27,12 +27,12 @@ func NewSuiteBn256() *SuiteBn256 {
 // Point generates a point from the G2 group that can only be used
 // for public keys
 func (s *SuiteBn256) Point() kyber.Point {
-	return s.G1().Point()
+	return s.G2().Point()
 }
 
 // PointLen returns the length of a G2 point
 func (s *SuiteBn256) PointLen() int {
-	return s.G1().PointLen()
+	return s.G2().PointLen()
 }
 
 // Scalar generates a scalar
