@@ -271,7 +271,7 @@ func TestDKGResharingThreshold(t *testing.T) {
 			OldNodes:     publics,
 			NewNodes:     newPubs,
 			Share:        shares[i],
-			NewThreshold: newT,
+			Threshold:    newT,
 			OldThreshold: oldT,
 		}
 		newDkgs[i], err = NewDistKeyHandler(c)
@@ -283,8 +283,8 @@ func TestDKGResharingThreshold(t *testing.T) {
 		OldNodes:     publics,
 		NewNodes:     newPubs,
 		PublicCoeffs: shares[0].Commits,
+		Threshold:    newT,
 		OldThreshold: oldT,
-		NewThreshold: newT,
 	})
 	require.NoError(t, err)
 
@@ -760,7 +760,7 @@ func TestDKGResharingNewNodesThreshold(t *testing.T) {
 			OldNodes:     oldPubs,
 			NewNodes:     newPubs,
 			Share:        shares[i],
-			NewThreshold: newT,
+			Threshold:    newT,
 			OldThreshold: oldT,
 		}
 		oldDkgs[i], err = NewDistKeyHandler(c)
@@ -779,7 +779,7 @@ func TestDKGResharingNewNodesThreshold(t *testing.T) {
 			OldNodes:     oldPubs,
 			NewNodes:     newPubs,
 			PublicCoeffs: shares[0].Commits,
-			NewThreshold: newT,
+			Threshold:    newT,
 			OldThreshold: oldT,
 		}
 		newDkgs[i], err = NewDistKeyHandler(c)
@@ -928,7 +928,7 @@ func TestDKGResharingNewNodes(t *testing.T) {
 			OldNodes:     oldPubs,
 			NewNodes:     newPubs,
 			Share:        shares[i],
-			NewThreshold: newT,
+			Threshold:    newT,
 			OldThreshold: oldT,
 		}
 		oldDkgs[i], err = NewDistKeyHandler(c)
@@ -957,7 +957,7 @@ func TestDKGResharingNewNodes(t *testing.T) {
 			OldNodes:     oldPubs,
 			NewNodes:     newPubs,
 			PublicCoeffs: shares[0].Commits,
-			NewThreshold: newT,
+			Threshold:    newT,
 			OldThreshold: oldT,
 		}
 		newDkgs[i], err = NewDistKeyHandler(c)
@@ -1112,7 +1112,7 @@ func TestDKGResharingPartialNewNodes(t *testing.T) {
 			OldNodes:     oldPubs,
 			NewNodes:     newPubs,
 			Share:        shares[i],
-			NewThreshold: newT,
+			Threshold:    newT,
 			OldThreshold: oldT,
 		}
 		totalDkgs[i], err = NewDistKeyHandler(c)
@@ -1141,7 +1141,7 @@ func TestDKGResharingPartialNewNodes(t *testing.T) {
 			OldNodes:     oldPubs,
 			NewNodes:     newPubs,
 			PublicCoeffs: shares[0].Commits,
-			NewThreshold: newT,
+			Threshold:    newT,
 			OldThreshold: oldT,
 		}
 		totalDkgs[i], err = NewDistKeyHandler(c)

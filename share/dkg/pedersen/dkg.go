@@ -62,13 +62,13 @@ type Config struct {
 	// OldNodes field.
 	Share *DistKeyShare
 
-	// New threshold to use in order to reconstruct the secret with the produced
+	// The threshold to use in order to reconstruct the secret with the produced
 	// shares. This threshold is with respect to the number of nodes in the
 	// NewNodes list. If unspecified, default is set to
 	// `vss.MinimumT(len(NewNodes))`. This threshold indicates the degree of the
 	// polynomials used to create the shares, and the minimum number of
 	// verification required for each deal.
-	NewThreshold int
+	Threshold int
 
 	// OldThreshold holds the threshold value that was used in the previous
 	// configuration. This field MUST be specified when doing resharing, but is
@@ -148,8 +148,8 @@ func NewDistKeyHandler(c *Config) (*DistKeyGenerator, error) {
 	}
 
 	var newThreshold int
-	if c.NewThreshold != 0 {
-		newThreshold = c.NewThreshold
+	if c.Threshold != 0 {
+		newThreshold = c.Threshold
 	} else {
 		newThreshold = vss.MinimumT(len(c.NewNodes))
 	}
@@ -224,10 +224,10 @@ func NewDistKeyHandler(c *Config) (*DistKeyGenerator, error) {
 // distributed key with the regular DKG protocol.
 func NewDistKeyGenerator(suite Suite, longterm kyber.Scalar, participants []kyber.Point, t int) (*DistKeyGenerator, error) {
 	c := &Config{
-		Suite:        suite,
-		Longterm:     longterm,
-		NewNodes:     participants,
-		NewThreshold: t,
+		Suite:     suite,
+		Longterm:  longterm,
+		NewNodes:  participants,
+		Threshold: t,
 	}
 	return NewDistKeyHandler(c)
 }
@@ -246,7 +246,10 @@ func NewDistKeyGenerator(suite Suite, longterm kyber.Scalar, participants []kybe
 // results in a panic.
 func (d *DistKeyGenerator) Deals() (map[int]*Deal, error) {
 	if !d.canIssue {
-		return nil, errors.New("dkg: new participant can't issue a deal")
+		// We do not hold a share, so we cannot make a deal, so
+		// return an empty map and no error. This makes callers not
+		// need to care if they are in a resharing context or not.
+		return nil, nil
 	}
 	deals, err := d.dealer.EncryptedDeals()
 	if err != nil {
@@ -485,7 +488,7 @@ func (d *DistKeyGenerator) ThresholdCertified() bool {
 		return len(d.QUAL()) >= d.c.OldThreshold
 	}
 	// in dkg case, the threshold is symmetric -> # verifiers = # dealers
-	return len(d.QUAL()) >= d.c.NewThreshold
+	return len(d.QUAL()) >= d.c.Threshold
 }
 
 // Certified returns true if *all* deals are certified. This method should
@@ -778,7 +781,7 @@ func (d *DistKeyGenerator) initVerifiers(c *Config) error {
 		}
 		// set that the number of approval for this deal must be at the given
 		// threshold regarding the new nodes. (see config.
-		ver.SetThreshold(c.NewThreshold)
+		ver.SetThreshold(c.Threshold)
 		verifiers[uint32(i)] = ver
 	}
 	d.verifiers = verifiers
