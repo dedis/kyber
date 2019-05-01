@@ -27,7 +27,7 @@ func TestSecretRecovery(test *testing.T) {
 }
 
 // tests the recovery of a secret when one of the share has an index
-// higher than the given `n`. This is a valid scenario that can happens during
+// higher than the given `n`. This is a valid scenario that can happen during
 // a DKG-resharing:
 // 1. we add a new node n6 to an already-established group of 5 nodes.
 // 2. DKG runs without the first node in the group, i.e. without n1

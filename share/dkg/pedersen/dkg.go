@@ -314,7 +314,6 @@ func (d *DistKeyGenerator) ProcessDeal(dd *Deal) (*Response, error) {
 		return nil, err
 	}
 	if err := schnorr.Verify(d.suite, pub, buff, dd.Signature); err != nil {
-		//fmt.Println("dkg", d.nidx, d.oidx, " verify: msg ", hex.EncodeToString(buff)[0:16], "signature = ", hex.EncodeToString(dd.Signature)[0:16])
 		return nil, err
 	}
 
@@ -330,7 +329,6 @@ func (d *DistKeyGenerator) ProcessDeal(dd *Deal) (*Response, error) {
 		if present {
 			// the dealer is present in both list, so we set its own response
 			// (as a verifier) to a complaint since he won't do it himself
-			// XXX Nope we should only keep verifiers
 			d.verifiers[uint32(dd.Index)].UnsafeSetResponseDKG(uint32(idx), vss.StatusComplaint)
 		}
 		// indicate to VSS that this dkg's new status is complaint for this

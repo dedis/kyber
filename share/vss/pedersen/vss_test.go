@@ -143,30 +143,6 @@ func TestVSSShare(t *testing.T) {
 
 }
 
-func TestVSSAggregatorEnoughApprovals(t *testing.T) {
-	dealer := genDealer()
-	aggr := dealer.Aggregator
-	// just below
-	for i := 0; i < aggr.t-1; i++ {
-		aggr.responses[uint32(i)] = &Response{Status: StatusApproval}
-	}
-	assert.False(t, aggr.EnoughApprovals())
-	assert.Nil(t, dealer.SecretCommit())
-
-	aggr.responses[uint32(aggr.t)] = &Response{Status: StatusApproval}
-	assert.True(t, aggr.EnoughApprovals())
-
-	for i := aggr.t + 1; i < nbVerifiers; i++ {
-		aggr.responses[uint32(i)] = &Response{Status: StatusApproval}
-	}
-
-	// mark remaning verifiers as timed out
-	dealer.SetTimeout()
-
-	assert.True(t, aggr.EnoughApprovals())
-	assert.Equal(t, suite.Point().Mul(secret, nil), dealer.SecretCommit())
-}
-
 func TestVSSAggregatorDealCertified(t *testing.T) {
 	dealer := genDealer()
 	aggr := dealer.Aggregator
@@ -432,7 +408,6 @@ func TestVSSAggregatorAllResponses(t *testing.T) {
 	for i := 0; i < aggr.t; i++ {
 		aggr.responses[uint32(i)] = &Response{Status: StatusApproval}
 	}
-	assert.True(t, aggr.EnoughApprovals())
 	assert.False(t, aggr.DealCertified())
 
 	for i := aggr.t; i < nbVerifiers; i++ {
@@ -450,9 +425,6 @@ func TestVSSDealerTimeout(t *testing.T) {
 	for i := 0; i < aggr.t; i++ {
 		aggr.responses[uint32(i)] = &Response{Status: StatusApproval}
 	}
-
-	// Enough approvals, but all remaining responses missing
-	require.True(t, aggr.EnoughApprovals())
 	require.False(t, aggr.DealCertified())
 
 	// Tell dealer to consider other verifiers timed-out
@@ -482,9 +454,6 @@ func TestVSSVerifierTimeout(t *testing.T) {
 	for i := 0; i < aggr.t; i++ {
 		aggr.responses[uint32(i)] = &Response{Status: StatusApproval}
 	}
-
-	// Enough Approvals, but not a response for every verifier
-	assert.True(t, aggr.EnoughApprovals())
 	assert.False(t, aggr.DealCertified())
 
 	// Trigger time out, thus adding StatusComplaint to all
