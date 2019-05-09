@@ -62,51 +62,18 @@ func (p *pointG1) Clone() kyber.Point {
 }
 
 func (p *pointG1) EmbedLen() int {
+
 	return (255 - 8 - 8) / 8
 }
 
-func gfpToBig(gfp *gfP) *big.Int {
-	bigInt := new(big.Int)
-	decoded := new(gfP)
-	montDecode(decoded, gfp)
-	buf := make([]byte, 32)
-	decoded.Marshal(buf)
-	bigInt.SetBytes(buf)
-	return bigInt
-}
-
-func bigToGfp(bigX *big.Int) *gfP {
-	leftPad32 := func(in []byte) []byte {
-		if len(in) > 32 {
-			panic("input cannot be more than 32 bytes")
-		}
-
-		out := make([]byte, 32)
-		copy(out[32-len(in):], in)
-		return out
-	}
-
-	x := new(gfP)
-	x.Unmarshal(leftPad32(bigX.Bytes()))
-	montEncode(x, x)
-	return x
-}
-
 func (p *pointG1) Embed(data []byte, rand cipher.Stream) kyber.Point {
-	// XXX: An approach to implement this is:
-	// - Encode data as the x-coordinate of a point on y²=x³+3 where len(data)
-	//   is stored in the least significant byte of x and the rest is being
-	//   filled with random values, i.e., x = rand || data || len(data).
-	// - Use the Tonelli-Shanks algorithm to compute the y-coordinate.
-	// - Convert the new point to Jacobian coordinates and set it as p.
-
 	// How many bytes to embed?
 	dl := p.EmbedLen()
 	if dl > len(data) {
 		dl = len(data)
 	}
 
-	intCurveB := gfpToBig(curveB)
+	intCurveB := curveB.BigInt()
 
 	for {
 		// Pick a random point, with optional embedded data
@@ -120,17 +87,15 @@ func (p *pointG1) Embed(data []byte, rand cipher.Stream) kyber.Point {
 
 		xxx := new(big.Int).Mul(x, x)
 		xxx.Mul(xxx, x)
-		xxx.Mod(xxx, Order)
+		xxx.Mod(xxx, P)
 
 		t := new(big.Int).Add(xxx, intCurveB)
-		y := new(big.Int).ModSqrt(t, Order)
+		y := new(big.Int).ModSqrt(t, P)
 		if y != nil {
-			p.g.x = *bigToGfp(x)
-			p.g.y = *bigToGfp(y)
+			p.g.x = *newGFpFromBigInt(x)
+			p.g.y = *newGFpFromBigInt(y)
 			p.g.z = *newGFp(1)
-			q := newPointG1()
-			t := q.Sub(p, p)
-			if t.Equal(q.Null()) {
+			if p.g.IsOnCurve() {
 				return p
 			}
 		}
@@ -313,15 +278,15 @@ func hashToPoint(m []byte) (*big.Int, *big.Int) {
 
 	h := sha256.Sum256(m)
 	x := new(big.Int).SetBytes(h[:])
-	x.Mod(x, p)
+	x.Mod(x, P)
 
 	for {
 		xxx := new(big.Int).Mul(x, x)
 		xxx.Mul(xxx, x)
-		xxx.Mod(xxx, p)
+		xxx.Mod(xxx, P)
 
 		t := new(big.Int).Add(xxx, intCurveB)
-		y := new(big.Int).ModSqrt(t, p)
+		y := new(big.Int).ModSqrt(t, P)
 		if y != nil {
 			return x, y
 		}
