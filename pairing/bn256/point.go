@@ -62,7 +62,9 @@ func (p *pointG1) Clone() kyber.Point {
 }
 
 func (p *pointG1) EmbedLen() int {
-
+	// 2^255 is ~size of the curve P
+	// minus one byte for randomness
+	// minus one byte for len(data)
 	return (255 - 8 - 8) / 8
 }
 
