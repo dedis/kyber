@@ -2,6 +2,7 @@ package bn256
 
 import (
 	"fmt"
+	"math/big"
 )
 
 type gfP [4]uint64
@@ -14,6 +15,23 @@ func newGFp(x int64) (out *gfP) {
 		gfpNeg(out, out)
 	}
 
+	montEncode(out, out)
+	return out
+}
+
+func newGFpFromBigInt(bigInt *big.Int) *gfP {
+	leftPad32 := func(in []byte) []byte {
+		if len(in) > 32 {
+			panic("input cannot be more than 32 bytes")
+		}
+
+		o := make([]byte, 32)
+		copy(o[32-len(in):], in)
+		return o
+	}
+
+	out := new(gfP)
+	out.Unmarshal(leftPad32(bigInt.Bytes()))
 	montEncode(out, out)
 	return out
 }
@@ -63,6 +81,16 @@ func (e *gfP) Unmarshal(in []byte) {
 			e[3-w] += uint64(in[8*w+b]) << (56 - 8*b)
 		}
 	}
+}
+
+func (e *gfP) BigInt() *big.Int {
+	bigInt := new(big.Int)
+	decoded := new(gfP)
+	montDecode(decoded, e)
+	buf := make([]byte, 32)
+	decoded.Marshal(buf)
+	bigInt.SetBytes(buf)
+	return bigInt
 }
 
 func montEncode(c, a *gfP) { gfpMul(c, a, r2) }
