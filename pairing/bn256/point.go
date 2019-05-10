@@ -75,8 +75,6 @@ func (p *pointG1) Embed(data []byte, rand cipher.Stream) kyber.Point {
 		dl = len(data)
 	}
 
-	intCurveB := curveB.BigInt()
-
 	for {
 		// Pick a random point, with optional embedded data
 		var b [32]byte
@@ -87,12 +85,7 @@ func (p *pointG1) Embed(data []byte, rand cipher.Stream) kyber.Point {
 		}
 		x := new(big.Int).SetBytes(b[:])
 
-		xxx := new(big.Int).Mul(x, x)
-		xxx.Mul(xxx, x)
-		xxx.Mod(xxx, P)
-
-		t := new(big.Int).Add(xxx, intCurveB)
-		y := new(big.Int).ModSqrt(t, P)
+		y := deriveY(x)
 		if y != nil {
 			p.g.x = *newGFpFromBigInt(x)
 			p.g.y = *newGFpFromBigInt(y)
@@ -268,33 +261,29 @@ func (p *pointG1) Hash(m []byte) kyber.Point {
 // hashes a byte slice into two points on a curve represented by big.Int
 // ideally we want to do this using gfP, but gfP doesn't have a ModSqrt function
 func hashToPoint(m []byte) (*big.Int, *big.Int) {
-	// we need to convert curveB into a bigInt for our computation
-	intCurveB := new(big.Int)
-	{
-		decodedCurveB := new(gfP)
-		montDecode(decodedCurveB, curveB)
-		bufCurveB := make([]byte, 32)
-		decodedCurveB.Marshal(bufCurveB)
-		intCurveB.SetBytes(bufCurveB)
-	}
-
 	h := sha256.Sum256(m)
 	x := new(big.Int).SetBytes(h[:])
-	x.Mod(x, P)
+	x.Mod(x, p)
 
 	for {
-		xxx := new(big.Int).Mul(x, x)
-		xxx.Mul(xxx, x)
-		xxx.Mod(xxx, P)
-
-		t := new(big.Int).Add(xxx, intCurveB)
-		y := new(big.Int).ModSqrt(t, P)
+		y := deriveY(x)
 		if y != nil {
 			return x, y
 		}
 
 		x.Add(x, big.NewInt(1))
 	}
+}
+
+func deriveY(x *big.Int) *big.Int {
+	intCurveB := curveB.BigInt()
+	xxx := new(big.Int).Mul(x, x)
+	xxx.Mul(xxx, x)
+	xxx.Mod(xxx, p)
+
+	t := new(big.Int).Add(xxx, intCurveB)
+	y := new(big.Int).ModSqrt(t, p)
+	return y
 }
 
 type pointG2 struct {
