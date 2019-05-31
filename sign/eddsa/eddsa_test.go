@@ -51,6 +51,9 @@ func TestEdDSAMarshalling(t *testing.T) {
 
 		stream := ConstantStream(seed)
 		edDSA := NewEdDSA(stream)
+
+		assert.Equal(t, edDSA.Public.String(), vec.public)
+
 		marshalled, err := edDSA.MarshalBinary()
 		assert.Nil(t, err)
 		assert.NotNil(t, marshalled)

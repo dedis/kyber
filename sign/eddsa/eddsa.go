@@ -10,7 +10,6 @@ import (
 
 	"go.dedis.ch/kyber/v3"
 	"go.dedis.ch/kyber/v3/group/edwards25519"
-	"go.dedis.ch/kyber/v3/util/random"
 )
 
 var group = new(edwards25519.Curve)
@@ -33,17 +32,13 @@ func NewEdDSA(stream cipher.Stream) *EdDSA {
 	if stream == nil {
 		panic("stream is required")
 	}
-	var buffer [32]byte
-	random.Bytes(buffer[:], stream)
 
-	scalar := hashSeed(buffer[:])
-
-	secret := group.Scalar().SetBytes(scalar[:32])
+	secret, buffer, prefix := group.NewKeyAndSeed(stream)
 	public := group.Point().Mul(secret, nil)
 
 	return &EdDSA{
-		seed:   buffer[:],
-		prefix: scalar[32:],
+		seed:   buffer,
+		prefix: prefix,
 		Secret: secret,
 		Public: public,
 	}
@@ -69,10 +64,11 @@ func (e *EdDSA) UnmarshalBinary(buff []byte) error {
 		return errors.New("wrong length for decoding EdDSA private")
 	}
 
+	secret, _, prefix := group.NewKeyAndSeedWithInput(buff[:32])
+
 	e.seed = buff[:32]
-	scalar := hashSeed(e.seed)
-	e.prefix = scalar[32:]
-	e.Secret = group.Scalar().SetBytes(scalar[:32])
+	e.prefix = prefix
+	e.Secret = secret
 	e.Public = group.Point().Mul(e.Secret, nil)
 	return nil
 }
@@ -160,12 +156,4 @@ func Verify(public kyber.Point, msg, sig []byte) error {
 		return errors.New("reconstructed S is not equal to signature")
 	}
 	return nil
-}
-
-func hashSeed(seed []byte) (hash [64]byte) {
-	hash = sha512.Sum512(seed)
-	hash[0] &= 0xf8
-	hash[31] &= 0x3f
-	hash[31] |= 0x40
-	return
 }
