@@ -6,9 +6,12 @@ import (
 	"compress/gzip"
 	"crypto/cipher"
 	"encoding/hex"
+	"math/rand"
 	"os"
 	"strings"
 	"testing"
+
+	"go.dedis.ch/kyber/v3/group/edwards25519"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -51,6 +54,9 @@ func TestEdDSAMarshalling(t *testing.T) {
 
 		stream := ConstantStream(seed)
 		edDSA := NewEdDSA(stream)
+
+		assert.Equal(t, edDSA.Public.String(), vec.public)
+
 		marshalled, err := edDSA.MarshalBinary()
 		assert.Nil(t, err)
 		assert.NotNil(t, marshalled)
@@ -91,6 +97,25 @@ func TestEdDSASigning(t *testing.T) {
 		if hex.EncodeToString(sig) != vec.signature {
 			t.Error("Test", i, "Signature wrong", hex.EncodeToString(sig), vec.signature)
 		}
+		assert.Nil(t, Verify(ed.Public, msg, sig))
+	}
+}
+
+// Test the property of a EdDSA signature
+func TestEdDSASigningRandom(t *testing.T) {
+	suite := edwards25519.NewBlakeSHA256Ed25519()
+
+	for i := 0.0; i < 10000; i++ {
+		ed := NewEdDSA(suite.RandomStream())
+
+		msg := make([]byte, 32)
+		_, err := rand.Read(msg)
+		assert.NoError(t, err)
+
+		sig, err := ed.Sign(msg)
+		assert.Nil(t, err)
+		// see https://tools.ietf.org/html/rfc8032#section-5.1.6 (item 6.)
+		assert.Equal(t, uint8(0), sig[63]&0xe0)
 		assert.Nil(t, Verify(ed.Public, msg, sig))
 	}
 }

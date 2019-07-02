@@ -45,16 +45,32 @@ func (c *Curve) Point() kyber.Point {
 	return P
 }
 
+// NewKeyAndSeedWithInput returns a formatted Ed25519 key (avoid subgroup attack by
+// requiring it to be a multiple of 8). It also returns the input and the digest used
+// to generate the key.
+func (c *Curve) NewKeyAndSeedWithInput(buffer []byte) (kyber.Scalar, []byte, []byte) {
+	digest := sha512.Sum512(buffer[:])
+	digest[0] &= 0xf8
+	digest[31] &= 0x7f
+	digest[31] |= 0x40
+
+	secret := c.Scalar().(*scalar)
+	copy(secret.v[:], digest[:])
+	return secret, buffer, digest[32:]
+}
+
+// NewKeyAndSeed returns a formatted Ed25519 key (avoid subgroup attack by requiring
+// it to be a multiple of 8). It also returns the seed and the input used to generate
+// the key.
+func (c *Curve) NewKeyAndSeed(stream cipher.Stream) (kyber.Scalar, []byte, []byte) {
+	var buffer [32]byte
+	random.Bytes(buffer[:], stream)
+	return c.NewKeyAndSeedWithInput(buffer[:])
+}
+
 // NewKey returns a formatted Ed25519 key (avoiding subgroup attack by requiring
 // it to be a multiple of 8). NewKey implements the kyber/util/key.Generator interface.
 func (c *Curve) NewKey(stream cipher.Stream) kyber.Scalar {
-	var buffer [32]byte
-	random.Bytes(buffer[:], stream)
-	scalar := sha512.Sum512(buffer[:])
-	scalar[0] &= 0xf8
-	scalar[31] &= 0x7f
-	scalar[31] |= 0x40
-
-	secret := c.Scalar().SetBytes(scalar[:32])
+	secret, _, _ := c.NewKeyAndSeed(stream)
 	return secret
 }
