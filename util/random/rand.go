@@ -5,6 +5,7 @@ package random
 import (
 	"crypto/cipher"
 	"crypto/rand"
+	"io"
 	"math/big"
 )
 
@@ -75,4 +76,59 @@ func (r *randstream) XORKeyStream(dst, src []byte) {
 // The resulting cipher.Stream can be used in multiple threads.
 func New() cipher.Stream {
 	return &randstream{}
+}
+
+type mixedrandstream struct {
+	reader io.Reader
+	rand   io.Reader
+}
+
+func (r *mixedrandstream) XORKeyStream(dst, src []byte) {
+
+	l := len(dst)
+	if len(src) != l {
+		panic("XORKeyStream: mismatched buffer lengths")
+	}
+
+	remains := l
+
+	//get entropy from user
+	buf1 := make([]byte, l)
+	if r.reader != nil {
+		n1, err := r.rand.Read(buf1)
+		if err != nil {
+			panic(err)
+		}
+		remains -= n1
+	}
+
+	//get entropy ffron crypto/rand
+	buf2 := make([]byte, remains)
+	n2, err := r.rand.Read(buf2)
+	if err != nil {
+		panic(err)
+	}
+	if n2 < len(buf2) {
+		panic("short read on infinite random stream!?")
+	}
+
+	var buf []byte
+
+	//concat the two
+	if l == remains {
+		//no additional entropy from user
+		buf = buf2
+	} else {
+		buf = append(buf2, buf1...)
+	}
+
+	for i := 0; i < l; i++ {
+		dst[i] = src[i] ^ buf[i]
+	}
+}
+
+// NewStream returns a new cipher.Stream that gets random data from Go's crypto/rand
+// package AND the user input given via Reader.
+func NewStream(reader io.Reader, rand io.Reader) cipher.Stream {
+	return &mixedrandstream{reader: reader, rand: rand}
 }
