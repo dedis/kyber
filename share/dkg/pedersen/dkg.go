@@ -10,11 +10,13 @@
 package dkg
 
 import (
+	"crypto/rand"
 	"errors"
 	"fmt"
+	"io"
 
-	"go.dedis.ch/kyber/v3"
-
+	"github.com/dedis/kyber/util/random"
+	"go.dedis.ch/kyber"
 	"go.dedis.ch/kyber/v3/share"
 	vss "go.dedis.ch/kyber/v3/share/vss/pedersen"
 	"go.dedis.ch/kyber/v3/sign/schnorr"
@@ -78,6 +80,9 @@ type Config struct {
 	// absent) when doing a resharing to avoid a downgrade attack, where a resharing
 	// the number of deals required is less than what it is supposed to be.
 	OldThreshold int
+
+	// Reader to maybe include entropy from the user during random generation
+	Reader io.Reader
 }
 
 // DistKeyGenerator is the struct that runs the DKG protocol.
@@ -164,7 +169,8 @@ func NewDistKeyHandler(c *Config) (*DistKeyGenerator, error) {
 		canIssue = true
 	} else if !isResharing && newPresent {
 		// fresh DKG case
-		secretCoeff := c.Suite.Scalar().Pick(c.Suite.RandomStream())
+		randomStream := random.NewStream(c.Reader, rand.Reader)
+		secretCoeff := c.Suite.Scalar().Pick(randomStream)
 		dealer, err = vss.NewDealer(c.Suite, c.Longterm, secretCoeff, c.NewNodes, newThreshold)
 		canIssue = true
 		c.OldNodes = c.NewNodes
