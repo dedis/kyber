@@ -5,10 +5,12 @@ package random
 import (
 	"crypto/cipher"
 	"crypto/rand"
+	"crypto/sha256"
 	"io"
 	"math/big"
 	"golang.org/x/crypto/blake2b"
 	"go.dedis.ch/kyber/v3/xof/blake2xb"
+	"bytes"
 )
 
 // Bits chooses a uniform random BigInt with a given maximum BitLen.
@@ -117,14 +119,14 @@ func Bits(bitlen uint, exact bool, rand cipher.Stream) []byte {
 		h.Write(b.Bytes())
 		seed := h.Sum(nil)[:blake2b.Size]
 		hash := blake2xb.New(seed)
-		return hash.XORKeyStream(dst, src)
+		hash.XORKeyStream(dst, src)
 	}
 
 	// NewStream returns a new cipher.Stream that gets random data from Go's crypto/rand
 	// package AND user input if given via a Reader.
 	func NewMixedStream(readers ...io.Reader) cipher.Stream {
 		if len(readers) == 0 {
-			readers = [1]io.Reader{rand.Reader}
+			readers = []io.Reader{rand.Reader}
 		}
 		return &mixedrandstream{readers}
 	}
