@@ -5,10 +5,9 @@ package random
 import (
 	"crypto/cipher"
 	"crypto/rand"
-	"crypto/sha256"
+	"crypto/sha512"
 	"io"
 	"math/big"
-	"golang.org/x/crypto/blake2b"
 	"go.dedis.ch/kyber/v3/xof/blake2xb"
 	"bytes"
 )
@@ -115,9 +114,9 @@ func (r *mixedrandstream) XORKeyStream(dst, src []byte) {
 	}
 
 	// create the XOF hash output
-	h := sha256.New()
+	h := sha512.New()
 	h.Write(b.Bytes())
-	seed := h.Sum(nil)[:blake2b.Size]
+	seed := h.Sum(nil)
 	hash := blake2xb.New(seed)
 	hash.XORKeyStream(dst, src)
 }
