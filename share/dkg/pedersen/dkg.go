@@ -14,8 +14,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"crypto/cipher"
 
-	"github.com/dedis/kyber/util/random"
+	"github.com/PizzaWhisperer/kyber/util/random"
 	"go.dedis.ch/kyber"
 	"go.dedis.ch/kyber/v3/share"
 	vss "go.dedis.ch/kyber/v3/share/vss/pedersen"
