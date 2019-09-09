@@ -83,6 +83,9 @@ type Config struct {
 
 	// Reader to maybe include entropy from the user during random generation
 	Reader io.Reader
+	// UserReaderOnly forces the dkg secret to be picked with the randomness comming
+	// from the user only allowing reproducibility
+	UserReaderOnly bool
 }
 
 // DistKeyGenerator is the struct that runs the DKG protocol.
@@ -169,7 +172,17 @@ func NewDistKeyHandler(c *Config) (*DistKeyGenerator, error) {
 		canIssue = true
 	} else if !isResharing && newPresent {
 		// fresh DKG case
-		randomStream := random.NewStream(c.Reader, rand.Reader)
+		var randomStream cipher.Stream
+		// user did not provide a reader, we use entropy from crypto/rand
+		if c.Reader == nil {
+			randomStream = random.NewMixedStream(rand.Reader)
+		} else { // we use the reader they gave
+			if c.UserReaderOnly {
+				randomStream = random.NewMixedStream(c.Reader)
+			} else {
+				randomStream = random.NewMixedStream(c.Reader, rand.Reader)
+			}
+		}
 		secretCoeff := c.Suite.Scalar().Pick(randomStream)
 		dealer, err = vss.NewDealer(c.Suite, c.Longterm, secretCoeff, c.NewNodes, newThreshold)
 		canIssue = true

@@ -7,6 +7,8 @@ import (
 	"crypto/rand"
 	"io"
 	"math/big"
+	"golang.org/x/crypto/blake2b"
+	"go.dedis.ch/kyber/v3/xof/blake2xb"
 )
 
 // Bits chooses a uniform random BigInt with a given maximum BitLen.
@@ -21,114 +23,108 @@ func Bits(bitlen uint, exact bool, rand cipher.Stream) []byte {
 	if exact {
 		if highbits != 0 {
 			b[0] |= 1 << (highbits - 1)
-		} else {
-			b[0] |= 0x80
+			} else {
+				b[0] |= 0x80
+			}
+		}
+		return b
+	}
+
+	// Int chooses a uniform random big.Int less than a given modulus
+	func Int(mod *big.Int, rand cipher.Stream) *big.Int {
+		bitlen := uint(mod.BitLen())
+		i := new(big.Int)
+		for {
+			i.SetBytes(Bits(bitlen, false, rand))
+			if i.Sign() > 0 && i.Cmp(mod) < 0 {
+				return i
+			}
 		}
 	}
-	return b
-}
 
-// Int chooses a uniform random big.Int less than a given modulus
-func Int(mod *big.Int, rand cipher.Stream) *big.Int {
-	bitlen := uint(mod.BitLen())
-	i := new(big.Int)
-	for {
-		i.SetBytes(Bits(bitlen, false, rand))
-		if i.Sign() > 0 && i.Cmp(mod) < 0 {
-			return i
+	// Bytes fills a slice with random bytes from rand.
+	func Bytes(b []byte, rand cipher.Stream) {
+		rand.XORKeyStream(b, b)
+	}
+
+	type randstream struct {
+	}
+
+	func (r *randstream) XORKeyStream(dst, src []byte) {
+		// This function works only on local data, so it is
+		// safe against race conditions, as long as crypto/rand
+		// is as well. (It is.)
+
+		l := len(dst)
+		if len(src) != l {
+			panic("XORKeyStream: mismatched buffer lengths")
 		}
-	}
-}
 
-// Bytes fills a slice with random bytes from rand.
-func Bytes(b []byte, rand cipher.Stream) {
-	rand.XORKeyStream(b, b)
-}
-
-type randstream struct {
-}
-
-func (r *randstream) XORKeyStream(dst, src []byte) {
-	// This function works only on local data, so it is
-	// safe against race conditions, as long as crypto/rand
-	// is as well. (It is.)
-
-	l := len(dst)
-	if len(src) != l {
-		panic("XORKeyStream: mismatched buffer lengths")
-	}
-
-	buf := make([]byte, l)
-	n, err := rand.Read(buf)
-	if err != nil {
-		panic(err)
-	}
-	if n < len(buf) {
-		panic("short read on infinite random stream!?")
-	}
-
-	for i := 0; i < l; i++ {
-		dst[i] = src[i] ^ buf[i]
-	}
-}
-
-// New returns a new cipher.Stream that gets random data from Go's crypto/rand package.
-// The resulting cipher.Stream can be used in multiple threads.
-func New() cipher.Stream {
-	return &randstream{}
-}
-
-type mixedrandstream struct {
-	reader io.Reader
-	rand   io.Reader
-}
-
-func (r *mixedrandstream) XORKeyStream(dst, src []byte) {
-
-	l := len(dst)
-	if len(src) != l {
-		panic("XORKeyStream: mismatched buffer lengths")
-	}
-
-	remains := l
-
-	//get entropy from user
-	buf1 := make([]byte, l)
-	if r.reader != nil {
-		n1, err := r.rand.Read(buf1)
+		buf := make([]byte, l)
+		n, err := rand.Read(buf)
 		if err != nil {
 			panic(err)
 		}
-		remains -= n1
+		if n < len(buf) {
+			panic("short read on infinite random stream!?")
+		}
+
+		for i := 0; i < l; i++ {
+			dst[i] = src[i] ^ buf[i]
+		}
 	}
 
-	//get entropy ffron crypto/rand
-	buf2 := make([]byte, remains)
-	n2, err := r.rand.Read(buf2)
-	if err != nil {
-		panic(err)
-	}
-	if n2 < len(buf2) {
-		panic("short read on infinite random stream!?")
+	// New returns a new cipher.Stream that gets random data from Go's crypto/rand package.
+	// The resulting cipher.Stream can be used in multiple threads.
+	func New() cipher.Stream {
+		return &randstream{}
 	}
 
-	var buf []byte
 
-	//concat the two
-	if l == remains {
-		//no additional entropy from user
-		buf = buf2
-	} else {
-		buf = append(buf2, buf1...)
+	const READER_BYTES = 32;
+
+	type mixedrandstream struct {
+		Readers []io.Reader
 	}
 
-	for i := 0; i < l; i++ {
-		dst[i] = src[i] ^ buf[i]
-	}
-}
+	func (r *mixedrandstream) XORKeyStream(dst, src []byte) {
 
-// NewStream returns a new cipher.Stream that gets random data from Go's crypto/rand
-// package AND the user input given via Reader.
-func NewStream(reader io.Reader, rand io.Reader) cipher.Stream {
-	return &mixedrandstream{reader: reader, rand: rand}
-}
+		l := len(dst)
+		if len(src) != l {
+			panic("XORKeyStream: mismatched buffer lengths")
+		}
+
+		var b bytes.Buffer
+		var nerr int
+
+		for _, r := range r.Readers {
+			var buff [READER_BYTES]byte
+			n, err := io.ReadFull(r, buff[:])
+			if err != nil {
+				nerr++
+			}
+			b.Write(buff[:n])
+		}
+
+		// we are ok with few sources being insecure (aka giving less than 32 bytes)
+		// but not all of them
+		if nerr == len(r.Readers) {
+			panic("all readers failed")
+		}
+
+		// create the XOF hash output
+		h := sha256.New()
+		h.Write(b.Bytes())
+		seed := h.Sum(nil)[:blake2b.Size]
+		hash := blake2xb.New(seed)
+		return hash.XORKeyStream(dst, src)
+	}
+
+	// NewStream returns a new cipher.Stream that gets random data from Go's crypto/rand
+	// package AND user input if given via a Reader.
+	func NewMixedStream(readers ...io.Reader) cipher.Stream {
+		if len(readers) == 0 {
+			readers = [1]io.Reader{rand.Reader}
+		}
+		return &mixedrandstream{readers}
+	}
