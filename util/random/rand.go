@@ -3,13 +3,14 @@
 package random
 
 import (
+	"bytes"
 	"crypto/cipher"
 	"crypto/rand"
 	"crypto/sha512"
 	"io"
 	"math/big"
+
 	"go.dedis.ch/kyber/v3/xof/blake2xb"
-	"bytes"
 )
 
 // Bits chooses a uniform random BigInt with a given maximum BitLen.
@@ -81,8 +82,8 @@ func New() cipher.Stream {
 	return &randstream{}
 }
 
-
-const READER_BYTES = 32;
+// READER_BYTES is how many bytes we expect from each source
+const READER_BYTES = 32
 
 type mixedrandstream struct {
 	Readers []io.Reader
@@ -107,13 +108,13 @@ func (r *mixedrandstream) XORKeyStream(dst, src []byte) {
 		b.Write(buff[:n])
 	}
 
-	// we are ok with few sources being insecure (aka giving less than 32 bytes)
-	// but not all of them
+	// we are ok with few sources being insecure (i.e., providing less than
+	// READER_BYTES bytes), but not all of them
 	if nerr == len(r.Readers) {
 		panic("all readers failed")
 	}
 
-	// create the XOF hash output
+	// create the XOF output, with hash of collected data as seed
 	h := sha512.New()
 	h.Write(b.Bytes())
 	seed := h.Sum(nil)
@@ -121,8 +122,8 @@ func (r *mixedrandstream) XORKeyStream(dst, src []byte) {
 	hash.XORKeyStream(dst, src)
 }
 
-// NewStream returns a new cipher.Stream that gets random data from Go's crypto/rand
-// package AND user input if given via a Reader.
+// NewMixedStream returns a new cipher.Stream that gets random data from the specified
+// readers. If no reader was given, Go's crypto/rand package is used.
 func NewMixedStream(readers ...io.Reader) cipher.Stream {
 	if len(readers) == 0 {
 		readers = []io.Reader{rand.Reader}

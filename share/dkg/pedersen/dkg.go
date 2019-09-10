@@ -10,11 +10,11 @@
 package dkg
 
 import (
+	"crypto/cipher"
 	"crypto/rand"
 	"errors"
 	"fmt"
 	"io"
-	"crypto/cipher"
 
 	"github.com/PizzaWhisperer/kyber/util/random"
 	"go.dedis.ch/kyber"
@@ -82,10 +82,11 @@ type Config struct {
 	// the number of deals required is less than what it is supposed to be.
 	OldThreshold int
 
-	// Reader to maybe include entropy from the user during random generation
+	// Reader holds a user-specified entropy source used to create a random stream
 	Reader io.Reader
-	// UserReaderOnly forces the dkg secret to be picked with the randomness comming
-	// from the user only allowing reproducibility
+
+	// UserReaderOnly forces the dkg's secretCoeff to be picked with randomness comming
+	// from the user only, allowing reproducibility
 	UserReaderOnly bool
 }
 
@@ -174,10 +175,10 @@ func NewDistKeyHandler(c *Config) (*DistKeyGenerator, error) {
 	} else if !isResharing && newPresent {
 		// fresh DKG case
 		var randomStream cipher.Stream
-		// user did not provide a reader, we use entropy from crypto/rand
+		// empty reader, use entropy from crypto/rand
 		if c.Reader == nil {
-			randomStream = random.NewMixedStream(rand.Reader)
-		} else { // we use the reader they gave
+			randomStream = random.New()
+		} else { // use the reader they gave, alone or combined
 			if c.UserReaderOnly {
 				randomStream = random.NewMixedStream(c.Reader)
 			} else {
