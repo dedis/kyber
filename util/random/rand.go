@@ -98,10 +98,9 @@ func (r *mixedrandstream) XORKeyStream(dst, src []byte) {
 
 	var b bytes.Buffer
 	var nerr int
-
-	for _, r := range r.Readers {
-		var buff [READER_BYTES]byte
-		n, err := io.ReadFull(r, buff[:])
+	for _, reader := range r.Readers {
+		buff := make([]byte, READER_BYTES)
+		n, err := io.ReadFull(reader, buff)
 		if err != nil {
 			nerr++
 		}

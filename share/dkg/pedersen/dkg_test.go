@@ -4,7 +4,10 @@ import (
 	"crypto/rand"
 	"fmt"
 	"io"
+  "io/ioutil"
+	"bytes"
 	mathRand "math/rand"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -31,9 +34,15 @@ func generate(n, t int, r io.Reader, userOnly bool) (partPubs []kyber.Point, par
 		partPubs[i] = pub
 		partSec[i] = sec
 	}
+	//if there is a reader we need to make a copy for each dkg
+	var b []byte
+	if r != nil {
+		b, _ = ioutil.ReadAll(r)
+	}
 	dkgs = make([]*DistKeyGenerator, n)
 	for i := 0; i < n; i++ {
-		dkg, err := NewDistKeyGenerator(suite, partSec[i], partPubs, t, r, userOnly)
+		rcopy := bytes.NewReader(b)
+		dkg, err := NewDistKeyGenerator(suite, partSec[i], partPubs, t, rcopy, userOnly)
 		if err != nil {
 			panic(err)
 		}
@@ -1246,16 +1255,28 @@ func TestDKGResharingPartialNewNodes(t *testing.T) {
 	require.Equal(t, oldSecret.String(), newSecret.String())
 }
 
+func TestDKGMixedEntropy(t *testing.T) {
+	r := strings.NewReader("some io.Reader stream to be read")
+	partPubs, partSec, _ := generate(defaultN, defaultT, r, defaultUserOnly)
+
+	long := partSec[0]
+	dkg, err := NewDistKeyGenerator(suite, long, partPubs, defaultT, r, defaultUserOnly)
+	require.Nil(t, err)
+	require.NotNil(t, dkg.dealer)
+}
+
 func TestDKGUserOnly(t *testing.T) {
-	r := string.NewReader("This is the seed to my custom reader, please use it well.")
+	r := strings.NewReader("some io.Reader stream to be read")
 	partPubs, partSec, _ := generate(defaultN, defaultT, r, true)
 
 	long := partSec[0]
-	dkg1, err := NewDistKeyGenerator(suite, long, partPubs, defaultT, r, true)
+	r1 := strings.NewReader("some io.Reader stream to be read")
+	dkg1, err := NewDistKeyGenerator(suite, long, partPubs, defaultT, r1, true)
 	require.Nil(t, err)
 	require.NotNil(t, dkg1.dealer)
-	dkg2, err := NewDistKeyGenerator(suite, long, partPubs, defaultT, r, true)
+	r2 := strings.NewReader("some io.Reader stream to be read")
+	dkg2, err := NewDistKeyGenerator(suite, long, partPubs, defaultT, r2, true)
 	require.Nil(t, err)
-	require.NotNil(t, dkg1.dealer)
-	require.True(t, dkg1.dealer.secret.Equal(dkg2.dealer.secret))
+	require.NotNil(t, dkg2.dealer)
+	require.True(t, dkg1.dealer.PrivatePoly().Secret().Equal(dkg2.dealer.PrivatePoly().Secret()))
 }
