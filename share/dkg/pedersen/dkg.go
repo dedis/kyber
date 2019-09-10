@@ -243,12 +243,14 @@ func NewDistKeyHandler(c *Config) (*DistKeyGenerator, error) {
 
 // NewDistKeyGenerator returns a dist key generator ready to create a fresh
 // distributed key with the regular DKG protocol.
-func NewDistKeyGenerator(suite Suite, longterm kyber.Scalar, participants []kyber.Point, t int) (*DistKeyGenerator, error) {
+func NewDistKeyGenerator(suite Suite, longterm kyber.Scalar, participants []kyber.Point, t int, r io.Reader, userOnly bool) (*DistKeyGenerator, error) {
 	c := &Config{
-		Suite:     suite,
-		Longterm:  longterm,
-		NewNodes:  participants,
-		Threshold: t,
+		Suite:          suite,
+		Longterm:       longterm,
+		NewNodes:       participants,
+		Threshold:      t,
+		Reader:         r,
+		UserReaderOnly: userOnly,
 	}
 	return NewDistKeyHandler(c)
 }
