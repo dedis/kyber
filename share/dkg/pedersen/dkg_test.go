@@ -3,15 +3,11 @@ package dkg
 import (
 	"crypto/rand"
 	"fmt"
-	"io"
-  "io/ioutil"
-	"bytes"
 	mathRand "math/rand"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"go.dedis.ch/kyber"
+	"go.dedis.ch/kyber/v3"
 	"go.dedis.ch/kyber/v3/group/edwards25519"
 	"go.dedis.ch/kyber/v3/share"
 	vss "go.dedis.ch/kyber/v3/share/vss/pedersen"
@@ -23,10 +19,7 @@ const defaultN = 5
 
 var defaultT = vss.MinimumT(defaultN)
 
-var defaultReader io.Reader
-var defaultUserOnly = false
-
-func generate(n, t int, r io.Reader, userOnly bool) (partPubs []kyber.Point, partSec []kyber.Scalar, dkgs []*DistKeyGenerator) {
+func generate(n, t int) (partPubs []kyber.Point, partSec []kyber.Scalar, dkgs []*DistKeyGenerator) {
 	partPubs = make([]kyber.Point, n)
 	partSec = make([]kyber.Scalar, n)
 	for i := 0; i < n; i++ {
@@ -34,15 +27,9 @@ func generate(n, t int, r io.Reader, userOnly bool) (partPubs []kyber.Point, par
 		partPubs[i] = pub
 		partSec[i] = sec
 	}
-	//if there is a reader we need to make a copy for each dkg
-	var b []byte
-	if r != nil {
-		b, _ = ioutil.ReadAll(r)
-	}
 	dkgs = make([]*DistKeyGenerator, n)
 	for i := 0; i < n; i++ {
-		rcopy := bytes.NewReader(b)
-		dkg, err := NewDistKeyGenerator(suite, partSec[i], partPubs, t, rcopy, userOnly)
+		dkg, err := NewDistKeyGenerator(suite, partSec[i], partPubs, t)
 		if err != nil {
 			panic(err)
 		}
@@ -52,10 +39,10 @@ func generate(n, t int, r io.Reader, userOnly bool) (partPubs []kyber.Point, par
 }
 
 func TestDKGNewDistKeyGenerator(t *testing.T) {
-	partPubs, partSec, _ := generate(defaultN, defaultT, defaultReader, defaultUserOnly)
+	partPubs, partSec, _ := generate(defaultN, defaultT)
 
 	long := partSec[0]
-	dkg, err := NewDistKeyGenerator(suite, long, partPubs, defaultT, defaultReader, defaultUserOnly)
+	dkg, err := NewDistKeyGenerator(suite, long, partPubs, defaultT)
 	require.Nil(t, err)
 	require.NotNil(t, dkg.dealer)
 	require.True(t, dkg.canIssue)
@@ -67,12 +54,12 @@ func TestDKGNewDistKeyGenerator(t *testing.T) {
 	require.False(t, dkg.isResharing)
 
 	sec, _ := genPair()
-	_, err = NewDistKeyGenerator(suite, sec, partPubs, defaultT, defaultReader, defaultUserOnly)
+	_, err = NewDistKeyGenerator(suite, sec, partPubs, defaultT)
 	require.Error(t, err)
 }
 
 func TestDKGDeal(t *testing.T) {
-	_, _, dkgs := generate(defaultN, defaultT, defaultReader, defaultUserOnly)
+	_, _, dkgs := generate(defaultN, defaultT)
 	dkg := dkgs[0]
 
 	dks, err := dkg.DistKeyShare()
@@ -94,7 +81,7 @@ func TestDKGDeal(t *testing.T) {
 }
 
 func TestDKGProcessDeal(t *testing.T) {
-	_, _, dkgs := generate(defaultN, defaultT, defaultReader, defaultUserOnly)
+	_, _, dkgs := generate(defaultN, defaultT)
 	dkg := dkgs[0]
 	deals, err := dkg.Deals()
 	require.Nil(t, err)
@@ -149,7 +136,7 @@ func TestDKGProcessResponse(t *testing.T) {
 	// second peer processes it and returns a complaint
 	// first peer process the complaint
 
-	_, _, dkgs := generate(defaultN, defaultT, defaultReader, defaultUserOnly)
+	_, _, dkgs := generate(defaultN, defaultT)
 	dkg := dkgs[0]
 	idxRec := 1
 	rec := dkgs[idxRec]
@@ -255,7 +242,7 @@ func TestDKGProcessResponse(t *testing.T) {
 func TestDKGResharingThreshold(t *testing.T) {
 	n := 7
 	oldT := vss.MinimumT(n)
-	publics, _, dkgs := generate(n, oldT, defaultReader, defaultUserOnly)
+	publics, _, dkgs := generate(n, oldT)
 	fullExchange(t, dkgs, true)
 
 	newN := len(dkgs) + 1
@@ -420,7 +407,7 @@ func TestDKGThreshold(t *testing.T) {
 	}
 
 	for i := 0; i < n; i++ {
-		dkg, err := NewDistKeyGenerator(suite, privates[i], publics, newTotal, defaultReader, defaultUserOnly)
+		dkg, err := NewDistKeyGenerator(suite, privates[i], publics, newTotal)
 		if err != nil {
 			panic(err)
 		}
@@ -517,7 +504,7 @@ func TestDKGThreshold(t *testing.T) {
 }
 
 func TestDistKeyShare(t *testing.T) {
-	_, _, dkgs := generate(defaultN, defaultT, defaultReader, defaultUserOnly)
+	_, _, dkgs := generate(defaultN, defaultT)
 	fullExchange(t, dkgs, true)
 
 	for _, dkg := range dkgs {
@@ -622,7 +609,7 @@ func fullExchange(t *testing.T, dkgs []*DistKeyGenerator, checkQUAL bool) {
 // Test resharing of a DKG to the same set of nodes
 func TestDKGResharing(t *testing.T) {
 	oldT := vss.MinimumT(defaultN)
-	publics, secrets, dkgs := generate(defaultN, oldT, defaultReader, defaultUserOnly)
+	publics, secrets, dkgs := generate(defaultN, oldT)
 	fullExchange(t, dkgs, true)
 
 	shares := make([]*DistKeyShare, len(dkgs))
@@ -678,7 +665,7 @@ func TestDKGResharing(t *testing.T) {
 // Test resharing functionality with one node less
 func TestDKGResharingRemoveNode(t *testing.T) {
 	oldT := vss.MinimumT(defaultN)
-	publics, secrets, dkgs := generate(defaultN, oldT, defaultReader, defaultUserOnly)
+	publics, secrets, dkgs := generate(defaultN, oldT)
 	fullExchange(t, dkgs, true)
 
 	newN := len(publics) - 1
@@ -741,7 +728,7 @@ func TestDKGResharingRemoveNode(t *testing.T) {
 func TestDKGResharingNewNodesThreshold(t *testing.T) {
 	oldN := defaultN
 	oldT := vss.MinimumT(oldN)
-	oldPubs, oldPrivs, dkgs := generate(oldN, oldT, defaultReader, defaultUserOnly)
+	oldPubs, oldPrivs, dkgs := generate(oldN, oldT)
 	fullExchange(t, dkgs, true)
 
 	shares := make([]*DistKeyShare, len(dkgs))
@@ -905,7 +892,7 @@ func TestDKGResharingNewNodesThreshold(t *testing.T) {
 
 // Test resharing to a different set of nodes with one common
 func TestDKGResharingNewNodes(t *testing.T) {
-	oldPubs, oldPrivs, dkgs := generate(defaultN, vss.MinimumT(defaultN), defaultReader, defaultUserOnly)
+	oldPubs, oldPrivs, dkgs := generate(defaultN, vss.MinimumT(defaultN))
 	fullExchange(t, dkgs, true)
 
 	shares := make([]*DistKeyShare, len(dkgs))
@@ -1081,7 +1068,7 @@ func TestDKGResharingNewNodes(t *testing.T) {
 }
 
 func TestDKGResharingPartialNewNodes(t *testing.T) {
-	oldPubs, oldPrivs, dkgs := generate(defaultN, vss.MinimumT(defaultN), defaultReader, defaultUserOnly)
+	oldPubs, oldPrivs, dkgs := generate(defaultN, vss.MinimumT(defaultN))
 	fullExchange(t, dkgs, true)
 
 	shares := make([]*DistKeyShare, len(dkgs))
@@ -1253,30 +1240,4 @@ func TestDKGResharingPartialNewNodes(t *testing.T) {
 	newSecret, err := share.RecoverSecret(suite, newSShares, newT, newN)
 	require.NoError(t, err)
 	require.Equal(t, oldSecret.String(), newSecret.String())
-}
-
-func TestDKGMixedEntropy(t *testing.T) {
-	r := strings.NewReader("some io.Reader stream to be read")
-	partPubs, partSec, _ := generate(defaultN, defaultT, r, defaultUserOnly)
-
-	long := partSec[0]
-	dkg, err := NewDistKeyGenerator(suite, long, partPubs, defaultT, r, defaultUserOnly)
-	require.Nil(t, err)
-	require.NotNil(t, dkg.dealer)
-}
-
-func TestDKGUserOnly(t *testing.T) {
-	r := strings.NewReader("some io.Reader stream to be read")
-	partPubs, partSec, _ := generate(defaultN, defaultT, r, true)
-
-	long := partSec[0]
-	r1 := strings.NewReader("some io.Reader stream to be read")
-	dkg1, err := NewDistKeyGenerator(suite, long, partPubs, defaultT, r1, true)
-	require.Nil(t, err)
-	require.NotNil(t, dkg1.dealer)
-	r2 := strings.NewReader("some io.Reader stream to be read")
-	dkg2, err := NewDistKeyGenerator(suite, long, partPubs, defaultT, r2, true)
-	require.Nil(t, err)
-	require.NotNil(t, dkg2.dealer)
-	require.True(t, dkg1.dealer.PrivatePoly().Secret().Equal(dkg2.dealer.PrivatePoly().Secret()))
 }

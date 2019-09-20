@@ -85,6 +85,10 @@ func New() cipher.Stream {
 // READER_BYTES is how many bytes we expect from each source
 const READER_BYTES = 32
 
+// MIXEDRAND_HASH is the hash used in XORKeyStream to mix all entropy sources together.
+// sha512 is chosen as its digest is 64 bytes long, matching the length of blake2xb's seed.
+var MIXEDRAND_HASH = sha512.New
+
 type mixedrandstream struct {
 	Readers []io.Reader
 }
@@ -114,15 +118,18 @@ func (r *mixedrandstream) XORKeyStream(dst, src []byte) {
 	}
 
 	// create the XOF output, with hash of collected data as seed
-	h := sha512.New()
+	h := MIXEDRAND_HASH()
 	h.Write(b.Bytes())
 	seed := h.Sum(nil)
-	hash := blake2xb.New(seed)
-	hash.XORKeyStream(dst, src)
+	blake2 := blake2xb.New(seed)
+	blake2.XORKeyStream(dst, src)
 }
 
-// NewMixedStream returns a new cipher.Stream that gets random data from the specified
-// readers. If no reader was given, Go's crypto/rand package is used.
+// NewMixedStream returns a new cipher.Stream that gets random data from the given
+// readers. If no reader was provided, Go's crypto/rand package is used.
+// In order to use every source, it tries to read 32 bytes from each, and mix it
+// all together into a string of valid length via hashing. This string is then
+// used as a seed for blake2, which is used to perform the final XOR.
 func NewMixedStream(readers ...io.Reader) cipher.Stream {
 	if len(readers) == 0 {
 		readers = []io.Reader{rand.Reader}
