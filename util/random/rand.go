@@ -100,7 +100,7 @@ func (r *mixedrandstream) XORKeyStream(dst, src []byte) {
 		panic("XORKeyStream: mismatched buffer lengths")
 	}
 
-// try to read 32 bytes from all readers and write them in a buffer
+	// try to read 32 bytes from all readers and write them in a buffer
 	var b bytes.Buffer
 	var nerr int
 	for _, reader := range r.Readers {
