@@ -11,7 +11,7 @@ const size = 32
 
 func TestMixedEntropy(t *testing.T) {
 	r := strings.NewReader("some io.Reader stream to be used for testing")
-	cipher := NewMixedStream(r, rand.Reader)
+	cipher := New(r, rand.Reader)
 
 	src := make([]byte, size)
 	copy(src, []byte("source buffer"))
@@ -36,7 +36,7 @@ func TestEmptyReader(t *testing.T) {
 	}()
 
 	r := strings.NewReader("too small io.Reader")
-	cipher := NewMixedStream(r)
+	cipher := New(r)
 	src := make([]byte, size)
 	copy(src, []byte("hello"))
 	dst := make([]byte, size)
@@ -44,7 +44,7 @@ func TestEmptyReader(t *testing.T) {
 }
 
 func TestCryptoOnly(t *testing.T) {
-	cipher := NewMixedStream()
+	cipher := New()
 	src := make([]byte, size)
 	copy(src, []byte("hello"))
 	dst1 := make([]byte, size)
@@ -58,12 +58,12 @@ func TestCryptoOnly(t *testing.T) {
 
 func TestUserOnly(t *testing.T) {
 	seed := "some io.Reader stream to be used for testing"
-	cipher1 := NewMixedStream(strings.NewReader(seed))
+	cipher1 := New(strings.NewReader(seed))
 	src := make([]byte, size)
 	copy(src, []byte("hello"))
 	dst1 := make([]byte, size)
 	cipher1.XORKeyStream(dst1, src)
-	cipher2 := NewMixedStream(strings.NewReader(seed))
+	cipher2 := New(strings.NewReader(seed))
 	dst2 := make([]byte, size)
 	cipher2.XORKeyStream(dst2, src)
 	if !bytes.Equal(dst1, dst2) {
@@ -78,7 +78,7 @@ func TestIncorrectSize(t *testing.T) {
 			t.Fatal("code did not panicked but should have")
 		}
 	}()
-	cipher := NewMixedStream()
+	cipher := New()
 	src := make([]byte, size)
 	copy(src, []byte("hello"))
 	dst := make([]byte, size+1)

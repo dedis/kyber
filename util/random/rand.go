@@ -76,12 +76,6 @@ func (r *randstream) XORKeyStream(dst, src []byte) {
 	}
 }
 
-// New returns a new cipher.Stream that gets random data from Go's crypto/rand package.
-// The resulting cipher.Stream can be used in multiple threads.
-func New() cipher.Stream {
-	return &randstream{}
-}
-
 // READER_BYTES is how many bytes we expect from each source
 const READER_BYTES = 32
 
@@ -126,14 +120,16 @@ func (r *mixedrandstream) XORKeyStream(dst, src []byte) {
 	blake2.XORKeyStream(dst, src)
 }
 
-// NewMixedStream returns a new cipher.Stream that gets random data from the given
+// New returns a new cipher.Stream that gets random data from the given
 // readers. If no reader was provided, Go's crypto/rand package is used.
 // In order to use every source, it tries to read 32 bytes from each, and mix it
 // all together into a string of valid length via hashing. This string is then
 // used as a seed for blake2, which is used to perform the final XOR.
-func NewMixedStream(readers ...io.Reader) cipher.Stream {
+// The resulting cipher.Stream can be used in multiple threads.
+func New(readers ...io.Reader) cipher.Stream {
 	if len(readers) == 0 {
-		readers = []io.Reader{rand.Reader}
+		return &randstream{}
+	} else {
+		return &mixedrandstream{readers}
 	}
-	return &mixedrandstream{readers}
 }
