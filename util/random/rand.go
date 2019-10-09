@@ -6,7 +6,7 @@ import (
 	"bytes"
 	"crypto/cipher"
 	"crypto/rand"
-	"crypto/sha512"
+	"crypto/sha256"
 	"io"
 	"math/big"
 
@@ -49,10 +49,6 @@ func Bytes(b []byte, rand cipher.Stream) {
 	rand.XORKeyStream(b, b)
 }
 
-// MixedrandHash is the hash used in XORKeyStream to mix all entropy sources together.
-// sha512 is chosen as its digest is 64 bytes long, matching the length of blake2xb's seed.
-var MixedrandHash = sha512.New
-
 type randstream struct {
 	Readers []io.Reader
 }
@@ -86,7 +82,7 @@ func (r *randstream) XORKeyStream(dst, src []byte) {
 	}
 
 	// create the XOF output, with hash of collected data as seed
-	h := MixedrandHash()
+	h := sha256.New()
 	h.Write(b.Bytes())
 	seed := h.Sum(nil)
 	blake2 := blake2xb.New(seed)
