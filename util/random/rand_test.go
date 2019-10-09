@@ -78,7 +78,7 @@ func TestIncorrectSize(t *testing.T) {
 			t.Fatal("code did not panicked but should have")
 		}
 	}()
-	cipher := New()
+	cipher := New(rand.Reader)
 	src := make([]byte, size)
 	copy(src, []byte("hello"))
 	dst := make([]byte, size+1)

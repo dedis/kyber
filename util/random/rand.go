@@ -49,55 +49,28 @@ func Bytes(b []byte, rand cipher.Stream) {
 	rand.XORKeyStream(b, b)
 }
 
-type randstream struct {
-}
-
-func (r *randstream) XORKeyStream(dst, src []byte) {
-	// This function works only on local data, so it is
-	// safe against race conditions, as long as crypto/rand
-	// is as well. (It is.)
-
-	l := len(dst)
-	if len(src) != l {
-		panic("XORKeyStream: mismatched buffer lengths")
-	}
-
-	buf := make([]byte, l)
-	n, err := rand.Read(buf)
-	if err != nil {
-		panic(err)
-	}
-	if n < len(buf) {
-		panic("short read on infinite random stream!?")
-	}
-
-	for i := 0; i < l; i++ {
-		dst[i] = src[i] ^ buf[i]
-	}
-}
-
-// READER_BYTES is how many bytes we expect from each source
-const READER_BYTES = 32
-
 // MixedrandHash is the hash used in XORKeyStream to mix all entropy sources together.
 // sha512 is chosen as its digest is 64 bytes long, matching the length of blake2xb's seed.
 var MixedrandHash = sha512.New
 
-type mixedrandstream struct {
+type randstream struct {
 	Readers []io.Reader
 }
 
-func (r *mixedrandstream) XORKeyStream(dst, src []byte) {
+func (r *randstream) XORKeyStream(dst, src []byte) {
 
 	l := len(dst)
 	if len(src) != l {
 		panic("XORKeyStream: mismatched buffer lengths")
 	}
 
-	// try to read 32 bytes from all readers and write them in a buffer
+	// readerBytes is how many bytes we expect from each source
+	readerBytes := 32
+
+	// try to read readerBytes bytes from all readers and write them in a buffer
 	var b bytes.Buffer
 	var nerr int
-	buff := make([]byte, READER_BYTES)
+	buff := make([]byte, readerBytes)
 	for _, reader := range r.Readers {
 		n, err := io.ReadFull(reader, buff)
 		if err != nil {
@@ -107,7 +80,7 @@ func (r *mixedrandstream) XORKeyStream(dst, src []byte) {
 	}
 
 	// we are ok with few sources being insecure (i.e., providing less than
-	// READER_BYTES bytes), but not all of them
+	// readerBytes bytes), but not all of them
 	if nerr == len(r.Readers) {
 		panic("all readers failed")
 	}
@@ -122,14 +95,12 @@ func (r *mixedrandstream) XORKeyStream(dst, src []byte) {
 
 // New returns a new cipher.Stream that gets random data from the given
 // readers. If no reader was provided, Go's crypto/rand package is used.
-// In order to use every source, it tries to read 32 bytes from each, and mix it
-// all together into a string of valid length via hashing. This string is then
-// used as a seed for blake2, which is used to perform the final XOR.
+// Otherwise, for each source, 32 bytes are read. They are concatenated and
+// then hashed, and the resulting hash is used as a seed to a PRNG.
 // The resulting cipher.Stream can be used in multiple threads.
 func New(readers ...io.Reader) cipher.Stream {
 	if len(readers) == 0 {
-		return &randstream{}
-	} else {
-		return &mixedrandstream{readers}
+		readers = []io.Reader{rand.Reader}
 	}
+	return &randstream{readers}
 }
