@@ -10,14 +10,16 @@
 package dkg
 
 import (
+	"crypto/rand"
 	"errors"
 	"fmt"
+	"io"
 
 	"go.dedis.ch/kyber/v3"
-
 	"go.dedis.ch/kyber/v3/share"
 	vss "go.dedis.ch/kyber/v3/share/vss/pedersen"
 	"go.dedis.ch/kyber/v3/sign/schnorr"
+	"go.dedis.ch/kyber/v3/util/random"
 )
 
 // Suite wraps the functionalities needed by the dkg package
@@ -78,6 +80,16 @@ type Config struct {
 	// absent) when doing a resharing to avoid a downgrade attack, where a resharing
 	// the number of deals required is less than what it is supposed to be.
 	OldThreshold int
+
+	// Reader is an optional field that can hold a user-specified entropy source.
+	// If it is set, Reader's data will be combined with random data from crypto/rand
+	// to create a random stream which will pick the dkg's secret coefficient. Otherwise,
+	// the random stream will only use crypto/rand's entropy.
+	Reader io.Reader
+
+	// When UserReaderOnly it set to true, it forces the dkg's secretCoeff to be
+	// picked with randomness comming from the user only, allowing reproducibility.
+	UserReaderOnly bool
 }
 
 // DistKeyGenerator is the struct that runs the DKG protocol.
@@ -164,7 +176,14 @@ func NewDistKeyHandler(c *Config) (*DistKeyGenerator, error) {
 		canIssue = true
 	} else if !isResharing && newPresent {
 		// fresh DKG case
-		secretCoeff := c.Suite.Scalar().Pick(c.Suite.RandomStream())
+		randomStream := random.New()
+		// if the user provided a reader, use it alone or combined with crypto/rand
+		if c.Reader != nil && !c.UserReaderOnly {
+			randomStream = random.New(c.Reader, rand.Reader)
+		} else if c.Reader != nil && c.UserReaderOnly {
+			randomStream = random.New(c.Reader)
+		}
+		secretCoeff := c.Suite.Scalar().Pick(randomStream)
 		dealer, err = vss.NewDealer(c.Suite, c.Longterm, secretCoeff, c.NewNodes, newThreshold)
 		canIssue = true
 		c.OldNodes = c.NewNodes

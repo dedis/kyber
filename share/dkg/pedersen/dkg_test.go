@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"fmt"
 	mathRand "math/rand"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -1240,4 +1241,89 @@ func TestDKGResharingPartialNewNodes(t *testing.T) {
 	newSecret, err := share.RecoverSecret(suite, newSShares, newT, newN)
 	require.NoError(t, err)
 	require.Equal(t, oldSecret.String(), newSecret.String())
+}
+
+func TestReaderMixedEntropy(t *testing.T) {
+	seed := "some stream to be used with crypto/rand"
+	partPubs, partSec, _ := generate(defaultN, defaultT)
+	long := partSec[0]
+	r := strings.NewReader(seed)
+	c := &Config{
+		Suite:     suite,
+		Longterm:  long,
+		NewNodes:  partPubs,
+		Threshold: defaultT,
+		Reader:    r,
+	}
+	dkg, err := NewDistKeyHandler(c)
+	require.Nil(t, err)
+	require.NotNil(t, dkg.dealer)
+}
+
+func TestUserOnlyFlagTrueBehavior(t *testing.T) {
+	seed := "String to test reproducibility with"
+	partPubs, partSec, _ := generate(defaultN, defaultT)
+	long := partSec[0]
+
+	r1 := strings.NewReader(seed)
+	c1 := &Config{
+		Suite:          suite,
+		Longterm:       long,
+		NewNodes:       partPubs,
+		Threshold:      defaultT,
+		Reader:         r1,
+		UserReaderOnly: true,
+	}
+	dkg1, err := NewDistKeyHandler(c1)
+	require.Nil(t, err)
+	require.NotNil(t, dkg1.dealer)
+
+	r2 := strings.NewReader(seed)
+	c2 := &Config{
+		Suite:          suite,
+		Longterm:       long,
+		NewNodes:       partPubs,
+		Threshold:      defaultT,
+		Reader:         r2,
+		UserReaderOnly: true,
+	}
+	dkg2, err := NewDistKeyHandler(c2)
+	require.Nil(t, err)
+	require.NotNil(t, dkg2.dealer)
+
+	require.True(t, dkg1.dealer.PrivatePoly().Secret().Equal(dkg2.dealer.PrivatePoly().Secret()))
+}
+
+func TestUserOnlyFlagFalseBehavior(t *testing.T) {
+	seed := "String to test reproducibility with"
+	partPubs, partSec, _ := generate(defaultN, defaultT)
+	long := partSec[0]
+
+	r1 := strings.NewReader(seed)
+	c1 := &Config{
+		Suite:          suite,
+		Longterm:       long,
+		NewNodes:       partPubs,
+		Threshold:      defaultT,
+		Reader:         r1,
+		UserReaderOnly: false,
+	}
+	dkg1, err := NewDistKeyHandler(c1)
+	require.Nil(t, err)
+	require.NotNil(t, dkg1.dealer)
+
+	r2 := strings.NewReader(seed)
+	c2 := &Config{
+		Suite:          suite,
+		Longterm:       long,
+		NewNodes:       partPubs,
+		Threshold:      defaultT,
+		Reader:         r2,
+		UserReaderOnly: false,
+	}
+	dkg2, err := NewDistKeyHandler(c2)
+	require.Nil(t, err)
+	require.NotNil(t, dkg2.dealer)
+
+	require.False(t, dkg1.dealer.PrivatePoly().Secret().Equal(dkg2.dealer.PrivatePoly().Secret()))
 }
