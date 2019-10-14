@@ -8,8 +8,8 @@ import (
 	"io"
 	"math/big"
 
-	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/kyber/v3/group/mod"
+	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v4/group/mod"
 )
 
 var marshalPointID1 = [8]byte{'b', 'n', '2', '5', '6', '.', 'g', '1'}

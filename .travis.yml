@@ -3,7 +3,7 @@ language: go
 go:
   - "1.11.x"
 
-go_import_path: go.dedis.ch/kyber/v3
+go_import_path: go.dedis.ch/kyber/v4
 
 install:
   - go get github.com/dedis/Coding || true
