@@ -1,4 +1,4 @@
-module go.dedis.ch/kyber/v3
+module go.dedis.ch/kyber/v4
 
 require (
 	github.com/stretchr/testify v1.3.0
