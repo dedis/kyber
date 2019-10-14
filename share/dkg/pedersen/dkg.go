@@ -10,10 +10,14 @@
 package dkg
 
 import (
+	"crypto/cipher"
+	"crypto/rand"
 	"errors"
 	"fmt"
+	"io"
 
 	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/util/random"
 
 	"go.dedis.ch/kyber/v3/share"
 	vss "go.dedis.ch/kyber/v3/share/vss/pedersen"
@@ -78,6 +82,13 @@ type Config struct {
 	// absent) when doing a resharing to avoid a downgrade attack, where a resharing
 	// the number of deals required is less than what it is supposed to be.
 	OldThreshold int
+
+	// Reader holds a user-specified entropy source used to create a random stream
+	Reader io.Reader
+
+	// UserReaderOnly forces the dkg's secretCoeff to be picked with randomness comming
+	// from the user only, allowing reproducibility
+	UserReaderOnly bool
 }
 
 // DistKeyGenerator is the struct that runs the DKG protocol.
@@ -164,7 +175,18 @@ func NewDistKeyHandler(c *Config) (*DistKeyGenerator, error) {
 		canIssue = true
 	} else if !isResharing && newPresent {
 		// fresh DKG case
-		secretCoeff := c.Suite.Scalar().Pick(c.Suite.RandomStream())
+		var randomStream cipher.Stream
+		// empty reader, use entropy from crypto/rand
+		if c.Reader == nil {
+			randomStream = random.New()
+		} else { // use the reader they gave, alone or combined
+			if c.UserReaderOnly {
+				randomStream = random.New(c.Reader)
+			} else {
+				randomStream = random.New(c.Reader, rand.Reader)
+			}
+		}
+		secretCoeff := c.Suite.Scalar().Pick(randomStream)
 		dealer, err = vss.NewDealer(c.Suite, c.Longterm, secretCoeff, c.NewNodes, newThreshold)
 		canIssue = true
 		c.OldNodes = c.NewNodes
