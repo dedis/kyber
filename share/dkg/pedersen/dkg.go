@@ -83,7 +83,10 @@ type Config struct {
 	// the number of deals required is less than what it is supposed to be.
 	OldThreshold int
 
-	// Reader holds a user-specified entropy source used to create a random stream
+	// Reader is an optional field that can hold a user-specified entropy source.
+	// If it is set, Reader's data will be combined with random data from crypto/rand
+	// to create a random stream which will pick the dkg's secret coefficient. Otherwise,
+	// the random stream will only use crypto/rand's entropy.
 	Reader io.Reader
 
 	// UserReaderOnly forces the dkg's secretCoeff to be picked with randomness comming
