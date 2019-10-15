@@ -89,8 +89,8 @@ type Config struct {
 	// the random stream will only use crypto/rand's entropy.
 	Reader io.Reader
 
-	// UserReaderOnly forces the dkg's secretCoeff to be picked with randomness comming
-	// from the user only, allowing reproducibility
+	// When UserReaderOnly it set to true, it forces the dkg's secretCoeff to be
+	// picked with randomness comming from the user only, allowing reproducibility.
 	UserReaderOnly bool
 }
 
