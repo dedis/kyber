@@ -1244,20 +1244,36 @@ func TestDKGResharingPartialNewNodes(t *testing.T) {
 }
 
 func TestDKGMixedEntropy(t *testing.T) {
-	r := strings.NewReader("some io.Reader stream to be read")
+	seed := "some stream to be used with crypto/rand"
 	partPubs, partSec, _ := generate(defaultN, defaultT)
-
 	long := partSec[0]
-	c := &Config{
-		Suite:     suite,
-		Longterm:  long,
-		NewNodes:  partPubs,
-		Threshold: defaultT,
-		Reader:    r,
+	r1 := strings.NewReader(seed)
+	c1 := &Config{
+		Suite:          suite,
+		Longterm:       long,
+		NewNodes:       partPubs,
+		Threshold:      defaultT,
+		Reader:         r1,
+		UserReaderOnly: false,
 	}
-	dkg, err := NewDistKeyHandler(c)
+	dkg1, err := NewDistKeyHandler(c1)
 	require.Nil(t, err)
-	require.NotNil(t, dkg.dealer)
+	require.NotNil(t, dkg1.dealer)
+
+	r2 := strings.NewReader(seed)
+	c2 := &Config{
+		Suite:          suite,
+		Longterm:       long,
+		NewNodes:       partPubs,
+		Threshold:      defaultT,
+		Reader:         r2,
+		UserReaderOnly: false,
+	}
+	dkg2, err := NewDistKeyHandler(c2)
+	require.Nil(t, err)
+	require.NotNil(t, dkg2.dealer)
+
+	require.False(t, dkg1.dealer.PrivatePoly().Secret().Equal(dkg2.dealer.PrivatePoly().Secret()))
 }
 
 func TestDKGUserOnly(t *testing.T) {
