@@ -10,7 +10,6 @@
 package dkg
 
 import (
-	"crypto/cipher"
 	"crypto/rand"
 	"errors"
 	"fmt"
@@ -178,16 +177,12 @@ func NewDistKeyHandler(c *Config) (*DistKeyGenerator, error) {
 		canIssue = true
 	} else if !isResharing && newPresent {
 		// fresh DKG case
-		var randomStream cipher.Stream
-		// empty reader, use entropy from crypto/rand
-		if c.Reader == nil {
-			randomStream = random.New()
-		} else { // use the reader they gave, alone or combined
-			if c.UserReaderOnly {
-				randomStream = random.New(c.Reader)
-			} else {
-				randomStream = random.New(c.Reader, rand.Reader)
-			}
+		randomStream := random.New()
+		// if the user provided a reader, use it alone or combined with crypto/rand
+		if c.Reader != nil && !c.UserReaderOnly {
+			randomStream = random.New(c.Reader, rand.Reader)
+		} else if c.Reader != nil && c.UserReaderOnly {
+			randomStream = random.New(c.Reader)
 		}
 		secretCoeff := c.Suite.Scalar().Pick(randomStream)
 		dealer, err = vss.NewDealer(c.Suite, c.Longterm, secretCoeff, c.NewNodes, newThreshold)
