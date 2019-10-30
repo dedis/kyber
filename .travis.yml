@@ -5,11 +5,7 @@ go:
 
 go_import_path: go.dedis.ch/kyber/v4
 
-install:
-  - go get github.com/dedis/Coding || true
-
-script:
-  - env GO111MODULE=on make test
+script: GO111MODULE=on make test
 
 notifications:
   email: false
