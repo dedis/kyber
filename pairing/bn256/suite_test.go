@@ -3,13 +3,13 @@ package bn256
 import (
 	"bytes"
 	"fmt"
-	"go.dedis.ch/kyber/v4"
-	"go.dedis.ch/protobuf"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"go.dedis.ch/kyber/v4"
 	"go.dedis.ch/kyber/v4/group/mod"
 	"go.dedis.ch/kyber/v4/util/random"
+	"go.dedis.ch/protobuf"
 	"golang.org/x/crypto/bn256"
 )
 
@@ -348,4 +348,20 @@ func testTsr(t *testing.T, s *Suite) {
 	err = protobuf.Decode(tpBuf, &tpCopy)
 	require.NoError(t, err)
 	require.True(t, tpCopy.P.Equal(tp.P))
+}
+
+func Test_g2_2add_oncurve_issue400(t *testing.T) {
+	s := NewSuiteG2()
+	p := s.Point().Base()
+	p.Add(p, p)
+
+	if !p.(*pointG2).g.IsOnCurve() {
+		t.Error("not on curve")
+	}
+
+	ma, err := p.MarshalBinary()
+	require.NoError(t, err)
+
+	err = p.UnmarshalBinary(ma)
+	require.NoError(t, err)
 }

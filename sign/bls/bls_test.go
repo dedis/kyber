@@ -225,3 +225,29 @@ func BenchmarkBLSVerifyBatchVerify(b *testing.B) {
 		BatchVerify(suite, publics, msgs, aggregateSig)
 	}
 }
+
+func TestBinaryMarshalAfterAggregation_issue400(t *testing.T) {
+	suite := bn256.NewSuite()
+
+	_, public1 := NewKeyPair(suite, random.New())
+	_, public2 := NewKeyPair(suite, random.New())
+
+	workingKey := AggregatePublicKeys(suite, public1, public2, public1)
+
+	workingBits, err := workingKey.MarshalBinary()
+	require.Nil(t, err)
+
+	workingPoint := suite.G2().Point()
+	err = workingPoint.UnmarshalBinary(workingBits)
+	require.Nil(t, err)
+
+	// this was failing before the fix
+	aggregatedKey := AggregatePublicKeys(suite, public1, public1, public2)
+
+	bits, err := aggregatedKey.MarshalBinary()
+	require.Nil(t, err)
+
+	point := suite.G2().Point()
+	err = point.UnmarshalBinary(bits)
+	require.Nil(t, err)
+}
