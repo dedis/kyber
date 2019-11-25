@@ -1,9 +1,9 @@
 language: go
 
 go:
-  - "1.11.x"
+  - "1.13.x"
 
-go_import_path: go.dedis.ch/kyber/v4
+go_import_path: go.dedis.ch/kyber/v3
 
 script: GO111MODULE=on make test
 

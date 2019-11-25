@@ -7,7 +7,7 @@ import (
 	"io"
 	"reflect"
 
-	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v3"
 )
 
 // PointMarshalTo provides a generic implementation of Point.EncodeTo

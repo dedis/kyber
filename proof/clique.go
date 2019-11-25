@@ -10,7 +10,7 @@ package proof
 // assumes that nodes are always "live" and never go offline,
 // but we can achieve availability via threshold kyber.
 
-import "go.dedis.ch/kyber/v4"
+import "go.dedis.ch/kyber/v3"
 
 // Protocol represents the role of a participant in a clique protocol.
 // A participant is represented as a higher-order function taking a StarContext,

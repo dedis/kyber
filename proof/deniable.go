@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v3"
 )
 
 // DeniableProver is a Protocol implementing an interactive Sigma-protocol

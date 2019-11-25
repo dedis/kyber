@@ -12,9 +12,9 @@ import (
 	"fmt"
 	"reflect"
 
-	"go.dedis.ch/kyber/v4"
-	"go.dedis.ch/kyber/v4/share"
-	"go.dedis.ch/kyber/v4/sign/schnorr"
+	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/share"
+	"go.dedis.ch/kyber/v3/sign/schnorr"
 	"go.dedis.ch/protobuf"
 )
 

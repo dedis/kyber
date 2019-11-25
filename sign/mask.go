@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 
-	"go.dedis.ch/kyber/v4"
-	"go.dedis.ch/kyber/v4/pairing"
+	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/pairing"
 )
 
 // Mask is a bitmask of the participation to a collective signature.
