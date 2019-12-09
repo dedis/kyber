@@ -27,7 +27,7 @@ func (c *curvePoint) String() string {
 	x, y := &gfP{}, &gfP{}
 	montDecode(x, &cpy.x)
 	montDecode(y, &cpy.y)
-	return fmt.Sprintf("(%s, %s)", x.String(), y.String())
+	return fmt.Sprintf("(%s,%s)", x.String(), y.String())
 }
 
 func (c *curvePoint) Set(a *curvePoint) {
