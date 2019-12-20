@@ -29,6 +29,10 @@ func (e *gfP) Set(f *gfP) {
 	e[3] = f[3]
 }
 
+func (e *gfP) Equals(f *gfP) bool {
+	return e[0] == f[0] && e[1] == f[1] && e[2] == f[2] && e[3] == f[3]
+}
+
 func (e *gfP) Invert(f *gfP) {
 	bits := [4]uint64{0x185cac6c5e089665, 0xee5b88d120b5b59e, 0xaa6fecb86184dc21, 0x8fb501e34aa387f9}
 
