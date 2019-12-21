@@ -39,3 +39,28 @@ func TestPointG1_HashToPoint(t *testing.T) {
 		t.Error("hash does not match reference")
 	}
 }
+
+func testhashg2(t *testing.T, b []byte) {
+	p := new(pointG2)
+	p.Hash(b)
+	if !p.g.IsOnCurve() {
+		t.Error("hash to G2 yielded point not on curve")
+	}
+	// the order of the group, minus 1
+	orderm1 := bigFromBase10("65000549695646603732796438742359905742570406053903786389881062969044166799968")
+	G2 := new(groupG2)
+	orderm1scalar := G2.Scalar().SetBytes(orderm1.Bytes())
+	pmul := newPointG2()
+	pmul.Mul(orderm1scalar, p)
+	// Now add p one more time, and we should get O
+	pmul.Add(pmul, p)
+	if !pmul.g.z.IsZero() {
+		t.Error("hash to G2 yielded point of wrong order")
+	}
+}
+
+func TestPointG2HashtoPoint(t *testing.T) {
+	testhashg2(t, []byte(""))
+	testhashg2(t, []byte("abc"))
+	testhashg2(t, []byte("test hash string"))
+}

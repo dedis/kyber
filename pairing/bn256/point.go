@@ -435,6 +435,64 @@ func (p *pointG2) String() string {
 	return "bn256.G2:" + p.g.String()
 }
 
+func (p *pointG2) Hash(m []byte) kyber.Point {
+	// Hash the data to get the "real" and "imaginary" parts of the
+	// initial attempt at an x coordinate.  The real component
+	// becomes SHA256("r" || m) and the imaginary component becomes
+	// SHA256("i" || m).
+	x := &gfP2{*newGFp(0), *newGFp(0)}
+	realh := sha256.New()
+	realh.Write([]byte("r"))
+	realh.Write(m)
+	realhash := realh.Sum(nil)
+	imagh := sha256.New()
+	imagh.Write([]byte("i"))
+	imagh.Write(m)
+	imaghash := imagh.Sum(nil)
+	x.x.Unmarshal(imaghash[:])
+	x.y.Unmarshal(realhash[:])
+	montEncode(&x.x, &x.x)
+	montEncode(&x.y, &x.y)
+
+	// See if there's a corresponding y coordinate for this x.  If not,
+	// increment (the "real" part of) x and keep trying.
+	y := &gfP2{}
+	one := &gfP2{*newGFp(0), *newGFp(1)}
+
+	for {
+		// Compute y2 = x^3 + 3/xi
+		y2 := &gfP2{}
+		y2.Mul(x, x)
+		y2.Mul(y2, x)
+		y2.Add(y2, twistB)
+
+		// Take the square root, if possible
+		if y.Sqrt(y2) != nil {
+			break
+		}
+
+		// Add 1 to the "real" part of x
+		x.Add(x, one)
+	}
+
+	// Now we have a point on the twist curve
+	rawhashpoint := &twistPoint{*x, *y,
+		gfP2{*newGFp(0), *newGFp(1)},
+		gfP2{*newGFp(0), *newGFp(1)}}
+
+	// Multiply by the cofactor to get a point in G2
+	cofactor := bigFromBase10("65000549695646603732796438742359905743080310161342220753873227084684201343597")
+	rawhashpoint.Mul(rawhashpoint, cofactor)
+
+	// Create a pointG2 out of the twistPoint
+	if p.g == nil {
+		p.g = new(twistPoint)
+	}
+	p.g.Set(rawhashpoint)
+
+	return p
+}
+
 type pointGT struct {
 	g *gfP12
 }
