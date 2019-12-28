@@ -6,9 +6,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/kyber/v3/xof/blake2xb"
-	"go.dedis.ch/kyber/v3/xof/keccak"
+	"github.com/drand/kyber"
+	"github.com/drand/kyber/xof/blake2xb"
+	"github.com/drand/kyber/xof/keccak"
 )
 
 type blakeF struct{}

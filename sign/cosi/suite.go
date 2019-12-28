@@ -1,6 +1,6 @@
 package cosi
 
-import "go.dedis.ch/kyber/v3"
+import "github.com/drand/kyber"
 
 // Suite specifies the cryptographic building blocks required for the cosi package.
 type Suite interface {

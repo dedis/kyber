@@ -15,12 +15,12 @@ import (
 	"fmt"
 	"io"
 
-	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/kyber/v3/util/random"
+	"github.com/drand/kyber"
+	"github.com/drand/kyber/util/random"
 
-	"go.dedis.ch/kyber/v3/share"
-	vss "go.dedis.ch/kyber/v3/share/vss/pedersen"
-	"go.dedis.ch/kyber/v3/sign/schnorr"
+	"github.com/drand/kyber/share"
+	vss "github.com/drand/kyber/share/vss/pedersen"
+	"github.com/drand/kyber/sign/schnorr"
 )
 
 // Suite wraps the functionalities needed by the dkg package

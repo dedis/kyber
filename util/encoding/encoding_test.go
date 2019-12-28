@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"go.dedis.ch/kyber/v3/group/edwards25519"
+	"github.com/drand/kyber/group/edwards25519"
 )
 
 var s = edwards25519.NewBlakeSHA256Ed25519()

@@ -3,7 +3,7 @@ package shuffle
 import (
 	"testing"
 
-	"go.dedis.ch/kyber/v3/group/nist"
+	"github.com/drand/kyber/group/nist"
 )
 
 func BenchmarkBiffleP256(b *testing.B) {

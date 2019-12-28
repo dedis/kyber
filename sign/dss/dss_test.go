@@ -6,11 +6,11 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/kyber/v3/group/edwards25519"
-	dkg "go.dedis.ch/kyber/v3/share/dkg/rabin"
-	"go.dedis.ch/kyber/v3/sign/eddsa"
-	"go.dedis.ch/kyber/v3/sign/schnorr"
+	"github.com/drand/kyber"
+	"github.com/drand/kyber/group/edwards25519"
+	dkg "github.com/drand/kyber/share/dkg/rabin"
+	"github.com/drand/kyber/sign/eddsa"
+	"github.com/drand/kyber/sign/schnorr"
 )
 
 var suite = edwards25519.NewBlakeSHA256Ed25519()
