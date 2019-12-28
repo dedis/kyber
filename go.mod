@@ -8,4 +8,6 @@ require (
 	golang.org/x/sys v0.5.0
 )
 
+replace go.dedis.ch/kyber/v3 => github.com/drand/kyber v3.0.11
+
 go 1.13
