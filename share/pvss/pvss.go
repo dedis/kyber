@@ -15,9 +15,9 @@ package pvss
 import (
 	"errors"
 
-	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/kyber/v3/proof/dleq"
-	"go.dedis.ch/kyber/v3/share"
+	"github.com/drand/kyber"
+	"github.com/drand/kyber/proof/dleq"
+	"github.com/drand/kyber/share"
 )
 
 // Suite describes the functionalities needed by this package in order to

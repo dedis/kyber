@@ -8,7 +8,7 @@ package dleq
 import (
 	"errors"
 
-	"go.dedis.ch/kyber/v3"
+	"github.com/drand/kyber"
 )
 
 // Suite wraps the functionalities needed by the dleq package.

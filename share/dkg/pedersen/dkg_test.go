@@ -8,10 +8,10 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/kyber/v3/group/edwards25519"
-	"go.dedis.ch/kyber/v3/share"
-	vss "go.dedis.ch/kyber/v3/share/vss/pedersen"
+	"github.com/drand/kyber"
+	"github.com/drand/kyber/group/edwards25519"
+	"github.com/drand/kyber/share"
+	vss "github.com/drand/kyber/share/vss/pedersen"
 )
 
 // Note: if you are looking for a complete scenario that shows DKG in action

@@ -4,9 +4,9 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/kyber/v3/group/edwards25519"
-	"go.dedis.ch/kyber/v3/xof/blake2xb"
+	"github.com/drand/kyber"
+	"github.com/drand/kyber/group/edwards25519"
+	"github.com/drand/kyber/xof/blake2xb"
 )
 
 // This example shows how to build classic ElGamal-style digital signatures
