@@ -14,14 +14,16 @@ import (
 	"bytes"
 	"encoding/binary"
 
+	"github.com/drand/kyber"
 	"github.com/drand/kyber/pairing"
 	"github.com/drand/kyber/share"
+	"github.com/drand/kyber/sign"
 	"github.com/drand/kyber/sign/bls"
 )
 
 // SigShare encodes a threshold BLS signature share Si = i || v where the 2-byte
 // big-endian value i corresponds to the share's index and v represents the
-// share's value. The signature share Si is a point on curve G1.
+// share's value. The signature share Si is a point on curve G1 or G2.
 type SigShare []byte
 
 // Index returns the index i of the TBLS share Si.
@@ -40,18 +42,53 @@ func (s *SigShare) Value() []byte {
 	return []byte(*s)[2:]
 }
 
+// ThresholdScheme is a threshold signature scheme that issues partial
+// signatures and can recover a "full" signature. It is implemented by the tbls
+// package.
+// TODO: see any potential conflict or synergy with mask and policy
+type ThresholdScheme interface {
+	Sign(private *share.PriShare, msg []byte) ([]byte, error)
+	Recover(public *share.PubPoly, msg []byte, sigs [][]byte, t, n int) ([]byte, error)
+	Verify(public *share.PubPoly, msg, sig []byte) error
+}
+type scheme struct {
+	keyGroup kyber.Group
+	sigGroup kyber.Group
+	sign.Scheme
+}
+
+// NewThresholdSchemeOnG1 returns a treshold scheme that computes bls signatures
+// on G1
+func NewTresholdSchemeOnG1(suite pairing.Suite) ThresholdScheme {
+	return &scheme{
+		keyGroup: suite.G2(),
+		sigGroup: suite.G1(),
+		Scheme:   bls.NewSchemeOnG1(suite),
+	}
+}
+
+// NewThresholdSchemeOnG1 returns a treshold scheme that computes bls signatures
+// on G2
+func NewTresholdSchemeOnG2(suite pairing.Suite) ThresholdScheme {
+	return &scheme{
+		keyGroup: suite.G1(),
+		sigGroup: suite.G2(),
+		Scheme:   bls.NewSchemeOnG2(suite),
+	}
+}
+
 // Sign creates a threshold BLS signature Si = xi * H(m) on the given message m
 // using the provided secret key share xi.
-func Sign(suite pairing.Suite, private *share.PriShare, msg []byte) ([]byte, error) {
+func (s *scheme) Sign(private *share.PriShare, msg []byte) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	if err := binary.Write(buf, binary.BigEndian, uint16(private.I)); err != nil {
 		return nil, err
 	}
-	s, err := bls.Sign(suite, private.V, msg)
+	sig, err := s.Scheme.Sign(private.V, msg)
 	if err != nil {
 		return nil, err
 	}
-	if err := binary.Write(buf, binary.BigEndian, s); err != nil {
+	if err := binary.Write(buf, binary.BigEndian, sig); err != nil {
 		return nil, err
 	}
 	return buf.Bytes(), nil
@@ -61,13 +98,13 @@ func Sign(suite pairing.Suite, private *share.PriShare, msg []byte) ([]byte, err
 // the public key share Xi that is associated to the secret key share xi. This
 // public key share Xi can be computed by evaluating the public sharing
 // polynonmial at the share's index i.
-func Verify(suite pairing.Suite, public *share.PubPoly, msg, sig []byte) error {
-	s := SigShare(sig)
-	i, err := s.Index()
+func (s *scheme) Verify(public *share.PubPoly, msg, sig []byte) error {
+	sh := SigShare(sig)
+	i, err := sh.Index()
 	if err != nil {
 		return err
 	}
-	return bls.Verify(suite, public.Eval(i).V, msg, s.Value())
+	return s.Scheme.Verify(public.Eval(i).V, msg, sh.Value())
 }
 
 // Recover reconstructs the full BLS signature S = x * H(m) from a threshold t
@@ -75,19 +112,19 @@ func Verify(suite pairing.Suite, public *share.PubPoly, msg, sig []byte) error {
 // can be verified through the regular BLS verification routine using the
 // shared public key X. The shared public key can be computed by evaluating the
 // public sharing polynomial at index 0.
-func Recover(suite pairing.Suite, public *share.PubPoly, msg []byte, sigs [][]byte, t, n int) ([]byte, error) {
+func (s *scheme) Recover(public *share.PubPoly, msg []byte, sigs [][]byte, t, n int) ([]byte, error) {
 	pubShares := make([]*share.PubShare, 0)
 	for _, sig := range sigs {
-		s := SigShare(sig)
-		i, err := s.Index()
+		sh := SigShare(sig)
+		i, err := sh.Index()
 		if err != nil {
 			return nil, err
 		}
-		if err = bls.Verify(suite, public.Eval(i).V, msg, s.Value()); err != nil {
+		if err = s.Scheme.Verify(public.Eval(i).V, msg, sh.Value()); err != nil {
 			return nil, err
 		}
-		point := suite.G1().Point()
-		if err := point.UnmarshalBinary(s.Value()); err != nil {
+		point := s.sigGroup.Point()
+		if err := point.UnmarshalBinary(sh.Value()); err != nil {
 			return nil, err
 		}
 		pubShares = append(pubShares, &share.PubShare{I: i, V: point})
@@ -95,7 +132,7 @@ func Recover(suite pairing.Suite, public *share.PubPoly, msg []byte, sigs [][]by
 			break
 		}
 	}
-	commit, err := share.RecoverCommit(suite.G1(), pubShares, t, n)
+	commit, err := share.RecoverCommit(s.sigGroup, pubShares, t, n)
 	if err != nil {
 		return nil, err
 	}
