@@ -32,7 +32,7 @@ type scheme struct {
 	pairing  func(signature, public, hashedPoint kyber.Point) bool
 }
 
-// NewSchemeG1 returns a sign.Scheme that uses G1 for its signature space and G2
+// NewSchemeOnG1 returns a sign.Scheme that uses G1 for its signature space and G2
 // for its public keys
 func NewSchemeOnG1(suite pairing.Suite) sign.AggregatableScheme {
 	sigGroup := suite.G1()
@@ -41,7 +41,26 @@ func NewSchemeOnG1(suite pairing.Suite) sign.AggregatableScheme {
 		// e ( H(m) , g^x)
 		left := suite.Pair(hashedMsg, public)
 		// e ( H(m)^x , g)
-		right := suite.Pair(sigPoint, suite.G2().Point().Base())
+		right := suite.Pair(sigPoint, keyGroup.Point().Base())
+		return left.Equal(right)
+	}
+	return &scheme{
+		sigGroup: sigGroup,
+		keyGroup: keyGroup,
+		pairing:  pairing,
+	}
+}
+
+// NewSchemeOnG2 returns a sign.Scheme that uses G2 for its signature space and
+// G1 for its public key
+func NewSchemeOnG2(suite pairing.Suite) sign.AggregatableScheme {
+	sigGroup := suite.G2()
+	keyGroup := suite.G1()
+	pairing := func(public, hashedMsg, sigPoint kyber.Point) bool {
+		// e (g^x, H(m))
+		left := suite.Pair(public, hashedMsg)
+		// e( g, H(m)^x)
+		right := suite.Pair(keyGroup.Point().Base(), sigPoint)
 		return left.Equal(right)
 	}
 	return &scheme{
