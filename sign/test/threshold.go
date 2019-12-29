@@ -12,22 +12,71 @@ import (
 
 // ThresholdTest performs a simple check on a threshold scheme implementation
 func ThresholdTest(test *testing.T, keyGroup kyber.Group, scheme sign.ThresholdScheme) {
-	var err error
 	msg := []byte("Hello threshold Boneh-Lynn-Shacham")
 	n := 10
 	t := n/2 + 1
-	secret := keyGroup.Scalar().Pick(random.New())
-	priPoly := share.NewPriPoly(keyGroup, t, secret, random.New())
-	pubPoly := priPoly.Commit(keyGroup.Point().Base())
-	sigShares := make([][]byte, 0)
-	for _, x := range priPoly.Shares(n) {
-		sig, err := scheme.Sign(x, msg)
-		require.Nil(test, err)
-		require.Nil(test, scheme.VerifyPartial(pubPoly, msg, sig))
-		sigShares = append(sigShares, sig)
-	}
-	sig, err := scheme.Recover(pubPoly, msg, sigShares, t, n)
-	require.Nil(test, err)
-	err = scheme.VerifyRecovered(pubPoly.Commit(), msg, sig)
-	require.Nil(test, err)
+	test.Run("Correct sharing and recovering", func(tt *testing.T) {
+		secret := keyGroup.Scalar().Pick(random.New())
+		priPoly := share.NewPriPoly(keyGroup, t, secret, random.New())
+		pubPoly := priPoly.Commit(keyGroup.Point().Base())
+		sigShares := make([][]byte, 0)
+		for _, x := range priPoly.Shares(n) {
+			sig, err := scheme.Sign(x, msg)
+			require.Nil(tt, err)
+			require.Nil(tt, scheme.VerifyPartial(pubPoly, msg, sig))
+			sigShares = append(sigShares, sig)
+		}
+		sig, err := scheme.Recover(pubPoly, msg, sigShares, t, n)
+		require.Nil(tt, err)
+		err = scheme.VerifyRecovered(pubPoly.Commit(), msg, sig)
+		require.Nil(tt, err)
+	})
+
+	test.Run("Invalid PublicKey", func(tt *testing.T) {
+		secret := keyGroup.Scalar().Pick(random.New())
+		priPoly := share.NewPriPoly(keyGroup, t, secret, random.New())
+		pubPoly := priPoly.Commit(keyGroup.Point().Base())
+		sigShares := make([][]byte, 0)
+		for _, x := range priPoly.Shares(n) {
+			sig, err := scheme.Sign(x, msg)
+			require.Nil(tt, err)
+			require.Nil(tt, scheme.VerifyPartial(pubPoly, msg, sig))
+			sigShares = append(sigShares, sig)
+		}
+		sig, err := scheme.Recover(pubPoly, msg, sigShares, t, n)
+		require.Nil(tt, err)
+		err = scheme.VerifyRecovered(keyGroup.Point().Pick(random.New()), msg, sig)
+		require.Error(tt, err)
+	})
+
+	test.Run("Invalid PartialSig", func(tt *testing.T) {
+		secret := keyGroup.Scalar().Pick(random.New())
+		priPoly := share.NewPriPoly(keyGroup, t, secret, random.New())
+		pubPoly := priPoly.Commit(keyGroup.Point().Base())
+		fakeSecret := keyGroup.Scalar().Pick(random.New())
+		fakePriPoly := share.NewPriPoly(keyGroup, t, fakeSecret, random.New())
+		for _, x := range fakePriPoly.Shares(n) {
+			sig, err := scheme.Sign(x, msg)
+			require.Nil(tt, err)
+			require.Error(tt, scheme.VerifyPartial(pubPoly, msg, sig))
+		}
+	})
+	test.Run("Invalid Recovered Sig", func(tt *testing.T) {
+		secret := keyGroup.Scalar().Pick(random.New())
+		priPoly := share.NewPriPoly(keyGroup, t, secret, random.New())
+		pubPoly := priPoly.Commit(keyGroup.Point().Base())
+		fakeSecret := keyGroup.Scalar().Pick(random.New())
+		fakePriPoly := share.NewPriPoly(keyGroup, t, fakeSecret, random.New())
+		fakeShares := fakePriPoly.Shares(n)
+		fakeSigShares := make([][]byte, 0)
+		fakePubPoly := fakePriPoly.Commit(keyGroup.Point().Base())
+		for i := 0; i < n; i++ {
+			fakeSig, _ := scheme.Sign(fakeShares[i], msg)
+			fakeSigShares = append(fakeSigShares, fakeSig)
+		}
+		fakeSig, err := scheme.Recover(fakePubPoly, msg, fakeSigShares, t, n)
+		require.Nil(tt, err)
+		err = scheme.VerifyRecovered(pubPoly.Commit(), msg, fakeSig)
+		require.Error(tt, err)
+	})
 }
