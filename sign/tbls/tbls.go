@@ -42,15 +42,6 @@ func (s *SigShare) Value() []byte {
 	return []byte(*s)[2:]
 }
 
-// ThresholdScheme is a threshold signature scheme that issues partial
-// signatures and can recover a "full" signature. It is implemented by the tbls
-// package.
-// TODO: see any potential conflict or synergy with mask and policy
-type ThresholdScheme interface {
-	Sign(private *share.PriShare, msg []byte) ([]byte, error)
-	Recover(public *share.PubPoly, msg []byte, sigs [][]byte, t, n int) ([]byte, error)
-	Verify(public *share.PubPoly, msg, sig []byte) error
-}
 type scheme struct {
 	keyGroup kyber.Group
 	sigGroup kyber.Group
@@ -59,7 +50,7 @@ type scheme struct {
 
 // NewThresholdSchemeOnG1 returns a treshold scheme that computes bls signatures
 // on G1
-func NewTresholdSchemeOnG1(suite pairing.Suite) ThresholdScheme {
+func NewThresholdSchemeOnG1(suite pairing.Suite) sign.ThresholdScheme {
 	return &scheme{
 		keyGroup: suite.G2(),
 		sigGroup: suite.G1(),
@@ -67,9 +58,9 @@ func NewTresholdSchemeOnG1(suite pairing.Suite) ThresholdScheme {
 	}
 }
 
-// NewThresholdSchemeOnG1 returns a treshold scheme that computes bls signatures
+// NewThresholdSchemeOnG2 returns a treshold scheme that computes bls signatures
 // on G2
-func NewTresholdSchemeOnG2(suite pairing.Suite) ThresholdScheme {
+func NewThresholdSchemeOnG2(suite pairing.Suite) sign.ThresholdScheme {
 	return &scheme{
 		keyGroup: suite.G1(),
 		sigGroup: suite.G2(),
@@ -94,17 +85,21 @@ func (s *scheme) Sign(private *share.PriShare, msg []byte) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// Verify checks the given threshold BLS signature Si on the message m using
+// VerifyPartial checks the given threshold BLS signature Si on the message m using
 // the public key share Xi that is associated to the secret key share xi. This
 // public key share Xi can be computed by evaluating the public sharing
 // polynonmial at the share's index i.
-func (s *scheme) Verify(public *share.PubPoly, msg, sig []byte) error {
+func (s *scheme) VerifyPartial(public *share.PubPoly, msg, sig []byte) error {
 	sh := SigShare(sig)
 	i, err := sh.Index()
 	if err != nil {
 		return err
 	}
 	return s.Scheme.Verify(public.Eval(i).V, msg, sh.Value())
+}
+
+func (s *scheme) VerifyRecovered(public kyber.Point, msg, sig []byte) error {
+	return s.Scheme.Verify(public, msg, sig)
 }
 
 // Recover reconstructs the full BLS signature S = x * H(m) from a threshold t
