@@ -68,9 +68,9 @@ func (m *Mask) SetBit(i int, enable bool) error {
 	byteIndex := i / 8
 	mask := byte(1) << uint(i&7)
 	if enable {
-		m.mask[byteIndex] ^= mask
+		m.mask[byteIndex] |= mask
 	} else {
-		m.mask[byteIndex] ^= mask
+		m.mask[byteIndex] &^= mask
 	}
 	return nil
 }
