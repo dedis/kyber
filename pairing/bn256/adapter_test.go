@@ -1,10 +1,10 @@
-package pairing
+package bn256
 
 import (
 	"testing"
 
-	"github.com/stretchr/testify/require"
 	"github.com/drand/kyber/util/key"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAdapter_SuiteBn256(t *testing.T) {
