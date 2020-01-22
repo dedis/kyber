@@ -286,6 +286,18 @@ func basicPointTest(t *testing.T, s *Suite) {
 	err = paCopy.UnmarshalBinary(paBuf)
 	require.Nil(t, err)
 	require.True(t, pa.Equal(paCopy))
+
+	const addersTarget = 123
+	scalarUnit := s.Scalar().One()
+	pointUnit := s.Point().Mul(scalarUnit, nil)
+
+	scalarAdder := s.Scalar().Zero()
+	pointAdder := s.Point().Mul(scalarAdder, nil)
+	for i := 0; i < addersTarget; i++ {
+		scalarAdder.Add(scalarAdder, scalarUnit)
+		pointAdder.Add(pointAdder, pointUnit)
+	}
+	require.True(t, pointAdder.Equal(s.Point().Mul(scalarAdder, nil)))
 }
 
 // Test that the suite.Read works correctly for suites with a defined `Point()`.
