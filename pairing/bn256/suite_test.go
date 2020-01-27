@@ -377,3 +377,65 @@ func Test_g2_2add_oncurve_issue400(t *testing.T) {
 	err = p.UnmarshalBinary(ma)
 	require.NoError(t, err)
 }
+
+// Test doing pairings with a point produced by G2's Neg function
+// This fails with useneg == true in kyber 3.0.11.
+func testpairG2negUseneg(t *testing.T, useneg bool) {
+	suite := NewSuite()
+	g1 := suite.G1().Point().Base()
+	g2 := suite.G2().Point().Base()
+	g2neg := suite.G2().Point()
+	if useneg {
+		// Use Neg to get the negation
+		g2neg = suite.G2().Point().Neg(g2)
+	} else {
+		// Multiply by -1 to get the negation
+		minus1 := suite.G1().Scalar().SetInt64(-1)
+		g2neg = suite.G2().Point().Mul(minus1, g2)
+	}
+	b := suite.G1().Scalar().SetInt64(2)
+	g1b := suite.G1().Point().Mul(b, g1)
+	g2negb := suite.G2().Point().Mul(b, g2neg)
+	res1 := suite.Pair(g1b, g2neg)
+	res2 := suite.Pair(g1, g2negb)
+	require.Equal(t, res1, res2)
+}
+
+// The same for G1, just for completeness (but this one does not fail on
+// 3.0.11)
+func testpairG1negUseneg(t *testing.T, useneg bool) {
+	suite := NewSuite()
+	g1 := suite.G1().Point().Base()
+	g2 := suite.G2().Point().Base()
+	g1neg := suite.G1().Point()
+	if useneg {
+		// Use Neg to get the negation
+		g1neg = suite.G1().Point().Neg(g1)
+	} else {
+		// Multiply by -1 to get the negation
+		minus1 := suite.G1().Scalar().SetInt64(-1)
+		g1neg = suite.G1().Point().Mul(minus1, g1)
+	}
+	b := suite.G1().Scalar().SetInt64(2)
+	g2b := suite.G2().Point().Mul(b, g2)
+	g1negb := suite.G1().Point().Mul(b, g1neg)
+	res1 := suite.Pair(g1negb, g2)
+	res2 := suite.Pair(g1neg, g2b)
+	require.Equal(t, res1, res2)
+}
+
+func TestPairG2Mul(t *testing.T) {
+	testpairG2negUseneg(t, false)
+}
+
+func TestPairG2Neg(t *testing.T) {
+	testpairG2negUseneg(t, true)
+}
+
+func TestPairG1Mul(t *testing.T) {
+	testpairG1negUseneg(t, false)
+}
+
+func TestPairG1Neg(t *testing.T) {
+	testpairG1negUseneg(t, true)
+}
