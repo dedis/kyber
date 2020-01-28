@@ -182,9 +182,22 @@ func NewDistKeyHandler(c *Config) (*DistKeyGenerator, error) {
 		if c.Reader != nil && !c.UserReaderOnly {
 			randomStream = random.New(c.Reader, rand.Reader)
 		} else if c.Reader != nil && c.UserReaderOnly {
+			fmt.Println("random stream reader & useronly")
 			randomStream = random.New(c.Reader)
 		}
-		secretCoeff := c.Suite.Scalar().Pick(randomStream)
+		var secretCoeff kyber.Scalar
+		pickErr := func() (err error) {
+			defer func() {
+				if err = recover(); err != nil {
+					return
+				}
+			}()
+			secretCoeff = c.Suite.Scalar().Pick(randomStream)
+		}()
+		if pickErr != nil {
+			return nil, pickErr
+		}
+		fmt.Printf("\t-secret: %s\n", secretCoeff)
 		dealer, err = vss.NewDealer(c.Suite, c.Longterm, secretCoeff, c.NewNodes, newThreshold)
 		canIssue = true
 		c.OldNodes = c.NewNodes
@@ -299,6 +312,12 @@ func (d *DistKeyGenerator) Deals() (map[int]*Deal, error) {
 			if resp, err := d.ProcessDeal(distd); err != nil {
 				panic("dkg: cannot process own deal: " + err.Error())
 			} else if resp.Response.Status != vss.StatusApproval {
+				//fmt.Printf("\n\n----config of %d - %s\n", d.nidx, d.pub.String())
+				//if d.c.Share != nil {
+				//fmt.Printf("commits: %v\n", d.c.Share.Commits)
+				//}
+				//fmt.Println(d.c.OldNodes)
+				//fmt.Println(d.c.NewNodes)
 				panic("dkg: own deal gave a complaint")
 			}
 			continue
@@ -367,12 +386,18 @@ func (d *DistKeyGenerator) ProcessDeal(dd *Deal) (*Response, error) {
 	}
 
 	if d.isResharing && d.canReceive {
-		// verify share integrity wrt to the dist. secret
+		// In resharing, each dealer VSS its share from the previous DKG
+		// so the first coefficient of the private polynomial a dealer is
+		// using is its share so its "public share" is the first coefficient
+		// of the commitment of its private polynomial. Turns out the "public
+		// share" of dealer i is the evaluation of the distributed public
+		// polynomial generated during the previous DKG at the point i.
+		// We make sure here that the dealer is not sharing any random secret
+		// but really its share.
 		dealCommits := ver.Commits()
-		// Check that the received committed share is equal to the one we
-		// generate from the known public polynomial
 		expectedPubShare := d.dpub.Eval(int(dd.Index))
 		if !expectedPubShare.V.Equal(dealCommits[0]) {
+			fmt.Printf("TEST RESHARING HERE:\n\t- oidx %d nidx %d\n\t- pub key %s\n\t-commits[0]: %v\n\t-distkey.eval(%d): %v\n", d.oidx, d.nidx, d.pub.String(), dealCommits[0], dd.Index, expectedPubShare)
 			return reject()
 		}
 	}
