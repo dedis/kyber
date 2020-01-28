@@ -6,7 +6,7 @@ import (
 
 	"github.com/drand/kyber"
 	"github.com/drand/kyber/group/edwards25519"
-	dkg "github.com/drand/kyber/share/dkg/pedersen"
+	dkg "github.com/drand/kyber/share/dkg/rabin"
 	"github.com/drand/kyber/sign/eddsa"
 	"github.com/drand/kyber/sign/schnorr"
 	"github.com/stretchr/testify/assert"

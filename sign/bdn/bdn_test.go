@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/drand/kyber"
-	"github.com/drand/kyber/pairing"
 	"github.com/drand/kyber/pairing/bn256"
 	"github.com/drand/kyber/sign"
 	"github.com/drand/kyber/sign/bls"
@@ -13,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var suite = pairing.NewSuiteBn256()
+var suite = bn256.NewSuiteBn256()
 var two = suite.Scalar().Add(suite.Scalar().One(), suite.Scalar().One())
 var three = suite.Scalar().Add(two, suite.Scalar().One())
 
