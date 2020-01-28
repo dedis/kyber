@@ -4,15 +4,15 @@ import (
 	"crypto/rand"
 	"testing"
 
-	"github.com/stretchr/testify/require"
 	"github.com/drand/kyber"
-	"github.com/drand/kyber/pairing"
+	"github.com/drand/kyber/pairing/bn256"
 	"github.com/drand/kyber/util/key"
+	"github.com/stretchr/testify/require"
 )
 
 const n = 17
 
-var suite = pairing.NewSuiteBn256()
+var suite = bn256.NewSuiteBn256()
 var publics []kyber.Point
 
 func init() {
