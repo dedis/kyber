@@ -1,7 +1,7 @@
-[![Go test](https://github.com/dedis/kyber/actions/workflows/go_tests.yml/badge.svg)](https://github.com/dedis/kyber/actions/workflows/go_tests.yml)
-[![Coverage Status](https://coveralls.io/repos/github/dedis/kyber/badge.svg?branch=master)](https://coveralls.io/github/dedis/kyber?branch=master)
-[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=dedis_kyber&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=dedis_kyber)
-[![Go Reference](https://pkg.go.dev/badge/github.com/dedis/kyber.svg)](https://pkg.go.dev/github.com/dedis/kyber)
+[![Docs](https://img.shields.io/badge/docs-current-brightgreen.svg)](https://godoc.org/github.com/drand/kyber)
+[![CircleCI](https://circleci.com/gh/drand/kyber/tree/master.svg?style=svg)](https://circleci.com/gh/drand/kyber/tree/master)
+
+** Forked repository for use in drand **
 
 DEDIS Advanced Crypto Library for Go
 ====================================
