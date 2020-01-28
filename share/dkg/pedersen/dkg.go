@@ -188,16 +188,17 @@ func NewDistKeyHandler(c *Config) (*DistKeyGenerator, error) {
 		var secretCoeff kyber.Scalar
 		pickErr := func() (err error) {
 			defer func() {
-				if err = recover(); err != nil {
+				if r := recover(); r != nil {
+					err = fmt.Errorf("error picking secret: %v", r)
 					return
 				}
 			}()
 			secretCoeff = c.Suite.Scalar().Pick(randomStream)
+			return nil
 		}()
 		if pickErr != nil {
 			return nil, pickErr
 		}
-		fmt.Printf("\t-secret: %s\n", secretCoeff)
 		dealer, err = vss.NewDealer(c.Suite, c.Longterm, secretCoeff, c.NewNodes, newThreshold)
 		canIssue = true
 		c.OldNodes = c.NewNodes
