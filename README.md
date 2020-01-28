@@ -1,5 +1,7 @@
-[![Docs](https://img.shields.io/badge/docs-current-brightgreen.svg)](https://godoc.org/go.dedis.ch/kyber)
-[![Build Status](https://travis-ci.org/dedis/kyber.svg?branch=master)](https://travis-ci.org/dedis/kyber)
+[![Docs](https://img.shields.io/badge/docs-current-brightgreen.svg)](https://godoc.org/github.com/drand/kyber)
+[![CircleCI](https://circleci.com/gh/drand/kyber/tree/master.svg?style=svg)](https://circleci.com/gh/drand/kyber/tree/master)
+
+** Forked repository for use in drand **
 
 DEDIS Advanced Crypto Library for Go
 ====================================
