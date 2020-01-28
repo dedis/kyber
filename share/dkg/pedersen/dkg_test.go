@@ -7,11 +7,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/require"
 	"github.com/drand/kyber"
 	"github.com/drand/kyber/group/edwards25519"
 	"github.com/drand/kyber/share"
 	vss "github.com/drand/kyber/share/vss/pedersen"
+	"github.com/stretchr/testify/require"
 )
 
 // Note: if you are looking for a complete scenario that shows DKG in action
@@ -1299,6 +1299,23 @@ func TestReaderMixedEntropy(t *testing.T) {
 	require.NotNil(t, dkg.dealer)
 }
 
+func TestReaderMixedEntropyFail(t *testing.T) {
+	seed := ""
+	partPubs, partSec, _ := generate(defaultN, defaultT)
+	long := partSec[0]
+	r := strings.NewReader(seed)
+	c := &Config{
+		Suite:          suite,
+		Longterm:       long,
+		NewNodes:       partPubs,
+		Threshold:      defaultT,
+		Reader:         r,
+		UserReaderOnly: true,
+	}
+	dkg, err := NewDistKeyHandler(c)
+	require.Error(t, err)
+	require.Nil(t, dkg)
+}
 func TestUserOnlyFlagTrueBehavior(t *testing.T) {
 	seed := "String to test reproducibility with"
 	partPubs, partSec, _ := generate(defaultN, defaultT)
