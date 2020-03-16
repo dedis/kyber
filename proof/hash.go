@@ -2,25 +2,40 @@ package proof
 
 import (
 	"bytes"
+	"crypto/cipher"
+	"fmt"
+	"io"
 
-	"github.com/dedis/crypto/abstract"
+	"go.dedis.ch/kyber/v3"
 )
 
 // Hash-based noninteractive Sigma-protocol prover context
 type hashProver struct {
-	suite   abstract.Suite
+	suite   Suite
 	proof   bytes.Buffer
 	msg     bytes.Buffer
-	pubrand abstract.Cipher
-	prirand abstract.Cipher
+	pubrand kyber.XOF
+	prirand io.Reader
 }
 
-func newHashProver(suite abstract.Suite, protoName string,
-	rand abstract.Cipher) *hashProver {
+// cipherStreamReader adds a Read method onto a cipher.Stream,
+// so that it can be used as an io.Reader.
+type cipherStreamReader struct {
+	cipher.Stream
+}
+
+func (s *cipherStreamReader) Read(in []byte) (int, error) {
+	x := make([]byte, len(in))
+	s.XORKeyStream(x, x)
+	copy(in, x)
+	return len(in), nil
+}
+
+func newHashProver(suite Suite, protoName string) *hashProver {
 	var sc hashProver
 	sc.suite = suite
-	sc.pubrand = suite.Cipher([]byte(protoName))
-	sc.prirand = rand
+	sc.pubrand = suite.XOF([]byte(protoName))
+	sc.prirand = &cipherStreamReader{suite.RandomStream()}
 	return &sc
 }
 
@@ -33,7 +48,8 @@ func (c *hashProver) consumeMsg() {
 
 		// Stir the message into the public randomness pool
 		buf := c.msg.Bytes()
-		c.pubrand.Message(nil, nil, buf)
+		c.pubrand.Reseed()
+		c.pubrand.Write(buf)
 
 		// Append the current message data to the proof
 		c.proof.Write(buf)
@@ -48,10 +64,11 @@ func (c *hashProver) PubRand(data ...interface{}) error {
 }
 
 // Get private randomness
-func (c *hashProver) PriRand(data ...interface{}) {
+func (c *hashProver) PriRand(data ...interface{}) error {
 	if err := c.suite.Read(c.prirand, data...); err != nil {
-		panic("error reading random stream: " + err.Error())
+		return fmt.Errorf("error reading random stream: %v", err.Error())
 	}
+	return nil
 }
 
 // Obtain the encoded proof once the Sigma protocol is complete.
@@ -62,22 +79,22 @@ func (c *hashProver) Proof() []byte {
 
 // Noninteractive Sigma-protocol verifier context
 type hashVerifier struct {
-	suite   abstract.Suite
+	suite   Suite
 	proof   bytes.Buffer // Buffer with which to read the proof
 	prbuf   []byte       // Byte-slice underlying proof buffer
-	pubrand abstract.Cipher
+	pubrand kyber.XOF
 }
 
-func newHashVerifier(suite abstract.Suite, protoName string,
-	proof []byte) *hashVerifier {
+func newHashVerifier(suite Suite, protoName string,
+	proof []byte) (*hashVerifier, error) {
 	var c hashVerifier
 	if _, err := c.proof.Write(proof); err != nil {
-		panic("Buffer.Write failed")
+		return nil, err
 	}
 	c.suite = suite
 	c.prbuf = c.proof.Bytes()
-	c.pubrand = suite.Cipher([]byte(protoName))
-	return &c
+	c.pubrand = suite.XOF([]byte(protoName))
+	return &c, nil
 }
 
 func (c *hashVerifier) consumeMsg() {
@@ -85,7 +102,8 @@ func (c *hashVerifier) consumeMsg() {
 	if l > 0 {
 		// Stir consumed bytes into the public randomness pool
 		buf := c.prbuf[:l]
-		c.pubrand.Message(nil, nil, buf)
+		c.pubrand.Reseed()
+		c.pubrand.Write(buf)
 
 		c.prbuf = c.proof.Bytes() // Reset to remaining bytes
 	}
@@ -112,24 +130,25 @@ func (c *hashVerifier) PubRand(data ...interface{}) error {
 // will verify successfully only if the verifier uses the same protocolName.
 //
 // The caller must provide a source of random entropy for the proof;
-// this can be random.Stream to use fresh random bits,
-// or a pseudorandom stream based on a secret seed
-// to create deterministically reproducible proofs.
-//
-func HashProve(suite abstract.Suite, protocolName string,
-	random abstract.Cipher, prover Prover) ([]byte, error) {
-	ctx := newHashProver(suite, protocolName, random)
+// this can be random.New() to use fresh random bits, or a
+// pseudorandom stream based on a secret seed to create
+// deterministically reproducible proofs.
+func HashProve(suite Suite, protocolName string, prover Prover) ([]byte, error) {
+	ctx := newHashProver(suite, protocolName)
 	if e := (func(ProverContext) error)(prover)(ctx); e != nil {
 		return nil, e
 	}
 	return ctx.Proof(), nil
 }
 
-// Verifies a hash-based noninteractive proof generated with HashProve.
+// HashVerify computes a hash-based noninteractive proof generated with HashProve.
 // The suite and protocolName must be the same as those given to HashProve.
 // Returns nil if the proof checks out, or an error on any failure.
-func HashVerify(suite abstract.Suite, protocolName string,
+func HashVerify(suite Suite, protocolName string,
 	verifier Verifier, proof []byte) error {
-	ctx := newHashVerifier(suite, protocolName, proof)
+	ctx, err := newHashVerifier(suite, protocolName, proof)
+	if err != nil {
+		return err
+	}
 	return (func(VerifierContext) error)(verifier)(ctx)
 }

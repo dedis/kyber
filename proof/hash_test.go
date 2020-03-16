@@ -4,37 +4,39 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/nist"
+	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/group/edwards25519"
+	"go.dedis.ch/kyber/v3/xof/blake2xb"
 )
 
 // This example shows how to build classic ElGamal-style digital signatures
 // using the Camenisch/Stadler proof framework and HashProver.
-func ExampleHashProve_1() {
+func Example_hashProve1() {
 
 	// Crypto setup
-	suite := nist.NewAES128SHA256P256()
-	rand := suite.Cipher([]byte("example"))
+	rand := blake2xb.New([]byte("example"))
+	suite := edwards25519.NewBlakeSHA256Ed25519WithRand(rand)
 	B := suite.Point().Base() // standard base point
 
 	// Create a public/private keypair (X,x)
-	x := suite.Scalar().Pick(rand) // create a private key x
-	X := suite.Point().Mul(nil, x) // corresponding public key X
+	x := suite.Scalar().Pick(suite.RandomStream()) // create a private key x
+	X := suite.Point().Mul(x, nil)                 // corresponding public key X
 
 	// Generate a proof that we know the discrete logarithm of X.
 	M := "Hello World!" // message we want to sign
 	rep := Rep("X", "x", "B")
-	sec := map[string]abstract.Scalar{"x": x}
-	pub := map[string]abstract.Point{"B": B, "X": X}
+	sec := map[string]kyber.Scalar{"x": x}
+	pub := map[string]kyber.Point{"B": B, "X": X}
 	prover := rep.Prover(suite, sec, pub, nil)
-	proof, _ := HashProve(suite, M, rand, prover)
+	proof, _ := HashProve(suite, M, prover)
 	fmt.Print("Signature:\n" + hex.Dump(proof))
 
 	// Verify the signature against the correct message M.
 	verifier := rep.Verifier(suite, pub)
 	err := HashVerify(suite, M, verifier, proof)
 	if err != nil {
-		panic("signature failed to verify!")
+		fmt.Println("signature failed to verify: ", err)
+		return
 	}
 	fmt.Println("Signature verified against correct message M.")
 
@@ -46,13 +48,10 @@ func ExampleHashProve_1() {
 
 	// Output:
 	// Signature:
-	// 00000000  04 23 62 b1 f9 cb f4 a2  6d 7f 3e 69 cb b6 77 ab  |.#b.....m.>i..w.|
-	// 00000010  90 fc 7c db a0 c6 e8 12  f2 0a d4 40 a4 b6 c4 de  |..|........@....|
-	// 00000020  9e e8 61 88 5e 50 fd 03  a9 ff 9c a3 c4 29 f7 18  |..a.^P.......)..|
-	// 00000030  49 ad 31 0e f9 17 15 1e  3b 8d 0e 2f b2 c4 28 32  |I.1.....;../..(2|
-	// 00000040  4a 5c 64 ca 04 eb 33 db  a9 75 9b 01 6b 12 01 ae  |J\d...3..u..k...|
-	// 00000050  4e de 7c 6b 53 85 f8 a5  76 ba eb 7e 2e 61 2c a5  |N.|kS...v..~.a,.|
-	// 00000060  e8                                                |.|
+	// 00000000  e9 a2 da f4 9d 7c e2 25  35 be 0a 15 78 9c ea ca  |.....|.%5...x...|
+	// 00000010  a7 1e 6e d6 26 c3 40 ed  0d 3d 71 d4 a9 ef 55 3b  |..n.&.@..=q...U;|
+	// 00000020  64 76 55 7b 3c 63 20 d8  4b 29 3a 1c 7f 44 59 ad  |dvU{<c .K):..DY.|
+	// 00000030  ff 5d c1 ff 06 1d 97 0c  59 06 3c 4b aa 7b 7c 0c  |.]......Y.<K.{|.|
 	// Signature verified against correct message M.
 	// Signature verify against wrong message: invalid proof: commit mismatch
 }
@@ -77,34 +76,34 @@ func ExampleHashProve_1() {
 // because it uses the generic HashProver for Fiat-Shamir noninteractivity
 // instead of Liu/Wei/Wong's customized hash-ring structure.
 //
-func ExampleHashProve_2() {
+func Example_hashProve2() {
 
 	// Crypto setup
-	suite := nist.NewAES128SHA256P256()
-	rand := suite.Cipher([]byte("example"))
+	rand := blake2xb.New([]byte("example"))
+	suite := edwards25519.NewBlakeSHA256Ed25519WithRand(rand)
 	B := suite.Point().Base() // standard base point
 
 	// Create an anonymity ring of random "public keys"
-	X := make([]abstract.Point, 3)
+	X := make([]kyber.Point, 3)
 	for i := range X { // pick random points
-		X[i], _ = suite.Point().Pick(nil, rand)
+		X[i] = suite.Point().Pick(suite.RandomStream())
 	}
 
 	// Make just one of them an actual public/private keypair (X[mine],x)
-	mine := 2                           // only the signer knows this
-	x := suite.Scalar().Pick(rand)      // create a private key x
-	X[mine] = suite.Point().Mul(nil, x) // corresponding public key X
+	mine := 2                                      // only the signer knows this
+	x := suite.Scalar().Pick(suite.RandomStream()) // create a private key x
+	X[mine] = suite.Point().Mul(x, nil)            // corresponding public key X
 
 	// Produce the correct linkage tag for the signature,
 	// as a pseudorandom base point multiplied by our private key.
 	linkScope := []byte("The Linkage Scope")
-	linkHash := suite.Cipher(linkScope)
-	linkBase, _ := suite.Point().Pick(nil, linkHash)
-	linkTag := suite.Point().Mul(linkBase, x)
+	linkHash := suite.XOF(linkScope)
+	linkBase := suite.Point().Pick(linkHash)
+	linkTag := suite.Point().Mul(x, linkBase)
 
 	// Generate the proof predicate: an OR branch for each public key.
-	sec := map[string]abstract.Scalar{"x": x}
-	pub := map[string]abstract.Point{"B": B, "BT": linkBase, "T": linkTag}
+	sec := map[string]kyber.Scalar{"x": x}
+	pub := map[string]kyber.Point{"B": B, "BT": linkBase, "T": linkTag}
 	preds := make([]Predicate, len(X))
 	for i := range X {
 		name := fmt.Sprintf("X[%d]", i) // "X[0]","X[1]",...
@@ -115,7 +114,7 @@ func ExampleHashProve_2() {
 		preds[i] = And(Rep(name, "x", "B"), Rep("T", "x", "BT"))
 	}
 	pred := Or(preds...) // make a big Or predicate
-	fmt.Printf("Linkable Ring Signature Predicate:\n\t%s\n", pred.String())
+	fmt.Printf("Linkable Ring Signature Predicate:\n%s\n", pred.String())
 
 	// The prover needs to know which Or branch (mine) is actually true.
 	choice := make(map[Predicate]int)
@@ -124,57 +123,45 @@ func ExampleHashProve_2() {
 	// Generate the signature
 	M := "Hello World!" // message we want to sign
 	prover := pred.Prover(suite, sec, pub, choice)
-	proof, _ := HashProve(suite, M, rand, prover)
+	proof, _ := HashProve(suite, M, prover)
 	fmt.Print("Linkable Ring Signature:\n" + hex.Dump(proof))
 
 	// Verify the signature
 	verifier := pred.Verifier(suite, pub)
 	err := HashVerify(suite, M, verifier, proof)
 	if err != nil {
-		panic("signature failed to verify!")
+		fmt.Println("signature failed to verify: ", err)
+		return
 	}
 	fmt.Println("Linkable Ring Signature verified.")
 
 	// Output:
 	// Linkable Ring Signature Predicate:
-	// 	(X[0]=x*B && T=x*BT) || (X[1]=x*B && T=x*BT) || (X[2]=x*B && T=x*BT)
+	// (X[0]=x*B && T=x*BT) || (X[1]=x*B && T=x*BT) || (X[2]=x*B && T=x*BT)
 	// Linkable Ring Signature:
-	// 00000000  04 56 81 70 79 e2 f6 ea  5b 06 a5 f5 72 5d f5 e0  |.V.py...[...r]..|
-	// 00000010  b6 e6 d3 90 52 af 84 7a  b1 78 a9 03 f3 29 1e a2  |....R..z.x...)..|
-	// 00000020  1a 59 50 28 9b 6c d7 ca  72 25 83 67 2d fe f7 f0  |.YP(.l..r%.g-...|
-	// 00000030  96 e9 ae 9b 9e a0 eb 76  7f 74 6d bc 42 18 a1 d1  |.......v.tm.B...|
-	// 00000040  0e 04 d8 28 10 ae b9 25  87 e9 a1 c4 fa 1b ff 88  |...(...%........|
-	// 00000050  96 bd da 4a 7f 58 c9 b5  57 57 7f 8b ee 4e 00 40  |...J.X..WW...N.@|
-	// 00000060  fa 2c 6a 49 74 41 9a c6  7d ac 78 fa 58 35 84 40  |.,jItA..}.x.X5.@|
-	// 00000070  2a 95 62 8c 05 5c 75 57  4e 74 22 a9 5f 78 48 22  |*.b..\uWNt"._xH"|
-	// 00000080  1f 97 04 f7 a8 0d ec 81  39 31 fb 8b 8b 12 09 74  |........91.....t|
-	// 00000090  46 9f 46 22 e9 69 cc 25  c5 b6 23 5b 2a 4b 3d 4c  |F.F".i.%..#[*K=L|
-	// 000000a0  10 f7 73 e0 22 00 f3 99  28 be ad 07 8c ef 44 a6  |..s."...(.....D.|
-	// 000000b0  d8 e0 ee 5e 04 c7 d1 60  b4 f0 8d e3 bd b3 31 8e  |...^...`......1.|
-	// 000000c0  19 9a 56 04 9f da 0c 05  3f 04 42 e4 d3 e3 78 00  |..V.....?.B...x.|
-	// 000000d0  d8 bc 31 c2 00 fd 29 64  63 65 e5 9a 1c 5f b4 01  |..1...)dce..._..|
-	// 000000e0  ca 14 c5 48 bc 73 60 31  9e 18 7d 93 c8 69 cc c9  |...H.s`1..}..i..|
-	// 000000f0  a4 c7 72 e0 c2 a8 2e 47  f5 fa e8 1f de c0 14 52  |..r....G.......R|
-	// 00000100  9f 7a a7 5b 04 2e b4 bb  d5 a1 8a 80 4e 48 1e 07  |.z.[........NH..|
-	// 00000110  20 e0 f8 9a 6a 9c 5a b7  8b 08 9c 6d c7 0e 9c 9f  | ...j.Z....m....|
-	// 00000120  3f 6b d3 34 7e 50 91 6b  87 03 d5 54 b6 87 f1 2d  |?k.4~P.k...T...-|
-	// 00000130  4c d6 9e df fe 1b 7f 07  be 5e d5 88 7f 2b b0 58  |L........^...+.X|
-	// 00000140  e2 12 62 15 00 04 d8 45  d5 c4 91 77 0c 74 5c 54  |..b....E...w.t\T|
-	// 00000150  89 e9 cd 75 9b c5 20 67  26 d8 e4 e8 ed 68 96 51  |...u.. g&....h.Q|
-	// 00000160  6f 39 e5 62 e5 c5 24 15  5e 45 69 91 c0 83 2c 6b  |o9.b..$.^Ei...,k|
-	// 00000170  33 fe af 75 c2 23 ca 88  b2 a8 c8 be f2 4f f0 e9  |3..u.#.......O..|
-	// 00000180  65 af e6 b1 7e e6 eb 40  46 de 61 2f 08 8d 9a 04  |e...~..@F.a/....|
-	// 00000190  09 d7 a1 62 83 48 e3 cc  09 af 64 26 df df da d6  |...b.H....d&....|
-	// 000001a0  51 62 5d e6 2b 56 b2 b5  3a e1 c8 8c f7 29 8a 13  |Qb].+V..:....)..|
-	// 000001b0  75 59 98 ea ce f4 6d d5  d0 62 85 51 8e fe d9 4a  |uY....m..b.Q...J|
-	// 000001c0  02 1f 35 03 33 d3 0e 4e  6b b8 fc f9 c9 92 4d e9  |..5.3..Nk.....M.|
-	// 000001d0  c3 1c 35 ec 19 43 7c 25  1b b4 70 09 30 08 e3 a1  |..5..C|%..p.0...|
-	// 000001e0  e1 42 ed 92 0d 82 63 d3  5a 0e 97 78 e6 74 ce a0  |.B....c.Z..x.t..|
-	// 000001f0  24 34 c1 66 7d af 32 9e  59 22 f2 9a 67 3c ea e5  |$4.f}.2.Y"..g<..|
-	// 00000200  4f 54 6d 3e 07 f1 1e 6d  18 7f 8b 95 e3 c4 b9 33  |OTm>...m.......3|
-	// 00000210  ad 94 69 b5 b4 13 b8 51  2f 24 a7 98 e4 06 f4 b2  |..i....Q/$......|
-	// 00000220  f3 ee e8 73 de 78 d1 ab  ff 11 e3 6e df 3d a8 b5  |...s.x.....n.=..|
-	// 00000230  13 86 b6 a5 86 f9 a6 ef  ca 77 46 df 8d 3b eb fb  |.........wF..;..|
-	// 00000240  00 c8 61 cc fd 7a                                 |..a..z|
+	// 00000000  d6 73 58 df 19 52 fc a7  70 2b 42 00 83 03 bd 5f  |.sX..R..p+B...._|
+	// 00000010  4d 86 4b 8d db 3d 76 17  00 17 2c b9 a3 6b 54 57  |M.K..=v...,..kTW|
+	// 00000020  e1 fd c0 d4 00 9b ea 5d  85 2b f1 83 41 80 ec 83  |.......].+..A...|
+	// 00000030  ac b2 f4 0c e4 01 35 61  34 ef 94 34 0b 77 44 3e  |......5a4..4.wD>|
+	// 00000040  e3 bd 92 b2 f8 f5 85 97  c4 dd 39 f7 a0 b6 ef b1  |..........9.....|
+	// 00000050  65 c6 53 80 e4 78 07 52  62 a5 0b a5 f1 0b 33 2b  |e.S..x.Rb.....3+|
+	// 00000060  c8 f5 43 9b 1c bf c2 1a  4a 5b ea b0 e9 18 d1 db  |..C.....J[......|
+	// 00000070  a3 57 eb e0 5b d4 99 0e  af f2 10 d4 29 a9 0e 43  |.W..[.......)..C|
+	// 00000080  fd 20 a1 42 01 ef 68 a0  43 64 70 f4 f9 09 0f 77  |. .B..h.Cdp....w|
+	// 00000090  b3 b0 82 0a 31 8a 66 41  a8 d0 f4 5f 1e da 6e 63  |....1.fA..._..nc|
+	// 000000a0  a0 46 74 75 86 6f 3e 85  52 f0 74 6c 74 3b 00 1b  |.Ftu.o>.R.tlt;..|
+	// 000000b0  b2 4b 93 95 33 1d 9e 6a  96 43 e5 e2 30 46 6e e5  |.K..3..j.C..0Fn.|
+	// 000000c0  2b e0 be 8d 56 55 1a d1  6e 11 21 fc 20 3e 0f 5f  |+...VU..n.!. >._|
+	// 000000d0  4d 97 a9 bf 1a 28 27 6d  3b 71 04 e1 c0 86 96 08  |M....('m;q......|
+	// 000000e0  8d 0e c0 14 e3 eb 8b e9  16 40 29 60 ab bd e6 1a  |.........@)`....|
+	// 000000f0  68 54 5e 29 c8 85 05 bc  4a 27 83 d9 32 cc 74 0f  |hT^)....J'..2.t.|
+	// 00000100  5e 16 30 25 e2 d6 35 2a  d4 3e b5 07 1f d4 0a eb  |^.0%..5*.>......|
+	// 00000110  5d ef 3b 84 35 39 90 0c  3a 02 bb ee c7 9a e7 09  |].;.59..:.......|
+	// 00000120  d1 cc 1e e1 f4 3b 88 52  e5 99 ed 50 d7 66 b5 76  |.....;.R...P.f.v|
+	// 00000130  59 6c c1 66 98 07 e5 73  e7 b8 fe 48 43 a0 74 09  |Yl.f...s...HC.t.|
+	// 00000140  84 9a 7b ec 21 aa ff c7  fc 79 c6 8f f4 23 82 e7  |..{.!....y...#..|
+	// 00000150  d3 71 69 20 d6 94 27 ef  11 0b 4c a5 79 54 1f 09  |.qi ..'...L.yT..|
+	// 00000160  6b ec 50 c2 1f 98 38 ea  a7 02 da ca aa 1b 6b 39  |k.P...8.......k9|
+	// 00000170  70 b8 35 6c fe 03 1f b0  08 42 e0 5d b2 5e 40 04  |p.5l.....B.].^@.|
 	// Linkable Ring Signature verified.
 }

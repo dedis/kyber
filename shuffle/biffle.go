@@ -1,9 +1,11 @@
 package shuffle
 
 import (
-	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/proof"
-	"github.com/dedis/crypto/random"
+	"crypto/cipher"
+
+	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/proof"
+	"go.dedis.ch/kyber/v3/util/random"
 )
 
 func bifflePred() proof.Predicate {
@@ -27,10 +29,10 @@ func bifflePred() proof.Predicate {
 	return or
 }
 
-func bifflePoints(suite abstract.Suite, G, H abstract.Point,
-	X, Y, Xbar, Ybar [2]abstract.Point) map[string]abstract.Point {
+func bifflePoints(suite Suite, G, H kyber.Point,
+	X, Y, Xbar, Ybar [2]kyber.Point) map[string]kyber.Point {
 
-	return map[string]abstract.Point{
+	return map[string]kyber.Point{
 		"G":        G,
 		"H":        H,
 		"Xbar0-X0": suite.Point().Sub(Xbar[0], X[0]),
@@ -43,31 +45,33 @@ func bifflePoints(suite abstract.Suite, G, H abstract.Point,
 		"Ybar1-Y0": suite.Point().Sub(Ybar[1], Y[0])}
 }
 
-// Binary shuffle ("biffle") for 2 ciphertexts based on general ZKPs.
-func Biffle(suite abstract.Suite, G, H abstract.Point,
-	X, Y [2]abstract.Point, rand abstract.Cipher) (
-	Xbar, Ybar [2]abstract.Point, prover proof.Prover) {
+// Biffle is a binary shuffle ("biffle") for 2 ciphertexts based on general ZKPs.
+func Biffle(suite Suite, G, H kyber.Point,
+	X, Y [2]kyber.Point, rand cipher.Stream) (
+	Xbar, Ybar [2]kyber.Point, prover proof.Prover) {
 
 	// Pick the single-bit permutation.
-	bit := int(random.Byte(rand) & 1)
+	var buf [1]byte
+	random.Bytes(buf[:], rand)
+	bit := int(buf[0] & 1)
 
 	// Pick a fresh ElGamal blinding factor for each pair
-	var beta [2]abstract.Scalar
+	var beta [2]kyber.Scalar
 	for i := 0; i < 2; i++ {
 		beta[i] = suite.Scalar().Pick(rand)
 	}
 
 	// Create the output pair vectors
 	for i := 0; i < 2; i++ {
-		pi_i := i ^ bit
-		Xbar[i] = suite.Point().Mul(G, beta[pi_i])
-		Xbar[i].Add(Xbar[i], X[pi_i])
-		Ybar[i] = suite.Point().Mul(H, beta[pi_i])
-		Ybar[i].Add(Ybar[i], Y[pi_i])
+		piI := i ^ bit
+		Xbar[i] = suite.Point().Mul(beta[piI], G)
+		Xbar[i].Add(Xbar[i], X[piI])
+		Ybar[i] = suite.Point().Mul(beta[piI], H)
+		Ybar[i].Add(Ybar[i], Y[piI])
 	}
 
 	or := bifflePred()
-	secrets := map[string]abstract.Scalar{
+	secrets := map[string]kyber.Scalar{
 		"beta0": beta[0],
 		"beta1": beta[1]}
 	points := bifflePoints(suite, G, H, X, Y, Xbar, Ybar)
@@ -76,59 +80,12 @@ func Biffle(suite abstract.Suite, G, H abstract.Point,
 	return
 }
 
-func BiffleVerifier(suite abstract.Suite, G, H abstract.Point,
-	X, Y, Xbar, Ybar [2]abstract.Point) (
+// BiffleVerifier returns a verifier of the biffle
+func BiffleVerifier(suite Suite, G, H kyber.Point,
+	X, Y, Xbar, Ybar [2]kyber.Point) (
 	verifier proof.Verifier) {
 
 	or := bifflePred()
 	points := bifflePoints(suite, G, H, X, Y, Xbar, Ybar)
 	return or.Verifier(suite, points)
-}
-
-func BiffleTest(suite abstract.Suite, N int) {
-
-	rand := suite.Cipher(abstract.RandomKey)
-
-	// Create a "server" private/public keypair
-	h := suite.Scalar().Pick(rand)
-	H := suite.Point().Mul(nil, h)
-
-	// Create a set of ephemeral "client" keypairs to shuffle
-	var c [2]abstract.Scalar
-	var C [2]abstract.Point
-	//	fmt.Println("\nclient keys:")
-	for i := 0; i < 2; i++ {
-		c[i] = suite.Scalar().Pick(rand)
-		C[i] = suite.Point().Mul(nil, c[i])
-		//		fmt.Println(" "+C[i].String())
-	}
-
-	// ElGamal-encrypt all these keypairs with the "server" key
-	var X, Y [2]abstract.Point
-	r := suite.Scalar() // temporary
-	for i := 0; i < 2; i++ {
-		r.Pick(rand)
-		X[i] = suite.Point().Mul(nil, r)
-		Y[i] = suite.Point().Mul(H, r) // ElGamal blinding factor
-		Y[i].Add(Y[i], C[i])           // Encrypted client public key
-	}
-
-	// Repeat only the actual shuffle portion for test purposes.
-	for i := 0; i < N; i++ {
-
-		// Do a key-shuffle
-		Xbar, Ybar, prover := Biffle(suite, nil, H, X, Y, rand)
-		prf, err := proof.HashProve(suite, "Biffle", rand, prover)
-		if err != nil {
-			panic("Biffle proof failed: " + err.Error())
-		}
-		//fmt.Printf("proof:\n%s\n",hex.Dump(prf))
-
-		// Check it
-		verifier := BiffleVerifier(suite, nil, H, X, Y, Xbar, Ybar)
-		err = proof.HashVerify(suite, "Biffle", verifier, prf)
-		if err != nil {
-			panic("Biffle verify failed: " + err.Error())
-		}
-	}
 }

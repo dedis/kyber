@@ -3,30 +3,30 @@ package proof
 import (
 	"bytes"
 	"errors"
+	"fmt"
 
-	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/clique"
+	"go.dedis.ch/kyber/v3"
 )
 
-// Create a clique.Protocol implementing an interactive Sigma-protocol
+// DeniableProver is a Protocol implementing an interactive Sigma-protocol
 // to prove a particular statement to the other participants.
-// Optionally the clique.Protocol participant can also verify
+// Optionally the Protocol participant can also verify
 // the Sigma-protocol proofs of any or all of the other participants.
 // Different participants may produce different proofs of varying sizes,
 // and may even consist of different numbers of steps.
-func DeniableProver(suite abstract.Suite, self int, prover Prover,
-	verifiers []Verifier) clique.Protocol {
+func DeniableProver(suite Suite, self int, prover Prover,
+	verifiers []Verifier) Protocol {
 
-	return clique.Protocol(func(ctx clique.Context) []error {
+	return Protocol(func(ctx Context) []error {
 		dp := deniableProver{}
 		return dp.run(suite, self, prover, verifiers, ctx)
 	})
 }
 
 type deniableProver struct {
-	suite abstract.Suite // Agreed-on ciphersuite for protocol
-	self  int            // Our own node number
-	sc    clique.Context // Clique protocol context
+	suite Suite   // Agreed-on ciphersuite for protocol
+	self  int     // Our own node number
+	sc    Context // Clique protocol context
 
 	// verifiers for other nodes' proofs
 	dv []*deniableVerifier
@@ -36,15 +36,15 @@ type deniableProver struct {
 	msg  *bytes.Buffer // Buffer in which to build prover msg
 	msgs [][]byte      // All messages from last proof step
 
-	pubrand abstract.Cipher
-	prirand abstract.Cipher
+	pubrand kyber.XOF
+	prirand kyber.XOF
 
 	// Error/success indicators for all participants
 	err []error
 }
 
-func (dp *deniableProver) run(suite abstract.Suite, self int, prv Prover,
-	vrf []Verifier, sc clique.Context) []error {
+func (dp *deniableProver) run(suite Suite, self int, prv Prover,
+	vrf []Verifier, sc Context) []error {
 	dp.suite = suite
 	dp.self = self
 	dp.sc = sc
@@ -52,7 +52,7 @@ func (dp *deniableProver) run(suite abstract.Suite, self int, prv Prover,
 
 	nnodes := len(vrf)
 	if self < 0 || self >= nnodes {
-		panic("out-of-range self node")
+		return []error{errors.New("out-of-range self node")}
 	}
 
 	// Initialize error slice entries to a default error indicator,
@@ -101,16 +101,18 @@ func (dp *deniableProver) run(suite abstract.Suite, self int, prv Prover,
 	return dp.err
 }
 
+// keySize is arbitrary, make it long enough to seed the XOF
+const keySize = 128
+
 // Start the message buffer off in each step with a randomness commitment
 func (dp *deniableProver) initStep() {
-
-	keylen := dp.prirand.KeySize()
-	key := make([]byte, keylen) // secret random key
-	dp.prirand.Read(key)
+	key := make([]byte, keySize) // secret random key
+	_, _ = dp.prirand.Read(key)
 	dp.key = key
 
-	msg := make([]byte, keylen) // send commitment to it
-	dp.suite.Cipher(key).XORKeyStream(msg, msg)
+	msg := make([]byte, keySize) // send commitment to it
+	xof := dp.suite.XOF(key)
+	xof.Read(msg)
 	dp.msg = bytes.NewBuffer(msg)
 
 	// The Sigma-Prover will now append its proof content to dp.msg...
@@ -132,11 +134,10 @@ func (dp *deniableProver) proofStep() (bool, error) {
 	// Distribute this step's prover messages
 	// to the relevant verifiers as well,
 	// waking them up in the process so they can proceed.
-	keylen := dp.prirand.KeySize()
 	for i := range dp.dv {
 		dv := dp.dv[i]
 		if dv != nil && i < len(msgs) {
-			dv.inbox <- msgs[i][keylen:] // send to verifier
+			dv.inbox <- msgs[i][keySize:] // send to verifier
 		}
 	}
 
@@ -170,20 +171,19 @@ func (dp *deniableProver) challengeStep() error {
 	// check them against the respective commits,
 	// and ensure ours is included to ensure deniability
 	// (even if all others turn out to be maliciously generated).
-	keylen := dp.prirand.KeySize()
-	mix := make([]byte, keylen)
+	mix := make([]byte, keySize)
 	for i := range keys {
-		com := dp.msgs[i][:keylen] // node i's randomness commitment
-		key := keys[i]             // node i's committed random key
-		if len(com) < keylen || len(key) < keylen {
+		com := dp.msgs[i][:keySize] // node i's randomness commitment
+		key := keys[i]              // node i's committed random key
+		if len(com) < keySize || len(key) < keySize {
 			continue // ignore participants who dropped out
 		}
-		chk := make([]byte, keylen)
-		dp.suite.Cipher(key).XORKeyStream(chk, chk)
+		chk := make([]byte, keySize)
+		dp.suite.XOF(key).Read(chk)
 		if !bytes.Equal(com, chk) {
 			return errors.New("wrong key for commit")
 		}
-		for j := 0; j < keylen; j++ { // mix in this key
+		for j := 0; j < keySize; j++ { // mix in this key
 			mix[j] ^= key[j]
 		}
 	}
@@ -192,7 +192,7 @@ func (dp *deniableProver) challengeStep() error {
 	}
 
 	// Use the mix to produce the public randomness needed by the prover
-	dp.pubrand = dp.suite.Cipher(mix)
+	dp.pubrand = dp.suite.XOF(mix)
 
 	// Distribute the master challenge to any verifiers waiting for it
 	for i := range dp.dv {
@@ -226,16 +226,17 @@ func (dp *deniableProver) PubRand(data ...interface{}) error {
 }
 
 // Get private randomness
-func (dp *deniableProver) PriRand(data ...interface{}) {
+func (dp *deniableProver) PriRand(data ...interface{}) error {
 	if err := dp.suite.Read(dp.prirand, data...); err != nil {
-		panic("error reading random stream: " + err.Error())
+		return fmt.Errorf("error reading random stream: %v", err.Error())
 	}
+	return nil
 }
 
 // Interactive Sigma-protocol verifier context.
 // Acts as a slave to a deniableProver instance.
 type deniableVerifier struct {
-	suite abstract.Suite
+	suite Suite
 
 	inbox chan []byte   // Channel for receiving proofs and challenges
 	prbuf *bytes.Buffer // Buffer with which to read proof messages
@@ -243,18 +244,16 @@ type deniableVerifier struct {
 	done chan bool // Channel for sending done status indicators
 	err  error     // When done indicates verify error if non-nil
 
-	pubrand abstract.Cipher
+	pubrand kyber.XOF
 }
 
-func (dv *deniableVerifier) start(suite abstract.Suite, vrf Verifier) {
+func (dv *deniableVerifier) start(suite Suite, vrf Verifier) {
 	dv.suite = suite
 	dv.inbox = make(chan []byte)
 	dv.done = make(chan bool)
 
 	// Launch a concurrent goroutine to run this verifier
 	go func() {
-		//req := deniableVerifierRequest{}
-
 		// Await the prover's first message
 		dv.getProof()
 
@@ -267,7 +266,6 @@ func (dv *deniableVerifier) start(suite abstract.Suite, vrf Verifier) {
 }
 
 func (dv *deniableVerifier) getProof() {
-
 	// Get the next message from the prover
 	prbuf := <-dv.inbox
 	dv.prbuf = bytes.NewBuffer(prbuf)
@@ -288,7 +286,7 @@ func (dv *deniableVerifier) PubRand(data ...interface{}) error {
 	chal := <-dv.inbox
 
 	// Produce the appropriate publicly random stream
-	dv.pubrand = dv.suite.Cipher(chal)
+	dv.pubrand = dv.suite.XOF(chal)
 	if err := dv.suite.Read(dv.pubrand, data...); err != nil {
 		return err
 	}

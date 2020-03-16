@@ -1,83 +1,72 @@
-[![Build Status](https://travis-ci.org/dedis/crypto.svg?branch=master)](https://travis-ci.org/dedis/crypto)
+[![Docs](https://img.shields.io/badge/docs-current-brightgreen.svg)](https://godoc.org/go.dedis.ch/kyber)
+[![Build Status](https://travis-ci.org/dedis/kyber.svg?branch=master)](https://travis-ci.org/dedis/kyber)
 
-DeDiS Advanced Crypto Library for Go
+DEDIS Advanced Crypto Library for Go
 ====================================
 
 This package provides a toolbox of advanced cryptographic primitives for Go,
-targeting applications like [Dissent](http://dedis.cs.yale.edu/dissent/)
+targeting applications like [Cothority](https://go.dedis.ch/cothority)
 that need more than straightforward signing and encryption.
 Please see the
-[GoDoc documentation for this package](http://godoc.org/github.com/DeDiS/crypto)
+[Godoc documentation for this package](https://godoc.org/go.dedis.ch/kyber)
 for details on the library's purpose and API functionality.
+
+This package includes a mix of variable time and constant time
+implementations. If your application is sensitive to timing-based attacks
+and you need to constrain Kyber to offering only constant time implementations,
+you should use the [suites.RequireConstantTime()](https://godoc.org/go.dedis.ch/kyber/suites#RequireConstantTime)
+function in the `init()` function of your `main` package.
+
+Versioning - Development
+------------------------
+
+We use the following versioning model:
+
+* crypto.v0 was the first semi-stable version. See [migration notes](https://github.com/dedis/kyber/wiki/Migration-from-gopkg.in-dedis-crypto.v0).
+* kyber.v1 never existed, in order to keep kyber, onet and cothorithy versions linked
+* gopkg.in/dedis/kyber.v2 was the last stable version
+* Starting with v3.0.0, kyber is a Go module, and we respect [semantic versioning](https://golang.org/cmd/go/#hdr-Module_compatibility_and_semantic_versioning).
+
+So if you depend on the master branch, you can expect breakages from time
+to time. If you need something that doesn't change in a backward-compatible
+way you should use have a `go.mod` file in the directory where your
+main package is.
 
 Installing
 ----------
 
-First make sure you have [Go](https://golang.org)
-version 1.3 or newer installed.
+First make sure you have [Go](https://golang.org) version 1.11 or newer installed.
 
 The basic crypto library requires only Go and a few
 third-party Go-language dependencies that can be installed automatically
 as follows:
 
-	go get github.com/dedis/crypto
-	cd $GOPATH/src/github.com/dedis/crypto
-	go get ./... # install 3rd-party dependencies
+	go get go.dedis.ch/kyber
 
-You should then be able to test its basic function as follows:
-
-	cd $GOPATH/src/github.com/dedis/crypto
-	go test -v
-
-You can recursively test all the packages in the library as follows,
-keeping in mind that some sub-packages will only build
-if certain dependencies are satisfied as described below:
+You can recursively test all the packages in the library as follows:
 
 	go test -v ./...
 
-Dependencies
-------------
+A note on deriving shared secrets
+---------------------------------
 
-The library's basic functionality depends only on the Go standard library.
-However, parts of the library will only build if certain other,
-optional system packages are installed with their header files and libraries
-(e.g., the "-dev" version of the package).
-In particular:
-
-- crypto.openssl: This sub-package is a wrapper that builds on
-the [OpenSSL](https://www.openssl.org/) crypto library
-to provide a fast, mature implementation
-of NIST-standardized elliptic curves and symmetric cryptosystems.
-
-- crypto.pbc: This is a wrapper for the
-[Stanford Pairing-Based Crypto (PBC) library](http://crypto.stanford.edu/pbc/),
-which will of course only work if the PBC library is installed.
-
-Issues
-------
-
-- Traditionally, ECDH (Elliptic curve Diffie-Hellman) derives the shared secret
+Traditionally, ECDH (Elliptic curve Diffie-Hellman) derives the shared secret
 from the x point only. In this framework, you can either manually retrieve the
 value or use the MarshalBinary method to take the combined (x, y) value as the
 shared secret. We recommend the latter process for new softare/protocols using
-this framework as it is cleaner and generalizes across differen types of
-groups (e.g., both integer and elliptic curves), although it will likely be
-incompatible with other implementations of ECDH.
-http://en.wikipedia.org/wiki/Elliptic_curve_Diffie%E2%80%93Hellman
+this framework as it is cleaner and generalizes across different types of groups
+(e.g., both integer and elliptic curves), although it will likely be
+incompatible with other implementations of ECDH. See [the Wikipedia
+page](http://en.wikipedia.org/wiki/Elliptic_curve_Diffie%E2%80%93Hellman) on
+ECDH.
 
+Reporting security problems
+---------------------------
 
-Copyright (C) 2014 Yale DeDiS Group
------------------------------------
+This library is offered as-is, and without a guarantee. It will need an
+independent security review before it should be considered ready for use in
+security-critical applications. If you integrate Kyber into your application it
+is YOUR RESPONSIBILITY to arrange for that audit.
 
-This program is free software; you can redistribute it and/or modify it under
-the terms of the GNU General Public License as published by the Free Software
-Foundation; either version 2 of the License, or (at your option) any later
-version.
-
-This program is distributed in the hope that it will be useful, but WITHOUT ANY
-WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
-PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License along with
-this program; if not, write to the Free Software Foundation, Inc., 51 Franklin
-Street, Fifth Floor, Boston, MA  02110-1301, USA.
+If you notice a possible security problem, please report it
+to dedis-security@epfl.ch.

@@ -1,12 +1,17 @@
 language: go
 
 go:
-      - 1.6
+  - "1.13.x"
 
-script:
-      - ./gofmt.sh
-      - go test -v -race ./...
+go_import_path: go.dedis.ch/kyber/v3
+
+script: GO111MODULE=on make test
 
 notifications:
-      email: false
+  email: false
 
+# https://restic.net/blog/2018-09-02/travis-build-cache
+cache:
+  directories:
+    - $HOME/.cache/go-build
+    - $GOPATH/pkg/mod

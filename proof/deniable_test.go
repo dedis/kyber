@@ -1,27 +1,29 @@
 package proof
 
 import (
+	"bytes"
 	"fmt"
 	"testing"
-	//"encoding/hex"
-	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/clique"
-	"github.com/dedis/crypto/nist"
-	"github.com/dedis/crypto/random"
+
+	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/group/edwards25519"
+	"go.dedis.ch/kyber/v3/util/random"
 )
 
-var testSuite = nist.NewAES128SHA256P256()
+var testSuite = edwards25519.NewBlakeSHA256Ed25519()
 
 type node struct {
 	i    int
 	done bool
 
-	x abstract.Scalar
-	X abstract.Point
+	x kyber.Scalar
+	X kyber.Point
 
-	proto  clique.Protocol
+	proto  Protocol
 	outbox chan []byte
 	inbox  chan [][]byte
+
+	log *bytes.Buffer
 }
 
 func (n *node) Step(msg []byte) ([][]byte, error) {
@@ -31,19 +33,19 @@ func (n *node) Step(msg []byte) ([][]byte, error) {
 	return msgs, nil
 }
 
-func (n *node) Random() abstract.Cipher {
-	return testSuite.Cipher(abstract.RandomKey)
+func (n *node) Random() kyber.XOF {
+	return testSuite.XOF([]byte("test seed"))
 }
 
 func runNode(n *node) {
-	errs := (func(clique.Context) []error)(n.proto)(n)
+	errs := (func(Context) []error)(n.proto)(n)
 
-	fmt.Printf("node %d finished\n", n.i)
+	fmt.Fprintf(n.log, "node %d finished\n", n.i)
 	for i := range errs {
 		if errs[i] == nil {
-			fmt.Printf("- (%d)%d: SUCCESS\n", n.i, i)
+			fmt.Fprintf(n.log, "- %d: SUCCESS\n", i)
 		} else {
-			fmt.Printf("- (%d)%d: %s\n", n.i, i, errs[i])
+			fmt.Fprintf(n.log, "- %d: %s\n", i, errs[i])
 		}
 	}
 
@@ -53,37 +55,9 @@ func runNode(n *node) {
 
 func TestDeniable(t *testing.T) {
 	nnodes := 5
-	/*
-		nmsgs := 5
-		var p localProto
-
-		nodes := [10][]Message{}
-
-		// create the message pattern
-		msg := make([][]Message, nnodes)
-		for i := range(msg) {
-			msg[i] := make([]Message, nmsgs)
-			for j := range(msg[i]) {
-			}
-		}
-
-		ctx := make([]localContext, nnodes)
-		for i := range(ctx) {
-			ctx[i].init()
-		}
-		for i := range(ctx) {
-			go func() {
-				// fill in our message
-				buf :=
-				msg[i].Put(
-			}()
-		}
-
-		localProto.run()
-	*/
 
 	suite := testSuite
-	rand := random.Stream
+	rand := random.New()
 	B := suite.Point().Base()
 
 	// Make some keypairs
@@ -93,21 +67,22 @@ func TestDeniable(t *testing.T) {
 		nodes[i] = n
 		n.i = i
 		n.x = suite.Scalar().Pick(rand)
-		n.X = suite.Point().Mul(nil, n.x)
+		n.X = suite.Point().Mul(n.x, nil)
+		n.log = &bytes.Buffer{}
 	}
 
 	// Make some provers and verifiers
 	for i := 0; i < nnodes; i++ {
 		n := nodes[i]
 		pred := Rep("X", "x", "B")
-		sval := map[string]abstract.Scalar{"x": n.x}
-		pval := map[string]abstract.Point{"B": B, "X": n.X}
+		sval := map[string]kyber.Scalar{"x": n.x}
+		pval := map[string]kyber.Point{"B": B, "X": n.X}
 		prover := pred.Prover(suite, sval, pval, nil)
 
 		vi := (i + 2) % nnodes // which node's proof to verify
 		vrfs := make([]Verifier, nnodes)
 		vpred := Rep("X", "x", "B")
-		vpval := map[string]abstract.Point{"B": B, "X": nodes[vi].X}
+		vpval := map[string]kyber.Point{"B": B, "X": nodes[vi].X}
 		vrfs[vi] = vpred.Verifier(suite, vpval)
 
 		n.proto = DeniableProver(suite, i, prover, vrfs)
@@ -128,9 +103,9 @@ func TestDeniable(t *testing.T) {
 			}
 			done = false
 			msgs[i] = <-n.outbox
-			//fmt.Printf("from %d: (%d bytes)\n%s", i,
-			//	len(msgs[i]), hex.Dump(msgs[i]))
+
 			if n.done {
+				t.Log(string(n.log.Bytes()))
 				nodes[i] = nil
 			}
 		}

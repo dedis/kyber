@@ -21,12 +21,17 @@ package shuffle
 
 import (
 	"crypto/cipher"
+	"encoding/binary"
 	"errors"
 
-	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/proof"
-	"github.com/dedis/crypto/random"
+	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/proof"
+	"go.dedis.ch/kyber/v3/util/random"
 )
+
+// Suite wraps the functionalities needed by the shuffle/ package. These are the
+// same functionatlities needed by the proof/ package.
+type Suite proof.Suite
 
 // XX these could all be inlined into PairShuffleProof; do we want to?
 
@@ -36,30 +41,30 @@ import (
 
 // P (Prover) step 1: public commitments
 type ega1 struct {
-	Gamma            abstract.Point
-	A, C, U, W       []abstract.Point
-	Lambda1, Lambda2 abstract.Point
+	Gamma            kyber.Point
+	A, C, U, W       []kyber.Point
+	Lambda1, Lambda2 kyber.Point
 }
 
 // V (Verifier) step 2: random challenge t
 type ega2 struct {
-	Zrho []abstract.Scalar
+	Zrho []kyber.Scalar
 }
 
 // P step 3: Theta vectors
 type ega3 struct {
-	D []abstract.Point
+	D []kyber.Point
 }
 
 // V step 4: random challenge c
 type ega4 struct {
-	Zlambda abstract.Scalar
+	Zlambda kyber.Scalar
 }
 
 // P step 5: alpha vector
 type ega5 struct {
-	Zsigma []abstract.Scalar
-	Ztau   abstract.Scalar
+	Zsigma []kyber.Scalar
+	Ztau   kyber.Scalar
 }
 
 // P and V, step 5: simple k-shuffle proof
@@ -82,7 +87,7 @@ type ega6 struct {
 // to pick a random permutation, compute the shuffle,
 // and compute the correctness proof.
 type PairShuffle struct {
-	grp abstract.Group
+	grp kyber.Group
 	k   int
 	p1  ega1
 	v2  ega2
@@ -92,10 +97,10 @@ type PairShuffle struct {
 	pv6 SimpleShuffle
 }
 
-// Create a new PairShuffleProof instance for a k-element ElGamal pair shuffle.
+// Init creates a new PairShuffleProof instance for a k-element ElGamal pair shuffle.
 // This protocol follows the ElGamal Pair Shuffle defined in section 4 of
 // Andrew Neff, "Verifiable Mixing (Shuffling) of ElGamal Pairs", 2004.
-func (ps *PairShuffle) Init(grp abstract.Group, k int) *PairShuffle {
+func (ps *PairShuffle) Init(grp kyber.Group, k int) *PairShuffle {
 
 	if k <= 1 {
 		panic("can't shuffle permutation of size <= 1")
@@ -104,21 +109,22 @@ func (ps *PairShuffle) Init(grp abstract.Group, k int) *PairShuffle {
 	// Create a well-formed PairShuffleProof with arrays correctly sized.
 	ps.grp = grp
 	ps.k = k
-	ps.p1.A = make([]abstract.Point, k)
-	ps.p1.C = make([]abstract.Point, k)
-	ps.p1.U = make([]abstract.Point, k)
-	ps.p1.W = make([]abstract.Point, k)
-	ps.v2.Zrho = make([]abstract.Scalar, k)
-	ps.p3.D = make([]abstract.Point, k)
-	ps.p5.Zsigma = make([]abstract.Scalar, k)
+	ps.p1.A = make([]kyber.Point, k)
+	ps.p1.C = make([]kyber.Point, k)
+	ps.p1.U = make([]kyber.Point, k)
+	ps.p1.W = make([]kyber.Point, k)
+	ps.v2.Zrho = make([]kyber.Scalar, k)
+	ps.p3.D = make([]kyber.Point, k)
+	ps.p5.Zsigma = make([]kyber.Scalar, k)
 	ps.pv6.Init(grp, k)
 
 	return ps
 }
 
+// Prove returns an error if the shuffle is not correct.
 func (ps *PairShuffle) Prove(
-	pi []int, g, h abstract.Point, beta []abstract.Scalar,
-	X, Y []abstract.Point, rand cipher.Stream,
+	pi []int, g, h kyber.Point, beta []kyber.Scalar,
+	X, Y []kyber.Point, rand cipher.Stream,
 	ctx proof.ProverContext) error {
 
 	grp := ps.grp
@@ -138,14 +144,14 @@ func (ps *PairShuffle) Prove(
 	z := grp.Scalar() // scratch
 
 	// pick random secrets
-	u := make([]abstract.Scalar, k)
-	w := make([]abstract.Scalar, k)
-	a := make([]abstract.Scalar, k)
-	var tau0, nu, gamma abstract.Scalar
+	u := make([]kyber.Scalar, k)
+	w := make([]kyber.Scalar, k)
+	a := make([]kyber.Scalar, k)
+	var tau0, nu, gamma kyber.Scalar
 	ctx.PriRand(u, w, a, &tau0, &nu, &gamma)
 
 	// compute public commits
-	p1.Gamma = grp.Point().Mul(g, gamma)
+	p1.Gamma = grp.Point().Mul(gamma, g)
 	wbeta := grp.Scalar() // scratch
 	wbetasum := grp.Scalar().Set(tau0)
 	p1.Lambda1 = grp.Point().Null()
@@ -153,18 +159,16 @@ func (ps *PairShuffle) Prove(
 	XY := grp.Point()  // scratch
 	wu := grp.Scalar() // scratch
 	for i := 0; i < k; i++ {
-		p1.A[i] = grp.Point().Mul(g, a[i])
-		p1.C[i] = grp.Point().Mul(g, z.Mul(gamma, a[pi[i]]))
-		p1.U[i] = grp.Point().Mul(g, u[i])
-		p1.W[i] = grp.Point().Mul(g, z.Mul(gamma, w[i]))
+		p1.A[i] = grp.Point().Mul(a[i], g)
+		p1.C[i] = grp.Point().Mul(z.Mul(gamma, a[pi[i]]), g)
+		p1.U[i] = grp.Point().Mul(u[i], g)
+		p1.W[i] = grp.Point().Mul(z.Mul(gamma, w[i]), g)
 		wbetasum.Add(wbetasum, wbeta.Mul(w[i], beta[pi[i]]))
-		p1.Lambda1.Add(p1.Lambda1, XY.Mul(X[i],
-			wu.Sub(w[piinv[i]], u[i])))
-		p1.Lambda2.Add(p1.Lambda2, XY.Mul(Y[i],
-			wu.Sub(w[piinv[i]], u[i])))
+		p1.Lambda1.Add(p1.Lambda1, XY.Mul(wu.Sub(w[piinv[i]], u[i]), X[i]))
+		p1.Lambda2.Add(p1.Lambda2, XY.Mul(wu.Sub(w[piinv[i]], u[i]), Y[i]))
 	}
-	p1.Lambda1.Add(p1.Lambda1, XY.Mul(g, wbetasum))
-	p1.Lambda2.Add(p1.Lambda2, XY.Mul(h, wbetasum))
+	p1.Lambda1.Add(p1.Lambda1, XY.Mul(wbetasum, g))
+	p1.Lambda2.Add(p1.Lambda2, XY.Mul(wbetasum, h))
 	if err := ctx.Put(p1); err != nil {
 		return err
 	}
@@ -174,22 +178,22 @@ func (ps *PairShuffle) Prove(
 	if err := ctx.PubRand(v2); err != nil {
 		return err
 	}
-	B := make([]abstract.Point, k)
+	B := make([]kyber.Point, k)
 	for i := 0; i < k; i++ {
-		P := grp.Point().Mul(g, v2.Zrho[i])
+		P := grp.Point().Mul(v2.Zrho[i], g)
 		B[i] = P.Sub(P, p1.U[i])
 	}
 
 	// P step 3
 	p3 := &ps.p3
-	b := make([]abstract.Scalar, k)
+	b := make([]kyber.Scalar, k)
 	for i := 0; i < k; i++ {
 		b[i] = grp.Scalar().Sub(v2.Zrho[i], u[i])
 	}
-	d := make([]abstract.Scalar, k)
+	d := make([]kyber.Scalar, k)
 	for i := 0; i < k; i++ {
 		d[i] = grp.Scalar().Mul(gamma, b[pi[i]])
-		p3.D[i] = grp.Point().Mul(g, d[i])
+		p3.D[i] = grp.Point().Mul(d[i], g)
 	}
 	if err := ctx.Put(p3); err != nil {
 		return err
@@ -203,11 +207,11 @@ func (ps *PairShuffle) Prove(
 
 	// P step 5
 	p5 := &ps.p5
-	r := make([]abstract.Scalar, k)
+	r := make([]kyber.Scalar, k)
 	for i := 0; i < k; i++ {
 		r[i] = grp.Scalar().Add(a[i], z.Mul(v4.Zlambda, b[i]))
 	}
-	s := make([]abstract.Scalar, k)
+	s := make([]kyber.Scalar, k)
 	for i := 0; i < k; i++ {
 		s[i] = grp.Scalar().Mul(gamma, r[pi[i]])
 	}
@@ -224,9 +228,9 @@ func (ps *PairShuffle) Prove(
 	return ps.pv6.Prove(g, gamma, r, s, rand, ctx)
 }
 
-// Verifier for ElGamal Pair Shuffle proofs.
+// Verify ElGamal Pair Shuffle proofs.
 func (ps *PairShuffle) Verify(
-	g, h abstract.Point, X, Y, Xbar, Ybar []abstract.Point,
+	g, h kyber.Point, X, Y, Xbar, Ybar []kyber.Point,
 	ctx proof.VerifierContext) error {
 
 	// Validate all vector lengths
@@ -247,9 +251,9 @@ func (ps *PairShuffle) Verify(
 	if err := ctx.PubRand(v2); err != nil {
 		return err
 	}
-	B := make([]abstract.Point, k)
+	B := make([]kyber.Point, k)
 	for i := 0; i < k; i++ {
-		P := grp.Point().Mul(g, v2.Zrho[i])
+		P := grp.Point().Mul(v2.Zrho[i], g)
 		B[i] = P.Sub(P, p1.U[i])
 	}
 
@@ -282,12 +286,12 @@ func (ps *PairShuffle) Verify(
 	P := grp.Point() // scratch
 	Q := grp.Point() // scratch
 	for i := 0; i < k; i++ {
-		Phi1 = Phi1.Add(Phi1, P.Mul(Xbar[i], p5.Zsigma[i])) // (31)
-		Phi1 = Phi1.Sub(Phi1, P.Mul(X[i], v2.Zrho[i]))
-		Phi2 = Phi2.Add(Phi2, P.Mul(Ybar[i], p5.Zsigma[i])) // (32)
-		Phi2 = Phi2.Sub(Phi2, P.Mul(Y[i], v2.Zrho[i]))
+		Phi1 = Phi1.Add(Phi1, P.Mul(p5.Zsigma[i], Xbar[i])) // (31)
+		Phi1 = Phi1.Sub(Phi1, P.Mul(v2.Zrho[i], X[i]))
+		Phi2 = Phi2.Add(Phi2, P.Mul(p5.Zsigma[i], Ybar[i])) // (32)
+		Phi2 = Phi2.Sub(Phi2, P.Mul(v2.Zrho[i], Y[i]))
 		//		println("i",i)
-		if !P.Mul(p1.Gamma, p5.Zsigma[i]).Equal( // (33)
+		if !P.Mul(p5.Zsigma[i], p1.Gamma).Equal( // (33)
 			Q.Add(p1.W[i], p3.D[i])) {
 			return errors.New("invalid PairShuffleProof")
 		}
@@ -297,20 +301,20 @@ func (ps *PairShuffle) Verify(
 	//	println("Phi2",Phi2.String());
 	//	println("1",P.Add(p1.Lambda1,Q.Mul(g,p5.Ztau)).String());
 	//	println("2",P.Add(p1.Lambda2,Q.Mul(h,p5.Ztau)).String());
-	if !P.Add(p1.Lambda1, Q.Mul(g, p5.Ztau)).Equal(Phi1) || // (34)
-		!P.Add(p1.Lambda2, Q.Mul(h, p5.Ztau)).Equal(Phi2) { // (35)
+	if !P.Add(p1.Lambda1, Q.Mul(p5.Ztau, g)).Equal(Phi1) || // (34)
+		!P.Add(p1.Lambda2, Q.Mul(p5.Ztau, h)).Equal(Phi2) { // (35)
 		return errors.New("invalid PairShuffleProof")
 	}
 
 	return nil
 }
 
-// Randomly shuffle and re-randomize a set of ElGamal pairs,
+// Shuffle randomly shuffles and re-randomizes a set of ElGamal pairs,
 // producing a correctness proof in the process.
 // Returns (Xbar,Ybar), the shuffled and randomized pairs.
 // If g or h is nil, the standard base point is used.
-func Shuffle(group abstract.Group, g, h abstract.Point, X, Y []abstract.Point,
-	rand cipher.Stream) (XX, YY []abstract.Point, P proof.Prover) {
+func Shuffle(group kyber.Group, g, h kyber.Point, X, Y []kyber.Point,
+	rand cipher.Stream) (XX, YY []kyber.Point, P proof.Prover) {
 
 	k := len(X)
 	if k != len(Y) {
@@ -326,7 +330,7 @@ func Shuffle(group abstract.Group, g, h abstract.Point, X, Y []abstract.Point,
 		pi[i] = i
 	}
 	for i := k - 1; i > 0; i-- { // Shuffle by random swaps
-		j := int(random.Uint64(rand) % uint64(i+1))
+		j := int(randUint64(rand) % uint64(i+1))
 		if j != i {
 			t := pi[j]
 			pi[j] = pi[i]
@@ -335,18 +339,18 @@ func Shuffle(group abstract.Group, g, h abstract.Point, X, Y []abstract.Point,
 	}
 
 	// Pick a fresh ElGamal blinding factor for each pair
-	beta := make([]abstract.Scalar, k)
+	beta := make([]kyber.Scalar, k)
 	for i := 0; i < k; i++ {
 		beta[i] = ps.grp.Scalar().Pick(rand)
 	}
 
 	// Create the output pair vectors
-	Xbar := make([]abstract.Point, k)
-	Ybar := make([]abstract.Point, k)
+	Xbar := make([]kyber.Point, k)
+	Ybar := make([]kyber.Point, k)
 	for i := 0; i < k; i++ {
-		Xbar[i] = ps.grp.Point().Mul(g, beta[pi[i]])
+		Xbar[i] = ps.grp.Point().Mul(beta[pi[i]], g)
 		Xbar[i].Add(Xbar[i], X[pi[i]])
-		Ybar[i] = ps.grp.Point().Mul(h, beta[pi[i]])
+		Ybar[i] = ps.grp.Point().Mul(beta[pi[i]], h)
 		Ybar[i].Add(Ybar[i], Y[pi[i]])
 	}
 
@@ -356,9 +360,15 @@ func Shuffle(group abstract.Group, g, h abstract.Point, X, Y []abstract.Point,
 	return Xbar, Ybar, prover
 }
 
-// Produce a Sigma-protocol verifier to check the correctness of a shuffle.
-func Verifier(group abstract.Group, g, h abstract.Point,
-	X, Y, Xbar, Ybar []abstract.Point) proof.Verifier {
+// randUint64 chooses a uniform random uint64
+func randUint64(rand cipher.Stream) uint64 {
+	b := random.Bits(64, false, rand)
+	return binary.BigEndian.Uint64(b)
+}
+
+// Verifier produces a Sigma-protocol verifier to check the correctness of a shuffle.
+func Verifier(group kyber.Group, g, h kyber.Point,
+	X, Y, Xbar, Ybar []kyber.Point) proof.Verifier {
 
 	ps := PairShuffle{}
 	ps.Init(group, len(X))
