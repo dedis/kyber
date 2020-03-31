@@ -13,6 +13,7 @@ package tbls
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 
 	"github.com/drand/kyber"
 	"github.com/drand/kyber/pairing"
@@ -83,6 +84,13 @@ func (s *scheme) Sign(private *share.PriShare, msg []byte) ([]byte, error) {
 		return nil, err
 	}
 	return buf.Bytes(), nil
+}
+
+func (s *scheme) IndexOf(signature []byte) (int, error) {
+	if len(signature) != s.sigGroup.PointLen()+2 {
+		return -1, errors.New("invalid partial signature length")
+	}
+	return SigShare(signature).Index()
 }
 
 // VerifyPartial checks the given threshold BLS signature Si on the message m using
