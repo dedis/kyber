@@ -1,5 +1,9 @@
 package dkg
 
+import "fmt"
+import "strings"
+import "sort"
+
 const (
 	Success   = true
 	Complaint = false
@@ -9,8 +13,6 @@ type BitSet = map[uint32]bool
 type StatusMatrix map[uint32]BitSet
 
 func NewStatusMatrix(dealers []Node, shareHolders []Node, status bool) *StatusMatrix {
-	maxDealers = findMaxIndex(dealers)
-	maxHolders = findMaxIndex(shareHolders)
 	statuses := make(map[uint32]BitSet)
 	for _, dealer := range dealers {
 		bitset := make(map[uint32]bool)
@@ -19,11 +21,12 @@ func NewStatusMatrix(dealers []Node, shareHolders []Node, status bool) *StatusMa
 		}
 		statuses[dealer.Index] = bitset
 	}
-	return statuses
+	sm := StatusMatrix(statuses)
+	return &sm
 }
 
 func (s *StatusMatrix) StatusesForShare(shareIndex uint32) BitSet {
-	bt = make(BitSet)
+	bt := make(BitSet)
 	for dealerIdx, bs := range *s {
 		status, ok := bs[shareIndex]
 		if !ok {
@@ -59,15 +62,46 @@ func (s *StatusMatrix) AllTrue(dealer uint32) bool {
 }
 
 // can panic if indexes are not from the original list of nodes
-func (s *StatusMatrix) Get(dealer, share int) bool {
-	return s[dealer][share]
+func (s *StatusMatrix) Get(dealer, share uint32) bool {
+	return (*s)[dealer][share]
+}
+
+func (s *StatusMatrix) String() string {
+	// get dealer indexes
+	dealerIdx := make([]int, 0, len(*s))
+	for didx := range *s {
+		dealerIdx = append(dealerIdx, int(didx))
+	}
+	// get share holder indexes
+	sharesIdx := make([]int, 0, len((*s)[uint32(dealerIdx[0])]))
+	for sidx := range (*s)[uint32(dealerIdx[0])] {
+		sharesIdx = append(sharesIdx, int(sidx))
+	}
+	sort.Ints(dealerIdx)
+	sort.Ints(sharesIdx)
+	var str = ""
+	for _, dealerIndex := range dealerIdx {
+		var statuses []string
+		for _, shareIndex := range sharesIdx {
+			status := (*s)[uint32(dealerIndex)][uint32(shareIndex)]
+			var st string
+			if status {
+				st = fmt.Sprintf(" %d: ok", shareIndex)
+			} else {
+				st = fmt.Sprintf(" %d: no", shareIndex)
+			}
+			statuses = append(statuses, st)
+		}
+		str += fmt.Sprintf("dealer %d: [ %s ]\n", dealerIndex, strings.Join(statuses, ","))
+	}
+	return str
 }
 
 func findMaxIndex(list []Node) int {
 	m := 0
 	for _, n := range list {
-		if n.Index > m {
-			m = n.Index
+		if n.Index > uint32(m) {
+			m = int(n.Index)
 		}
 	}
 	return m
