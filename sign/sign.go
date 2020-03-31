@@ -29,6 +29,7 @@ type AggregatableScheme interface {
 // TODO: see any potential conflict or synergy with mask and policy
 type ThresholdScheme interface {
 	Sign(private *share.PriShare, msg []byte) ([]byte, error)
+	IndexOf(signature []byte) (int, error)
 	Recover(public *share.PubPoly, msg []byte, sigs [][]byte, t, n int) ([]byte, error)
 	VerifyPartial(public *share.PubPoly, msg, sig []byte) error
 	VerifyRecovered(public kyber.Point, msg, sig []byte) error
