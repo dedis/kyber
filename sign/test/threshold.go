@@ -24,6 +24,9 @@ func ThresholdTest(test *testing.T, keyGroup kyber.Group, scheme sign.ThresholdS
 			sig, err := scheme.Sign(x, msg)
 			require.Nil(tt, err)
 			require.Nil(tt, scheme.VerifyPartial(pubPoly, msg, sig))
+			idx, err := scheme.IndexOf(sig)
+			require.NoError(tt, err)
+			require.Equal(tt, x.I, idx)
 			sigShares = append(sigShares, sig)
 		}
 		sig, err := scheme.Recover(pubPoly, msg, sigShares, t, n)
@@ -60,6 +63,15 @@ func ThresholdTest(test *testing.T, keyGroup kyber.Group, scheme sign.ThresholdS
 			require.Nil(tt, err)
 			require.Error(tt, scheme.VerifyPartial(pubPoly, msg, sig))
 		}
+
+		weirdSig := []byte("ain't no sunshine when she's gone")
+		require.Error(tt, scheme.VerifyPartial(pubPoly, msg, weirdSig))
+		_, err := scheme.IndexOf(weirdSig)
+		require.Error(tt, err)
+		smallSig := []byte{1, 2, 3}
+		_, err = scheme.IndexOf(smallSig)
+		require.Error(tt, err)
+
 	})
 	test.Run("Invalid Recovered Sig", func(tt *testing.T) {
 		secret := keyGroup.Scalar().Pick(random.New())
