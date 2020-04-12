@@ -10,9 +10,34 @@ type Node struct {
 	Public kyber.Point
 }
 
+func (n *Node) Equal(n2 *Node) bool {
+	return n.Index == n2.Index && n.Public.Equal(n2.Public)
+}
+
 type Result struct {
 	QUAL []Node
 	Key  *DistKeyShare
+}
+
+func (r *Result) PublicEqual(r2 *Result) bool {
+	if len(r.Key.Commits) != len(r2.Key.Commits) {
+		return false
+	}
+	if len(r.QUAL) != len(r2.QUAL) {
+		return false
+	}
+	lenC := len(r.Key.Commits)
+	for i := 0; i < lenC; i++ {
+		if !r.Key.Commits[i].Equal(r2.Key.Commits[i]) {
+			return false
+		}
+	}
+	for i := 0; i < len(r.QUAL); i++ {
+		if !r.QUAL[i].Equal(&r2.QUAL[i]) {
+			return false
+		}
+	}
+	return true
 }
 
 // DistKeyShare holds the share of a distributed key for a participant.

@@ -1,11 +1,13 @@
 package dkg
 
 import (
+	"testing"
+
 	"github.com/drand/kyber"
 	"github.com/drand/kyber/group/edwards25519"
+	"github.com/drand/kyber/share"
 	"github.com/drand/kyber/util/random"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 type TestNode struct {
@@ -66,7 +68,7 @@ func IsDealerIncluded(bundles []*ResponseBundle, dealer uint32) bool {
 
 func TestDKGFull(t *testing.T) {
 	n := 5
-	thr := 4
+	thr := n
 	suite := edwards25519.NewBlakeSHA256Ed25519()
 	tns := GenerateTestNodes(suite, n)
 	list := NodesFromTest(tns)
@@ -91,13 +93,49 @@ func TestDKGFull(t *testing.T) {
 		require.Nil(t, resp)
 	}
 
+	var results []*Result
 	for _, node := range tns {
 		// we give no responses
 		res, just, err := node.dkg.ProcessResponses(nil)
 		require.NoError(t, err)
 		require.Nil(t, just)
 		require.NotNil(t, res)
+		results = append(results, res)
 	}
+
+	// test if all results are consistent
+	for i, res := range results {
+		require.Equal(t, thr, len(res.Key.Commitments()))
+		for j, res2 := range results {
+			if i == j {
+				continue
+			}
+			require.True(t, res.PublicEqual(res2), "res %+v != %+v", res, res2)
+		}
+	}
+	// test if re-creating secret key gives same public key
+	var shares []*share.PriShare
+	for _, res := range results {
+		shares = append(shares, res.Key.PriShare())
+	}
+	// test if shares are public polynomial evaluation
+	exp := share.NewPubPoly(suite, suite.Point().Base(), results[0].Key.Commitments())
+	for _, share := range shares {
+		pubShare := exp.Eval(share.I)
+		expShare := suite.Point().Mul(share.V, nil)
+		require.True(t, pubShare.V.Equal(expShare), "share %s give pub %s vs exp %s", share.V.String(), pubShare.V.String(), expShare.String())
+	}
+
+	secretPoly, err := share.RecoverPriPoly(suite, shares, thr, n)
+	require.NoError(t, err)
+	gotPub := secretPoly.Commit(suite.Point().Base())
+	require.True(t, exp.Equal(gotPub))
+
+	/*secret, err := share.RecoverSecret(suite, shares, thr, n)*/
+	//require.NoError(t, err)
+	//public := suite.Point().Mul(secret, nil)
+	//exp := results[0].Key.Public()
+	/*require.True(t, public.Equal(exp))*/
 }
 
 func TestDKGThreshold(t *testing.T) {

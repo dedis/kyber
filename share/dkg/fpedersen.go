@@ -286,10 +286,12 @@ func (d *DistKeyGenerator) Deals() (*DealBundle, error) {
 	if d.state != InitState {
 		return nil, fmt.Errorf("dkg not in the initial state, can't produce deals")
 	}
+	fmt.Printf("Deals() dkg %d:\n", d.nidx)
 	deals := make([]Deal, 0, len(d.c.NewNodes))
 	for _, node := range d.c.NewNodes {
 		// compute share
 		si := d.dpriv.Eval(int(node.Index)).V
+		fmt.Printf("\t- sending to %d: %s\n", node.Index, si.String())
 		if d.canReceive && uint32(d.nidx) == node.Index {
 			d.validShares[node.Index] = si
 			d.allPublics[node.Index] = d.dpub
@@ -326,7 +328,7 @@ func (d *DistKeyGenerator) ProcessDeals(bundles []*DealBundle) (*ResponseBundle,
 		// newnode member which is not in the old group is not in the riht state
 		return nil, fmt.Errorf("processdeals can only be called once after creating the dkg for a new member")
 	}
-
+	fmt.Printf("ProcessDeals(): dkg %d:\n", d.nidx)
 	seenIndex := make(map[uint32]bool)
 	for _, bundle := range bundles {
 		if d.canIssue && bundle.DealerIndex == uint32(d.oidx) {
@@ -384,7 +386,7 @@ func (d *DistKeyGenerator) ProcessDeals(bundles []*DealBundle) (*ResponseBundle,
 				// check that the evaluation this public polynomial at 0,
 				// corresponds to the commitment of the previous the dealer's index
 				oldShareCommit := d.olddpub.Eval(int(bundle.DealerIndex)).V
-				publicCommit := bundle.Public.FreeCoeff()
+				publicCommit := bundle.Public.Commit()
 				if !oldShareCommit.Equal(publicCommit) {
 					// inconsistent share from old member
 					continue
@@ -393,15 +395,17 @@ func (d *DistKeyGenerator) ProcessDeals(bundles []*DealBundle) (*ResponseBundle,
 			// share is valid -> store it
 			d.statuses.Set(bundle.DealerIndex, deal.ShareIndex, true)
 			d.validShares[bundle.DealerIndex] = share
+			fmt.Printf("\t- storing share from %d : %d->%s\n", bundle.DealerIndex, deal.ShareIndex, share.String())
 		}
 	}
 	if d.canIssue {
 		// we mark our own status for our own share
 		d.statuses.Set(uint32(d.nidx), uint32(d.nidx), true)
 	}
+
 	// we set to true the status of each node that are present in both list
 	// for their respective index -> we assume the share a honest node creates is
-	// correct for himself (hidden assumption in the paper)
+	// correct for himself - that he won't create an invalid share for himself
 	for _, dealer := range d.c.OldNodes {
 		nidx, found := findPub(d.c.NewNodes, dealer.Public)
 		if !found {
@@ -601,7 +605,7 @@ func (d *DistKeyGenerator) ProcessJustifications(bundles []JustificationBundle) 
 				// check that the evaluation this public polynomial at 0,
 				// corresponds to the commitment of the previous the dealer's index
 				oldShareCommit := d.olddpub.Eval(int(bundle.DealerIndex)).V
-				publicCommit := pubPoly.FreeCoeff()
+				publicCommit := pubPoly.Commit()
 				if !oldShareCommit.Equal(publicCommit) {
 					// inconsistent share from old member
 					d.evicted = append(d.evicted, bundle.DealerIndex)
@@ -740,9 +744,11 @@ func (d *DistKeyGenerator) computeDKGResult() (*Result, error) {
 	finalShare := d.c.Suite.Scalar().Zero()
 	var finalPub *share.PubPoly
 	var nodes []Node
+	fmt.Printf("ComputeDKG(): dkg %d:\n", d.nidx)
 	for _, n := range d.c.OldNodes {
 		if !d.statuses.AllTrue(n.Index) {
 			// this dealer has some unjustified shares
+			fmt.Println(" UNJUSTIFIED")
 			continue
 		}
 		sh, ok := d.validShares[n.Index]
@@ -753,7 +759,8 @@ func (d *DistKeyGenerator) computeDKGResult() (*Result, error) {
 		if !ok {
 			return nil, fmt.Errorf("BUG: idx %d public polynomial not found from dealer %d", d.nidx, n.Index)
 		}
-		finalShare.Add(finalShare, sh)
+		fmt.Printf("\t- Adding share from %d: %s\n", n.Index, sh.String())
+		finalShare = finalShare.Add(finalShare, sh)
 		if finalPub == nil {
 			finalPub = pub
 		} else {
