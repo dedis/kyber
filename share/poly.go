@@ -242,7 +242,6 @@ func xyScalar(g kyber.Group, shares []*PriShare, t, n int) (map[int]kyber.Scalar
 	return x, y
 }
 
-// returns f(x) = x - c
 func minusConst(g kyber.Group, c kyber.Scalar) *PriPoly {
 	neg := g.Scalar().Neg(c)
 	return &PriPoly{
@@ -261,7 +260,6 @@ func RecoverPriPoly(g kyber.Group, shares []*PriShare, t, n int) (*PriPoly, erro
 	if len(x) != t {
 		return nil, errors.New("share: not enough shares to recover private polynomial")
 	}
-	fmt.Println("length of xs: ", len(x))
 
 	var accPoly *PriPoly
 	var err error
@@ -270,7 +268,6 @@ func RecoverPriPoly(g kyber.Group, shares []*PriShare, t, n int) (*PriPoly, erro
 	// https://en.wikipedia.org/wiki/Lagrange_polynomial
 	for j := range x {
 		basis := lagrangeBasis(g, j, x)
-		fmt.Println("(t-n) = (", t, ",", n, ") : lagrange basis for ", j, " has degree", len(basis.coeffs)-1)
 		for i := range basis.coeffs {
 			basis.coeffs[i] = basis.coeffs[i].Mul(basis.coeffs[i], y[j])
 		}
@@ -285,7 +282,6 @@ func RecoverPriPoly(g kyber.Group, shares []*PriShare, t, n int) (*PriPoly, erro
 		if err != nil {
 			return nil, err
 		}
-		fmt.Println("\t-> accumulator degree", len(accPoly.coeffs)-1)
 	}
 	return accPoly, nil
 }
@@ -317,10 +313,6 @@ type PubPoly struct {
 	g       kyber.Group   // Cryptographic group
 	b       kyber.Point   // Base point, nil for standard base
 	commits []kyber.Point // Commitments to coefficients of the secret sharing polynomial
-}
-
-func (p *PubPoly) FreeCoeff() kyber.Point {
-	return p.commits[0]
 }
 
 // NewPubPoly creates a new public commitment polynomial.
@@ -520,16 +512,14 @@ func lagrangeBasis(g kyber.Group, i int, xs map[int]kyber.Scalar) *PriPoly {
 	// compute lagrange basis l_j
 	den := g.Scalar().One()
 	var acc = g.Scalar().One()
-	xi := xs[i]
 	for m, xm := range xs {
 		if i == m {
 			continue
 		}
-		// basis * (x - xm)
 		basis = basis.Mul(minusConst(g, xm))
-		den.Sub(xi, xm)   // den = xi - xm
-		den.Inv(den)      // den = 1 / den
-		acc.Mul(acc, den) // acc = acc * den
+		den.Sub(xs[i], xm) // den = xi - xm
+		den.Inv(den)       // den = 1 / den
+		acc.Mul(acc, den)  // acc = acc * den
 	}
 
 	// multiply all coefficients by the denominator
