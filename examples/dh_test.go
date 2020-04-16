@@ -27,8 +27,8 @@ func Example_diffieHellman() {
 	A := suite.Point().Mul(a, nil) // Alice's public key
 
 	// Bob's public/private keypair
-	b := suite.Scalar().Pick(rng)  // Alice's private key
-	B := suite.Point().Mul(b, nil) // Alice's public key
+	b := suite.Scalar().Pick(rng)  // Bob's private key
+	B := suite.Point().Mul(b, nil) // Bob's public key
 
 	// Assume Alice and Bob have securely obtained each other's public keys.
 
