@@ -250,9 +250,17 @@ func NewDistKeyHandler(c *Config) (*DistKeyGenerator, error) {
 		// expect everyone to send success for correct shares
 		statuses = NewStatusMatrix(c.OldNodes, c.NewNodes, Complaint)
 	} else {
-		// in normal mode, every shares is expected to be correct, unless honest
-		// nodes send a complaint
+		// in normal mode, every shares of other nodes is expected to be
+		// correct, unless honest nodes send a complaint
 		statuses = NewStatusMatrix(c.OldNodes, c.NewNodes, Success)
+		if canReceive {
+			// we set the statuses of the shares we expect to receive as complaint
+			// by default, so if we miss one share or there's an invalid share,
+			// it'll generate a complaint
+			for _, node := range c.OldNodes {
+				statuses.Set(node.Index, uint32(nidx), false)
+			}
+		}
 	}
 	dkg := &DistKeyGenerator{
 		state:       InitState,
@@ -292,6 +300,7 @@ func (d *DistKeyGenerator) Deals() (*DealBundle, error) {
 		// compute share
 		si := d.dpriv.Eval(int(node.Index)).V
 		fmt.Printf("\t- sending to %d: %s\n", node.Index, si.String())
+
 		if d.canReceive && uint32(d.nidx) == node.Index {
 			d.validShares[node.Index] = si
 			d.allPublics[node.Index] = d.dpub
@@ -354,6 +363,7 @@ func (d *DistKeyGenerator) ProcessDeals(bundles []*DealBundle) (*ResponseBundle,
 		}
 		seenIndex[bundle.DealerIndex] = true
 		d.allPublics[bundle.DealerIndex] = bundle.Public
+		fmt.Printf("\t - Looking at deals from %d\n", bundle.DealerIndex)
 		for _, deal := range bundle.Deals {
 			if !isIndexIncluded(d.c.NewNodes, deal.ShareIndex) {
 				// invalid index for share holder is a clear sign of cheating
@@ -537,6 +547,8 @@ func (d *DistKeyGenerator) ProcessResponses(bundles []*ResponseBundle) (*Result,
 			Share:      sh,
 		})
 		foundJustifs = true
+		// mark those shares as resolved in the statuses
+		d.statuses.Set(uint32(d.oidx), shareIndex, true)
 	}
 	if !foundJustifs {
 		// no justifications required from us !
@@ -550,7 +562,7 @@ func (d *DistKeyGenerator) ProcessResponses(bundles []*ResponseBundle) (*Result,
 	return nil, &bundle, nil
 }
 
-func (d *DistKeyGenerator) ProcessJustifications(bundles []JustificationBundle) (*Result, error) {
+func (d *DistKeyGenerator) ProcessJustifications(bundles []*JustificationBundle) (*Result, error) {
 	if !d.canReceive {
 		return nil, fmt.Errorf("old eviceted node should not process justifications")
 	}
@@ -560,6 +572,7 @@ func (d *DistKeyGenerator) ProcessJustifications(bundles []JustificationBundle) 
 
 	seen := make(map[uint32]bool)
 	for _, bundle := range bundles {
+		fmt.Printf("Node %d looking at Justifications from dealer %d\n", d.nidx, bundle.DealerIndex)
 		if seen[bundle.DealerIndex] {
 			// bundle contains duplicate - clear violation
 			// so we evict
@@ -584,6 +597,7 @@ func (d *DistKeyGenerator) ProcessJustifications(bundles []JustificationBundle) 
 				// invalid index - clear violation
 				// so we evict
 				d.evicted = append(d.evicted, bundle.DealerIndex)
+				fmt.Println("BROU")
 				continue
 			}
 			pubPoly, ok := d.allPublics[bundle.DealerIndex]
@@ -591,6 +605,7 @@ func (d *DistKeyGenerator) ProcessJustifications(bundles []JustificationBundle) 
 				// dealer hasn't given any public polynomial at the first phase
 				// so we evict directly - no need to look at its justifications
 				d.evicted = append(d.evicted, bundle.DealerIndex)
+				fmt.Println("BROU2")
 				break
 			}
 			// compare commit and public poly
@@ -599,6 +614,7 @@ func (d *DistKeyGenerator) ProcessJustifications(bundles []JustificationBundle) 
 			if !commit.Equal(expected) {
 				// invalid justification - evict
 				d.evicted = append(d.evicted, bundle.DealerIndex)
+				fmt.Println("BROU3")
 				continue
 			}
 			if d.isResharing {
@@ -609,10 +625,12 @@ func (d *DistKeyGenerator) ProcessJustifications(bundles []JustificationBundle) 
 				if !oldShareCommit.Equal(publicCommit) {
 					// inconsistent share from old member
 					d.evicted = append(d.evicted, bundle.DealerIndex)
+					fmt.Println("BROU4")
 					continue
 				}
 			}
 			// valid share -> mark OK
+			fmt.Printf("Node %d : finds justification from dealer %d for node %d correct\n", d.nidx, bundle.DealerIndex, justif.ShareIndex)
 			d.statuses.Set(bundle.DealerIndex, justif.ShareIndex, true)
 			if justif.ShareIndex == uint32(d.nidx) {
 				// store the share if it's for us
@@ -637,6 +655,7 @@ func (d *DistKeyGenerator) ProcessJustifications(bundles []JustificationBundle) 
 		// that should not happen in the threat model but we still returns the
 		// fatal error here so DKG do not finish
 		d.state = FinishState
+		fmt.Printf("Node %d --- not enough good shares, statuses:\n%s\n", d.nidx, d.statuses)
 		return nil, fmt.Errorf("only %d/%d valid deals - dkg abort", allGood, d.c.Threshold)
 	}
 	// otherwise it's all good - let's compute the result
@@ -644,6 +663,9 @@ func (d *DistKeyGenerator) ProcessJustifications(bundles []JustificationBundle) 
 }
 
 func (d *DistKeyGenerator) computeResult() (*Result, error) {
+	defer func() {
+		fmt.Printf("Node %d: AFTER compute results\n%s\n", d.nidx, d.statuses)
+	}()
 	d.state = FinishState
 	// add a full complaint row on the nodes that are evicted
 	for _, index := range d.evicted {
@@ -742,13 +764,14 @@ func (d *DistKeyGenerator) computeResharingResult() (*Result, error) {
 
 func (d *DistKeyGenerator) computeDKGResult() (*Result, error) {
 	finalShare := d.c.Suite.Scalar().Zero()
+	var err error
 	var finalPub *share.PubPoly
 	var nodes []Node
 	fmt.Printf("ComputeDKG(): dkg %d:\n", d.nidx)
 	for _, n := range d.c.OldNodes {
 		if !d.statuses.AllTrue(n.Index) {
 			// this dealer has some unjustified shares
-			fmt.Println(" UNJUSTIFIED")
+			fmt.Printf("node %d UNJUSTIFIED\n", n.Index)
 			continue
 		}
 		sh, ok := d.validShares[n.Index]
@@ -759,12 +782,14 @@ func (d *DistKeyGenerator) computeDKGResult() (*Result, error) {
 		if !ok {
 			return nil, fmt.Errorf("BUG: idx %d public polynomial not found from dealer %d", d.nidx, n.Index)
 		}
-		fmt.Printf("\t- Adding share from %d: %s\n", n.Index, sh.String())
 		finalShare = finalShare.Add(finalShare, sh)
 		if finalPub == nil {
 			finalPub = pub
 		} else {
-			finalPub.Add(pub)
+			finalPub, err = finalPub.Add(pub)
+			if err != nil {
+				return nil, err
+			}
 		}
 		nodes = append(nodes, n)
 	}
