@@ -15,18 +15,24 @@ type TestNode struct {
 	Private kyber.Scalar
 	Public  kyber.Point
 	dkg     *DistKeyGenerator
+	res     *Result
+}
+
+func NewTestNode(s Suite, index int) *TestNode {
+	private := s.Scalar().Pick(random.New())
+	public := s.Point().Mul(private, nil)
+	return &TestNode{
+		Index:   uint32(index),
+		Private: private,
+		Public:  public,
+	}
+
 }
 
 func GenerateTestNodes(s Suite, n int) []*TestNode {
 	tns := make([]*TestNode, n)
 	for i := 0; i < n; i++ {
-		private := s.Scalar().Pick(random.New())
-		public := s.Point().Mul(private, nil)
-		tns[i] = &TestNode{
-			Index:   uint32(i),
-			Private: private,
-			Public:  public,
-		}
+		tns[i] = NewTestNode(s, i)
 	}
 	return tns
 }
@@ -47,6 +53,23 @@ func SetupNodes(nodes []*TestNode, c *Config) {
 	for _, n := range nodes {
 		c2 := *c
 		c2.Longterm = n.Private
+		dkg, err := NewDistKeyHandler(&c2)
+		if err != nil {
+			panic(err)
+		}
+		n.dkg = dkg
+	}
+}
+
+func SetupReshareNodes(nodes []*TestNode, c *Config, coeffs []kyber.Point) {
+	for _, n := range nodes {
+		c2 := *c
+		c2.Longterm = n.Private
+		if n.res != nil {
+			c2.Share = n.res.Key
+		} else {
+			c2.PublicCoeffs = coeffs
+		}
 		dkg, err := NewDistKeyHandler(&c2)
 		if err != nil {
 			panic(err)
@@ -209,7 +232,110 @@ func TestDKGThreshold(t *testing.T) {
 		res, err := node.dkg.ProcessJustifications(justifs)
 		require.NoError(t, err)
 		require.NotNil(t, res)
+		for _, nodeQual := range res.QUAL {
+			require.NotEqual(t, uint32(0), nodeQual.Index)
+		}
 		results = append(results, res)
 	}
 	testResults(t, suite, thr, n, results)
+}
+
+func TestDKGResharing(t *testing.T) {
+	n := 5
+	thr := 4
+	suite := edwards25519.NewBlakeSHA256Ed25519()
+	tns := GenerateTestNodes(suite, n)
+	list := NodesFromTest(tns)
+	conf := Config{
+		Suite:     suite,
+		NewNodes:  list,
+		Threshold: thr,
+	}
+	SetupNodes(tns, &conf)
+
+	var deals []*DealBundle
+	for _, node := range tns {
+		d, err := node.dkg.Deals()
+		require.NoError(t, err)
+		deals = append(deals, d)
+	}
+
+	for _, node := range tns {
+		resp, err := node.dkg.ProcessDeals(deals)
+		require.NoError(t, err)
+		// for a full perfect dkg there should not be any complaints
+		require.Nil(t, resp)
+	}
+
+	var results []*Result
+	for _, node := range tns {
+		// we give no responses
+		res, just, err := node.dkg.ProcessResponses(nil)
+		require.NoError(t, err)
+		require.Nil(t, just)
+		require.NotNil(t, res)
+		results = append(results, res)
+		node.res = res
+	}
+	testResults(t, suite, thr, n, results)
+
+	// we setup now the second group with one node left from old group and two
+	// new node
+	newN := n + 1
+	newT := thr + 1
+	var newTns = make([]*TestNode, newN)
+	copy(newTns, tns[:n-1])
+	//  new node can have the same index as a previous one, separation is made
+	newTns[n-1] = NewTestNode(suite, n-1)
+	newTns[n] = NewTestNode(suite, n)
+	newList := NodesFromTest(newTns)
+	newConf := &Config{
+		Suite:        suite,
+		NewNodes:     newList,
+		OldNodes:     list,
+		Threshold:    newT,
+		OldThreshold: thr,
+	}
+
+	SetupReshareNodes(newTns, newConf, tns[0].res.Key.Commits)
+
+	deals = nil
+	for _, node := range newTns {
+		if node.res == nil {
+			// new members don't issue deals
+			continue
+		}
+		d, err := node.dkg.Deals()
+		require.NoError(t, err)
+		deals = append(deals, d)
+	}
+
+	var responses []*ResponseBundle
+	for _, node := range newTns {
+		resp, err := node.dkg.ProcessDeals(deals)
+		require.NoError(t, err)
+		if resp != nil {
+			// last node from the old group is not present so there should be
+			// some responses !
+			responses = append(responses, resp)
+		}
+	}
+	require.True(t, len(responses) > 0)
+
+	results = nil
+	for _, node := range newTns {
+		res, just, err := node.dkg.ProcessResponses(responses)
+		require.NoError(t, err)
+		require.Nil(t, res)
+		// since the last old node is absent he can't give any justifications
+		require.Nil(t, just)
+	}
+
+	for _, node := range newTns {
+		res, err := node.dkg.ProcessJustifications(nil)
+		require.NoError(t, err)
+		require.NotNil(t, res)
+		results = append(results, res)
+	}
+	testResults(t, suite, newT, newN, results)
 }
