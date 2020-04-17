@@ -340,6 +340,9 @@ func (d *DistKeyGenerator) ProcessDeals(bundles []*DealBundle) (*ResponseBundle,
 	fmt.Printf("ProcessDeals(): dkg %d:\n", d.nidx)
 	seenIndex := make(map[uint32]bool)
 	for _, bundle := range bundles {
+		if bundle == nil {
+			continue
+		}
 		if d.canIssue && bundle.DealerIndex == uint32(d.oidx) {
 			// dont look at our own deal
 			continue
@@ -483,6 +486,9 @@ func (d *DistKeyGenerator) ProcessResponses(bundles []*ResponseBundle) (*Result,
 
 	var foundComplaint bool
 	for _, bundle := range bundles {
+		if bundle == nil {
+			continue
+		}
 		if d.canIssue && bundle.ShareIndex == uint32(d.oidx) {
 			// just in case we dont treat our own response
 			continue
@@ -572,6 +578,9 @@ func (d *DistKeyGenerator) ProcessJustifications(bundles []*JustificationBundle)
 
 	seen := make(map[uint32]bool)
 	for _, bundle := range bundles {
+		if bundle == nil {
+			continue
+		}
 		fmt.Printf("Node %d looking at Justifications from dealer %d\n", d.nidx, bundle.DealerIndex)
 		if seen[bundle.DealerIndex] {
 			// bundle contains duplicate - clear violation
@@ -651,7 +660,13 @@ func (d *DistKeyGenerator) ProcessJustifications(bundles []*JustificationBundle)
 		}
 		allGood++
 	}
-	if allGood < d.c.Threshold {
+	targetThreshold := d.c.Threshold
+	if d.isResharing {
+		// we need enough old QUAL dealers, more than the threshold the old
+		// group uses
+		targetThreshold = d.c.OldThreshold
+	}
+	if allGood < targetThreshold {
 		// that should not happen in the threat model but we still returns the
 		// fatal error here so DKG do not finish
 		d.state = FinishState
