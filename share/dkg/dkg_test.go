@@ -7,6 +7,7 @@ import (
 	"github.com/drand/kyber/group/edwards25519"
 	"github.com/drand/kyber/share"
 	"github.com/drand/kyber/util/random"
+	clock "github.com/jonboulle/clockwork"
 	"github.com/stretchr/testify/require"
 )
 
@@ -16,6 +17,10 @@ type TestNode struct {
 	Public  kyber.Point
 	dkg     *DistKeyGenerator
 	res     *Result
+	proto   *Protocol
+	phaser  *TimePhaser
+	board   *TestBoard
+	clock   clock.FakeClock
 }
 
 func NewTestNode(s Suite, index int) *TestNode {
@@ -26,7 +31,6 @@ func NewTestNode(s Suite, index int) *TestNode {
 		Private: private,
 		Public:  public,
 	}
-
 }
 
 func GenerateTestNodes(s Suite, n int) []*TestNode {
@@ -49,7 +53,7 @@ func NodesFromTest(tns []*TestNode) []Node {
 }
 
 // inits the dkg structure
-func SetupNodes(nodes []*TestNode, c *Config) {
+func SetupNodes(nodes []*TestNode, c *DkgConfig) {
 	for _, n := range nodes {
 		c2 := *c
 		c2.Longterm = n.Private
@@ -61,7 +65,7 @@ func SetupNodes(nodes []*TestNode, c *Config) {
 	}
 }
 
-func SetupReshareNodes(nodes []*TestNode, c *Config, coeffs []kyber.Point) {
+func SetupReshareNodes(nodes []*TestNode, c *DkgConfig, coeffs []kyber.Point) {
 	for _, n := range nodes {
 		c2 := *c
 		c2.Longterm = n.Private
@@ -132,7 +136,7 @@ func TestDKGFull(t *testing.T) {
 	suite := edwards25519.NewBlakeSHA256Ed25519()
 	tns := GenerateTestNodes(suite, n)
 	list := NodesFromTest(tns)
-	conf := Config{
+	conf := DkgConfig{
 		Suite:     suite,
 		NewNodes:  list,
 		Threshold: thr,
@@ -172,7 +176,7 @@ func TestDKGThreshold(t *testing.T) {
 	suite := edwards25519.NewBlakeSHA256Ed25519()
 	tns := GenerateTestNodes(suite, n)
 	list := NodesFromTest(tns)
-	conf := Config{
+	conf := DkgConfig{
 		Suite:     suite,
 		NewNodes:  list,
 		Threshold: thr,
@@ -246,7 +250,7 @@ func TestDKGResharing(t *testing.T) {
 	suite := edwards25519.NewBlakeSHA256Ed25519()
 	tns := GenerateTestNodes(suite, n)
 	list := NodesFromTest(tns)
-	conf := Config{
+	conf := DkgConfig{
 		Suite:     suite,
 		NewNodes:  list,
 		Threshold: thr,
@@ -289,7 +293,7 @@ func TestDKGResharing(t *testing.T) {
 	newTns[n-1] = NewTestNode(suite, n-1)
 	newTns[n] = NewTestNode(suite, n)
 	newList := NodesFromTest(newTns)
-	newConf := &Config{
+	newConf := &DkgConfig{
 		Suite:        suite,
 		NewNodes:     newList,
 		OldNodes:     list,

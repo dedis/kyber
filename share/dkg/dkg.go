@@ -20,7 +20,7 @@ type Suite interface {
 	kyber.Random
 }
 
-// Config holds all required information to run a fresh DKG protocol or a
+// DkgConfig holds all required information to run a fresh DKG protocol or a
 // resharing protocol. In the case of a new fresh DKG protocol, one must fill
 // the following fields: Suite, Longterm, NewNodes, Threshold (opt). In the case
 // of a resharing protocol, one must fill the following: Suite, Longterm,
@@ -29,7 +29,7 @@ type Suite interface {
 // with the current share of the node. If the node using this config is a new
 // addition and thus has no current share, the PublicCoeffs field be must be
 // filled in.
-type Config struct {
+type DkgConfig struct {
 	Suite Suite
 
 	// Longterm is the longterm secret key.
@@ -108,7 +108,7 @@ const (
 // DistKeyGenerator is the struct that runs the DKG protocol.
 type DistKeyGenerator struct {
 	// config driving the behavior of DistKeyGenerator
-	c     *Config
+	c     *DkgConfig
 	suite Suite
 
 	long     kyber.Scalar
@@ -147,9 +147,9 @@ type DistKeyGenerator struct {
 	olddpub *share.PubPoly
 }
 
-// NewDistKeyHandler takes a Config and returns a DistKeyGenerator that is able
+// NewDistKeyHandler takes a DkgConfig and returns a DistKeyGenerator that is able
 // to drive the DKG or resharing protocol.
-func NewDistKeyHandler(c *Config) (*DistKeyGenerator, error) {
+func NewDistKeyHandler(c *DkgConfig) (*DistKeyGenerator, error) {
 	if c.NewNodes == nil && c.OldNodes == nil {
 		return nil, errors.New("dkg: can't run with empty node list")
 	}
@@ -294,12 +294,12 @@ func (d *DistKeyGenerator) Deals() (*DealBundle, error) {
 	if d.state != InitState {
 		return nil, fmt.Errorf("dkg not in the initial state, can't produce deals")
 	}
-	fmt.Printf("Deals() dkg %d:\n", d.nidx)
+	fmt.Printf("Deals() dkg %d\n", d.nidx)
 	deals := make([]Deal, 0, len(d.c.NewNodes))
 	for _, node := range d.c.NewNodes {
 		// compute share
 		si := d.dpriv.Eval(int(node.Index)).V
-		fmt.Printf("\t- sending to %d: %s\n", node.Index, si.String())
+		//fmt.Printf("\t- sending to %d: %s\n", node.Index, si.String())
 
 		if d.canReceive && uint32(d.nidx) == node.Index {
 			d.validShares[node.Index] = si
@@ -318,10 +318,11 @@ func (d *DistKeyGenerator) Deals() (*DealBundle, error) {
 		})
 	}
 	d.state = ShareState
+	_, commits := d.dpub.Info()
 	return &DealBundle{
 		DealerIndex: uint32(d.nidx),
 		Deals:       deals,
-		Public:      d.dpub,
+		Public:      commits,
 	}, nil
 }
 
@@ -337,7 +338,7 @@ func (d *DistKeyGenerator) ProcessDeals(bundles []*DealBundle) (*ResponseBundle,
 		// newnode member which is not in the old group is not in the riht state
 		return nil, fmt.Errorf("processdeals can only be called once after creating the dkg for a new member")
 	}
-	fmt.Printf("ProcessDeals(): dkg %d:\n", d.nidx)
+	fmt.Printf("ProcessDeals(): dkg %d - length bundles: %d\n", d.nidx, len(bundles))
 	seenIndex := make(map[uint32]bool)
 	for _, bundle := range bundles {
 		if bundle == nil {
@@ -350,7 +351,7 @@ func (d *DistKeyGenerator) ProcessDeals(bundles []*DealBundle) (*ResponseBundle,
 		if !isIndexIncluded(d.c.OldNodes, bundle.DealerIndex) {
 			continue
 		}
-		if bundle.Public == nil || bundle.Public.Threshold() != d.c.Threshold {
+		if bundle.Public == nil || len(bundle.Public) != d.c.Threshold {
 			// invalid public polynomial is clearly cheating
 			// so we evict him from the list
 			// since we assume broadcast channel, every honest player will evict
@@ -358,6 +359,7 @@ func (d *DistKeyGenerator) ProcessDeals(bundles []*DealBundle) (*ResponseBundle,
 			d.evicted = append(d.evicted, bundle.DealerIndex)
 			continue
 		}
+		pubPoly := share.NewPubPoly(d.c.Suite, d.c.Suite.Point().Base(), bundle.Public)
 		if seenIndex[bundle.DealerIndex] {
 			// already saw a bundle from the same dealer - clear sign of
 			// cheating so we evict him from the list
@@ -365,8 +367,8 @@ func (d *DistKeyGenerator) ProcessDeals(bundles []*DealBundle) (*ResponseBundle,
 			continue
 		}
 		seenIndex[bundle.DealerIndex] = true
-		d.allPublics[bundle.DealerIndex] = bundle.Public
-		fmt.Printf("\t - Looking at deals from %d\n", bundle.DealerIndex)
+		d.allPublics[bundle.DealerIndex] = pubPoly
+		//fmt.Printf("\t - Looking at deals from %d\n", bundle.DealerIndex)
 		for _, deal := range bundle.Deals {
 			if !isIndexIncluded(d.c.NewNodes, deal.ShareIndex) {
 				// invalid index for share holder is a clear sign of cheating
@@ -388,7 +390,7 @@ func (d *DistKeyGenerator) ProcessDeals(bundles []*DealBundle) (*ResponseBundle,
 				continue
 			}
 			// check if share is valid w.r.t. public commitment
-			comm := bundle.Public.Eval(d.nidx).V
+			comm := pubPoly.Eval(d.nidx).V
 			commShare := d.c.Suite.Point().Mul(share, nil)
 			if !comm.Equal(commShare) {
 				// invalid share - will issue complaint
@@ -399,7 +401,7 @@ func (d *DistKeyGenerator) ProcessDeals(bundles []*DealBundle) (*ResponseBundle,
 				// check that the evaluation this public polynomial at 0,
 				// corresponds to the commitment of the previous the dealer's index
 				oldShareCommit := d.olddpub.Eval(int(bundle.DealerIndex)).V
-				publicCommit := bundle.Public.Commit()
+				publicCommit := pubPoly.Commit()
 				if !oldShareCommit.Equal(publicCommit) {
 					// inconsistent share from old member
 					continue
@@ -408,7 +410,7 @@ func (d *DistKeyGenerator) ProcessDeals(bundles []*DealBundle) (*ResponseBundle,
 			// share is valid -> store it
 			d.statuses.Set(bundle.DealerIndex, deal.ShareIndex, true)
 			d.validShares[bundle.DealerIndex] = share
-			fmt.Printf("\t- storing share from %d : %d->%s\n", bundle.DealerIndex, deal.ShareIndex, share.String())
+			//fmt.Printf("\t- storing share from %d : %d->%s\n", bundle.DealerIndex, deal.ShareIndex, share.String())
 		}
 	}
 	if d.canIssue {
@@ -461,7 +463,7 @@ func (d *DistKeyGenerator) ProcessDeals(bundles []*DealBundle) (*ResponseBundle,
 		}
 	}
 	d.state = ResponseState
-	fmt.Printf("dealer %d statuses: \n%s\n", d.nidx, d.statuses)
+	fmt.Printf("After ProcessResponse(): dealer %d statuses: \n%s\n", d.nidx, d.statuses)
 	return bundle, nil
 }
 
@@ -470,6 +472,7 @@ func (d *DistKeyGenerator) ExpectedResponsesFastSync() int {
 }
 
 func (d *DistKeyGenerator) ProcessResponses(bundles []*ResponseBundle) (*Result, *JustificationBundle, error) {
+	fmt.Printf("ProcessResponses(): dkg %d\n", d.nidx)
 	// if we are a old node that will leave
 	if !d.canReceive && d.state != ShareState {
 		return nil, nil, fmt.Errorf("leaving node can process responses only after creating shares")
@@ -569,6 +572,7 @@ func (d *DistKeyGenerator) ProcessResponses(bundles []*ResponseBundle) (*Result,
 }
 
 func (d *DistKeyGenerator) ProcessJustifications(bundles []*JustificationBundle) (*Result, error) {
+	fmt.Printf("ProcessJustifications(): dkg %d\n", d.nidx)
 	if !d.canReceive {
 		return nil, fmt.Errorf("old eviceted node should not process justifications")
 	}
@@ -606,7 +610,6 @@ func (d *DistKeyGenerator) ProcessJustifications(bundles []*JustificationBundle)
 				// invalid index - clear violation
 				// so we evict
 				d.evicted = append(d.evicted, bundle.DealerIndex)
-				fmt.Println("BROU")
 				continue
 			}
 			pubPoly, ok := d.allPublics[bundle.DealerIndex]
@@ -614,7 +617,6 @@ func (d *DistKeyGenerator) ProcessJustifications(bundles []*JustificationBundle)
 				// dealer hasn't given any public polynomial at the first phase
 				// so we evict directly - no need to look at its justifications
 				d.evicted = append(d.evicted, bundle.DealerIndex)
-				fmt.Println("BROU2")
 				break
 			}
 			// compare commit and public poly
@@ -623,7 +625,6 @@ func (d *DistKeyGenerator) ProcessJustifications(bundles []*JustificationBundle)
 			if !commit.Equal(expected) {
 				// invalid justification - evict
 				d.evicted = append(d.evicted, bundle.DealerIndex)
-				fmt.Println("BROU3")
 				continue
 			}
 			if d.isResharing {
@@ -634,7 +635,6 @@ func (d *DistKeyGenerator) ProcessJustifications(bundles []*JustificationBundle)
 				if !oldShareCommit.Equal(publicCommit) {
 					// inconsistent share from old member
 					d.evicted = append(d.evicted, bundle.DealerIndex)
-					fmt.Println("BROU4")
 					continue
 				}
 			}
@@ -670,8 +670,7 @@ func (d *DistKeyGenerator) ProcessJustifications(bundles []*JustificationBundle)
 		// that should not happen in the threat model but we still returns the
 		// fatal error here so DKG do not finish
 		d.state = FinishState
-		fmt.Printf("Node %d --- not enough good shares, statuses:\n%s\n", d.nidx, d.statuses)
-		return nil, fmt.Errorf("only %d/%d valid deals - dkg abort", allGood, d.c.Threshold)
+		return nil, fmt.Errorf("only %d/%d valid deals - dkg abort", allGood, targetThreshold)
 	}
 	// otherwise it's all good - let's compute the result
 	return d.computeResult()
@@ -828,6 +827,15 @@ func findPub(list []Node, toFind kyber.Point) (int, bool) {
 		}
 	}
 	return 0, false
+}
+
+func findIndex(list []Node, index uint32) (kyber.Point, bool) {
+	for _, n := range list {
+		if n.Index == index {
+			return n.Public, true
+		}
+	}
+	return nil, false
 }
 
 func MinimumT(n int) int {
