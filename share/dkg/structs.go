@@ -1,6 +1,9 @@
 package dkg
 
 import (
+	"crypto/sha256"
+	"encoding/binary"
+
 	"github.com/drand/kyber"
 	"github.com/drand/kyber/share"
 )
@@ -77,7 +80,23 @@ type Deal struct {
 type DealBundle struct {
 	DealerIndex uint32
 	Deals       []Deal
-	Public      *share.PubPoly
+	// Public coefficients of the public polynomial used to create the shares
+	Public []kyber.Point
+}
+
+// Hash hashes the index, public coefficients and deals
+func (d *DealBundle) Hash() []byte {
+	h := sha256.New()
+	binary.Write(h, binary.BigEndian, d.DealerIndex)
+	for _, c := range d.Public {
+		cbuff, _ := c.MarshalBinary()
+		h.Write(cbuff)
+	}
+	for _, deal := range d.Deals {
+		binary.Write(h, binary.BigEndian, deal.ShareIndex)
+		h.Write(deal.EncryptedShare)
+	}
+	return h.Sum(nil)
 }
 
 // Response holds the Response from another participant as well as the index of
@@ -94,6 +113,21 @@ type ResponseBundle struct {
 	Responses  []Response
 }
 
+// Hash hashes the share index and responses
+func (r *ResponseBundle) Hash() []byte {
+	h := sha256.New()
+	binary.Write(h, binary.BigEndian, r.ShareIndex)
+	for _, resp := range r.Responses {
+		binary.Write(h, binary.BigEndian, resp.DealerIndex)
+		if resp.Status {
+			binary.Write(h, binary.BigEndian, byte(1))
+		} else {
+			binary.Write(h, binary.BigEndian, byte(0))
+		}
+	}
+	return h.Sum(nil)
+}
+
 type JustificationBundle struct {
 	DealerIndex    uint32
 	Justifications []Justification
@@ -102,4 +136,30 @@ type JustificationBundle struct {
 type Justification struct {
 	ShareIndex uint32
 	Share      kyber.Scalar
+}
+
+func (j *JustificationBundle) Hash() []byte {
+	h := sha256.New()
+	binary.Write(h, binary.BigEndian, j.DealerIndex)
+	for _, just := range j.Justifications {
+		binary.Write(h, binary.BigEndian, just.ShareIndex)
+		sbuff, _ := just.Share.MarshalBinary()
+		h.Write(sbuff)
+	}
+	return h.Sum(nil)
+}
+
+type AuthDealBundle struct {
+	Bundle    *DealBundle
+	Signature []byte
+}
+
+type AuthResponseBundle struct {
+	Bundle    *ResponseBundle
+	Signature []byte
+}
+
+type AuthJustifBundle struct {
+	Bundle    *JustificationBundle
+	Signature []byte
 }
