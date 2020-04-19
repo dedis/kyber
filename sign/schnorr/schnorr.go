@@ -13,17 +13,39 @@ package schnorr
 
 import (
 	"bytes"
+	"crypto/cipher"
 	"crypto/sha512"
 	"errors"
 	"fmt"
 
 	"github.com/drand/kyber"
+	"github.com/drand/kyber/sign"
 )
 
 // Suite represents the set of functionalities needed by the package schnorr.
 type Suite interface {
 	kyber.Group
 	kyber.Random
+}
+
+type SchnorrScheme struct {
+	s Suite
+}
+
+func NewScheme(s Suite) sign.Scheme {
+	return &SchnorrScheme{s}
+}
+
+func (s *SchnorrScheme) NewKeyPair(random cipher.Stream) (kyber.Scalar, kyber.Point) {
+	priv := s.s.Scalar().Pick(random)
+	pub := s.s.Point().Mul(priv, nil)
+	return priv, pub
+}
+func (s *SchnorrScheme) Sign(private kyber.Scalar, msg []byte) ([]byte, error) {
+	return Sign(s.s, private, msg)
+}
+func (s *SchnorrScheme) Verify(public kyber.Point, msg, sig []byte) error {
+	return Verify(s.s, public, msg, sig)
 }
 
 // Sign creates a Sign signature from a msg and a private key. This
