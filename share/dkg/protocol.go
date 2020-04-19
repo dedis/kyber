@@ -9,6 +9,7 @@ import (
 	"github.com/drand/kyber/sign"
 )
 
+//
 type Board interface {
 	PushDeals(AuthDealBundle)
 	IncomingDeal() <-chan AuthDealBundle
@@ -82,7 +83,10 @@ func NewProtocol(c *Config, b Board, phaser Phaser) (*Protocol, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	// fast sync must only be enabled if there is an authentication scheme
+	if c.DkgConfig.FastSync && c.Auth == nil {
+		return nil, errors.New("fast sync only allowed with authentication enabled")
+	}
 	return &Protocol{
 		board:    b,
 		phaser:   phaser,
@@ -94,6 +98,11 @@ func NewProtocol(c *Config, b Board, phaser Phaser) (*Protocol, error) {
 }
 
 func (p *Protocol) Start() {
+	var fastSync = p.conf.DkgConfig.FastSync
+	if fastSync {
+		p.startFast()
+		return
+	}
 	var deals []*DealBundle
 	var resps []*ResponseBundle
 	var justifs []*JustificationBundle
@@ -132,6 +141,109 @@ func (p *Protocol) Start() {
 		case newJust := <-p.board.IncomingJustification():
 			if err := p.VerifySignature(newJust); err == nil {
 				justifs = append(justifs, newJust.Bundle)
+			}
+		}
+	}
+}
+
+func (p *Protocol) startFast() {
+	var deals = make(map[uint32]*DealBundle)
+	var resps = make(map[uint32]*ResponseBundle)
+	var justifs = make(map[uint32]*JustificationBundle)
+	var newN = len(p.conf.DkgConfig.NewNodes)
+	var oldN = len(p.conf.DkgConfig.OldNodes)
+	var phase Phase
+	sendResponseFn := func() bool {
+		if phase != DealPhase {
+			fmt.Printf("silently ignoring response phase since already done")
+			return true
+		}
+		phase = ResponsePhase
+		bdeals := make([]*DealBundle, 0, len(deals))
+		for _, d := range deals {
+			bdeals = append(bdeals, d)
+		}
+		fmt.Printf("proto %d - done sending responses\n", p.dkg.nidx)
+		if !p.sendResponses(bdeals) {
+			return false
+		}
+		fmt.Printf("proto %d - done sending responses\n", p.dkg.nidx)
+		return true
+	}
+	sendJustifFn := func() bool {
+		if phase != ResponsePhase {
+			fmt.Printf("silently ignoring justification phase since already done")
+			return true
+		}
+		phase = JustificationPhase
+		bresps := make([]*ResponseBundle, 0, len(resps))
+		for _, r := range resps {
+			bresps = append(bresps, r)
+		}
+		if !p.sendJustifications(bresps) {
+			return false
+		}
+		fmt.Printf("proto %d - done sending justifications\n", p.dkg.oidx)
+		return true
+	}
+	finishFn := func() {
+		if phase != JustificationPhase {
+			// although it should never happen twice but never too sure
+			fmt.Printf("silently ignoring finish phase since already done")
+		}
+		bjusts := make([]*JustificationBundle, 0, len(justifs))
+		for _, j := range justifs {
+			bjusts = append(bjusts, j)
+		}
+		p.finish(bjusts)
+	}
+	for {
+		select {
+		case newPhase := <-p.phaser.NextPhase():
+			switch newPhase {
+			case DealPhase:
+				phase = DealPhase
+				if !p.sendDeals() {
+					return
+				}
+			case ResponsePhase:
+				if !sendResponseFn() {
+					return
+				}
+			case JustificationPhase:
+				if !sendJustifFn() {
+					return
+				}
+			case FinishPhase:
+				finishFn()
+				fmt.Printf("proto %d - done \n", p.dkg.nidx)
+				return
+			}
+		case newDeal := <-p.board.IncomingDeal():
+			if err := p.VerifySignature(newDeal); err == nil {
+				deals[newDeal.Bundle.DealerIndex] = newDeal.Bundle
+			}
+			if len(deals) == oldN {
+				if !sendResponseFn() {
+					return
+				}
+			}
+		case newResp := <-p.board.IncomingResponse():
+			if err := p.VerifySignature(newResp); err == nil {
+				resps[newResp.Bundle.ShareIndex] = newResp.Bundle
+			}
+			if len(resps) == newN {
+				if !sendJustifFn() {
+					return
+				}
+			}
+		case newJust := <-p.board.IncomingJustification():
+			if err := p.VerifySignature(newJust); err == nil {
+				justifs[newJust.Bundle.DealerIndex] = newJust.Bundle
+			}
+			if len(justifs) == oldN {
+				finishFn()
+				return
 			}
 		}
 	}

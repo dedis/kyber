@@ -343,3 +343,45 @@ func TestDKGResharing(t *testing.T) {
 	}
 	testResults(t, suite, newT, newN, results)
 }
+
+func TestDKGFullFast(t *testing.T) {
+	n := 5
+	thr := n
+	suite := edwards25519.NewBlakeSHA256Ed25519()
+	tns := GenerateTestNodes(suite, n)
+	list := NodesFromTest(tns)
+	conf := DkgConfig{
+		FastSync:  true,
+		Suite:     suite,
+		NewNodes:  list,
+		Threshold: thr,
+	}
+	SetupNodes(tns, &conf)
+
+	var deals []*DealBundle
+	for _, node := range tns {
+		d, err := node.dkg.Deals()
+		require.NoError(t, err)
+		deals = append(deals, d)
+	}
+
+	var responses []*ResponseBundle
+	for _, node := range tns {
+		resp, err := node.dkg.ProcessDeals(deals)
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		responses = append(responses, resp)
+	}
+
+	var results []*Result
+	for _, node := range tns {
+		// we give no responses
+		res, just, err := node.dkg.ProcessResponses(responses)
+		require.NoError(t, err)
+		require.Nil(t, just)
+		require.NotNil(t, res)
+		results = append(results, res)
+	}
+
+	testResults(t, suite, thr, n, results)
+}
