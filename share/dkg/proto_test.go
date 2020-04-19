@@ -452,4 +452,10 @@ func TestProtoThresholdFast(t *testing.T) {
 		}
 	}
 	testResults(t, suite, thr, n, results)
+	// test that they exclude the bad node
+	for _, res := range results {
+		for _, node := range res.QUAL {
+			require.NotEqual(t, uint32(1), node.Index)
+		}
+	}
 }
