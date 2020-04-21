@@ -115,19 +115,15 @@ func (p *Protocol) Start() {
 					return
 				}
 			case ResponsePhase:
-				fmt.Printf("proto %d - done sending responses\n", p.dkg.nidx)
 				if !p.sendResponses(deals) {
 					return
 				}
-				fmt.Printf("proto %d - done sending responses\n", p.dkg.nidx)
 			case JustificationPhase:
 				if !p.sendJustifications(resps) {
 					return
 				}
-				fmt.Printf("proto %d - done sending justifications\n", p.dkg.oidx)
 			case FinishPhase:
 				p.finish(justifs)
-				fmt.Printf("proto %d - done \n", p.dkg.nidx)
 				return
 			}
 		case newDeal := <-p.board.IncomingDeal():
@@ -167,12 +163,10 @@ func (p *Protocol) startFast() {
 		if !p.sendResponses(bdeals) {
 			return false
 		}
-		fmt.Printf("proto %d - done sending responses\n", p.dkg.nidx)
 		return true
 	}
 	sendJustifFn := func() bool {
 		if phase != ResponsePhase {
-			fmt.Printf("silently ignoring justification phase since already done")
 			return true
 		}
 		phase = JustificationPhase
@@ -183,13 +177,11 @@ func (p *Protocol) startFast() {
 		if !p.sendJustifications(bresps) {
 			return false
 		}
-		fmt.Printf("proto %d - done sending justifications\n", p.dkg.oidx)
 		return true
 	}
 	finishFn := func() {
 		if phase != JustificationPhase {
 			// although it should never happen twice but never too sure
-			fmt.Printf("silently ignoring finish phase since already done")
 		}
 		bjusts := make([]*JustificationBundle, 0, len(justifs))
 		for _, j := range justifs {
@@ -216,7 +208,6 @@ func (p *Protocol) startFast() {
 				}
 			case FinishPhase:
 				finishFn()
-				fmt.Printf("proto %d - done \n", p.dkg.nidx)
 				return
 			}
 		case newDeal := <-p.board.IncomingDeal():
@@ -323,7 +314,6 @@ func (p *Protocol) sendDeals() bool {
 		authBundle.Signature = sig
 	}
 	p.board.PushDeals(authBundle)
-	fmt.Printf("proto %d - done sending deal\n", p.dkg.oidx)
 	return true
 }
 
