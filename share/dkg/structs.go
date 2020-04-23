@@ -8,8 +8,10 @@ import (
 	"github.com/drand/kyber/share"
 )
 
+type Index = uint32
+
 type Node struct {
-	Index  uint32
+	Index  Index
 	Public kyber.Point
 }
 

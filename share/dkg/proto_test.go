@@ -106,7 +106,7 @@ func SetupProto(tns []*TestNode, dkgC *DkgConfig, protoC *Config, period time.Du
 		})
 		n.board = network.BoardFor(n.Index)
 		c2 := *protoC
-		c2.DkgConfig = n.dkg.c
+		c2.DkgConfig = *n.dkg.c
 		proto, err := NewProtocol(&c2, n.board, n.phaser)
 		if err != nil {
 			panic(err)
