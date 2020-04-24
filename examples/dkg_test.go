@@ -25,11 +25,12 @@ func Test_Example_DKG(t *testing.T) {
 	n := 3
 
 	type node struct {
-		dkg     *dkg.DistKeyGenerator
-		pubKey  kyber.Point
-		privKey kyber.Scalar
-		deals   []*dkg.Deal
-		resps   []*dkg.Response
+		dkg         *dkg.DistKeyGenerator
+		pubKey      kyber.Point
+		privKey     kyber.Scalar
+		deals       []*dkg.Deal
+		resps       []*dkg.Response
+		secretShare *share.PriShare
 	}
 
 	nodes := make([]*node, n)
@@ -106,17 +107,45 @@ func Test_Example_DKG(t *testing.T) {
 		require.NoError(t, err)
 		shares[i] = distrKey.PriShare()
 		publicKey = distrKey.Public()
+		node.secretShare = distrKey.PriShare()
 		t.Log("distributed public key:", publicKey)
 		t.Log("distributed private share:", shares[i])
 	}
 
 	// 8. Encrypt a secret with the public key and decrypt it with the
-	// reconstructed shared secret key
+	// reconstructed shared secret key. Reconstructing the shared secret key in
+	// not something we should do as it gives the power to decrpy any further
+	// messages encrypted with the shared public key. Step 9 shows how to
+	// decrypt the message by gathering partial decryptions from the nodes.
 	message := []byte("Hello world")
 	secretKey, err := share.RecoverSecret(suite, shares, n, n)
 	require.NoError(t, err)
 	K, C, remainder := ElGamalEncrypt(suite, publicKey, message)
 	require.Equal(t, 0, len(remainder))
 	decryptedMessage, err := ElGamalDecrypt(suite, secretKey, K, C)
+	require.Equal(t, message, decryptedMessage)
+
+	// 9. Second version, each node provide only a partial decryption
+	// 9.1 each node sends its partial decryption
+	partials := make([]kyber.Point, n)
+	for i, node := range nodes {
+		S := suite.Point().Mul(node.secretShare.V, K)
+		partials[i] = suite.Point().Sub(C, S)
+	}
+
+	// 9.2 create the public shares to reconstruct the public commitment
+	pubShares := make([]*share.PubShare, n)
+	for i := range nodes {
+		pubShares[i] = &share.PubShare{
+			I: i, V: partials[i],
+		}
+	}
+
+	// 9.3 reconstruct the public commitment, which contains the decrypted
+	// message
+	res, err := share.RecoverCommit(suite, pubShares, n, n)
+	require.NoError(t, err)
+	decryptedMessage, err = res.Data()
+	require.NoError(t, err)
 	require.Equal(t, message, decryptedMessage)
 }

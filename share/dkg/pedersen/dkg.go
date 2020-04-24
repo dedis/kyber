@@ -7,6 +7,7 @@
 // implemented in "Verifiable Secret Redistribution for Threshold Signing
 // Schemes", by T. Wong et
 // al.(https://www.cs.cmu.edu/~wing/publications/Wong-Wing02b.pdf)
+// For an example how to use it please have a look at examples/dkg_test.go
 package dkg
 
 import (
