@@ -147,9 +147,10 @@ func Test_Example_DKG(t *testing.T) {
 	require.Equal(t, message, decryptedMessage)
 
 	// 8 Variant C - Nodes return a partial decryption under the encryption from
-	// a public key. This is useful in case the decryption happens in public. In
-	// that case the decrypted secret is never released in clear, but the secret
-	// is revealed re-encrypted under the provided public key.
+	// the client's provided public key. This is useful in case the decryption
+	// happens in public. In that case the decrypted message is never released
+	// in clear, but the message is revealed re-encrypted under the provided
+	// public key.
 	//
 	// Here is the crypto that happens in 3 phases:
 	//
@@ -159,6 +160,7 @@ func Test_Example_DKG(t *testing.T) {
 	// A: dkg public key
 	// G: curve's generator
 	// M: message to encrypt
+	// (C, U): encrypted message
 	//
 	// C = rA + M
 	// U = rG
@@ -173,7 +175,7 @@ func Test_Example_DKG(t *testing.T) {
 	//
 	// (3) Message's decryption
 	//
-	// R: recovered commit (f(V1, V2, ...Vi))
+	// R: recovered commit (f(V1, V2, ...Vi)) using Lagrange interpolation
 	// p: client's private key
 	// M': decrypted message
 	//
