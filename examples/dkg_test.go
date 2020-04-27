@@ -108,15 +108,16 @@ func Test_Example_DKG(t *testing.T) {
 		shares[i] = distrKey.PriShare()
 		publicKey = distrKey.Public()
 		node.secretShare = distrKey.PriShare()
-		t.Log("distributed public key:", publicKey)
-		t.Log("distributed private share:", shares[i])
+		t.Log("new distributed public key:", publicKey)
 	}
 
-	// 8. Encrypt a secret with the public key and decrypt it with the
-	// reconstructed shared secret key. Reconstructing the shared secret key in
-	// not something we should do as it gives the power to decrpy any further
-	// messages encrypted with the shared public key. Step 9 shows how to
-	// decrypt the message by gathering partial decryptions from the nodes.
+	// 8. Variant A - Encrypt a secret with the public key and decrypt it with
+	// the reconstructed shared secret key. Reconstructing the shared secret key
+	// in not something we should do as it gives the power to decrypt any
+	// further messages encrypted with the shared public key. For this we show
+	// in variant B how to make nodes send back partial decryptions instead of
+	// their shares. In variant C the nodes return partial decrpytions that are
+	// encrypted under a provided public key.
 	message := []byte("Hello world")
 	secretKey, err := share.RecoverSecret(suite, shares, n, n)
 	require.NoError(t, err)
@@ -125,27 +126,116 @@ func Test_Example_DKG(t *testing.T) {
 	decryptedMessage, err := ElGamalDecrypt(suite, secretKey, K, C)
 	require.Equal(t, message, decryptedMessage)
 
-	// 9. Second version, each node provide only a partial decryption
-	// 9.1 each node sends its partial decryption
+	// 8. Variant B - Each node provide only a partial decryption by sending its
+	// public share. We then reconstruct the public commitment with those public
+	// shares.
 	partials := make([]kyber.Point, n)
+	pubShares := make([]*share.PubShare, n)
 	for i, node := range nodes {
 		S := suite.Point().Mul(node.secretShare.V, K)
 		partials[i] = suite.Point().Sub(C, S)
-	}
-
-	// 9.2 create the public shares to reconstruct the public commitment
-	pubShares := make([]*share.PubShare, n)
-	for i := range nodes {
 		pubShares[i] = &share.PubShare{
 			I: i, V: partials[i],
 		}
 	}
 
-	// 9.3 reconstruct the public commitment, which contains the decrypted
-	// message
+	// Reconstruct the public commitment, which contains the decrypted message
 	res, err := share.RecoverCommit(suite, pubShares, n, n)
 	require.NoError(t, err)
 	decryptedMessage, err = res.Data()
 	require.NoError(t, err)
 	require.Equal(t, message, decryptedMessage)
+
+	// 8 Variant C - Nodes return a partial decryption under the encryption from
+	// a public key. This is useful in case the decryption happens in public. In
+	// that case the decrypted secret is never released in clear, but the secret
+	// is revealed re-encrypted under the provided public key.
+	//
+	// Here is the crypto that happens in 3 phases:
+	//
+	// (1) Message encryption:
+	//
+	// r: random point
+	// A: dkg public key
+	// G: curve's generator
+	// M: message to encrypt
+	//
+	// C = rA + M
+	// U = rG
+	//
+	// (2) Node's partial decryption
+	//
+	// V: node's public re-encrypted share
+	// o: node's private share
+	// Q: client's public key (pG)
+	//
+	// V = oU + oQ
+	//
+	// (3) Message's decryption
+	//
+	// R: recovered commit (f(V1, V2, ...Vi))
+	// p: client's private key
+	// M': decrypted message
+	//
+	// M' = C - (R - pA)
+
+	A := publicKey
+	r := suite.Scalar().Pick(suite.RandomStream())
+	M := suite.Point().Embed(message, suite.RandomStream())
+	C = suite.Point().Add( // rA + M
+		suite.Point().Mul(r, A), // rA
+		M,
+	)
+	U := suite.Point().Mul(r, nil) // rG
+
+	p := suite.Scalar().Pick(suite.RandomStream())
+	Q := suite.Point().Mul(p, nil) // pG
+
+	partials = make([]kyber.Point, n)
+	pubShares = make([]*share.PubShare, n) // V1, V2, ...Vi
+	for i, node := range nodes {
+		v := suite.Point().Add( // oU + oQ
+			suite.Point().Mul(node.secretShare.V, U), // oU
+			suite.Point().Mul(node.secretShare.V, Q), // oQ
+		)
+		partials[i] = v
+		pubShares[i] = &share.PubShare{
+			I: i, V: partials[i],
+		}
+	}
+
+	R, err := share.RecoverCommit(suite, pubShares, n, n) // R = f(V1, V2, ...Vi)
+	require.NoError(t, err)
+
+	decryptedPoint := suite.Point().Sub( // C - (R - pA)
+		C,
+		suite.Point().Sub( // R - pA
+			R,
+			suite.Point().Mul(p, A), // pA
+		),
+	)
+	decryptedMessage, err = decryptedPoint.Data()
+	require.NoError(t, err)
+	require.Equal(t, decryptedMessage, message)
+
+	// 9. The following shows a re-share of the dkg key, which will invalidates
+	// the current shares on each node and produce a new public key. After that
+	// steps 3, 4, 5 need to be done in order to get the new shares and public
+	// key.
+	for _, node := range nodes {
+		share, err := node.dkg.DistKeyShare()
+		require.NoError(t, err)
+		c := &dkg.Config{
+			Suite:        suite,
+			Longterm:     node.privKey,
+			OldNodes:     pubKeys,
+			NewNodes:     pubKeys,
+			Share:        share,
+			Threshold:    n,
+			OldThreshold: n,
+		}
+		newDkg, err := dkg.NewDistKeyHandler(c)
+		require.NoError(t, err)
+		node.dkg = newDkg
+	}
 }
