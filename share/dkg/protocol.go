@@ -9,7 +9,11 @@ import (
 	"github.com/drand/kyber/sign"
 )
 
-//
+// Board is the interface between the dkg protocol and the external world. It
+// consists in pushing packets out to other nodes and receiving in packets from
+// the other nodes. A common board would use the network as the underlying
+// communication mechanism but one can also use a smart contract based
+// approach.
 type Board interface {
 	PushDeals(AuthDealBundle)
 	IncomingDeal() <-chan AuthDealBundle
@@ -19,19 +23,33 @@ type Board interface {
 	IncomingJustification() <-chan AuthJustifBundle
 }
 
+// Phase represents at which phase the DKG is at. Recall the dkg works in phases
+// and they must be sequential.
 type Phase int
 
 const (
-	DealPhase Phase = iota
+	InitPhase Phase = iota
+	DealPhase
 	ResponsePhase
 	JustificationPhase
 	FinishPhase
 )
 
+// Phaser must signal on its channel when the protocol should move to a next
+// phase. Phase must be sequential: DealPhase (start), ResponsePhase,
+// JustificationPhase and then FinishPhase.
+// Note that if the dkg protocol finishes before the phaser sends the
+// FinishPhase, the protocol will not listen on the channel anymore. This can
+// happen if there is no complaints, or if using the "FastSync" mode.
+// Most of the times, user should use the TimePhaser when using the network, but
+// if one wants to use a smart contract as a board, then the phaser can tick at
+// certain blocks, or when the smart contract tells it.
 type Phaser interface {
 	NextPhase() chan Phase
 }
 
+// TimePhaser is a phaser that sleeps between the different phases and send the
+// signal over its channel.
 type TimePhaser struct {
 	out   chan Phase
 	sleep func()
@@ -72,14 +90,14 @@ type Protocol struct {
 }
 
 type Config struct {
-	*DkgConfig
+	DkgConfig
 	// Auth is the scheme to use to verify authentication of the packets
 	// received from the board. If nil, authentication is not checked.
 	Auth sign.Scheme
 }
 
 func NewProtocol(c *Config, b Board, phaser Phaser) (*Protocol, error) {
-	dkg, err := NewDistKeyHandler(c.DkgConfig)
+	dkg, err := NewDistKeyHandler(&c.DkgConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -87,14 +105,16 @@ func NewProtocol(c *Config, b Board, phaser Phaser) (*Protocol, error) {
 	if c.DkgConfig.FastSync && c.Auth == nil {
 		return nil, errors.New("fast sync only allowed with authentication enabled")
 	}
-	return &Protocol{
+	p := &Protocol{
 		board:    b,
 		phaser:   phaser,
 		dkg:      dkg,
 		conf:     c,
 		canIssue: dkg.canIssue,
 		res:      make(chan OptionResult, 1),
-	}, nil
+	}
+	go p.Start()
+	return p, nil
 }
 
 func (p *Protocol) Start() {
@@ -108,8 +128,8 @@ func (p *Protocol) Start() {
 	var justifs []*JustificationBundle
 	for {
 		select {
-		case phase := <-p.phaser.NextPhase():
-			switch phase {
+		case newPhase := <-p.phaser.NextPhase():
+			switch newPhase {
 			case DealPhase:
 				if !p.sendDeals() {
 					return
@@ -182,6 +202,7 @@ func (p *Protocol) startFast() {
 	finishFn := func() {
 		if phase != JustificationPhase {
 			// although it should never happen twice but never too sure
+			return
 		}
 		bjusts := make([]*JustificationBundle, 0, len(justifs))
 		for _, j := range justifs {

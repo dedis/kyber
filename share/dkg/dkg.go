@@ -326,9 +326,18 @@ func (d *DistKeyGenerator) Deals() (*DealBundle, error) {
 	}, nil
 }
 
+// ProcessDeals process the deals from all the nodes. Each deal for this node is
+// decrypted and stored. It returns a response bundle if there is any invalid or
+// missing deals. It returns an error if the node is not in the right state, or
+// if there is not enough valid shares, i.e. the dkg is failing already.
 func (d *DistKeyGenerator) ProcessDeals(bundles []*DealBundle) (*ResponseBundle, error) {
 	if !d.canReceive {
-		return nil, fmt.Errorf("this node is not in the new group: it should not process shares")
+		// a node that is only in the group node should not process deals
+		// XXX it was an error before, but it simplifies the higher level logic
+		// if the library itself takes care of ignoring irrelevant messages. It
+		// means higher level library can simply broadcast to all nodes (old and
+		// new) without looking at which nodes should a packet be sent.
+		return nil, nil
 	}
 	if d.canIssue && d.state != ShareState {
 		// oldnode member is not in the right state
@@ -471,10 +480,16 @@ func (d *DistKeyGenerator) ExpectedResponsesFastSync() int {
 	return len(d.c.NewNodes)
 }
 
+// ProcessResponses takes the response from all nodes if any and returns a
+// triplet:
+// - the result if there is no complaint. If not nil, the DKG is finished.
+// - the justification bundle if this node must produce at least one. If nil,
+// this node must still wait on the justification phase.
+// - error if the dkg must stop now, an unrecoverable failure.
 func (d *DistKeyGenerator) ProcessResponses(bundles []*ResponseBundle) (*Result, *JustificationBundle, error) {
 	fmt.Printf("ProcessResponses(): dkg %d\n", d.nidx)
-	// if we are a old node that will leave
 	if !d.canReceive && d.state != ShareState {
+		// if we are a old node that will leave
 		return nil, nil, fmt.Errorf("leaving node can process responses only after creating shares")
 	} else if d.state != ResponseState {
 		return nil, nil, fmt.Errorf("can only process responses after processing shares")
@@ -571,10 +586,18 @@ func (d *DistKeyGenerator) ProcessResponses(bundles []*ResponseBundle) (*Result,
 	return nil, &bundle, nil
 }
 
+// ProcessJustifications takes the justifications of the nodes and returns the
+// results if there is enough QUALified nodes, or an error otherwise. Note that
+// this method returns "nil,nil" if this node is a node only present in the old
+// group of the dkg: indeed a node leaving the group don't need to process
+// justifications, and can simply leave the protocol.
 func (d *DistKeyGenerator) ProcessJustifications(bundles []*JustificationBundle) (*Result, error) {
 	fmt.Printf("ProcessJustifications(): dkg %d\n", d.nidx)
 	if !d.canReceive {
-		return nil, fmt.Errorf("old eviceted node should not process justifications")
+		// an old node leaving the group do not need to process justifications.
+		// Here we simply return nil to avoid requiring higher level library to
+		// think about which node should receive which packet
+		return nil, nil
 	}
 	if d.state != JustifState {
 		return nil, fmt.Errorf("node can only process justifications after processing responses")

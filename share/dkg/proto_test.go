@@ -106,7 +106,7 @@ func SetupProto(tns []*TestNode, dkgC *DkgConfig, protoC *Config, period time.Du
 		})
 		n.board = network.BoardFor(n.Index)
 		c2 := *protoC
-		c2.DkgConfig = n.dkg.c
+		c2.DkgConfig = *n.dkg.c
 		proto, err := NewProtocol(&c2, n.board, n.phaser)
 		if err != nil {
 			panic(err)
@@ -143,7 +143,6 @@ func TestProtoFull(t *testing.T) {
 	var resCh = make(chan OptionResult, 1)
 	// start all nodes and wait until each end
 	for _, node := range tns {
-		go node.proto.Start()
 		go func(n *TestNode) { resCh <- <-n.proto.WaitEnd() }(node)
 	}
 	// start the phasers
@@ -197,7 +196,6 @@ func TestProtoResharing(t *testing.T) {
 	var resCh = make(chan OptionResult, 1)
 	// start all nodes and wait until each end
 	for _, node := range tns {
-		go node.proto.Start()
 		go func(n *TestNode) {
 			optRes := <-n.proto.WaitEnd()
 			n.res = optRes.Result
@@ -262,7 +260,6 @@ func TestProtoResharing(t *testing.T) {
 	resCh = make(chan OptionResult, 1)
 	// start all nodes and wait until each end
 	for _, node := range newTns {
-		go node.proto.Start()
 		go func(n *TestNode) {
 			optRes := <-n.proto.WaitEnd()
 			n.res = optRes.Result
@@ -321,7 +318,6 @@ func TestProtoThreshold(t *testing.T) {
 	var resCh = make(chan OptionResult, 1)
 	// start all nodes and wait until each end
 	for _, node := range tns {
-		go node.proto.Start()
 		go func(n *TestNode) { resCh <- <-n.proto.WaitEnd() }(node)
 	}
 	// start the phasers
@@ -374,7 +370,6 @@ func TestProtoFullFast(t *testing.T) {
 	var resCh = make(chan OptionResult, 1)
 	// start all nodes and wait until each end
 	for _, node := range tns {
-		go node.proto.Start()
 		go func(n *TestNode) { resCh <- <-n.proto.WaitEnd() }(node)
 	}
 	// start the phasers
@@ -421,7 +416,6 @@ func TestProtoThresholdFast(t *testing.T) {
 	var resCh = make(chan OptionResult, 1)
 	// start all nodes and wait until each end
 	for _, node := range tns {
-		go node.proto.Start()
 		if node.Index != 1 {
 			go func(n *TestNode) { resCh <- <-n.proto.WaitEnd() }(node)
 		}
