@@ -28,7 +28,8 @@ type Board interface {
 type Phase int
 
 const (
-	DealPhase Phase = iota
+	InitPhase Phase = iota
+	DealPhase
 	ResponsePhase
 	JustificationPhase
 	FinishPhase
@@ -104,14 +105,16 @@ func NewProtocol(c *Config, b Board, phaser Phaser) (*Protocol, error) {
 	if c.DkgConfig.FastSync && c.Auth == nil {
 		return nil, errors.New("fast sync only allowed with authentication enabled")
 	}
-	return &Protocol{
+	p := &Protocol{
 		board:    b,
 		phaser:   phaser,
 		dkg:      dkg,
 		conf:     c,
 		canIssue: dkg.canIssue,
 		res:      make(chan OptionResult, 1),
-	}, nil
+	}
+	go p.Start()
+	return p, nil
 }
 
 func (p *Protocol) Start() {
@@ -125,8 +128,8 @@ func (p *Protocol) Start() {
 	var justifs []*JustificationBundle
 	for {
 		select {
-		case phase := <-p.phaser.NextPhase():
-			switch phase {
+		case newPhase := <-p.phaser.NextPhase():
+			switch newPhase {
 			case DealPhase:
 				if !p.sendDeals() {
 					return
@@ -199,6 +202,7 @@ func (p *Protocol) startFast() {
 	finishFn := func() {
 		if phase != JustificationPhase {
 			// although it should never happen twice but never too sure
+			return
 		}
 		bjusts := make([]*JustificationBundle, 0, len(justifs))
 		for _, j := range justifs {
