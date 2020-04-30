@@ -28,6 +28,9 @@ func ThresholdTest(test *testing.T, keyGroup kyber.Group, scheme sign.ThresholdS
 			require.NoError(tt, err)
 			require.Equal(tt, x.I, idx)
 			sigShares = append(sigShares, sig)
+			idx, err := scheme.IndexOf(sig)
+			require.NoError(tt, err)
+			require.Equal(tt, idx, x.I)
 		}
 		sig, err := scheme.Recover(pubPoly, msg, sigShares, t, n)
 		require.Nil(tt, err)
