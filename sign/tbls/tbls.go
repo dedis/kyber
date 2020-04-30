@@ -13,6 +13,7 @@ package tbls
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 
 	"github.com/drand/kyber"
 	"github.com/drand/kyber/pairing"
@@ -85,6 +86,13 @@ func (s *scheme) Sign(private *share.PriShare, msg []byte) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+func (s *scheme) IndexOf(signature []byte) (int, error) {
+	if len(signature) != s.sigGroup.PointLen()+2 {
+		return -1, errors.New("invalid partial signature length")
+	}
+	return SigShare(signature).Index()
+}
+
 // VerifyPartial checks the given threshold BLS signature Si on the message m using
 // the public key share Xi that is associated to the secret key share xi. This
 // public key share Xi can be computed by evaluating the public sharing
@@ -108,24 +116,27 @@ func (s *scheme) VerifyRecovered(public kyber.Point, msg, sig []byte) error {
 // shared public key X. The shared public key can be computed by evaluating the
 // public sharing polynomial at index 0.
 func (s *scheme) Recover(public *share.PubPoly, msg []byte, sigs [][]byte, t, n int) ([]byte, error) {
-	pubShares := make([]*share.PubShare, 0)
+	var pubShares []*share.PubShare
 	for _, sig := range sigs {
 		sh := SigShare(sig)
 		i, err := sh.Index()
 		if err != nil {
-			return nil, err
+			continue
 		}
 		if err = s.Scheme.Verify(public.Eval(i).V, msg, sh.Value()); err != nil {
-			return nil, err
+			continue
 		}
 		point := s.sigGroup.Point()
 		if err := point.UnmarshalBinary(sh.Value()); err != nil {
-			return nil, err
+			continue
 		}
 		pubShares = append(pubShares, &share.PubShare{I: i, V: point})
 		if len(pubShares) >= t {
 			break
 		}
+	}
+	if len(pubShares) < t {
+		return nil, errors.New("not enough valid partial signatures")
 	}
 	commit, err := share.RecoverCommit(s.sigGroup, pubShares, t, n)
 	if err != nil {
