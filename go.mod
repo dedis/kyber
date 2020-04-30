@@ -3,6 +3,7 @@ module github.com/drand/kyber
 go 1.13
 
 require (
+	github.com/jonboulle/clockwork v0.1.0
 	github.com/stretchr/testify v1.4.0
 	go.dedis.ch/fixbuf v1.0.3
 	go.dedis.ch/protobuf v1.0.11
