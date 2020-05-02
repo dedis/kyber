@@ -113,8 +113,6 @@ func NewProtocol(c *Config, b Board, phaser Phaser) (*Protocol, error) {
 	if c.DkgConfig.FastSync && c.Auth == nil {
 		return nil, errors.New("fast sync only allowed with authentication enabled")
 	}
-	pub := c.DkgConfig.Suite.Point().Mul(c.DkgConfig.Longterm, nil)
-	fmt.Printf("OLD NODES (idx %d) - pub %s:\n %s\nNEW NODES (idx %d):\n%s\n", dkg.oidx, pub, printNodes(c.DkgConfig.OldNodes), dkg.nidx, printNodes(c.DkgConfig.NewNodes))
 	p := &Protocol{
 		board:    b,
 		phaser:   phaser,
@@ -181,7 +179,6 @@ func (p *Protocol) startFast() {
 	var phase Phase
 	sendResponseFn := func() bool {
 		if phase != DealPhase {
-			fmt.Printf("silently ignoring response phase since already done")
 			return true
 		}
 		phase = ResponsePhase
@@ -189,7 +186,6 @@ func (p *Protocol) startFast() {
 		for _, d := range deals {
 			bdeals = append(bdeals, d)
 		}
-		fmt.Printf("proto %d - done sending responses\n", p.dkg.nidx)
 		if !p.sendResponses(bdeals) {
 			return false
 		}
@@ -251,7 +247,6 @@ func (p *Protocol) startFast() {
 					prevHash := prevDeal.Hash()
 					newHash := newDeal.Bundle.Hash()
 					if !bytes.Equal(prevHash, newHash) {
-						fmt.Printf("\n\n AIE AIE AIE\n\n")
 						delete(deals, newDeal.Bundle.DealerIndex)
 						continue
 					}
@@ -261,7 +256,6 @@ func (p *Protocol) startFast() {
 				for idx := range deals {
 					idxs = append(idxs, strconv.Itoa(int(idx)))
 				}
-				fmt.Printf("-- %p nidx %d: new deal from %d received %d/%d : idx [%s]\n", p, p.dkg.nidx, newDeal.Bundle.DealerIndex, len(deals), oldN, strings.Join(idxs, ","))
 
 			}
 			// XXX This assumes we receive our own deal bundle since we use a
@@ -316,7 +310,6 @@ func (p *Protocol) VerifySignature(packet interface{}) error {
 			return errors.New("no nodes with this public key")
 		}
 		sig = auth.Signature
-		//fmt.Printf(" -- VERIFY Deal: index %d - pub %s - hash %x - sig %x - error? %s\n", auth.Bundle.DealerIndex, pub, hash, sig, p.conf.Auth.Verify(pub, hash, sig))
 	case AuthResponseBundle:
 		hash = auth.Bundle.Hash()
 		pub, ok = findIndex(p.conf.DkgConfig.NewNodes, auth.Bundle.ShareIndex)
@@ -336,9 +329,6 @@ func (p *Protocol) VerifySignature(packet interface{}) error {
 	}
 
 	err := p.conf.Auth.Verify(pub, hash, sig)
-	if err != nil {
-		fmt.Printf("\nINVALID SIGNATURE\n\n")
-	}
 	return err
 }
 
