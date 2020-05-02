@@ -80,7 +80,7 @@ func (t *TestBoard) PushResponses(r AuthResponseBundle) {
 	t.network.BroadcastResponse(r)
 }
 
-func (t *TestBoard) PushJustification(j AuthJustifBundle) {
+func (t *TestBoard) PushJustifications(j AuthJustifBundle) {
 	t.network.BroadcastJustification(j)
 }
 
@@ -100,7 +100,7 @@ func SetupProto(tns []*TestNode, dkgC *DkgConfig, protoC *Config, period time.Du
 	for _, n := range tns {
 		clock := clock.NewFakeClock()
 		n.clock = clock
-		n.phaser = NewTimePhaserFunc(func() {
+		n.phaser = NewTimePhaserFunc(func(Phase) {
 			clock.Sleep(period)
 			fmt.Printf(" - finished sleeping\n")
 		})
