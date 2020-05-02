@@ -1,8 +1,11 @@
 package dkg
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/drand/kyber"
@@ -19,25 +22,13 @@ type Board interface {
 	IncomingDeal() <-chan AuthDealBundle
 	PushResponses(AuthResponseBundle)
 	IncomingResponse() <-chan AuthResponseBundle
-	PushJustification(AuthJustifBundle)
+	PushJustifications(AuthJustifBundle)
 	IncomingJustification() <-chan AuthJustifBundle
 }
 
-// Phase represents at which phase the DKG is at. Recall the dkg works in phases
-// and they must be sequential.
-type Phase int
-
-const (
-	InitPhase Phase = iota
-	DealPhase
-	ResponsePhase
-	JustificationPhase
-	FinishPhase
-)
-
 // Phaser must signal on its channel when the protocol should move to a next
 // phase. Phase must be sequential: DealPhase (start), ResponsePhase,
-// JustificationPhase and then FinishPhase.
+// JustifPhase and then FinishPhase.
 // Note that if the dkg protocol finishes before the phaser sends the
 // FinishPhase, the protocol will not listen on the channel anymore. This can
 // happen if there is no complaints, or if using the "FastSync" mode.
@@ -52,14 +43,14 @@ type Phaser interface {
 // signal over its channel.
 type TimePhaser struct {
 	out   chan Phase
-	sleep func()
+	sleep func(Phase)
 }
 
 func NewTimePhaser(p time.Duration) *TimePhaser {
-	return NewTimePhaserFunc(func() { time.Sleep(p) })
+	return NewTimePhaserFunc(func(Phase) { time.Sleep(p) })
 }
 
-func NewTimePhaserFunc(sleepPeriod func()) *TimePhaser {
+func NewTimePhaserFunc(sleepPeriod func(Phase)) *TimePhaser {
 	return &TimePhaser{
 		out:   make(chan Phase, 4),
 		sleep: sleepPeriod,
@@ -68,11 +59,11 @@ func NewTimePhaserFunc(sleepPeriod func()) *TimePhaser {
 
 func (t *TimePhaser) Start() {
 	t.out <- DealPhase
-	t.sleep()
+	t.sleep(DealPhase)
 	t.out <- ResponsePhase
-	t.sleep()
-	t.out <- JustificationPhase
-	t.sleep()
+	t.sleep(ResponsePhase)
+	t.out <- JustifPhase
+	t.sleep(JustifPhase)
 	t.out <- FinishPhase
 }
 
@@ -80,6 +71,10 @@ func (t *TimePhaser) NextPhase() chan Phase {
 	return t.out
 }
 
+// Protocol contains the logic to run a DKG protocol over a generic broadcast
+// channel, called Board. It handles the receival of packets, ordering of the
+// phases and the termination. A protocol can be ran over a network, a smart
+// contract, or anything else that is implemented via the Board interface.
 type Protocol struct {
 	board    Board
 	phaser   Phaser
@@ -89,11 +84,24 @@ type Protocol struct {
 	res      chan OptionResult
 }
 
+// Config is the configuration to give to a Protocol. It currently only embeds
+// the dkg config and the authentication scheme. It is meant to be extensible
+// and will probably contains more options to log and control the behavior of
+// the protocol.
 type Config struct {
 	DkgConfig
 	// Auth is the scheme to use to verify authentication of the packets
 	// received from the board. If nil, authentication is not checked.
 	Auth sign.Scheme
+}
+
+// XXX TO DELETE
+func printNodes(list []Node) string {
+	var arr []string
+	for _, node := range list {
+		arr = append(arr, fmt.Sprintf("[%d : %s]", node.Index, node.Public))
+	}
+	return strings.Join(arr, "\n")
 }
 
 func NewProtocol(c *Config, b Board, phaser Phaser) (*Protocol, error) {
@@ -105,6 +113,8 @@ func NewProtocol(c *Config, b Board, phaser Phaser) (*Protocol, error) {
 	if c.DkgConfig.FastSync && c.Auth == nil {
 		return nil, errors.New("fast sync only allowed with authentication enabled")
 	}
+	pub := c.DkgConfig.Suite.Point().Mul(c.DkgConfig.Longterm, nil)
+	fmt.Printf("OLD NODES (idx %d) - pub %s:\n %s\nNEW NODES (idx %d):\n%s\n", dkg.oidx, pub, printNodes(c.DkgConfig.OldNodes), dkg.nidx, printNodes(c.DkgConfig.NewNodes))
 	p := &Protocol{
 		board:    b,
 		phaser:   phaser,
@@ -138,7 +148,7 @@ func (p *Protocol) Start() {
 				if !p.sendResponses(deals) {
 					return
 				}
-			case JustificationPhase:
+			case JustifPhase:
 				if !p.sendJustifications(resps) {
 					return
 				}
@@ -189,7 +199,7 @@ func (p *Protocol) startFast() {
 		if phase != ResponsePhase {
 			return true
 		}
-		phase = JustificationPhase
+		phase = JustifPhase
 		bresps := make([]*ResponseBundle, 0, len(resps))
 		for _, r := range resps {
 			bresps = append(bresps, r)
@@ -200,7 +210,7 @@ func (p *Protocol) startFast() {
 		return true
 	}
 	finishFn := func() {
-		if phase != JustificationPhase {
+		if phase != JustifPhase {
 			// although it should never happen twice but never too sure
 			return
 		}
@@ -223,7 +233,7 @@ func (p *Protocol) startFast() {
 				if !sendResponseFn() {
 					return
 				}
-			case JustificationPhase:
+			case JustifPhase:
 				if !sendJustifFn() {
 					return
 				}
@@ -233,14 +243,37 @@ func (p *Protocol) startFast() {
 			}
 		case newDeal := <-p.board.IncomingDeal():
 			if err := p.VerifySignature(newDeal); err == nil {
+				// we make sure we don't see two deals from the same dealer that
+				// are inconsistent - For example we might receive multiple
+				// times the same deal from the network due to the use of
+				// gossiping; here we make sure they're all consistent.
+				if prevDeal, ok := deals[newDeal.Bundle.DealerIndex]; ok {
+					prevHash := prevDeal.Hash()
+					newHash := newDeal.Bundle.Hash()
+					if !bytes.Equal(prevHash, newHash) {
+						fmt.Printf("\n\n AIE AIE AIE\n\n")
+						delete(deals, newDeal.Bundle.DealerIndex)
+						continue
+					}
+				}
 				deals[newDeal.Bundle.DealerIndex] = newDeal.Bundle
+				var idxs []string
+				for idx := range deals {
+					idxs = append(idxs, strconv.Itoa(int(idx)))
+				}
+				fmt.Printf("-- %p nidx %d: new deal from %d received %d/%d : idx [%s]\n", p, p.dkg.nidx, newDeal.Bundle.DealerIndex, len(deals), oldN, strings.Join(idxs, ","))
+
 			}
+			// XXX This assumes we receive our own deal bundle since we use a
+			// broadcast channel - may need to revisit that assumption
 			if len(deals) == oldN {
 				if !sendResponseFn() {
 					return
 				}
 			}
 		case newResp := <-p.board.IncomingResponse():
+			// TODO See how can we deal with inconsistent answers from different
+			// share holders
 			if err := p.VerifySignature(newResp); err == nil {
 				resps[newResp.Bundle.ShareIndex] = newResp.Bundle
 			}
@@ -250,6 +283,8 @@ func (p *Protocol) startFast() {
 				}
 			}
 		case newJust := <-p.board.IncomingJustification():
+			// TODO see how can we deal with inconsistent answers from different
+			// dealers
 			if err := p.VerifySignature(newJust); err == nil {
 				justifs[newJust.Bundle.DealerIndex] = newJust.Bundle
 			}
@@ -281,6 +316,7 @@ func (p *Protocol) VerifySignature(packet interface{}) error {
 			return errors.New("no nodes with this public key")
 		}
 		sig = auth.Signature
+		//fmt.Printf(" -- VERIFY Deal: index %d - pub %s - hash %x - sig %x - error? %s\n", auth.Bundle.DealerIndex, pub, hash, sig, p.conf.Auth.Verify(pub, hash, sig))
 	case AuthResponseBundle:
 		hash = auth.Bundle.Hash()
 		pub, ok = findIndex(p.conf.DkgConfig.NewNodes, auth.Bundle.ShareIndex)
@@ -300,6 +336,9 @@ func (p *Protocol) VerifySignature(packet interface{}) error {
 	}
 
 	err := p.conf.Auth.Verify(pub, hash, sig)
+	if err != nil {
+		fmt.Printf("\nINVALID SIGNATURE\n\n")
+	}
 	return err
 }
 
@@ -389,7 +428,7 @@ func (p *Protocol) sendJustifications(resps []*ResponseBundle) bool {
 			}
 			authBundle.Signature = sig
 		}
-		p.board.PushJustification(authBundle)
+		p.board.PushJustifications(authBundle)
 	}
 	return true
 }
