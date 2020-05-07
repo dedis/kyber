@@ -5,7 +5,9 @@ import (
 
 	"github.com/drand/kyber"
 	"github.com/drand/kyber/group/edwards25519"
+	"github.com/drand/kyber/pairing/bn256"
 	"github.com/drand/kyber/share"
+	"github.com/drand/kyber/sign/tbls"
 	"github.com/drand/kyber/util/random"
 	clock "github.com/jonboulle/clockwork"
 	"github.com/stretchr/testify/require"
@@ -247,7 +249,8 @@ func TestDKGThreshold(t *testing.T) {
 func TestDKGResharing(t *testing.T) {
 	n := 5
 	thr := 4
-	suite := edwards25519.NewBlakeSHA256Ed25519()
+	var suite = bn256.NewSuiteG2()
+	var sigSuite = bn256.NewSuiteG1()
 	tns := GenerateTestNodes(suite, n)
 	list := NodesFromTest(tns)
 	conf := DkgConfig{
@@ -282,6 +285,16 @@ func TestDKGResharing(t *testing.T) {
 		node.res = res
 	}
 	testResults(t, suite, thr, n, results)
+
+	// create a partial signature with the share now and make sure the partial
+	// signature is verifiable and then *not* verifiable after the resharing
+	oldShare := results[0].Key.Share
+	msg := []byte("Hello World")
+	scheme := tbls.NewThresholdSchemeOnG1(sigSuite)
+	oldPartial, err := scheme.Sign(oldShare, msg)
+	require.NoError(t, err)
+	poly := share.NewPubPoly(suite, suite.Point().Base(), results[0].Key.Commits)
+	require.NoError(t, scheme.VerifyPartial(poly, msg, oldPartial))
 
 	// we setup now the second group with one node left from old group and two
 	// new node
@@ -342,6 +355,15 @@ func TestDKGResharing(t *testing.T) {
 		results = append(results, res)
 	}
 	testResults(t, suite, newT, newN, results)
+
+	// test a tbls signature is correct
+	newShare := results[0].Key.Share
+	newPartial, err := scheme.Sign(newShare, msg)
+	require.NoError(t, err)
+	newPoly := share.NewPubPoly(suite, suite.Point().Base(), results[0].Key.Commits)
+	require.NoError(t, scheme.VerifyPartial(newPoly, msg, newPartial))
+	// test we can not verify the old partial with the new public polynomial
+	require.Error(t, scheme.VerifyPartial(poly, msg, newPartial))
 }
 
 func TestDKGFullFast(t *testing.T) {
