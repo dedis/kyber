@@ -296,15 +296,20 @@ func TestDKGResharing(t *testing.T) {
 	poly := share.NewPubPoly(suite, suite.Point().Base(), results[0].Key.Commits)
 	require.NoError(t, scheme.VerifyPartial(poly, msg, oldPartial))
 
-	// we setup now the second group with one node left from old group and two
-	// new node
-	newN := n + 1
-	newT := thr + 1
+	// we setup now the second group with higher node count and higher threshold
+	// and we remove one node from the previous group
+	newN := n + 5
+	newT := thr + 4
 	var newTns = make([]*TestNode, newN)
-	copy(newTns, tns[:n-1])
-	//  new node can have the same index as a previous one, separation is made
-	newTns[n-1] = NewTestNode(suite, n-1)
-	newTns[n] = NewTestNode(suite, n)
+	// remove the last node from the previous group
+	offline := 1
+	copy(newTns, tns[:n-offline])
+	// + offline because we fill the gap of the offline nodes by new nodes
+	newNode := newN - n + offline
+	for i := 0; i < newNode; i++ {
+		//  new node can have the same index as a previous one, separation is made
+		newTns[n-1+i] = NewTestNode(suite, n-1+i)
+	}
 	newList := NodesFromTest(newTns)
 	newConf := &DkgConfig{
 		Suite:        suite,
