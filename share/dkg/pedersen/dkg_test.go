@@ -14,6 +14,9 @@ import (
 	vss "go.dedis.ch/kyber/v3/share/vss/pedersen"
 )
 
+// Note: if you are looking for a complete scenario that shows DKG in action
+// please have a look at examples/dkg_test.go
+
 var suite = edwards25519.NewBlakeSHA256Ed25519()
 
 const defaultN = 5
