@@ -509,7 +509,7 @@ func (d *DistKeyGenerator) ProcessResponses(bundles []*ResponseBundle) (*Result,
 		return nil, nil, fmt.Errorf("can only process responses after processing shares")
 	}
 
-	if !d.c.FastSync && len(bundles) == 0 && d.canReceive {
+	if !d.c.FastSync && len(bundles) == 0 && d.canReceive && d.statuses.CompleteSuccess() {
 		// if we are not in fastsync, we expect only complaints
 		// if there is no complaints all is good
 		res, err := d.computeResult()
@@ -554,7 +554,7 @@ func (d *DistKeyGenerator) ProcessResponses(bundles []*ResponseBundle) (*Result,
 
 	if !foundComplaint {
 		// there is no complaint !
-		if d.canReceive {
+		if d.canReceive && d.statuses.CompleteSuccess() {
 			res, err := d.computeResult()
 			return res, nil, err
 		} else {
@@ -858,6 +858,9 @@ func (d *DistKeyGenerator) computeDKGResult() (*Result, error) {
 			}
 		}
 		nodes = append(nodes, n)
+	}
+	if finalPub == nil {
+		return nil, fmt.Errorf("BUG: final public polynomial is nil")
 	}
 	_, commits := finalPub.Info()
 	return &Result{
