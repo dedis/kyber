@@ -1,8 +1,10 @@
 package dkg
 
-import "fmt"
-import "strings"
-import "sort"
+import (
+	"fmt"
+	"sort"
+	"strings"
+)
 
 const (
 	Success   = true
@@ -56,6 +58,17 @@ func (s *StatusMatrix) AllTrue(dealer uint32) bool {
 	for _, status := range (*s)[dealer] {
 		if status == Complaint {
 			return false
+		}
+	}
+	return true
+}
+
+func (s *StatusMatrix) CompleteSuccess() bool {
+	for _, bs := range *s {
+		for _, status := range bs {
+			if status != Success {
+				return false
+			}
 		}
 	}
 	return true
