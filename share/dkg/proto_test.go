@@ -102,7 +102,6 @@ func SetupProto(tns []*TestNode, dkgC *DkgConfig, protoC *Config, period time.Du
 		n.clock = clock
 		n.phaser = NewTimePhaserFunc(func(Phase) {
 			clock.Sleep(period)
-			fmt.Printf(" - finished sleeping\n")
 		})
 		n.board = network.BoardFor(n.Index)
 		c2 := *protoC

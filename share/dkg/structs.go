@@ -99,6 +99,8 @@ type DealBundle struct {
 	Deals       []Deal
 	// Public coefficients of the public polynomial used to create the shares
 	Public []kyber.Point
+	// SessionID of the current run
+	SessionID []byte
 }
 
 // Hash hashes the index, public coefficients and deals
@@ -132,6 +134,8 @@ type ResponseBundle struct {
 	// Index of the share holder for which these reponses are for
 	ShareIndex uint32
 	Responses  []Response
+	// SessionID of the current run
+	SessionID []byte
 }
 
 // Hash hashes the share index and responses
@@ -166,6 +170,8 @@ func (b *ResponseBundle) String() string {
 type JustificationBundle struct {
 	DealerIndex    uint32
 	Justifications []Justification
+	// SessionID of the current run
+	SessionID []byte
 }
 
 type Justification struct {

@@ -56,9 +56,11 @@ func NodesFromTest(tns []*TestNode) []Node {
 
 // inits the dkg structure
 func SetupNodes(nodes []*TestNode, c *DkgConfig) {
+	nonce := GetNonce()
 	for _, n := range nodes {
 		c2 := *c
 		c2.Longterm = n.Private
+		c2.Nonce = nonce
 		dkg, err := NewDistKeyHandler(&c2)
 		if err != nil {
 			panic(err)
@@ -68,9 +70,11 @@ func SetupNodes(nodes []*TestNode, c *DkgConfig) {
 }
 
 func SetupReshareNodes(nodes []*TestNode, c *DkgConfig, coeffs []kyber.Point) {
+	nonce := GetNonce()
 	for _, n := range nodes {
 		c2 := *c
 		c2.Longterm = n.Private
+		c2.Nonce = nonce
 		if n.res != nil {
 			c2.Share = n.res.Key
 		} else {
@@ -132,6 +136,67 @@ func testResults(t *testing.T, suite Suite, thr, n int, results []*Result) {
 
 }
 
+type MapDeal func([]*DealBundle) []*DealBundle
+type MapResponse func([]*ResponseBundle) []*ResponseBundle
+type MapJustif func([]*JustificationBundle) []*JustificationBundle
+
+func RunDKG(t *testing.T, tns []*TestNode, conf DkgConfig,
+	dm MapDeal, rm MapResponse, jm MapJustif) []*Result {
+
+	SetupNodes(tns, &conf)
+	var deals []*DealBundle
+	for _, node := range tns {
+		d, err := node.dkg.Deals()
+		require.NoError(t, err)
+		deals = append(deals, d)
+	}
+
+	if dm != nil {
+		deals = dm(deals)
+	}
+
+	var respBundles []*ResponseBundle
+	for _, node := range tns {
+		resp, err := node.dkg.ProcessDeals(deals)
+		require.NoError(t, err)
+		if resp != nil {
+			respBundles = append(respBundles, resp)
+		}
+	}
+
+	if rm != nil {
+		respBundles = rm(respBundles)
+	}
+
+	var justifs []*JustificationBundle
+	var results []*Result
+	for _, node := range tns {
+		res, just, err := node.dkg.ProcessResponses(respBundles)
+		require.NoError(t, err)
+		if res != nil {
+			results = append(results, res)
+		} else if just != nil {
+			justifs = append(justifs, just)
+		}
+	}
+
+	if len(justifs) == 0 {
+		return results
+	}
+
+	if jm != nil {
+		justifs = jm(justifs)
+	}
+
+	for _, node := range tns {
+		res, err := node.dkg.ProcessJustifications(justifs)
+		require.NoError(t, err)
+		require.NotNil(t, res)
+		results = append(results, res)
+	}
+	return results
+}
+
 func TestDKGFull(t *testing.T) {
 	n := 5
 	thr := n
@@ -143,32 +208,8 @@ func TestDKGFull(t *testing.T) {
 		NewNodes:  list,
 		Threshold: thr,
 	}
-	SetupNodes(tns, &conf)
 
-	var deals []*DealBundle
-	for _, node := range tns {
-		d, err := node.dkg.Deals()
-		require.NoError(t, err)
-		deals = append(deals, d)
-	}
-
-	for _, node := range tns {
-		resp, err := node.dkg.ProcessDeals(deals)
-		require.NoError(t, err)
-		// for a full perfect dkg there should not be any complaints
-		require.Nil(t, resp)
-	}
-
-	var results []*Result
-	for _, node := range tns {
-		// we give no responses
-		res, just, err := node.dkg.ProcessResponses(nil)
-		require.NoError(t, err)
-		require.Nil(t, just)
-		require.NotNil(t, res)
-		results = append(results, res)
-	}
-
+	results := RunDKG(t, tns, conf, nil, nil, nil)
 	testResults(t, suite, thr, n, results)
 }
 
@@ -183,67 +224,57 @@ func TestDKGThreshold(t *testing.T) {
 		NewNodes:  list,
 		Threshold: thr,
 	}
-	SetupNodes(tns, &conf)
 
-	var deals []*DealBundle
-	for _, node := range tns {
-		d, err := node.dkg.Deals()
-		require.NoError(t, err)
-		deals = append(deals, d)
+	dm := func(deals []*DealBundle) []*DealBundle {
+		// we make first dealer absent
+		deals = deals[1:]
+		require.Len(t, deals, n-1)
+		// we make the second dealer creating a invalid share for 3rd participant
+		deals[0].Deals[2].EncryptedShare = []byte("Another one bites the dust")
+		return deals
 	}
-
-	// we make first dealer absent
-	deals = deals[1:]
-	require.Len(t, deals, n-1)
-	// we make the second dealer creating a invalid share for 3rd participant
-	deals[0].Deals[2].EncryptedShare = []byte("Another one bites the dust")
-
-	var respBundles []*ResponseBundle
-	for _, node := range tns {
-		resp, err := node.dkg.ProcessDeals(deals)
-		require.NoError(t, err)
-		if node.Index == 0 {
+	rm := func(resp []*ResponseBundle) []*ResponseBundle {
+		for _, bundle := range resp {
 			// first dealer should not see anything bad
-			require.Nil(t, resp)
-		} else {
-			require.NotNil(t, resp, " node index %d: resp %v", node.Index, resp)
-			respBundles = append(respBundles, resp)
+			require.NotEqual(t, 0, bundle.ShareIndex)
 		}
+		// we must find at least a complaint about node 0
+		require.True(t, IsDealerIncluded(resp, 0))
+		// if we are checking responses from node 2, then it must also
+		// include a complaint for node 1
+		require.True(t, IsDealerIncluded(resp, 1))
+		return resp
 	}
-	// we must find at least a complaint about node 0
-	require.True(t, IsDealerIncluded(respBundles, 0))
-	// if we are checking responses from node 2, then it must also
-	// include a complaint for node 1
-	require.True(t, IsDealerIncluded(respBundles, 1))
-
-	var justifs []*JustificationBundle
-	for _, node := range tns {
-		res, just, err := node.dkg.ProcessResponses(respBundles)
-		require.NoError(t, err)
-		require.Nil(t, res)
-		if node.Index == 0 || node.Index == 1 {
-			require.NotNil(t, just)
-			justifs = append(justifs, just)
+	jm := func(justs []*JustificationBundle) []*JustificationBundle {
+		var found0 bool
+		var found1 bool
+		for _, bundle := range justs {
+			found0 = found0 || bundle.DealerIndex == 0
+			found1 = found1 || bundle.DealerIndex == 1
 		}
+		require.True(t, found0 && found1)
+		return justs
 	}
-
-	var results []*Result
-	for _, node := range tns {
-		if node.Index == 0 {
+	results := RunDKG(t, tns, conf, dm, rm, jm)
+	var filtered = results[:0]
+	for _, n := range tns {
+		if 0 == n.Index {
 			// node 0 is excluded by all others since he didn't even provide a
 			// deal at the first phase,i.e. it didn't even provide a public
 			// polynomial at the first phase.
 			continue
 		}
-		res, err := node.dkg.ProcessJustifications(justifs)
-		require.NoError(t, err)
-		require.NotNil(t, res)
-		for _, nodeQual := range res.QUAL {
-			require.NotEqual(t, uint32(0), nodeQual.Index)
+		for _, res := range results {
+			if res.Key.Share.I != int(n.Index) {
+				continue
+			}
+			for _, nodeQual := range res.QUAL {
+				require.NotEqual(t, uint32(0), nodeQual.Index)
+			}
+			filtered = append(filtered, res)
 		}
-		results = append(results, res)
 	}
-	testResults(t, suite, thr, n, results)
+	testResults(t, suite, thr, n, filtered)
 }
 
 func TestDKGResharing(t *testing.T) {
@@ -383,34 +414,100 @@ func TestDKGFullFast(t *testing.T) {
 		NewNodes:  list,
 		Threshold: thr,
 	}
-	SetupNodes(tns, &conf)
 
-	var deals []*DealBundle
-	for _, node := range tns {
-		d, err := node.dkg.Deals()
-		require.NoError(t, err)
-		deals = append(deals, d)
-	}
-
-	var responses []*ResponseBundle
-	for _, node := range tns {
-		resp, err := node.dkg.ProcessDeals(deals)
-		require.NoError(t, err)
-		require.NotNil(t, resp)
-		responses = append(responses, resp)
-	}
-
-	var results []*Result
-	for _, node := range tns {
-		// we give no responses
-		res, just, err := node.dkg.ProcessResponses(responses)
-		require.NoError(t, err)
-		require.Nil(t, just)
-		require.NotNil(t, res)
-		results = append(results, res)
-	}
-
+	results := RunDKG(t, tns, conf, nil, nil, nil)
 	testResults(t, suite, thr, n, results)
+}
+
+func TestDKGNonceInvalid(t *testing.T) {
+	n := 5
+	thr := n
+	suite := edwards25519.NewBlakeSHA256Ed25519()
+	tns := GenerateTestNodes(suite, n)
+	list := NodesFromTest(tns)
+	conf := &DkgConfig{
+		FastSync:  true,
+		Suite:     suite,
+		NewNodes:  list,
+		Threshold: thr,
+	}
+	nonce := GetNonce()
+	conf.Nonce = nonce
+	conf.Longterm = tns[0].Private
+	conf.Nonce = nonce
+	dkg, err := NewDistKeyHandler(conf)
+	require.NoError(t, err)
+	require.NotNil(t, dkg)
+
+	conf.Nonce = []byte("that's some bad nonce")
+	dkg, err = NewDistKeyHandler(conf)
+	require.Error(t, err)
+	require.Nil(t, dkg)
+}
+
+func TestDKGNonceInvalidEviction(t *testing.T) {
+	n := 7
+	thr := 4
+	suite := edwards25519.NewBlakeSHA256Ed25519()
+	tns := GenerateTestNodes(suite, n)
+	list := NodesFromTest(tns)
+	conf := DkgConfig{
+		Suite:     suite,
+		NewNodes:  list,
+		Threshold: thr,
+	}
+
+	genPublic := func() []kyber.Point {
+		points := make([]kyber.Point, thr)
+		for i := 0; i < thr; i++ {
+			points[i] = suite.Point().Pick(random.New())
+		}
+		return points
+	}
+
+	dm := func(deals []*DealBundle) []*DealBundle {
+		deals[0].SessionID = []byte("Beat It")
+		require.Equal(t, deals[0].DealerIndex, Index(0))
+		// change the public polynomial so it trigggers a response and a
+		// justification
+		deals[1].Public = genPublic()
+		require.Equal(t, deals[1].DealerIndex, Index(1))
+		return deals
+	}
+	rm := func(resp []*ResponseBundle) []*ResponseBundle {
+		for _, bundle := range resp {
+			for _, r := range bundle.Responses {
+				// he's evicted so there's not even a complaint
+				require.NotEqual(t, 0, r.DealerIndex)
+			}
+			if bundle.ShareIndex == 2 {
+				bundle.SessionID = []byte("Billie Jean")
+			}
+		}
+		return resp
+	}
+	jm := func(just []*JustificationBundle) []*JustificationBundle {
+		require.Len(t, just, 1)
+		just[0].SessionID = []byte("Free")
+		return just
+	}
+
+	results := RunDKG(t, tns, conf, dm, rm, jm)
+	// make sure the first, second, and third node are not here
+	isEvicted := func(i Index) bool {
+		return i == 0 || i == 1 || i == 2
+	}
+	filtered := results[:0]
+	for _, r := range results {
+		if isEvicted(Index(r.Key.Share.I)) {
+			continue
+		}
+		require.NotContains(t, r.QUAL, Index(0))
+		require.NotContains(t, r.QUAL, Index(1))
+		require.NotContains(t, r.QUAL, Index(2))
+		filtered = append(filtered, r)
+	}
+	testResults(t, suite, thr, n, filtered)
 }
 
 func TestDKGInvalidResponse(t *testing.T) {
