@@ -412,3 +412,79 @@ func TestDKGFullFast(t *testing.T) {
 
 	testResults(t, suite, thr, n, results)
 }
+
+func TestDKGInvalidResponse(t *testing.T) {
+	n := 6
+	thr := 3
+	suite := edwards25519.NewBlakeSHA256Ed25519()
+	tns := GenerateTestNodes(suite, n)
+	list := NodesFromTest(tns)
+	conf := DkgConfig{
+		Suite:     suite,
+		NewNodes:  list,
+		Threshold: thr,
+	}
+	SetupNodes(tns, &conf)
+
+	var deals []*DealBundle
+	for _, node := range tns {
+		d, err := node.dkg.Deals()
+		require.NoError(t, err)
+		deals = append(deals, d)
+	}
+	// we make first dealer absent
+	deals = deals[1:]
+	require.Len(t, deals, n-1)
+
+	var respBundles []*ResponseBundle
+	for _, node := range tns {
+		resp, err := node.dkg.ProcessDeals(deals)
+		require.NoError(t, err)
+		if node.Index == 0 {
+			// first dealer should not see anything bad
+			require.Nil(t, resp)
+		} else {
+			require.NotNil(t, resp, " node index %d: resp %v", node.Index, resp)
+			respBundles = append(respBundles, resp)
+		}
+	}
+
+	// trigger invalid dealer index
+	respBundles[1].Responses[0].DealerIndex = 1000
+	// trigger invalid status: in normal mode, no success should ever be sent
+	respBundles[2].Responses[0].Status = Success
+
+	var justifs []*JustificationBundle
+	for _, node := range tns {
+		res, just, err := node.dkg.ProcessResponses(respBundles)
+		require.NoError(t, err)
+		require.Nil(t, res)
+		if just != nil {
+			require.NotNil(t, just)
+			justifs = append(justifs, just)
+		}
+	}
+
+	var results []*Result
+	for _, node := range tns {
+		if node.Index == 0 || node.Index == 2 || node.Index == 3 {
+			// node 0 is excluded by all others since he didn't even provide a
+			// deal at the first phase,i.e. it didn't even provide a public
+			// polynomial at the first phase.
+			// node 2 and 3 are excluded as well because they didn't provide a
+			// valid response
+			continue
+		}
+		res, err := node.dkg.ProcessJustifications(justifs)
+		require.NoError(t, err)
+		require.NotNil(t, res)
+		for _, nodeQual := range res.QUAL {
+			require.NotEqual(t, uint32(0), nodeQual.Index)
+			// node 2 and 3 gave invalid response
+			require.NotEqual(t, uint32(2), nodeQual.Index)
+			require.NotEqual(t, uint32(3), nodeQual.Index)
+		}
+		results = append(results, res)
+	}
+	testResults(t, suite, thr, n, results)
+}
