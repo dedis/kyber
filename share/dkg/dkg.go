@@ -142,7 +142,9 @@ type DistKeyGenerator struct {
 	allPublics map[uint32]*share.PubPoly
 	// list of dealers that clearly gave invalid deals / responses / justifs
 	evicted []uint32
-	state   Phase
+	// list of share holders that misbehaved during the response phase
+	evictedHolders []Index
+	state          Phase
 	// index in the old list of nodes
 	oidx Index
 	// index in the new list of nodes
@@ -460,7 +462,7 @@ func (d *DistKeyGenerator) ProcessDeals(bundles []*DealBundle) (*ResponseBundle,
 		// if the node is evicted, we don't even need to send a complaint or a
 		// response response since every honest node evicts him as well.
 		// XXX Is that always true ? Should we send a complaint still ?
-		if d.isEvicted(node.Index) {
+		if isEvicted(d.evicted, node.Index) {
 			continue
 		}
 
@@ -533,7 +535,7 @@ func (d *DistKeyGenerator) ProcessResponses(bundles []*ResponseBundle) (*Result,
 			if !isIndexIncluded(d.c.OldNodes, response.DealerIndex) {
 				// the index of the dealer doesn't exist - clear violation
 				// so we evict
-				d.evicted = append(d.evicted, bundle.ShareIndex)
+				d.evictedHolders = append(d.evictedHolders, bundle.ShareIndex)
 				continue
 			}
 
@@ -541,7 +543,7 @@ func (d *DistKeyGenerator) ProcessResponses(bundles []*ResponseBundle) (*Result,
 				// we should only receive complaint if we are not in fast sync
 				// mode - clear violation
 				// so we evict
-				d.evicted = append(d.evicted, bundle.ShareIndex)
+				d.evictedHolders = append(d.evictedHolders, bundle.ShareIndex)
 				continue
 			}
 
@@ -635,7 +637,7 @@ func (d *DistKeyGenerator) ProcessJustifications(bundles []*JustificationBundle)
 			// index is invalid
 			continue
 		}
-		if d.isEvicted(bundle.DealerIndex) {
+		if isEvicted(d.evicted, bundle.DealerIndex) {
 			// already evicted node
 			continue
 		}
@@ -685,7 +687,7 @@ func (d *DistKeyGenerator) ProcessJustifications(bundles []*JustificationBundle)
 	// check if there is enough dealer entries marked as all success
 	var allGood int
 	for _, n := range d.c.OldNodes {
-		if d.isEvicted(n.Index) {
+		if isEvicted(d.evicted, n.Index) {
 			continue
 		}
 		if !d.statuses.AllTrue(n.Index) {
@@ -711,9 +713,6 @@ func (d *DistKeyGenerator) ProcessJustifications(bundles []*JustificationBundle)
 }
 
 func (d *DistKeyGenerator) computeResult() (*Result, error) {
-	defer func() {
-		//fmt.Printf("Node %d: AFTER compute results\n%s\n", d.nidx, d.statuses)
-	}()
 	d.state = FinishPhase
 	// add a full complaint row on the nodes that are evicted
 	for _, index := range d.evicted {
@@ -737,6 +736,8 @@ func (d *DistKeyGenerator) computeResharingResult() (*Result, error) {
 	for _, n := range d.c.OldNodes {
 		if !d.statuses.AllTrue(n.Index) {
 			// this dealer has some unjustified shares
+			// no need to check for th e evicted list since the status matrix
+			// has been set previously to complaint for those
 			continue
 		}
 		pub, ok := d.allPublics[n.Index]
@@ -817,9 +818,15 @@ func (d *DistKeyGenerator) computeResharingResult() (*Result, error) {
 				break
 			}
 		}
+		// look if they have not been misbehaving during response phase
+		invalid = invalid || isEvicted(d.evictedHolders, idx)
 		if !invalid {
 			qual = append(qual, newNode)
 		}
+	}
+
+	if len(qual) < d.c.Threshold {
+		return nil, fmt.Errorf("dkg: too many uncompliant new participants %d/%d", len(qual), d.c.Threshold)
 	}
 	return &Result{
 		QUAL: qual,
@@ -838,8 +845,17 @@ func (d *DistKeyGenerator) computeDKGResult() (*Result, error) {
 	for _, n := range d.c.OldNodes {
 		if !d.statuses.AllTrue(n.Index) {
 			// this dealer has some unjustified shares
+			// no need to check the evicted list since the status matrix
+			// has been set previously to complaint for those
 			continue
 		}
+
+		// however we do need to check for evicted share holders since in this
+		// case (DKG) both are the same.
+		if isEvicted(d.evictedHolders, n.Index) {
+			continue
+		}
+
 		sh, ok := d.validShares[n.Index]
 		if !ok {
 			return nil, fmt.Errorf("BUG: private share not found from dealer %d", n.Index)
@@ -910,8 +926,8 @@ func isIndexIncluded(list []Node, index uint32) bool {
 	return false
 }
 
-func (d *DistKeyGenerator) isEvicted(node uint32) bool {
-	for _, idx := range d.evicted {
+func isEvicted(nodes []Index, node uint32) bool {
+	for _, idx := range nodes {
 		if node == idx {
 			return true
 		}
