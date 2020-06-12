@@ -34,29 +34,29 @@ func (n *TestNetwork) BoardFor(index uint32) *TestBoard {
 	panic("no such indexes")
 }
 
-func (n *TestNetwork) BroadcastDeal(a AuthDealBundle) {
+func (n *TestNetwork) BroadcastDeal(a *DealBundle) {
 	for _, board := range n.boards {
-		board.newDeals <- a
+		board.newDeals <- (*a)
 	}
 }
 
-func (n *TestNetwork) BroadcastResponse(a AuthResponseBundle) {
+func (n *TestNetwork) BroadcastResponse(a *ResponseBundle) {
 	for _, board := range n.boards {
-		board.newResps <- a
+		board.newResps <- *a
 	}
 }
 
-func (n *TestNetwork) BroadcastJustification(a AuthJustifBundle) {
+func (n *TestNetwork) BroadcastJustification(a *JustificationBundle) {
 	for _, board := range n.boards {
-		board.newJusts <- a
+		board.newJusts <- *a
 	}
 }
 
 type TestBoard struct {
 	index    uint32
-	newDeals chan AuthDealBundle
-	newResps chan AuthResponseBundle
-	newJusts chan AuthJustifBundle
+	newDeals chan DealBundle
+	newResps chan ResponseBundle
+	newJusts chan JustificationBundle
 	network  *TestNetwork
 	badDeal  bool
 }
@@ -65,40 +65,40 @@ func NewTestBoard(index uint32, n int, network *TestNetwork) *TestBoard {
 	return &TestBoard{
 		network:  network,
 		index:    index,
-		newDeals: make(chan AuthDealBundle, n),
-		newResps: make(chan AuthResponseBundle, n),
-		newJusts: make(chan AuthJustifBundle, n),
+		newDeals: make(chan DealBundle, n),
+		newResps: make(chan ResponseBundle, n),
+		newJusts: make(chan JustificationBundle, n),
 	}
 }
 
-func (t *TestBoard) PushDeals(d AuthDealBundle) {
+func (t *TestBoard) PushDeals(d *DealBundle) {
 	if t.badDeal {
-		d.Bundle.Deals[0].EncryptedShare = []byte("bad bad bad")
+		d.Deals[0].EncryptedShare = []byte("bad bad bad")
 	}
 	t.network.BroadcastDeal(d)
 }
 
-func (t *TestBoard) PushResponses(r AuthResponseBundle) {
+func (t *TestBoard) PushResponses(r *ResponseBundle) {
 	t.network.BroadcastResponse(r)
 }
 
-func (t *TestBoard) PushJustifications(j AuthJustifBundle) {
+func (t *TestBoard) PushJustifications(j *JustificationBundle) {
 	t.network.BroadcastJustification(j)
 }
 
-func (t *TestBoard) IncomingDeal() <-chan AuthDealBundle {
+func (t *TestBoard) IncomingDeal() <-chan DealBundle {
 	return t.newDeals
 }
 
-func (t *TestBoard) IncomingResponse() <-chan AuthResponseBundle {
+func (t *TestBoard) IncomingResponse() <-chan ResponseBundle {
 	return t.newResps
 }
 
-func (t *TestBoard) IncomingJustification() <-chan AuthJustifBundle {
+func (t *TestBoard) IncomingJustification() <-chan JustificationBundle {
 	return t.newJusts
 }
 
-func SetupProto(tns []*TestNode, dkgC *DkgConfig, protoC *Config, period time.Duration, network *TestNetwork) {
+func SetupProto(tns []*TestNode, dkgC *Config, period time.Duration, network *TestNetwork) {
 	for _, n := range tns {
 		clock := clock.NewFakeClock()
 		n.clock = clock
@@ -106,8 +106,7 @@ func SetupProto(tns []*TestNode, dkgC *DkgConfig, protoC *Config, period time.Du
 			clock.Sleep(period)
 		})
 		n.board = network.BoardFor(n.Index)
-		c2 := *protoC
-		c2.DkgConfig = *n.dkg.c
+		c2 := *n.dkg.c
 		proto, err := NewProtocol(&c2, n.board, n.phaser)
 		if err != nil {
 			panic(err)
@@ -130,16 +129,14 @@ func TestProtoFull(t *testing.T) {
 	tns := GenerateTestNodes(suite, n)
 	list := NodesFromTest(tns)
 	network := NewTestNetwork(n)
-	dkgConf := DkgConfig{
+	dkgConf := Config{
 		Suite:     suite,
 		NewNodes:  list,
 		Threshold: thr,
-	}
-	protoConf := Config{
-		Auth: schnorr.NewScheme(suite),
+		Auth:      schnorr.NewScheme(suite),
 	}
 	SetupNodes(tns, &dkgConf)
-	SetupProto(tns, &dkgConf, &protoConf, period, network)
+	SetupProto(tns, &dkgConf, period, network)
 
 	var resCh = make(chan OptionResult, 1)
 	// start all nodes and wait until each end
@@ -183,16 +180,14 @@ func TestProtoResharing(t *testing.T) {
 	tns := GenerateTestNodes(suite, n)
 	list := NodesFromTest(tns)
 	network := NewTestNetwork(n)
-	dkgConf := DkgConfig{
+	dkgConf := Config{
 		Suite:     suite,
 		NewNodes:  list,
 		Threshold: thr,
-	}
-	protoConf := Config{
-		Auth: schnorr.NewScheme(suite),
+		Auth:      schnorr.NewScheme(suite),
 	}
 	SetupNodes(tns, &dkgConf)
-	SetupProto(tns, &dkgConf, &protoConf, period, network)
+	SetupProto(tns, &dkgConf, period, network)
 
 	var resCh = make(chan OptionResult, 1)
 	// start all nodes and wait until each end
@@ -244,19 +239,17 @@ func TestProtoResharing(t *testing.T) {
 	newTns[n] = NewTestNode(suite, n)
 	network = NewTestNetwork(newN)
 	newList := NodesFromTest(newTns)
-	newConf := &DkgConfig{
+	newConf := &Config{
 		Suite:        suite,
 		NewNodes:     newList,
 		OldNodes:     list,
 		Threshold:    newT,
 		OldThreshold: thr,
-	}
-	newProtoConf := Config{
-		Auth: schnorr.NewScheme(suite),
+		Auth:         schnorr.NewScheme(suite),
 	}
 
 	SetupReshareNodes(newTns, newConf, tns[0].res.Key.Commits)
-	SetupProto(newTns, newConf, &newProtoConf, period, network)
+	SetupProto(newTns, newConf, period, network)
 
 	resCh = make(chan OptionResult, 1)
 	// start all nodes and wait until each end
@@ -305,16 +298,14 @@ func TestProtoThreshold(t *testing.T) {
 	list := NodesFromTest(tns)
 	tns = tns[:realN]
 	network := NewTestNetwork(realN)
-	dkgConf := DkgConfig{
+	dkgConf := Config{
 		Suite:     suite,
 		NewNodes:  list,
 		Threshold: thr,
-	}
-	protoConf := Config{
-		Auth: schnorr.NewScheme(suite),
+		Auth:      schnorr.NewScheme(suite),
 	}
 	SetupNodes(tns, &dkgConf)
-	SetupProto(tns, &dkgConf, &protoConf, period, network)
+	SetupProto(tns, &dkgConf, period, network)
 
 	var resCh = make(chan OptionResult, 1)
 	// start all nodes and wait until each end
@@ -356,17 +347,15 @@ func TestProtoFullFast(t *testing.T) {
 	tns := GenerateTestNodes(suite, n)
 	list := NodesFromTest(tns)
 	network := NewTestNetwork(n)
-	dkgConf := DkgConfig{
+	dkgConf := Config{
 		FastSync:  true,
 		Suite:     suite,
 		NewNodes:  list,
 		Threshold: thr,
-	}
-	protoConf := Config{
-		Auth: schnorr.NewScheme(suite),
+		Auth:      schnorr.NewScheme(suite),
 	}
 	SetupNodes(tns, &dkgConf)
-	SetupProto(tns, &dkgConf, &protoConf, period, network)
+	SetupProto(tns, &dkgConf, period, network)
 
 	var resCh = make(chan OptionResult, 1)
 	// start all nodes and wait until each end
@@ -399,17 +388,15 @@ func TestProtoThresholdFast(t *testing.T) {
 	tns := GenerateTestNodes(suite, n)
 	list := NodesFromTest(tns)
 	network := NewTestNetwork(n)
-	dkgConf := DkgConfig{
+	dkgConf := Config{
 		FastSync:  true,
 		Suite:     suite,
 		NewNodes:  list,
 		Threshold: thr,
-	}
-	protoConf := Config{
-		Auth: schnorr.NewScheme(suite),
+		Auth:      schnorr.NewScheme(suite),
 	}
 	SetupNodes(tns, &dkgConf)
-	SetupProto(tns, &dkgConf, &protoConf, period, network)
+	SetupProto(tns, &dkgConf, period, network)
 	// set a node that will send a bad deal such that all deals are received
 	// "fast", then the normal rounds are happening
 	network.BoardFor(1).badDeal = true

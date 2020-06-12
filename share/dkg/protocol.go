@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/drand/kyber"
-	"github.com/drand/kyber/sign"
 )
 
 // Board is the interface between the dkg protocol and the external world. It
@@ -17,12 +16,12 @@ import (
 // communication mechanism but one can also use a smart contract based
 // approach.
 type Board interface {
-	PushDeals(AuthDealBundle)
-	IncomingDeal() <-chan AuthDealBundle
-	PushResponses(AuthResponseBundle)
-	IncomingResponse() <-chan AuthResponseBundle
-	PushJustifications(AuthJustifBundle)
-	IncomingJustification() <-chan AuthJustifBundle
+	PushDeals(*DealBundle)
+	IncomingDeal() <-chan DealBundle
+	PushResponses(*ResponseBundle)
+	IncomingResponse() <-chan ResponseBundle
+	PushJustifications(*JustificationBundle)
+	IncomingJustification() <-chan JustificationBundle
 }
 
 // Phaser must signal on its channel when the protocol should move to a next
@@ -78,20 +77,8 @@ type Protocol struct {
 	board    Board
 	phaser   Phaser
 	dkg      *DistKeyGenerator
-	conf     *Config
 	canIssue bool
 	res      chan OptionResult
-}
-
-// Config is the configuration to give to a Protocol. It currently only embeds
-// the dkg config and the authentication scheme. It is meant to be extensible
-// and will probably contains more options to log and control the behavior of
-// the protocol.
-type Config struct {
-	DkgConfig
-	// Auth is the scheme to use to verify authentication of the packets
-	// received from the board. If nil, authentication is not checked.
-	Auth sign.Scheme
 }
 
 // XXX TO DELETE
@@ -104,19 +91,18 @@ func printNodes(list []Node) string {
 }
 
 func NewProtocol(c *Config, b Board, phaser Phaser) (*Protocol, error) {
-	dkg, err := NewDistKeyHandler(&c.DkgConfig)
+	dkg, err := NewDistKeyHandler(c)
 	if err != nil {
 		return nil, err
 	}
 	// fast sync must only be enabled if there is an authentication scheme
-	if c.DkgConfig.FastSync && c.Auth == nil {
+	if c.FastSync && c.Auth == nil {
 		return nil, errors.New("fast sync only allowed with authentication enabled")
 	}
 	p := &Protocol{
 		board:    b,
 		phaser:   phaser,
 		dkg:      dkg,
-		conf:     c,
 		canIssue: dkg.canIssue,
 		res:      make(chan OptionResult, 1),
 	}
@@ -125,7 +111,7 @@ func NewProtocol(c *Config, b Board, phaser Phaser) (*Protocol, error) {
 }
 
 func (p *Protocol) Start() {
-	var fastSync = p.conf.DkgConfig.FastSync
+	var fastSync = p.dkg.c.FastSync
 	if fastSync {
 		p.startFast()
 		return
@@ -154,16 +140,16 @@ func (p *Protocol) Start() {
 				return
 			}
 		case newDeal := <-p.board.IncomingDeal():
-			if err := p.VerifySignature(newDeal); err == nil {
-				deals.Push(newDeal.Bundle)
+			if err := p.VerifySignature(&newDeal); err == nil {
+				deals.Push(&newDeal)
 			}
 		case newResp := <-p.board.IncomingResponse():
-			if err := p.VerifySignature(newResp); err == nil {
-				resps.Push(newResp.Bundle)
+			if err := p.VerifySignature(&newResp); err == nil {
+				resps.Push(&newResp)
 			}
 		case newJust := <-p.board.IncomingJustification():
-			if err := p.VerifySignature(newJust); err == nil {
-				justifs.Push(newJust.Bundle)
+			if err := p.VerifySignature(&newJust); err == nil {
+				justifs.Push(&newJust)
 			}
 		}
 	}
@@ -173,8 +159,8 @@ func (p *Protocol) startFast() {
 	var deals = newSet()
 	var resps = newSet()
 	var justifs = newSet()
-	var newN = len(p.conf.DkgConfig.NewNodes)
-	var oldN = len(p.conf.DkgConfig.OldNodes)
+	var newN = len(p.dkg.c.NewNodes)
+	var oldN = len(p.dkg.c.OldNodes)
 	var phase Phase
 	sendResponseFn := func() bool {
 		if phase != DealPhase {
@@ -225,8 +211,8 @@ func (p *Protocol) startFast() {
 				return
 			}
 		case newDeal := <-p.board.IncomingDeal():
-			if err := p.VerifySignature(newDeal); err == nil {
-				deals.Push(newDeal.Bundle)
+			if err := p.VerifySignature(&newDeal); err == nil {
+				deals.Push(&newDeal)
 			}
 			// XXX This assumes we receive our own deal bundle since we use a
 			// broadcast channel - may need to revisit that assumption
@@ -238,8 +224,8 @@ func (p *Protocol) startFast() {
 		case newResp := <-p.board.IncomingResponse():
 			// TODO See how can we deal with inconsistent answers from different
 			// share holders
-			if err := p.VerifySignature(newResp); err == nil {
-				resps.Push(newResp.Bundle)
+			if err := p.VerifySignature(&newResp); err == nil {
+				resps.Push(&newResp)
 			}
 			if resps.Len() == newN {
 				if !sendJustifFn() {
@@ -249,8 +235,8 @@ func (p *Protocol) startFast() {
 		case newJust := <-p.board.IncomingJustification():
 			// TODO see how can we deal with inconsistent answers from different
 			// dealers
-			if err := p.VerifySignature(newJust); err == nil {
-				justifs.Push(newJust.Bundle)
+			if err := p.VerifySignature(&newJust); err == nil {
+				justifs.Push(&newJust)
 			}
 			if justifs.Len() == oldN {
 				finishFn()
@@ -265,7 +251,7 @@ func (p *Protocol) startFast() {
 // pointer to  an AuthDealBundle, AuthResponseBundle, or AuthJustifBundle.
 // It returns nil if the Auth scheme in the config is nil.
 func (p *Protocol) VerifySignature(packet interface{}) error {
-	if p.conf.Auth == nil {
+	if p.dkg.c.Auth == nil {
 		return nil
 	}
 	var ok bool
@@ -273,23 +259,23 @@ func (p *Protocol) VerifySignature(packet interface{}) error {
 	var pub kyber.Point
 	var sig []byte
 	switch auth := packet.(type) {
-	case AuthDealBundle:
-		hash = auth.Bundle.Hash()
-		pub, ok = findIndex(p.conf.DkgConfig.OldNodes, auth.Bundle.DealerIndex)
+	case *DealBundle:
+		hash = auth.Hash()
+		pub, ok = findIndex(p.dkg.c.OldNodes, auth.DealerIndex)
 		if !ok {
 			return errors.New("no nodes with this public key")
 		}
 		sig = auth.Signature
-	case AuthResponseBundle:
-		hash = auth.Bundle.Hash()
-		pub, ok = findIndex(p.conf.DkgConfig.NewNodes, auth.Bundle.ShareIndex)
+	case *ResponseBundle:
+		hash = auth.Hash()
+		pub, ok = findIndex(p.dkg.c.NewNodes, auth.ShareIndex)
 		if !ok {
 			return errors.New("no nodes with this public key")
 		}
 		sig = auth.Signature
-	case AuthJustifBundle:
-		hash = auth.Bundle.Hash()
-		pub, ok = findIndex(p.conf.DkgConfig.OldNodes, auth.Bundle.DealerIndex)
+	case *JustificationBundle:
+		hash = auth.Hash()
+		pub, ok = findIndex(p.dkg.c.OldNodes, auth.DealerIndex)
 		if !ok {
 			return errors.New("no nodes with this public key")
 		}
@@ -298,18 +284,8 @@ func (p *Protocol) VerifySignature(packet interface{}) error {
 		return errors.New("unknown packet type")
 	}
 
-	err := p.conf.Auth.Verify(pub, hash, sig)
+	err := p.dkg.c.Auth.Verify(pub, hash, sig)
 	return err
-}
-
-type hashable interface {
-	Hash() []byte
-}
-
-func (p *Protocol) signIt(h hashable) ([]byte, error) {
-	msg := h.Hash()
-	priv := p.conf.Longterm
-	return p.conf.Auth.Sign(priv, msg)
 }
 
 func (p *Protocol) sendDeals() bool {
@@ -323,22 +299,14 @@ func (p *Protocol) sendDeals() bool {
 		}
 		return false
 	}
-	authBundle := AuthDealBundle{
-		Bundle: bundle,
+	if bundle != nil {
+		p.board.PushDeals(bundle)
 	}
-	if p.conf.Auth != nil {
-		sig, err := p.signIt(bundle)
-		if err != nil {
-			return false
-		}
-		authBundle.Signature = sig
-	}
-	p.board.PushDeals(authBundle)
 	return true
 }
 
 func (p *Protocol) sendResponses(deals []*DealBundle) bool {
-	resp, err := p.dkg.ProcessDeals(deals)
+	bundle, err := p.dkg.ProcessDeals(deals)
 	if err != nil {
 		p.res <- OptionResult{
 			Error: err,
@@ -346,18 +314,8 @@ func (p *Protocol) sendResponses(deals []*DealBundle) bool {
 		// we signal the end since we can't go on
 		return false
 	}
-	if resp != nil {
-		authBundle := AuthResponseBundle{
-			Bundle: resp,
-		}
-		if p.conf.Auth != nil {
-			sig, err := p.signIt(resp)
-			if err != nil {
-				return false
-			}
-			authBundle.Signature = sig
-		}
-		p.board.PushResponses(authBundle)
+	if bundle != nil {
+		p.board.PushResponses(bundle)
 	}
 	return true
 }
@@ -378,17 +336,7 @@ func (p *Protocol) sendJustifications(resps []*ResponseBundle) bool {
 		return false
 	}
 	if just != nil {
-		authBundle := AuthJustifBundle{
-			Bundle: just,
-		}
-		if p.conf.Auth != nil {
-			sig, err := p.signIt(just)
-			if err != nil {
-				return false
-			}
-			authBundle.Signature = sig
-		}
-		p.board.PushJustifications(authBundle)
+		p.board.PushJustifications(just)
 	}
 	return true
 }
@@ -408,11 +356,6 @@ func (p *Protocol) WaitEnd() <-chan OptionResult {
 type OptionResult struct {
 	Result *Result
 	Error  error
-}
-
-type packet interface {
-	Hash() []byte
-	Index() Index
 }
 
 type set struct {
