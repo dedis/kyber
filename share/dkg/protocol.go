@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"strconv"
 	"strings"
 	"time"
 
@@ -131,9 +130,9 @@ func (p *Protocol) Start() {
 		p.startFast()
 		return
 	}
-	var deals []*DealBundle
-	var resps []*ResponseBundle
-	var justifs []*JustificationBundle
+	var deals = newSet()
+	var resps = newSet()
+	var justifs = newSet()
 	for {
 		select {
 		case newPhase := <-p.phaser.NextPhase():
@@ -143,37 +142,37 @@ func (p *Protocol) Start() {
 					return
 				}
 			case ResponsePhase:
-				if !p.sendResponses(deals) {
+				if !p.sendResponses(deals.ToDeals()) {
 					return
 				}
 			case JustifPhase:
-				if !p.sendJustifications(resps) {
+				if !p.sendJustifications(resps.ToResponses()) {
 					return
 				}
 			case FinishPhase:
-				p.finish(justifs)
+				p.finish(justifs.ToJustifications())
 				return
 			}
 		case newDeal := <-p.board.IncomingDeal():
 			if err := p.VerifySignature(newDeal); err == nil {
-				deals = append(deals, newDeal.Bundle)
+				deals.Push(newDeal.Bundle)
 			}
 		case newResp := <-p.board.IncomingResponse():
 			if err := p.VerifySignature(newResp); err == nil {
-				resps = append(resps, newResp.Bundle)
+				resps.Push(newResp.Bundle)
 			}
 		case newJust := <-p.board.IncomingJustification():
 			if err := p.VerifySignature(newJust); err == nil {
-				justifs = append(justifs, newJust.Bundle)
+				justifs.Push(newJust.Bundle)
 			}
 		}
 	}
 }
 
 func (p *Protocol) startFast() {
-	var deals = make(map[uint32]*DealBundle)
-	var resps = make(map[uint32]*ResponseBundle)
-	var justifs = make(map[uint32]*JustificationBundle)
+	var deals = newSet()
+	var resps = newSet()
+	var justifs = newSet()
 	var newN = len(p.conf.DkgConfig.NewNodes)
 	var oldN = len(p.conf.DkgConfig.OldNodes)
 	var phase Phase
@@ -182,11 +181,7 @@ func (p *Protocol) startFast() {
 			return true
 		}
 		phase = ResponsePhase
-		bdeals := make([]*DealBundle, 0, len(deals))
-		for _, d := range deals {
-			bdeals = append(bdeals, d)
-		}
-		if !p.sendResponses(bdeals) {
+		if !p.sendResponses(deals.ToDeals()) {
 			return false
 		}
 		return true
@@ -196,11 +191,7 @@ func (p *Protocol) startFast() {
 			return true
 		}
 		phase = JustifPhase
-		bresps := make([]*ResponseBundle, 0, len(resps))
-		for _, r := range resps {
-			bresps = append(bresps, r)
-		}
-		if !p.sendJustifications(bresps) {
+		if !p.sendJustifications(resps.ToResponses()) {
 			return false
 		}
 		return true
@@ -210,11 +201,7 @@ func (p *Protocol) startFast() {
 			// although it should never happen twice but never too sure
 			return
 		}
-		bjusts := make([]*JustificationBundle, 0, len(justifs))
-		for _, j := range justifs {
-			bjusts = append(bjusts, j)
-		}
-		p.finish(bjusts)
+		p.finish(justifs.ToJustifications())
 	}
 	for {
 		select {
@@ -239,28 +226,11 @@ func (p *Protocol) startFast() {
 			}
 		case newDeal := <-p.board.IncomingDeal():
 			if err := p.VerifySignature(newDeal); err == nil {
-				// we make sure we don't see two deals from the same dealer that
-				// are inconsistent - For example we might receive multiple
-				// times the same deal from the network due to the use of
-				// gossiping; here we make sure they're all consistent.
-				if prevDeal, ok := deals[newDeal.Bundle.DealerIndex]; ok {
-					prevHash := prevDeal.Hash()
-					newHash := newDeal.Bundle.Hash()
-					if !bytes.Equal(prevHash, newHash) {
-						delete(deals, newDeal.Bundle.DealerIndex)
-						continue
-					}
-				}
-				deals[newDeal.Bundle.DealerIndex] = newDeal.Bundle
-				var idxs []string
-				for idx := range deals {
-					idxs = append(idxs, strconv.Itoa(int(idx)))
-				}
-
+				deals.Push(newDeal.Bundle)
 			}
 			// XXX This assumes we receive our own deal bundle since we use a
 			// broadcast channel - may need to revisit that assumption
-			if len(deals) == oldN {
+			if deals.Len() == oldN {
 				if !sendResponseFn() {
 					return
 				}
@@ -269,9 +239,9 @@ func (p *Protocol) startFast() {
 			// TODO See how can we deal with inconsistent answers from different
 			// share holders
 			if err := p.VerifySignature(newResp); err == nil {
-				resps[newResp.Bundle.ShareIndex] = newResp.Bundle
+				resps.Push(newResp.Bundle)
 			}
-			if len(resps) == newN {
+			if resps.Len() == newN {
 				if !sendJustifFn() {
 					return
 				}
@@ -280,9 +250,9 @@ func (p *Protocol) startFast() {
 			// TODO see how can we deal with inconsistent answers from different
 			// dealers
 			if err := p.VerifySignature(newJust); err == nil {
-				justifs[newJust.Bundle.DealerIndex] = newJust.Bundle
+				justifs.Push(newJust.Bundle)
 			}
-			if len(justifs) == oldN {
+			if justifs.Len() == oldN {
 				finishFn()
 				return
 			}
@@ -438,4 +408,77 @@ func (p *Protocol) WaitEnd() <-chan OptionResult {
 type OptionResult struct {
 	Result *Result
 	Error  error
+}
+
+type packet interface {
+	Hash() []byte
+	Index() Index
+}
+
+type set struct {
+	vals map[Index]packet
+	bad  []Index
+}
+
+func newSet() *set {
+	return &set{
+		vals: make(map[Index]packet),
+	}
+}
+
+func (s *set) Push(p packet) {
+	hash := p.Hash()
+	idx := p.Index()
+	if s.isBad(idx) {
+		// already misbehaved before
+		return
+	}
+	prev, present := s.vals[idx]
+	if present {
+		if !bytes.Equal(prev.Hash(), hash) {
+			// bad behavior - we evict
+			delete(s.vals, idx)
+			s.bad = append(s.bad, idx)
+		}
+		// same packet just rebroadcasted - all good
+		return
+	}
+	s.vals[idx] = p
+}
+
+func (s *set) isBad(idx Index) bool {
+	for _, i := range s.bad {
+		if idx == i {
+			return true
+		}
+	}
+	return false
+}
+
+func (s *set) ToDeals() []*DealBundle {
+	deals := make([]*DealBundle, 0, len(s.vals))
+	for _, p := range s.vals {
+		deals = append(deals, p.(*DealBundle))
+	}
+	return deals
+}
+
+func (s *set) ToResponses() []*ResponseBundle {
+	resps := make([]*ResponseBundle, 0, len(s.vals))
+	for _, p := range s.vals {
+		resps = append(resps, p.(*ResponseBundle))
+	}
+	return resps
+}
+
+func (s *set) ToJustifications() []*JustificationBundle {
+	justs := make([]*JustificationBundle, 0, len(s.vals))
+	for _, p := range s.vals {
+		justs = append(justs, p.(*JustificationBundle))
+	}
+	return justs
+}
+
+func (s *set) Len() int {
+	return len(s.vals)
 }

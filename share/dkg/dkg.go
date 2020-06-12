@@ -100,7 +100,8 @@ type DkgConfig struct {
 	FastSync bool
 
 	// Nonce is required to avoid replay attacks from previous runs of a DKG /
-	// resharing. A Nonce must be of length 32 bytes. User can get a secure
+	// resharing. The required property of the Nonce is that it must be unique
+	// accross runs. A Nonce must be of length 32 bytes. User can get a secure
 	// nonce by calling `GetNonce()`.
 	Nonce []byte
 }
