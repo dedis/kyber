@@ -94,6 +94,10 @@ type Deal struct {
 	EncryptedShare []byte
 }
 
+var _ packet = (*DealBundle)(nil)
+
+// DealBundle is the struct sent out by dealers that contains all the deals and
+// the public polynomial.
 type DealBundle struct {
 	DealerIndex uint32
 	Deals       []Deal
@@ -119,7 +123,12 @@ func (d *DealBundle) Hash() []byte {
 		binary.Write(h, binary.BigEndian, deal.ShareIndex)
 		h.Write(deal.EncryptedShare)
 	}
+	h.Write(d.SessionID)
 	return h.Sum(nil)
+}
+
+func (d *DealBundle) Index() Index {
+	return d.DealerIndex
 }
 
 // Response holds the Response from another participant as well as the index of
@@ -130,6 +139,10 @@ type Response struct {
 	Status      bool
 }
 
+var _ packet = (*ResponseBundle)(nil)
+
+// ResponseBundle is the struct sent out by share holder containing the status
+// for the deals received in the first phase.
 type ResponseBundle struct {
 	// Index of the share holder for which these reponses are for
 	ShareIndex uint32
@@ -154,7 +167,12 @@ func (r *ResponseBundle) Hash() []byte {
 			binary.Write(h, binary.BigEndian, byte(0))
 		}
 	}
+	h.Write(r.SessionID)
 	return h.Sum(nil)
+}
+
+func (b *ResponseBundle) Index() Index {
+	return b.ShareIndex
 }
 
 func (b *ResponseBundle) String() string {
@@ -167,6 +185,10 @@ func (b *ResponseBundle) String() string {
 	return s
 }
 
+var _ packet = (*JustificationBundle)(nil)
+
+// JustificationBundle is the struct that contains all justifications for each
+// complaint in the precedent phase.
 type JustificationBundle struct {
 	DealerIndex    uint32
 	Justifications []Justification
@@ -191,7 +213,12 @@ func (j *JustificationBundle) Hash() []byte {
 		sbuff, _ := just.Share.MarshalBinary()
 		h.Write(sbuff)
 	}
+	h.Write(j.SessionID)
 	return h.Sum(nil)
+}
+
+func (j *JustificationBundle) Index() Index {
+	return j.DealerIndex
 }
 
 type AuthDealBundle struct {

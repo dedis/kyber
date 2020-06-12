@@ -5,8 +5,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/drand/kyber"
 	"github.com/drand/kyber/group/edwards25519"
 	"github.com/drand/kyber/sign/schnorr"
+	"github.com/drand/kyber/util/random"
 	clock "github.com/jonboulle/clockwork"
 	"github.com/stretchr/testify/require"
 )
@@ -451,4 +453,48 @@ func TestProtoThresholdFast(t *testing.T) {
 			require.NotEqual(t, uint32(1), node.Index)
 		}
 	}
+}
+
+func generateDeal(idx Index) *DealBundle {
+	suite := edwards25519.NewBlakeSHA256Ed25519()
+	deals := make([]Deal, 2)
+	deals[0].ShareIndex = 56
+	deals[1].ShareIndex = 57
+	deals[0].EncryptedShare = []byte("My first secure share")
+	deals[1].EncryptedShare = []byte("It keeps getting more secure")
+	return &DealBundle{
+		DealerIndex: idx,
+		Deals:       deals,
+		Public:      []kyber.Point{suite.Point().Pick(random.New())},
+		SessionID:   []byte("Blob"),
+	}
+}
+
+func TestSet(t *testing.T) {
+	s := newSet()
+	deal := generateDeal(1)
+	s.Push(deal)
+	require.NotNil(t, s.vals[1])
+	require.Nil(t, s.bad)
+	// push a second time shouldn't change the set
+	s.Push(deal)
+	require.NotNil(t, s.vals[1])
+	require.Nil(t, s.bad)
+
+	deal2 := generateDeal(2)
+	s.Push(deal2)
+	require.Equal(t, 2, len(s.vals))
+	require.Nil(t, s.bad)
+
+	// push a different deal
+	deal1b := generateDeal(1)
+	s.Push(deal1b)
+	require.Equal(t, 1, len(s.vals))
+	require.Contains(t, s.bad, Index(1))
+
+	// try again, it should fail directly
+	s.Push(deal1b)
+	require.Equal(t, 1, len(s.vals))
+	require.Contains(t, s.bad, Index(1))
+
 }
