@@ -105,6 +105,8 @@ type DealBundle struct {
 	Public []kyber.Point
 	// SessionID of the current run
 	SessionID []byte
+	// Signature over the hash of the whole bundle
+	Signature []byte
 }
 
 // Hash hashes the index, public coefficients and deals
@@ -149,6 +151,8 @@ type ResponseBundle struct {
 	Responses  []Response
 	// SessionID of the current run
 	SessionID []byte
+	// Signature over the hash of the whole bundle
+	Signature []byte
 }
 
 // Hash hashes the share index and responses
@@ -194,6 +198,8 @@ type JustificationBundle struct {
 	Justifications []Justification
 	// SessionID of the current run
 	SessionID []byte
+	// Signature over the hash of the whole bundle
+	Signature []byte
 }
 
 type Justification struct {
@@ -221,17 +227,7 @@ func (j *JustificationBundle) Index() Index {
 	return j.DealerIndex
 }
 
-type AuthDealBundle struct {
-	Bundle    *DealBundle
-	Signature []byte
-}
-
-type AuthResponseBundle struct {
-	Bundle    *ResponseBundle
-	Signature []byte
-}
-
-type AuthJustifBundle struct {
-	Bundle    *JustificationBundle
-	Signature []byte
+type packet interface {
+	Hash() []byte
+	Index() Index
 }

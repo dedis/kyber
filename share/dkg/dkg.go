@@ -11,6 +11,7 @@ import (
 	"github.com/drand/kyber"
 	"github.com/drand/kyber/encrypt/ecies"
 	"github.com/drand/kyber/share"
+	"github.com/drand/kyber/sign"
 	"github.com/drand/kyber/util/random"
 )
 
@@ -21,7 +22,7 @@ type Suite interface {
 	kyber.Random
 }
 
-// DkgConfig holds all required information to run a fresh DKG protocol or a
+// Config holds all required information to run a fresh DKG protocol or a
 // resharing protocol. In the case of a new fresh DKG protocol, one must fill
 // the following fields: Suite, Longterm, NewNodes, Threshold (opt). In the case
 // of a resharing protocol, one must fill the following: Suite, Longterm,
@@ -30,7 +31,7 @@ type Suite interface {
 // with the current share of the node. If the node using this config is a new
 // addition and thus has no current share, the PublicCoeffs field be must be
 // filled in.
-type DkgConfig struct {
+type Config struct {
 	Suite Suite
 
 	// Longterm is the longterm secret key.
@@ -104,6 +105,10 @@ type DkgConfig struct {
 	// accross runs. A Nonce must be of length 32 bytes. User can get a secure
 	// nonce by calling `GetNonce()`.
 	Nonce []byte
+
+	// Auth is the scheme to use to authentify the packets sent and received
+	// during the protocol.
+	Auth sign.Scheme
 }
 
 // Phase is a type that represents the different stages of the DKG protocol.
@@ -137,7 +142,7 @@ func (p Phase) String() string {
 // DistKeyGenerator is the struct that runs the DKG protocol.
 type DistKeyGenerator struct {
 	// config driving the behavior of DistKeyGenerator
-	c     *DkgConfig
+	c     *Config
 	suite Suite
 
 	long     kyber.Scalar
@@ -178,14 +183,17 @@ type DistKeyGenerator struct {
 	olddpub *share.PubPoly
 }
 
-// NewDistKeyHandler takes a DkgConfig and returns a DistKeyGenerator that is able
+// NewDistKeyHandler takes a Config and returns a DistKeyGenerator that is able
 // to drive the DKG or resharing protocol.
-func NewDistKeyHandler(c *DkgConfig) (*DistKeyGenerator, error) {
+func NewDistKeyHandler(c *Config) (*DistKeyGenerator, error) {
 	if c.NewNodes == nil && c.OldNodes == nil {
 		return nil, errors.New("dkg: can't run with empty node list")
 	}
 	if len(c.Nonce) != NonceLength {
 		return nil, errors.New("dkg: invalid nonce length")
+	}
+	if c.Auth == nil {
+		return nil, errors.New("dkg: need authentication scheme")
 	}
 
 	var isResharing bool
@@ -354,12 +362,15 @@ func (d *DistKeyGenerator) Deals() (*DealBundle, error) {
 	}
 	d.state = DealPhase
 	_, commits := d.dpub.Info()
-	return &DealBundle{
+	bundle := &DealBundle{
 		DealerIndex: uint32(d.oidx),
 		Deals:       deals,
 		Public:      commits,
 		SessionID:   d.c.Nonce,
-	}, nil
+	}
+	var err error
+	bundle.Signature, err = d.sign(bundle)
+	return bundle, err
 }
 
 // ProcessDeals process the deals from all the nodes. Each deal for this node is
@@ -508,6 +519,11 @@ func (d *DistKeyGenerator) ProcessDeals(bundles []*DealBundle) (*ResponseBundle,
 			Responses:  responses,
 			SessionID:  d.c.Nonce,
 		}
+		sig, err := d.sign(bundle)
+		if err != nil {
+			return nil, err
+		}
+		bundle.Signature = sig
 	}
 	d.state = ResponsePhase
 	return bundle, nil
@@ -621,12 +637,15 @@ func (d *DistKeyGenerator) ProcessResponses(bundles []*ResponseBundle) (*Result,
 		return nil, nil, nil
 	}
 
-	var bundle = JustificationBundle{
+	var bundle = &JustificationBundle{
 		DealerIndex:    uint32(d.oidx),
 		Justifications: justifications,
 		SessionID:      d.c.Nonce,
 	}
-	return nil, &bundle, nil
+
+	signature, err := d.sign(bundle)
+	bundle.Signature = signature
+	return nil, bundle, err
 }
 
 // ProcessJustifications takes the justifications of the nodes and returns the
@@ -981,4 +1000,10 @@ func GetNonce() []byte {
 		panic(err)
 	}
 	return nonce[:]
+}
+
+func (d *DistKeyGenerator) sign(p packet) ([]byte, error) {
+	msg := p.Hash()
+	priv := d.c.Longterm
+	return d.c.Auth.Sign(priv, msg)
 }

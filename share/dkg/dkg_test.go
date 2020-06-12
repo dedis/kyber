@@ -7,6 +7,7 @@ import (
 	"github.com/drand/kyber/group/edwards25519"
 	"github.com/drand/kyber/pairing/bn256"
 	"github.com/drand/kyber/share"
+	"github.com/drand/kyber/sign/schnorr"
 	"github.com/drand/kyber/sign/tbls"
 	"github.com/drand/kyber/util/random"
 	clock "github.com/jonboulle/clockwork"
@@ -55,7 +56,7 @@ func NodesFromTest(tns []*TestNode) []Node {
 }
 
 // inits the dkg structure
-func SetupNodes(nodes []*TestNode, c *DkgConfig) {
+func SetupNodes(nodes []*TestNode, c *Config) {
 	nonce := GetNonce()
 	for _, n := range nodes {
 		c2 := *c
@@ -69,7 +70,7 @@ func SetupNodes(nodes []*TestNode, c *DkgConfig) {
 	}
 }
 
-func SetupReshareNodes(nodes []*TestNode, c *DkgConfig, coeffs []kyber.Point) {
+func SetupReshareNodes(nodes []*TestNode, c *Config, coeffs []kyber.Point) {
 	nonce := GetNonce()
 	for _, n := range nodes {
 		c2 := *c
@@ -140,7 +141,7 @@ type MapDeal func([]*DealBundle) []*DealBundle
 type MapResponse func([]*ResponseBundle) []*ResponseBundle
 type MapJustif func([]*JustificationBundle) []*JustificationBundle
 
-func RunDKG(t *testing.T, tns []*TestNode, conf DkgConfig,
+func RunDKG(t *testing.T, tns []*TestNode, conf Config,
 	dm MapDeal, rm MapResponse, jm MapJustif) []*Result {
 
 	SetupNodes(tns, &conf)
@@ -203,10 +204,11 @@ func TestDKGFull(t *testing.T) {
 	suite := edwards25519.NewBlakeSHA256Ed25519()
 	tns := GenerateTestNodes(suite, n)
 	list := NodesFromTest(tns)
-	conf := DkgConfig{
+	conf := Config{
 		Suite:     suite,
 		NewNodes:  list,
 		Threshold: thr,
+		Auth:      schnorr.NewScheme(suite),
 	}
 
 	results := RunDKG(t, tns, conf, nil, nil, nil)
@@ -219,10 +221,11 @@ func TestDKGThreshold(t *testing.T) {
 	suite := edwards25519.NewBlakeSHA256Ed25519()
 	tns := GenerateTestNodes(suite, n)
 	list := NodesFromTest(tns)
-	conf := DkgConfig{
+	conf := Config{
 		Suite:     suite,
 		NewNodes:  list,
 		Threshold: thr,
+		Auth:      schnorr.NewScheme(suite),
 	}
 
 	dm := func(deals []*DealBundle) []*DealBundle {
@@ -284,10 +287,11 @@ func TestDKGResharing(t *testing.T) {
 	var sigSuite = bn256.NewSuiteG1()
 	tns := GenerateTestNodes(suite, n)
 	list := NodesFromTest(tns)
-	conf := DkgConfig{
+	conf := Config{
 		Suite:     suite,
 		NewNodes:  list,
 		Threshold: thr,
+		Auth:      schnorr.NewScheme(suite),
 	}
 	SetupNodes(tns, &conf)
 
@@ -342,12 +346,13 @@ func TestDKGResharing(t *testing.T) {
 		newTns[n-1+i] = NewTestNode(suite, n-1+i)
 	}
 	newList := NodesFromTest(newTns)
-	newConf := &DkgConfig{
+	newConf := &Config{
 		Suite:        suite,
 		NewNodes:     newList,
 		OldNodes:     list,
 		Threshold:    newT,
 		OldThreshold: thr,
+		Auth:         schnorr.NewScheme(suite),
 	}
 
 	SetupReshareNodes(newTns, newConf, tns[0].res.Key.Commits)
@@ -408,11 +413,12 @@ func TestDKGFullFast(t *testing.T) {
 	suite := edwards25519.NewBlakeSHA256Ed25519()
 	tns := GenerateTestNodes(suite, n)
 	list := NodesFromTest(tns)
-	conf := DkgConfig{
+	conf := Config{
 		FastSync:  true,
 		Suite:     suite,
 		NewNodes:  list,
 		Threshold: thr,
+		Auth:      schnorr.NewScheme(suite),
 	}
 
 	results := RunDKG(t, tns, conf, nil, nil, nil)
@@ -425,11 +431,12 @@ func TestDKGNonceInvalid(t *testing.T) {
 	suite := edwards25519.NewBlakeSHA256Ed25519()
 	tns := GenerateTestNodes(suite, n)
 	list := NodesFromTest(tns)
-	conf := &DkgConfig{
+	conf := &Config{
 		FastSync:  true,
 		Suite:     suite,
 		NewNodes:  list,
 		Threshold: thr,
+		Auth:      schnorr.NewScheme(suite),
 	}
 	nonce := GetNonce()
 	conf.Nonce = nonce
@@ -445,16 +452,41 @@ func TestDKGNonceInvalid(t *testing.T) {
 	require.Nil(t, dkg)
 }
 
+func TestDKGAbsentAuth(t *testing.T) {
+	n := 5
+	thr := n
+	suite := edwards25519.NewBlakeSHA256Ed25519()
+	tns := GenerateTestNodes(suite, n)
+	list := NodesFromTest(tns)
+	conf := &Config{
+		FastSync:  true,
+		Suite:     suite,
+		NewNodes:  list,
+		Threshold: thr,
+		Nonce:     GetNonce(),
+		Longterm:  tns[0].Private,
+	}
+	dkg, err := NewDistKeyHandler(conf)
+	require.Error(t, err)
+	require.Nil(t, dkg)
+
+	conf.Auth = schnorr.NewScheme(suite)
+	dkg, err = NewDistKeyHandler(conf)
+	require.NoError(t, err)
+	require.NotNil(t, dkg)
+}
+
 func TestDKGNonceInvalidEviction(t *testing.T) {
 	n := 7
 	thr := 4
 	suite := edwards25519.NewBlakeSHA256Ed25519()
 	tns := GenerateTestNodes(suite, n)
 	list := NodesFromTest(tns)
-	conf := DkgConfig{
+	conf := Config{
 		Suite:     suite,
 		NewNodes:  list,
 		Threshold: thr,
+		Auth:      schnorr.NewScheme(suite),
 	}
 
 	genPublic := func() []kyber.Point {
@@ -516,10 +548,11 @@ func TestDKGInvalidResponse(t *testing.T) {
 	suite := edwards25519.NewBlakeSHA256Ed25519()
 	tns := GenerateTestNodes(suite, n)
 	list := NodesFromTest(tns)
-	conf := DkgConfig{
+	conf := Config{
 		Suite:     suite,
 		NewNodes:  list,
 		Threshold: thr,
+		Auth:      schnorr.NewScheme(suite),
 	}
 	SetupNodes(tns, &conf)
 
