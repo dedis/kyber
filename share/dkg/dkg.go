@@ -340,7 +340,6 @@ func (d *DistKeyGenerator) Deals() (*DealBundle, error) {
 	for _, node := range d.c.NewNodes {
 		// compute share
 		si := d.dpriv.Eval(int(node.Index)).V
-		//fmt.Printf("\t- sending to %d: %s\n", node.Index, si.String())
 
 		if d.canReceive && uint32(d.nidx) == node.Index {
 			d.validShares[d.oidx] = si
@@ -429,7 +428,6 @@ func (d *DistKeyGenerator) ProcessDeals(bundles []*DealBundle) (*ResponseBundle,
 		}
 		seenIndex[bundle.DealerIndex] = true
 		d.allPublics[bundle.DealerIndex] = pubPoly
-		//fmt.Printf("\t - Looking at deals from %d\n", bundle.DealerIndex)
 		for _, deal := range bundle.Deals {
 			if !isIndexIncluded(d.c.NewNodes, deal.ShareIndex) {
 				// invalid index for share holder is a clear sign of cheating
@@ -607,6 +605,17 @@ func (d *DistKeyGenerator) ProcessResponses(bundles []*ResponseBundle) (*Result,
 			return nil, nil, nil
 		}
 	}
+
+	// check if there are some node who received at least t complaints.
+	// In that case, they must be evicted already since their polynomial can
+	// now be reconstructed so any observer can sign in its place.
+	for _, n := range d.c.OldNodes {
+		complaints := d.statuses.StatusesOfDealer(n.Index).LengthComplaints()
+		if complaints >= d.c.Threshold {
+			d.evicted = append(d.evicted, n.Index)
+		}
+	}
+
 	d.state = JustifPhase
 
 	if !d.canIssue {

@@ -618,3 +618,46 @@ func TestDKGInvalidResponse(t *testing.T) {
 	}
 	testResults(t, suite, thr, n, results)
 }
+
+func TestDKGTooManyComplaints(t *testing.T) {
+	n := 5
+	thr := 3
+	suite := edwards25519.NewBlakeSHA256Ed25519()
+	tns := GenerateTestNodes(suite, n)
+	list := NodesFromTest(tns)
+	conf := Config{
+		Suite:     suite,
+		NewNodes:  list,
+		Threshold: thr,
+		Auth:      schnorr.NewScheme(suite),
+	}
+
+	dm := func(deals []*DealBundle) []*DealBundle {
+		// we make the second dealer creating a invalid share for too many
+		// participants
+		for i := 0; i <= thr; i++ {
+			deals[0].Deals[i].EncryptedShare = []byte("Another one bites the dust")
+		}
+		return deals
+	}
+	results := RunDKG(t, tns, conf, dm, nil, nil)
+	var filtered = results[:0]
+	for _, n := range tns {
+		if 0 == n.Index {
+			// node 0 is excluded by all others since he didn't even provide a
+			// deal at the first phase,i.e. it didn't even provide a public
+			// polynomial at the first phase.
+			continue
+		}
+		for _, res := range results {
+			if res.Key.Share.I != int(n.Index) {
+				continue
+			}
+			for _, nodeQual := range res.QUAL {
+				require.NotEqual(t, uint32(0), nodeQual.Index)
+			}
+			filtered = append(filtered, res)
+		}
+	}
+	testResults(t, suite, thr, n, filtered)
+}

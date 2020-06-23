@@ -11,7 +11,7 @@ const (
 	Complaint = false
 )
 
-type BitSet = map[uint32]bool
+type BitSet map[uint32]bool
 type StatusMatrix map[uint32]BitSet
 
 func NewStatusMatrix(dealers []Node, shareHolders []Node, status bool) *StatusMatrix {
@@ -118,4 +118,14 @@ func findMaxIndex(list []Node) int {
 		}
 	}
 	return m
+}
+
+func (b BitSet) LengthComplaints() int {
+	var count = 0
+	for _, status := range b {
+		if status == Complaint {
+			count++
+		}
+	}
+	return count
 }
