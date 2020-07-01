@@ -60,6 +60,9 @@ func TestDKGNewDistKeyGenerator(t *testing.T) {
 	sec, _ := genPair()
 	_, err = NewDistKeyGenerator(suite, sec, partPubs, defaultT)
 	require.Error(t, err)
+
+	_, err = NewDistKeyGenerator(suite, sec, []kyber.Point{}, defaultT)
+	require.EqualError(t, err, "dkg: can't run with empty node list")
 }
 
 func TestDKGDeal(t *testing.T) {
