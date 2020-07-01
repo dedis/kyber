@@ -16,3 +16,4 @@ exit_tunnel
 .DS_Store
 *.cov
 profile.tmp
+Coding/
