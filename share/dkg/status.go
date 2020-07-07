@@ -64,11 +64,9 @@ func (s *StatusMatrix) AllTrue(dealer uint32) bool {
 }
 
 func (s *StatusMatrix) CompleteSuccess() bool {
-	for _, bs := range *s {
-		for _, status := range bs {
-			if status != Success {
-				return false
-			}
+	for dealer := range *s {
+		if !s.AllTrue(dealer) {
+			return false
 		}
 	}
 	return true

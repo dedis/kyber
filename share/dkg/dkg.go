@@ -300,7 +300,7 @@ func NewDistKeyHandler(c *Config) (*DistKeyGenerator, error) {
 			// by default, so if we miss one share or there's an invalid share,
 			// it'll generate a complaint
 			for _, node := range c.OldNodes {
-				statuses.Set(node.Index, uint32(nidx), false)
+				statuses.Set(node.Index, uint32(nidx), Complaint)
 			}
 		}
 	}
@@ -345,7 +345,7 @@ func (d *DistKeyGenerator) Deals() (*DealBundle, error) {
 			d.validShares[d.oidx] = si
 			d.allPublics[d.oidx] = d.dpub
 			// we set our own share as true, because we are not malicious!
-			d.statuses.Set(d.oidx, d.nidx, true)
+			d.statuses.Set(d.oidx, d.nidx, Success)
 			// we don't send our own share - useless
 			continue
 		}
@@ -593,7 +593,6 @@ func (d *DistKeyGenerator) ProcessResponses(bundles []*ResponseBundle) (*Result,
 			}
 		}
 	}
-
 	if !foundComplaint {
 		// there is no complaint !
 		if d.canReceive && d.statuses.CompleteSuccess() {
@@ -1011,7 +1010,7 @@ func GetNonce() []byte {
 	return nonce[:]
 }
 
-func (d *DistKeyGenerator) sign(p packet) ([]byte, error) {
+func (d *DistKeyGenerator) sign(p Packet) ([]byte, error) {
 	msg := p.Hash()
 	priv := d.c.Longterm
 	return d.c.Auth.Sign(priv, msg)

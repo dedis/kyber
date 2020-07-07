@@ -3,6 +3,7 @@ package dkg
 import (
 	"crypto/sha256"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -94,7 +95,7 @@ type Deal struct {
 	EncryptedShare []byte
 }
 
-var _ packet = (*DealBundle)(nil)
+var _ Packet = (*DealBundle)(nil)
 
 // DealBundle is the struct sent out by dealers that contains all the deals and
 // the public polynomial.
@@ -133,6 +134,10 @@ func (d *DealBundle) Index() Index {
 	return d.DealerIndex
 }
 
+func (d *DealBundle) Sig() []byte {
+	return d.Signature
+}
+
 // Response holds the Response from another participant as well as the index of
 // the target Dealer.
 type Response struct {
@@ -141,7 +146,7 @@ type Response struct {
 	Status      bool
 }
 
-var _ packet = (*ResponseBundle)(nil)
+var _ Packet = (*ResponseBundle)(nil)
 
 // ResponseBundle is the struct sent out by share holder containing the status
 // for the deals received in the first phase.
@@ -179,6 +184,10 @@ func (b *ResponseBundle) Index() Index {
 	return b.ShareIndex
 }
 
+func (b *ResponseBundle) Sig() []byte {
+	return b.Signature
+}
+
 func (b *ResponseBundle) String() string {
 	var s = fmt.Sprintf("ShareHolder %d: ", b.ShareIndex)
 	var arr []string
@@ -189,7 +198,7 @@ func (b *ResponseBundle) String() string {
 	return s
 }
 
-var _ packet = (*JustificationBundle)(nil)
+var _ Packet = (*JustificationBundle)(nil)
 
 // JustificationBundle is the struct that contains all justifications for each
 // complaint in the precedent phase.
@@ -227,7 +236,62 @@ func (j *JustificationBundle) Index() Index {
 	return j.DealerIndex
 }
 
-type packet interface {
+func (j *JustificationBundle) Sig() []byte {
+	return j.Signature
+}
+
+// Packet is the interface that implements the three messages that this
+// implementation uses during the different phases. This interface allows to
+// verify a DKG packet without knowing its specific type.
+type Packet interface {
 	Hash() []byte
 	Index() Index
+	Sig() []byte
+}
+
+// VerifyPacketSignature returns an error if the packet has an invalid
+// signature. The signature is verified via the information contained in the
+// config, namely the old and new nodes public keys.
+func VerifyPacketSignature(c *Config, p Packet) error {
+	// this method returns the correct dealers wether this config is for a DKG
+	// or a resharing. For a DKG, OldNodes is set to nil, so the new nodes are
+	// the ones that are going to be dealers as well.
+	getDealers := func() []Node {
+		if c.OldNodes == nil {
+			return c.NewNodes
+		}
+		return c.OldNodes
+	}
+	var ok bool
+	var hash []byte
+	var pub kyber.Point
+	var sig []byte
+	switch auth := p.(type) {
+	case *DealBundle:
+		hash = auth.Hash()
+		pub, ok = findIndex(getDealers(), auth.DealerIndex)
+		if !ok {
+			return errors.New("no nodes with this public key")
+		}
+		sig = auth.Signature
+	case *ResponseBundle:
+		hash = auth.Hash()
+		pub, ok = findIndex(c.NewNodes, auth.ShareIndex)
+		if !ok {
+			return errors.New("no nodes with this public key")
+		}
+		sig = auth.Signature
+	case *JustificationBundle:
+		hash = auth.Hash()
+		pub, ok = findIndex(getDealers(), auth.DealerIndex)
+		if !ok {
+			return errors.New("no nodes with this public key")
+		}
+		sig = auth.Signature
+	default:
+		return errors.New("unknown packet type")
+	}
+
+	err := c.Auth.Verify(pub, hash, sig)
+	return err
 }
