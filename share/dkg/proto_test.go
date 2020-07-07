@@ -59,6 +59,7 @@ type TestBoard struct {
 	newJusts chan JustificationBundle
 	network  *TestNetwork
 	badDeal  bool
+	badSig   bool
 }
 
 func NewTestBoard(index uint32, n int, network *TestNetwork) *TestBoard {
@@ -74,6 +75,9 @@ func NewTestBoard(index uint32, n int, network *TestNetwork) *TestBoard {
 func (t *TestBoard) PushDeals(d *DealBundle) {
 	if t.badDeal {
 		d.Deals[0].EncryptedShare = []byte("bad bad bad")
+	}
+	if t.badSig {
+		d.Signature = []byte("bad signature my friend")
 	}
 	t.network.BroadcastDeal(d)
 }
@@ -107,7 +111,7 @@ func SetupProto(tns []*TestNode, dkgC *Config, period time.Duration, network *Te
 		})
 		n.board = network.BoardFor(n.Index)
 		c2 := *n.dkg.c
-		proto, err := NewProtocol(&c2, n.board, n.phaser)
+		proto, err := NewProtocol(&c2, n.board, n.phaser, false)
 		if err != nil {
 			panic(err)
 		}
@@ -484,4 +488,42 @@ func TestSet(t *testing.T) {
 	require.Equal(t, 1, len(s.vals))
 	require.Contains(t, s.bad, Index(1))
 
+}
+
+func TestProtoSkip(t *testing.T) {
+	n := 5
+	thr := 4
+	period := 1 * time.Second
+	suite := edwards25519.NewBlakeSHA256Ed25519()
+	tns := GenerateTestNodes(suite, n)
+	list := NodesFromTest(tns)
+	network := NewTestNetwork(n)
+	dkgConf := Config{
+		FastSync:  false,
+		Suite:     suite,
+		NewNodes:  list,
+		Threshold: thr,
+		Auth:      schnorr.NewScheme(suite),
+	}
+	SetupNodes(tns, &dkgConf)
+	SetupProto(tns, &dkgConf, period, network)
+	for _, tn := range tns {
+		tn.proto.skipVerif = true
+	}
+
+	network.BoardFor(1).badSig = true
+	// start the phasers
+	for _, node := range tns {
+		go node.phaser.Start()
+	}
+	time.Sleep(100 * time.Millisecond)
+	moveTime(tns, period)
+	time.Sleep(100 * time.Millisecond)
+	moveTime(tns, period)
+	time.Sleep(100 * time.Millisecond)
+	// check that all dkgs have all good entries
+	// that should be the case since signature verification is not performed
+	for _, tn := range tns {
+		require.True(t, tn.proto.dkg.statuses.CompleteSuccess(), "%d: %p-> %s", tn.Index, tn.proto.dkg, tn.proto.dkg.statuses.String())
+	}
 }
