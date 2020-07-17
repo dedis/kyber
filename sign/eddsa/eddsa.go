@@ -122,6 +122,10 @@ func (e *EdDSA) Sign(msg []byte) ([]byte, error) {
 // Verify uses a public key, a message and a signature. It will return nil if
 // sig is a valid signature for msg created by key public, or an error otherwise.
 func Verify(public kyber.Point, msg, sig []byte) error {
+	if public.Equal(group.Point().Null()) {
+		return errors.New("invalid public key")
+	}
+
 	if len(sig) != 64 {
 		return fmt.Errorf("signature length invalid, expect 64 but got %v", len(sig))
 	}

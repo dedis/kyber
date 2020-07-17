@@ -31,6 +31,7 @@ type Suite interface {
 // signature when using the edwards25519 Group.
 func Sign(s Suite, private kyber.Scalar, msg []byte) ([]byte, error) {
 	var g kyber.Group = s
+
 	// create random secret k and public point commitment R
 	k := g.Scalar().Pick(s.RandomStream())
 	R := g.Point().Mul(k, nil)
@@ -60,6 +61,9 @@ func Sign(s Suite, private kyber.Scalar, msg []byte) ([]byte, error) {
 // Verify verifies a given Schnorr signature. It returns nil iff the
 // given signature is valid.
 func Verify(g kyber.Group, public kyber.Point, msg, sig []byte) error {
+	if public.Equal(g.Point().Null()) {
+		return errors.New("invalid public key")
+	}
 	R := g.Point()
 	s := g.Scalar()
 	pointSize := R.MarshalSize()

@@ -96,3 +96,32 @@ func TestQuickSchnorrSignature(t *testing.T) {
 		t.Error(err)
 	}
 }
+
+// Schnorr is only defined for scalars which are not the additive identity
+// because if it was allowed, then the math works out such that the message
+// hash is ignored, and the same signature would verify for any message
+// for the public key which is the neutral identity point. The following
+// two tests check the errors we added to protect callers from this mistake.
+
+func TestBadPubKey(t *testing.T) {
+	suite := edwards25519.NewBlakeSHA256Ed25519()
+
+	// This is a good signature made on msg with private
+	// key Scalar().Zero() before that input was made into
+	// an error in Sign.
+	msg := []byte("Hello Schnorr")
+	sig := []byte{0xf4, 0x8a, 0x95, 0x90, 0xf7, 0xcc, 0x4d, 0x7b, 0xc3, 0xd3, 0x88, 0x64, 0x0, 0xd5, 0xf2, 0x9a, 0x3c, 0xde, 0x60, 0xd9, 0xe5, 0xb2, 0x4d, 0x68, 0x4c, 0x23, 0x7d, 0x6, 0x7c, 0x3, 0xcf, 0x0, 0x2c, 0xe, 0x17, 0xbf, 0xb, 0x9b, 0xa1, 0x2b, 0xa2, 0x10, 0xae, 0x59, 0x3d, 0xd, 0x34, 0xa9, 0x10, 0x31, 0x58, 0x9, 0x92, 0x40, 0x50, 0x68, 0x5a, 0x7c, 0xe7, 0x62, 0x32, 0xc7, 0xa5, 0x8}
+
+	// Modifying one byte of the message would still allow
+	// the signature to verify because the public key is Null.
+	msg[0]++
+
+	pn := suite.Point().Null()
+	err := Verify(suite, pn, msg, sig)
+
+	// Before the check, err was nil here, a dangerous situation where a
+	// signature still verifies against a modified message. With the check, the
+	// error is about the invalid public key.
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid")
+}

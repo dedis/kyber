@@ -120,6 +120,28 @@ func TestEdDSASigningRandom(t *testing.T) {
 	}
 }
 
+func TestInvalid(t *testing.T) {
+	suite := edwards25519.NewBlakeSHA256Ed25519()
+	ed := NewEdDSA(suite.RandomStream())
+	// Simulate the situation that somehow, due to wrong initialisation
+	// or whatever, the caller ends up signing with a zero secret key.
+	ed.Secret = suite.Scalar().Zero()
+	ed.Public = suite.Point().Null()
+
+	msg := []byte{1, 2, 3}
+	sig, err := ed.Sign(msg)
+	assert.NoError(t, err)
+
+	// Corrupt the message, will the signature still be valid?
+	msg[0]++
+
+	// Without the "is point not Nul" check in Verify, this
+	// call to Verify returns no error, even though the message
+	// has been corrupted!
+	err = Verify(ed.Public.Null(), msg, sig)
+	assert.Error(t, err)
+}
+
 type constantStream struct {
 	seed []byte
 }
