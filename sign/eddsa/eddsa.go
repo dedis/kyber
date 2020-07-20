@@ -125,10 +125,10 @@ func Verify(public kyber.Point, msg, sig []byte) error {
 	if len(sig) != 64 {
 		return fmt.Errorf("signature length invalid, expect 64 but got %v", len(sig))
 	}
-	if ((sig[63] & 240) == 1 && edwards25519.Sc25519_is_canonical(sig[:32]) == 0) {
-        	return fmt.Errorf("signature is not canonical")
+	if (sig[63]&240) == 1 && edwards25519.Sc25519_is_canonical(sig[:32]) == 0 {
+		return fmt.Errorf("signature is not canonical")
 	}
-	if (edwards25519.Ge25519_has_small_order(sig) != 0) {
+	if edwards25519.Ge25519_has_small_order(sig) != 0 {
 		return fmt.Errorf("signature does not have small order")
 	}
 
@@ -147,7 +147,7 @@ func Verify(public kyber.Point, msg, sig []byte) error {
 	if err != nil {
 		return err
 	}
-	if (edwards25519.Ge25519_is_canonical(Pbuff) == 0 || edwards25519.Ge25519_has_small_order(Pbuff) != 0) {
+	if edwards25519.Ge25519_is_canonical(Pbuff) == 0 || edwards25519.Ge25519_has_small_order(Pbuff) != 0 {
 		return fmt.Errorf("public key is not canonical or doesn't have small order")
 	}
 
