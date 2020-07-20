@@ -488,7 +488,8 @@ func geScalarMult(h *extendedGroupElement, a *[32]byte,
 	t.ToExtended(h)
 }
 
-func Ge25519_has_small_order(s []byte) int32 {
+// Ge25519HasSmallOrder determines whether the group element has small orders
+func Ge25519HasSmallOrder(s []byte) int32 {
 	var blocklist [][]uint8 = [][]uint8{
 		/* 0 (order 4) */
 		{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -538,7 +539,8 @@ func Ge25519_has_small_order(s []byte) int32 {
 	return int32((k >> 8) & 1)
 }
 
-func Ge25519_is_canonical(s []byte) int32 {
+// Ge25519IsCanonical determines whether the group element is canonical
+func Ge25519IsCanonical(s []byte) int32 {
 	var c uint8
 	var d uint8
 	var i uint32
@@ -547,8 +549,8 @@ func Ge25519_is_canonical(s []byte) int32 {
 	for i = 30; i > 0; i-- {
 		c |= s[i] ^ 0xff
 	}
-	c = ((c) - 1) >> 8
-	d = (0xed - 1 - s[0]) >> 8
+	c = uint8(uint((c)-1) >> 8)
+	d = uint8(uint(0xed-1-s[0]) >> 8)
 
 	return int32(1 - (c & d & 1))
 }
