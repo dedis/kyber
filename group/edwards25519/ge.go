@@ -489,6 +489,10 @@ func geScalarMult(h *extendedGroupElement, a *[32]byte,
 }
 
 // Ge25519HasSmallOrder determines whether the group element has small orders
+//
+// Provides resilience against malicious key substitution attacks (M-S-UEO)
+// and message bound security (MSB) even for malicious keys
+// See paper https://eprint.iacr.org/2020/823.pdf for definitions and theorems
 func Ge25519HasSmallOrder(s []byte) int32 {
 	var blocklist [][]uint8 = [][]uint8{
 		/* 0 (order 4) */
@@ -540,6 +544,8 @@ func Ge25519HasSmallOrder(s []byte) int32 {
 }
 
 // Ge25519IsCanonical determines whether the group element is canonical
+//
+// Checks whether group element s is less than p
 func Ge25519IsCanonical(s []byte) int32 {
 	var c uint8
 	var d uint8

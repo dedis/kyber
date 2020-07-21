@@ -2232,6 +2232,10 @@ func scReduce(out *[32]byte, s *[64]byte) {
 }
 
 // Sc25519IsCanonical determines whether the scalar is canonical
+//
+// Checks whether scalar s is in the range 0<=s<L as required by RFC8032, Section 5.1.7.
+// Also provides Strong Unforgeability under Chosen Message Attacks (SUF-CMA)
+// See paper https://eprint.iacr.org/2020/823.pdf for definitions and theorems
 func Sc25519IsCanonical(s []byte) int32 {
 	/* 2^252+27742317777372353535851937790883648493 */
 	var L []uint8 = []uint8{0xed, 0xd3, 0xf5, 0x5c, 0x1a, 0x63, 0x12, 0x58, 0xd6, 0x9c, 0xf7,
