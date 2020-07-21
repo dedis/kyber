@@ -125,7 +125,7 @@ func Verify(public kyber.Point, msg, sig []byte) error {
 	if len(sig) != 64 {
 		return fmt.Errorf("signature length invalid, expect 64 but got %v", len(sig))
 	}
-	if (sig[63]&240) == 1 && edwards25519.Sc25519IsCanonical(sig[:32]) == 0 {
+	if (sig[63]&240) > 0 && edwards25519.Sc25519IsCanonical(sig[32:]) == 0 {
 		return fmt.Errorf("signature is not canonical")
 	}
 	if edwards25519.Ge25519HasSmallOrder(sig) != 0 {

@@ -101,6 +101,35 @@ func TestEdDSASigning(t *testing.T) {
 	}
 }
 
+// Test signature malleability
+func TestEdDSASigningMalleability(t *testing.T) {
+	/* 2^252+27742317777372353535851937790883648493 */
+	var L []uint8 = []uint8{0xed, 0xd3, 0xf5, 0x5c, 0x1a, 0x63, 0x12, 0x58, 0xd6, 0x9c, 0xf7,
+		0xa2, 0xde, 0xf9, 0xde, 0x14, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10}
+	var c uint16 = 0
+
+	suite := edwards25519.NewBlakeSHA256Ed25519()
+	ed := NewEdDSA(suite.RandomStream())
+
+	msg := make([]byte, 32)
+	_, err := rand.Read(msg)
+	assert.NoError(t, err)
+
+	sig, err := ed.Sign(msg)
+	assert.Nil(t, err)
+	assert.Nil(t, Verify(ed.Public, msg, sig))
+
+	// Add L to signature
+	for i := 0; i < 32; i++ {
+		c += uint16(sig[32+i]) + uint16(L[i])
+		sig[32+i] = byte(c)
+		c >>= 8
+	}
+
+	assert.Error(t, Verify(ed.Public, msg, sig))
+}
+
 // Test the property of a EdDSA signature
 func TestEdDSASigningRandom(t *testing.T) {
 	suite := edwards25519.NewBlakeSHA256Ed25519()
