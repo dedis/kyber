@@ -547,8 +547,8 @@ func Ge25519HasSmallOrder(s []byte) int32 {
 //
 // Checks whether group element s is less than p
 func Ge25519IsCanonical(s []byte) int32 {
-	var c = 0
-	var d = 0
+	c := 0
+	d := 0
 	var i uint32
 
 	c = (int(s[31]) & 0x7f) ^ 0x7f
