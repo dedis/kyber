@@ -130,6 +130,28 @@ func TestEdDSASigningMalleability(t *testing.T) {
 	assert.Error(t, Verify(ed.Public, msg, sig))
 }
 
+// Test non-canonical keys
+func TestEdDSASigningNonCanonical(t *testing.T) {
+	var nonCanonicalPk []byte = []byte{0xf6, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+		0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+		0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f}
+	suite := edwards25519.NewBlakeSHA256Ed25519()
+	ed := NewEdDSA(suite.RandomStream())
+
+	msg := make([]byte, 32)
+	_, err := rand.Read(msg)
+	assert.NoError(t, err)
+
+	sig, err := ed.Sign(msg)
+	assert.Nil(t, err)
+	assert.Nil(t, Verify(ed.Public, msg, sig))
+
+	err = ed.Public.UnmarshalBinary(nonCanonicalPk)
+	assert.Nil(t, err)
+
+	assert.Error(t, Verify(ed.Public, msg, sig))
+}
+
 // Test the property of a EdDSA signature
 func TestEdDSASigningRandom(t *testing.T) {
 	suite := edwards25519.NewBlakeSHA256Ed25519()
