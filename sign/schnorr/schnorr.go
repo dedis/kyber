@@ -18,6 +18,7 @@ import (
 	"fmt"
 
 	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/group/edwards25519"
 )
 
 // Suite represents the set of functionalities needed by the package schnorr.
@@ -60,6 +61,8 @@ func Sign(s Suite, private kyber.Scalar, msg []byte) ([]byte, error) {
 // Verify verifies a given Schnorr signature. It returns nil iff the
 // given signature is valid.
 func Verify(g kyber.Group, public kyber.Point, msg, sig []byte) error {
+	var isEd25519 bool = false
+
 	R := g.Point()
 	s := g.Scalar()
 	pointSize := R.MarshalSize()
@@ -68,12 +71,38 @@ func Verify(g kyber.Group, public kyber.Point, msg, sig []byte) error {
 	if len(sig) != sigSize {
 		return fmt.Errorf("schnorr: signature of invalid length %d instead of %d", len(sig), sigSize)
 	}
+
+	if g.String() == "Ed25519" {
+		isEd25519 = true
+	}
+	if isEd25519 {
+		if len(sig) != 64 {
+			return fmt.Errorf("signature length invalid, expect 64 but got %v", len(sig))
+		}
+		if (sig[63]&240) > 0 && edwards25519.Sc25519IsCanonical(sig[32:]) == 0 {
+			return fmt.Errorf("signature is not canonical")
+		}
+		if edwards25519.Ge25519HasSmallOrder(sig) != 0 {
+			return fmt.Errorf("signature has small order")
+		}
+	}
+
 	if err := R.UnmarshalBinary(sig[:pointSize]); err != nil {
 		return err
 	}
 	if err := s.UnmarshalBinary(sig[pointSize:]); err != nil {
 		return err
 	}
+	if isEd25519 {
+		Pbuff, err := public.MarshalBinary()
+		if err != nil {
+			return err
+		}
+		if edwards25519.Ge25519IsCanonical(Pbuff) == 0 || edwards25519.Ge25519HasSmallOrder(Pbuff) != 0 {
+			return fmt.Errorf("public key is not canonical or has small order")
+		}
+	}
+
 	// recompute hash(public || R || msg)
 	h, err := hash(g, public, R, msg)
 	if err != nil {
