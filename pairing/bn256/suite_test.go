@@ -377,3 +377,32 @@ func Test_g2_2add_oncurve_issue400(t *testing.T) {
 	err = p.UnmarshalBinary(ma)
 	require.NoError(t, err)
 }
+
+func getNegs(g kyber.Group) (neg1, neg2 kyber.Point) {
+	base := g.Point().Base()
+	// Use Neg to get the negation
+	neg1 = g.Point().Neg(base)
+	// Multiply by -1 to get the negation
+	minus1 := g.Scalar().SetInt64(-1)
+	neg2 = g.Point().Mul(minus1, base)
+
+	return
+}
+
+// Test doing pairings with points produced by G1 and G2's Neg function,
+// as well as by multiplying with -1.
+// All four possible combinations are tried and tested.
+// This fails for neg21-pairs in kyber 3.0.11.
+func TestNegPairAll(t *testing.T) {
+	neg11, neg12 := getNegs(NewSuiteG1())
+	neg21, neg22 := getNegs(NewSuiteG2())
+
+	pair1 := NewSuite().Pair(neg11, neg21)
+	pair2 := NewSuite().Pair(neg11, neg22)
+	pair3 := NewSuite().Pair(neg12, neg21)
+	pair4 := NewSuite().Pair(neg12, neg22)
+
+	require.True(t, pair1.Equal(pair2))
+	require.True(t, pair2.Equal(pair3))
+	require.True(t, pair3.Equal(pair4))
+}
