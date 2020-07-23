@@ -6,12 +6,13 @@ import (
 	"compress/gzip"
 	"crypto/cipher"
 	"encoding/hex"
+	"fmt"
 	"math/rand"
 	"os"
 	"strings"
 	"testing"
 
-	"go.dedis.ch/kyber/v3/group/edwards25519"
+	"go.dedis.ch/kyber/v3/util/random"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -102,15 +103,14 @@ func TestEdDSASigning(t *testing.T) {
 }
 
 // Test signature malleability
-func TestEdDSASigningMalleability(t *testing.T) {
+func TestEdDSAVerifyMalleability(t *testing.T) {
 	/* l = 2^252+27742317777372353535851937790883648493, prime order of the base point */
 	var L []uint16 = []uint16{0xed, 0xd3, 0xf5, 0x5c, 0x1a, 0x63, 0x12, 0x58, 0xd6, 0x9c, 0xf7,
 		0xa2, 0xde, 0xf9, 0xde, 0x14, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10}
 	var c uint16 = 0
 
-	suite := edwards25519.NewBlakeSHA256Ed25519()
-	ed := NewEdDSA(suite.RandomStream())
+	ed := NewEdDSA(random.New())
 
 	msg := make([]byte, 32)
 	_, err := rand.Read(msg)
@@ -127,7 +127,10 @@ func TestEdDSASigningMalleability(t *testing.T) {
 		c >>= 8
 	}
 
-	assert.Error(t, Verify(ed.Public, msg, sig))
+	err = Verify(ed.Public, msg, sig)
+	if assert.Error(t, err) {
+		assert.Equal(t, fmt.Errorf("signature is not canonical"), err)
+	}
 
 	// Additional malleability test from golang/crypto
 	// https://github.com/golang/crypto/blob/master/ed25519/ed25519_test.go#L167
@@ -148,16 +151,18 @@ func TestEdDSASigningMalleability(t *testing.T) {
 	err = ed.Public.UnmarshalBinary(publicKey)
 	assert.Nil(t, err)
 
-	assert.Error(t, Verify(ed.Public, msg2, sig2))
+	err = Verify(ed.Public, msg2, sig2)
+	if assert.Error(t, err) {
+		assert.Equal(t, fmt.Errorf("signature is not canonical"), err)
+	}
 }
 
 // Test non-canonical keys
-func TestEdDSASigningNonCanonical(t *testing.T) {
-	var nonCanonicalPk []byte = []byte{0xf6, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+func TestEdDSAVerifyNonCanonical(t *testing.T) {
+	var nonCanonicalPk []byte = []byte{0xec, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
 		0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-		0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f}
-	suite := edwards25519.NewBlakeSHA256Ed25519()
-	ed := NewEdDSA(suite.RandomStream())
+		0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}
+	ed := NewEdDSA(random.New())
 
 	msg := make([]byte, 32)
 	_, err := rand.Read(msg)
@@ -170,15 +175,42 @@ func TestEdDSASigningNonCanonical(t *testing.T) {
 	err = ed.Public.UnmarshalBinary(nonCanonicalPk)
 	assert.Nil(t, err)
 
-	assert.Error(t, Verify(ed.Public, msg, sig))
+	err = Verify(ed.Public, msg, sig)
+	if assert.Error(t, err) {
+		assert.Equal(t, fmt.Errorf("public key is not canonical or has small order"), err)
+	}
+}
+
+// Test for small orders
+func TestEdDSAVerifySmallOrder(t *testing.T) {
+	var smallOrderPk []byte = []byte{0xc7, 0x17, 0x6a, 0x70, 0x3d, 0x4d, 0xd8, 0x4f, 0xba, 0x3c, 0x0b,
+		0x76, 0x0d, 0x10, 0x67, 0x0f, 0x2a, 0x20, 0x53, 0xfa, 0x2c, 0x39,
+		0xcc, 0xc6, 0x4e, 0xc7, 0xfd, 0x77, 0x92, 0xac, 0x03, 0x7a}
+	ed := NewEdDSA(random.New())
+
+	msg := make([]byte, 32)
+	_, err := rand.Read(msg)
+	assert.NoError(t, err)
+
+	sig, err := ed.Sign(msg)
+	assert.Nil(t, err)
+	assert.Nil(t, Verify(ed.Public, msg, sig))
+
+	err = ed.Public.UnmarshalBinary(smallOrderPk)
+	assert.Nil(t, err)
+
+	err = Verify(ed.Public, msg, sig)
+	if assert.Error(t, err) {
+		assert.Equal(t, fmt.Errorf("public key is not canonical or has small order"), err)
+	}
 }
 
 // Test the property of a EdDSA signature
 func TestEdDSASigningRandom(t *testing.T) {
-	suite := edwards25519.NewBlakeSHA256Ed25519()
+	//suite := edwards25519.NewBlakeSHA256Ed25519()
 
 	for i := 0.0; i < 10000; i++ {
-		ed := NewEdDSA(suite.RandomStream())
+		ed := NewEdDSA(random.New())
 
 		msg := make([]byte, 32)
 		_, err := rand.Read(msg)

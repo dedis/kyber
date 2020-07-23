@@ -129,7 +129,7 @@ func Verify(public kyber.Point, msg, sig []byte) error {
 		return fmt.Errorf("signature is not canonical")
 	}
 	if edwards25519.Ge25519HasSmallOrder(sig) != 0 {
-		return fmt.Errorf("signature does not have small order")
+		return fmt.Errorf("signature has small order")
 	}
 
 	R := group.Point()
@@ -148,7 +148,7 @@ func Verify(public kyber.Point, msg, sig []byte) error {
 		return err
 	}
 	if edwards25519.Ge25519IsCanonical(Pbuff) == 0 || edwards25519.Ge25519HasSmallOrder(Pbuff) != 0 {
-		return fmt.Errorf("public key is not canonical or doesn't have small order")
+		return fmt.Errorf("public key is not canonical or has small order")
 	}
 
 	hash := sha512.New()

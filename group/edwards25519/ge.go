@@ -494,7 +494,7 @@ func geScalarMult(h *extendedGroupElement, a *[32]byte,
 // and message bound security (MSB) even for malicious keys
 // See paper https://eprint.iacr.org/2020/823.pdf for definitions and theorems
 func Ge25519HasSmallOrder(s []byte) int32 {
-	var blocklist [][]uint8 = [][]uint8{
+	var blocklist [][]int = [][]int{
 		/* 0 (order 4) */
 		{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -523,21 +523,21 @@ func Ge25519HasSmallOrder(s []byte) int32 {
 		{0xee, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
 			0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
 			0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f}}
-	var c []uint8 = (&[7]uint8{uint8(int32(0))})[:]
-	var k uint32
+	var c []int = (&[7]int{0})[:]
+	var k int
 	var i, j int32
 
 	for j = 0; j < 31; j++ {
 		for i = 0; i < 7; i++ {
-			c[i] |= s[j] ^ blocklist[i][j]
+			c[i] |= int(s[j]) ^ blocklist[i][j]
 		}
 	}
 	for i = 0; i < 7; i++ {
-		c[i] |= (s[j] & 0x7f) ^ blocklist[i][j]
+		c[i] |= (int(s[j]) & 0x7f) ^ blocklist[i][j]
 	}
 	k = 0
 	for i = 0; i < 7; i++ {
-		k |= uint32(c[i] - 1)
+		k |= (c[i] - 1)
 	}
 
 	return int32((k >> 8) & 1)
@@ -545,7 +545,8 @@ func Ge25519HasSmallOrder(s []byte) int32 {
 
 // Ge25519IsCanonical determines whether the group element is canonical
 //
-// Checks whether group element s is less than p
+// Checks whether group element s is less than p, according to RFC8032§5.1.3.1
+// https://tools.ietf.org/html/rfc8032#section-5.1.3
 func Ge25519IsCanonical(s []byte) int32 {
 	c := 0
 	d := 0
