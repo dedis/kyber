@@ -13,8 +13,8 @@ func testOneNonCanonicalGE(t *testing.T, s []byte) bool {
 	return true
 }
 
-// TestGe25519IsCanonicalChecksNonCanonicals loops over non-canonical points
-func TestGe25519ChecksNonCanonical(t *testing.T) {
+// TestGe25519IsCanonical loops over non-canonical points
+func TestGe25519IsCanonical(t *testing.T) {
 
 	// First finite field element that can be represented non-canonically,
 	//  with the size of x+p not bigger than 255 bits
@@ -50,5 +50,23 @@ func TestGe25519ChecksNonCanonical(t *testing.T) {
 	// Check that all non-canonical points have been detected
 	if c != shouldDetectNoNonCanonicalPE {
 		t.Fatal(c, "non-canonical points have been detected, however", shouldDetectNoNonCanonicalPE, "should have been detected!")
+	}
+}
+
+// TestGe25519HasSmallOrder loops over the blocklist
+func TestGe25519HasSmallOrder(t *testing.T) {
+
+	var tmp = []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
+
+	for _, i := range blocklist {
+		for j, elem := range i {
+			tmp[j] = byte(elem)
+		}
+
+		if Ge25519HasSmallOrder(tmp) == 0 {
+			t.Fatal(hex.Dump(tmp), "should have small order!")
+		}
 	}
 }
