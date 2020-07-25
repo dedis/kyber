@@ -514,8 +514,7 @@ func (p *pointG2) Hash(m []byte) kyber.Point {
 		gfP2{*newGFp(0), *newGFp(1)}}
 
 	// Multiply by the cofactor to get a point in G2
-	cofactor := bigFromBase10("65000549695646603732796438742359905743080310161342220753873227084684201343597")
-	rawhashpoint.Mul(rawhashpoint, cofactor)
+	rawhashpoint.Mul(rawhashpoint, g2Cofactor)
 
 	// Create a pointG2 out of the twistPoint
 	if p.g == nil {
