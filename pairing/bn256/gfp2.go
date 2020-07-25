@@ -1,5 +1,9 @@
 package bn256
 
+import (
+	"crypto/subtle"
+)
+
 // For details of the algorithms used, see "Multiplication and Squaring on
 // Pairing-Friendly Fields, Devegili et al.
 // http://eprint.iacr.org/2006/471.pdf.
@@ -193,8 +197,13 @@ func (e *gfP2) Power(a *gfP2, r [4]uint64) *gfP2 {
 	return e
 }
 
-func (e *gfP2) Equals(a *gfP2) bool {
-	return e.x.Equals(&a.x) && e.y.Equals(&a.y)
+func (e *gfP2) Equals(f *gfP2) bool {
+	var ebin, fbin [64]byte
+	e.x.Marshal(ebin[:32])
+	e.y.Marshal(ebin[32:])
+	f.x.Marshal(fbin[:32])
+	f.y.Marshal(fbin[32:])
+	return subtle.ConstantTimeCompare(ebin[:], fbin[:]) == 1
 }
 
 // Compute the square root of the element a in gfP2
