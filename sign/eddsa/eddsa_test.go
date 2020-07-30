@@ -103,6 +103,7 @@ func TestEdDSASigning(t *testing.T) {
 }
 
 // Test signature malleability
+// TODO
 func TestEdDSAVerifyMalleability(t *testing.T) {
 	/* l = 2^252+27742317777372353535851937790883648493, prime order of the base point */
 	var L []uint16 = []uint16{0xed, 0xd3, 0xf5, 0x5c, 0x1a, 0x63, 0x12, 0x58, 0xd6, 0x9c, 0xf7,
@@ -128,9 +129,7 @@ func TestEdDSAVerifyMalleability(t *testing.T) {
 	}
 
 	err = Verify(ed.Public, msg, sig)
-	if assert.Error(t, err) {
-		assert.Equal(t, fmt.Errorf("signature is not canonical"), err)
-	}
+	assert.Equal(t, fmt.Errorf("signature is not canonical"), err)
 
 	// Additional malleability test from golang/crypto
 	// https://github.com/golang/crypto/blob/master/ed25519/ed25519_test.go#L167
@@ -152,12 +151,11 @@ func TestEdDSAVerifyMalleability(t *testing.T) {
 	assert.Nil(t, err)
 
 	err = Verify(ed.Public, msg2, sig2)
-	if assert.Error(t, err) {
-		assert.Equal(t, fmt.Errorf("signature is not canonical"), err)
-	}
+	assert.Equal(t, fmt.Errorf("signature is not canonical"), err)
 }
 
 // Test non-canonical keys
+// TODO check with p+2
 func TestEdDSAVerifyNonCanonical(t *testing.T) {
 	var nonCanonicalPk []byte = []byte{0xec, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
 		0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
@@ -176,12 +174,11 @@ func TestEdDSAVerifyNonCanonical(t *testing.T) {
 	assert.Nil(t, err)
 
 	err = Verify(ed.Public, msg, sig)
-	if assert.Error(t, err) {
-		assert.Equal(t, fmt.Errorf("public key is not canonical or has small order"), err)
-	}
+	assert.Equal(t, fmt.Errorf("public key is not canonical or has small order"), err)
 }
 
 // Test for small orders
+// TODO check with p+1
 func TestEdDSAVerifySmallOrder(t *testing.T) {
 	var smallOrderPk []byte = []byte{0xc7, 0x17, 0x6a, 0x70, 0x3d, 0x4d, 0xd8, 0x4f, 0xba, 0x3c, 0x0b,
 		0x76, 0x0d, 0x10, 0x67, 0x0f, 0x2a, 0x20, 0x53, 0xfa, 0x2c, 0x39,
@@ -200,9 +197,7 @@ func TestEdDSAVerifySmallOrder(t *testing.T) {
 	assert.Nil(t, err)
 
 	err = Verify(ed.Public, msg, sig)
-	if assert.Error(t, err) {
-		assert.Equal(t, fmt.Errorf("public key is not canonical or has small order"), err)
-	}
+	assert.Equal(t, fmt.Errorf("public key is not canonical or has small order"), err)
 }
 
 // Test the property of a EdDSA signature
