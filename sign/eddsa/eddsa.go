@@ -26,6 +26,26 @@ type EdDSA struct {
 	prefix []byte
 }
 
+// edDSAPoint is used to verify signatures
+// with checks around canonicality and group order
+type edDSAPoint interface {
+	kyber.Point
+	// HasSmallOrder checks if the given buffer (in little endian)
+	// represents a point with a small order
+	HasSmallOrder(b []byte) bool
+
+	// IsCanonical checks if the given buffer (in little endian)
+	// represents a canonical point
+	IsCanonical(b []byte) bool
+}
+
+// edDSAScalar is used to verify signatures
+// with checks around canonicality
+type edDSAScalar interface {
+	kyber.Scalar
+	IsCanonical(b []byte) bool
+}
+
 // NewEdDSA will return a freshly generated key pair to use for generating
 // EdDSA signatures.
 func NewEdDSA(stream cipher.Stream) *EdDSA {
@@ -119,17 +139,23 @@ func (e *EdDSA) Sign(msg []byte) ([]byte, error) {
 	return sig[:], nil
 }
 
-// Verify uses a public key, a message and a signature. It will return nil if
-// sig is a valid signature for msg created by key public, or an error otherwise.
-func Verify(public kyber.Point, msg, sig []byte) error {
+// VerifyWithChecks uses a public key buffer, a message and a signature.
+// It will return nil if sig is a valid signature for msg created by
+// key public, or an error otherwise. Compared to `Verify`, it performs
+// additional checks around the canonicality and ensures the public key
+// does not have a small order.
+func VerifyWithChecks(pub, msg, sig []byte) error {
 	if len(sig) != 64 {
 		return fmt.Errorf("signature length invalid, expect 64 but got %v", len(sig))
 	}
-	if (sig[63]&240) > 0 && edwards25519.Sc25519IsCanonical(sig[32:]) == 0 {
+	if (sig[63]&240) > 0 && !group.Scalar().(edDSAScalar).IsCanonical(sig[32:]) {
 		return fmt.Errorf("signature is not canonical")
 	}
-	if edwards25519.Ge25519HasSmallOrder(sig) != 0 {
+	if group.Point().(edDSAPoint).HasSmallOrder(sig[:32]) {
 		return fmt.Errorf("signature has small order")
+	}
+	if !group.Point().(edDSAPoint).IsCanonical(pub) || group.Point().(edDSAPoint).HasSmallOrder(pub) {
+		return fmt.Errorf("public key is not canonical or has small order")
 	}
 
 	R := group.Point()
@@ -142,18 +168,15 @@ func Verify(public kyber.Point, msg, sig []byte) error {
 		return fmt.Errorf("schnorr: s invalid scalar %s", err)
 	}
 
-	// reconstruct h = H(R || Public || Msg)
-	Pbuff, err := public.MarshalBinary()
-	if err != nil {
-		return err
-	}
-	if edwards25519.Ge25519IsCanonical(Pbuff) == 0 || edwards25519.Ge25519HasSmallOrder(Pbuff) != 0 {
-		return fmt.Errorf("public key is not canonical or has small order")
+	public := group.Point()
+	if err := public.UnmarshalBinary(pub); err != nil {
+		return fmt.Errorf("invalid public key: %s", err)
 	}
 
+	// reconstruct h = H(R || Public || Msg)
 	hash := sha512.New()
 	_, _ = hash.Write(sig[:32])
-	_, _ = hash.Write(Pbuff)
+	_, _ = hash.Write(pub)
 	_, _ = hash.Write(msg)
 
 	h := group.Scalar().SetBytes(hash.Sum(nil))
@@ -166,4 +189,14 @@ func Verify(public kyber.Point, msg, sig []byte) error {
 		return errors.New("reconstructed S is not equal to signature")
 	}
 	return nil
+}
+
+// Verify uses a public key, a message and a signature. It will return nil if
+// sig is a valid signature for msg created by key public, or an error otherwise.
+func Verify(public kyber.Point, msg, sig []byte) error {
+	PBuf, err := public.MarshalBinary()
+	if err != nil {
+		return fmt.Errorf("error unmarshalling public key: %s", err)
+	}
+	return VerifyWithChecks(PBuf, msg, sig)
 }

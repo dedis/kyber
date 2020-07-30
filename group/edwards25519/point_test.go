@@ -13,43 +13,50 @@ func TestPoint_Marshal(t *testing.T) {
 	require.Equal(t, "ed.point", fmt.Sprintf("%s", p.MarshalID()))
 }
 
-// TestGe25519IsCanonical loops over non-canonical points
-func TestGe25519IsCanonical(t *testing.T) {
+// TestPoint_IsCanonical ensures that elements >= p are considered
+// non canonical
+func TestPoint_IsCanonical(t *testing.T) {
 
-	// First finite field element that can be represented non-canonically,
-	//  with the size of x+p not bigger than 255 bits
-	var iterFENonCanonical []byte = []byte{237, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-		255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 127}
-	var ge extendedGroupElement
+	// buffer stores the candidate points (in little endian) that we'll test
+	// against, starting with `prime`
+	buffer := prime.Bytes()
+	for i, j := 0, len(buffer)-1; i < j; i, j = i+1, j-1 {
+		buffer[i], buffer[j] = buffer[j], buffer[i]
+	}
 
-	// Iterate over the 19 finite field elements
+	// Iterate over the 19*2 finite field elements
+	point := point{}
+	actualNonCanonicalCount := 0
+	expectedNonCanonicalCount := 24
 	for i := 0; i < 19; i++ {
-		iterFENonCanonical[0] = byte(237 + i)
-		iterFENonCanonical[31] = byte(127)
-		//Some field elements aren't valid curve points, detect using FromBytes
-		require.True(t, ge.FromBytes(iterFENonCanonical))
+		buffer[0] = byte(237 + i)
+		buffer[31] = byte(127)
+
+		// Check if it's a valid point on the curve that's
+		// not canonical
+		err := point.UnmarshalBinary(buffer)
+		if err == nil && !point.IsCanonical(buffer) {
+			actualNonCanonicalCount++
+		}
 
 		// flip bit
-		iterFENonCanonical[31] |= 128
-		//Some field elements aren't valid curve points, detect using FromBytes
-		require.True(t, ge.FromBytes(iterFENonCanonical))
+		buffer[31] |= 128
+
+		// Check if it's a valid point on the curve that's
+		// not canonical
+		err = point.UnmarshalBinary(buffer)
+		if err == nil && !point.IsCanonical(buffer) {
+			actualNonCanonicalCount++
+		}
 	}
+	require.Equal(t, expectedNonCanonicalCount, actualNonCanonicalCount, "Incorrect number of non canonical points detected")
 }
 
-// TestGe25519HasSmallOrder loops over the weakKeys
-func TestGe25519HasSmallOrder(t *testing.T) {
-
-	var tmp = []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
-
-	for _, i := range weakKeys {
-		for j, elem := range i {
-			tmp[j] = byte(elem)
-		}
-
-		if Ge25519HasSmallOrder(tmp) == 0 {
-			t.Fatal(hex.Dump(tmp), "should have small order!")
-		}
+// TestPoint_HasSmallOrder ensures weakKeys are considered to have
+// a small order
+func TestPoint_HasSmallOrder(t *testing.T) {
+	p := point{}
+	for _, key := range weakKeys {
+		require.True(t, p.HasSmallOrder(key), fmt.Sprintf("%s should be considered to have a small order", hex.EncodeToString(key)))
 	}
 }

@@ -230,8 +230,7 @@ func (P *point) Mul(s kyber.Scalar, A kyber.Point) kyber.Point {
 	return P
 }
 
-
-// IsSmallOrder determines whether the group element has small orders
+// HasSmallOrder determines whether the group element has small order
 //
 // Provides resilience against malicious key substitution attacks (M-S-UEO)
 // and message bound security (MSB) even for malicious keys
@@ -239,11 +238,11 @@ func (P *point) Mul(s kyber.Scalar, A kyber.Point) kyber.Point {
 //
 // This is the same code as in
 // https://github.com/jedisct1/libsodium/blob/4744636721d2e420f8bbe2d563f31b1f5e682229/src/libsodium/crypto_core/ed25519/ref10/ed25519_ref10.c#L1170
-func (P point)HasSmallOrder() bool {
-	s, err := P.MarshalBinary()
-	if err != nil{
+func (P *point) HasSmallOrder(s []byte) bool {
+	if len(s) != 32 {
 		return false
 	}
+
 	var c [7]byte
 
 	for j := 0; j < 31; j++ {
@@ -261,7 +260,7 @@ func (P point)HasSmallOrder() bool {
 		k |= uint16(c[i]) - 1
 	}
 
-	return (k >> 8) & 1 > 0
+	return (k>>8)&1 > 0
 }
 
 // IsCanonical determines whether the group element is canonical
@@ -271,9 +270,8 @@ func (P point)HasSmallOrder() bool {
 //
 // Taken from
 // https://github.com/jedisct1/libsodium/blob/4744636721d2e420f8bbe2d563f31b1f5e682229/src/libsodium/crypto_core/ed25519/ref10/ed25519_ref10.c#L1113
-func (P point)IsCanonical() bool {
-	s, err := P.MarshalBinary()
-	if err != nil{
+func (P *point) IsCanonical(s []byte) bool {
+	if len(s) != 32 {
 		return false
 	}
 
@@ -281,8 +279,10 @@ func (P point)IsCanonical() bool {
 	for i := 30; i > 0; i-- {
 		c |= s[i] ^ 0xff
 	}
-	c = byte(uint16(c - 1) >> 8)
+
+	// subtraction might underflow
+	c = byte((uint16(c) - 1) >> 8)
 	d := byte((0xed - 1 - uint16(s[0])) >> 8)
 
-	return 1 - (c & d & 1) > 0
+	return 1-(c&d&1) == 1
 }
