@@ -457,23 +457,3 @@ func scSubFact(s, a, c *[32]byte) {
 
 	scReduceLimbs(limbs)
 }
-
-func TestScalar_IsCanonical(t *testing.T) {
-	candidate := newScalarInt(lMinus2)
-
-	// candidateBuf stores the little-endian representation
-	// of scalars we test against.
-	candidateBuf, err := candidate.MarshalBinary()
-	if err != nil {
-		t.Fatal("error unmarshalling `lMinus2`:", err)
-	}
-
-	expected := []bool{true, true, false, false}
-	s := scalar{}
-
-	// We check in range [L-2, L+4)
-	for i := 0; i < 4; i++ {
-		require.Equal(t, expected[i], s.IsCanonical(candidateBuf), fmt.Sprintf("`lMinus2 + %d` does not pass canonicality test", i))
-		candidateBuf[0]++
-	}
-}

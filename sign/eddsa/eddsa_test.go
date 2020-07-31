@@ -7,14 +7,17 @@ import (
 	"crypto/cipher"
 	"encoding/hex"
 	"fmt"
+	"math/big"
 	"math/rand"
 	"os"
 	"strings"
 	"testing"
 
+	"go.dedis.ch/kyber/v3/group/edwards25519"
 	"go.dedis.ch/kyber/v3/util/random"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // EdDSATestVectors taken from RFC8032 section 7.1
@@ -111,15 +114,15 @@ func TestEdDSAVerifyMalleability(t *testing.T) {
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10}
 	var c uint16 = 0
 
-	ed := NewEdDSA(random.New())
+	suite := edwards25519.NewBlakeSHA256Ed25519()
+	randomStream := suite.RandomStream()
+	ed := NewEdDSA(randomStream)
 
-	msg := make([]byte, 32)
-	_, err := rand.Read(msg)
-	assert.NoError(t, err)
+	msg := random.Bits(256, true, randomStream)
 
 	sig, err := ed.Sign(msg)
-	assert.Nil(t, err)
-	assert.Nil(t, Verify(ed.Public, msg, sig))
+	require.Nil(t, err)
+	require.Nil(t, Verify(ed.Public, msg, sig))
 
 	// Add l to signature
 	for i := 0; i < 32; i++ {
@@ -129,7 +132,7 @@ func TestEdDSAVerifyMalleability(t *testing.T) {
 	}
 
 	err = Verify(ed.Public, msg, sig)
-	assert.Equal(t, fmt.Errorf("signature is not canonical"), err)
+	require.EqualError(t, err, "signature is not canonical")
 
 	// Additional malleability test from golang/crypto
 	// https://github.com/golang/crypto/blob/master/ed25519/ed25519_test.go#L167
@@ -147,65 +150,106 @@ func TestEdDSAVerifyMalleability(t *testing.T) {
 		0x22, 0xab, 0xbe, 0xe6, 0x85, 0xfd, 0xa4, 0x42, 0x0f, 0x88, 0x34,
 		0xb1, 0x08, 0xc3, 0xbd, 0xae, 0x36, 0x9e, 0xf5, 0x49, 0xfa}
 
-	err = ed.Public.UnmarshalBinary(publicKey)
-	assert.Nil(t, err)
+	err = VerifyWithChecks(publicKey, msg2, sig2)
+	require.EqualError(t, err, "signature is not canonical")
+}
 
-	err = Verify(ed.Public, msg2, sig2)
-	assert.Equal(t, fmt.Errorf("signature is not canonical"), err)
+// Test non-canonical R
+func TestEdDSAVerifyNonCanonicalR(t *testing.T) {
+	var nonCanonicalR []byte = []byte{0xef, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+		0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+		0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}
+
+	suite := edwards25519.NewBlakeSHA256Ed25519()
+	randomStream := suite.RandomStream()
+	ed := NewEdDSA(randomStream)
+
+	msg := random.Bits(256, true, randomStream)
+
+	sig, err := ed.Sign(msg)
+	require.Nil(t, err)
+	require.Nil(t, Verify(ed.Public, msg, sig))
+
+	for i := 0; i < 32; i++ {
+		sig[i] = nonCanonicalR[i]
+	}
+	err = Verify(ed.Public, msg, sig)
+	require.EqualError(t, err, "R is not canonical")
 }
 
 // Test non-canonical keys
-// TODO check with p+2
-func TestEdDSAVerifyNonCanonical(t *testing.T) {
-	var nonCanonicalPk []byte = []byte{0xec, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+func TestEdDSAVerifyNonCanonicalPK(t *testing.T) {
+	var nonCanonicalPk []byte = []byte{0xef, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
 		0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
 		0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}
-	ed := NewEdDSA(random.New())
 
-	msg := make([]byte, 32)
-	_, err := rand.Read(msg)
-	assert.NoError(t, err)
+	suite := edwards25519.NewBlakeSHA256Ed25519()
+	randomStream := suite.RandomStream()
+	ed := NewEdDSA(randomStream)
+
+	msg := random.Bits(256, true, randomStream)
 
 	sig, err := ed.Sign(msg)
-	assert.Nil(t, err)
-	assert.Nil(t, Verify(ed.Public, msg, sig))
+	require.Nil(t, err)
+	require.Nil(t, Verify(ed.Public, msg, sig))
 
-	err = ed.Public.UnmarshalBinary(nonCanonicalPk)
-	assert.Nil(t, err)
-
-	err = Verify(ed.Public, msg, sig)
-	assert.Equal(t, fmt.Errorf("public key is not canonical or has small order"), err)
+	err = VerifyWithChecks(nonCanonicalPk, msg, sig)
+	require.EqualError(t, err, "public key is not canonical")
 }
 
-// Test for small orders
-// TODO check with p+1
-func TestEdDSAVerifySmallOrder(t *testing.T) {
+// Test for small order R
+func TestEdDSAVerifySmallOrderR(t *testing.T) {
+	var smallOrderR []byte = []byte{0xc7, 0x17, 0x6a, 0x70, 0x3d, 0x4d, 0xd8, 0x4f, 0xba, 0x3c, 0x0b,
+		0x76, 0x0d, 0x10, 0x67, 0x0f, 0x2a, 0x20, 0x53, 0xfa, 0x2c, 0x39,
+		0xcc, 0xc6, 0x4e, 0xc7, 0xfd, 0x77, 0x92, 0xac, 0x03, 0x7a}
+
+	suite := edwards25519.NewBlakeSHA256Ed25519()
+	randomStream := suite.RandomStream()
+	ed := NewEdDSA(randomStream)
+
+	msg := random.Bits(256, true, randomStream)
+
+	sig, err := ed.Sign(msg)
+	require.Nil(t, err)
+	require.Nil(t, Verify(ed.Public, msg, sig))
+
+	for i := 0; i < 32; i++ {
+		sig[i] = smallOrderR[i]
+	}
+
+	err = Verify(ed.Public, msg, sig)
+	require.EqualError(t, err, "R has small order")
+}
+
+// Test for small order public key
+func TestEdDSAVerifySmallOrderPK(t *testing.T) {
 	var smallOrderPk []byte = []byte{0xc7, 0x17, 0x6a, 0x70, 0x3d, 0x4d, 0xd8, 0x4f, 0xba, 0x3c, 0x0b,
 		0x76, 0x0d, 0x10, 0x67, 0x0f, 0x2a, 0x20, 0x53, 0xfa, 0x2c, 0x39,
 		0xcc, 0xc6, 0x4e, 0xc7, 0xfd, 0x77, 0x92, 0xac, 0x03, 0x7a}
-	ed := NewEdDSA(random.New())
 
-	msg := make([]byte, 32)
-	_, err := rand.Read(msg)
-	assert.NoError(t, err)
+	suite := edwards25519.NewBlakeSHA256Ed25519()
+	randomStream := suite.RandomStream()
+	ed := NewEdDSA(randomStream)
+
+	msg := random.Bits(256, true, randomStream)
 
 	sig, err := ed.Sign(msg)
-	assert.Nil(t, err)
-	assert.Nil(t, Verify(ed.Public, msg, sig))
+	require.Nil(t, err)
+	require.Nil(t, Verify(ed.Public, msg, sig))
 
 	err = ed.Public.UnmarshalBinary(smallOrderPk)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	err = Verify(ed.Public, msg, sig)
-	assert.Equal(t, fmt.Errorf("public key is not canonical or has small order"), err)
+	require.EqualError(t, err, "public key has small order")
 }
 
 // Test the property of a EdDSA signature
 func TestEdDSASigningRandom(t *testing.T) {
-	//suite := edwards25519.NewBlakeSHA256Ed25519()
+	suite := edwards25519.NewBlakeSHA256Ed25519()
 
 	for i := 0.0; i < 10000; i++ {
-		ed := NewEdDSA(random.New())
+		ed := NewEdDSA(suite.RandomStream())
 
 		msg := make([]byte, 32)
 		_, err := rand.Read(msg)
@@ -301,5 +345,62 @@ func TestGolden(t *testing.T) {
 
 	if err := scanner.Err(); err != nil {
 		t.Fatalf("error reading test data: %s", err)
+	}
+}
+
+// Test_pointIsCanonical ensures that elements >= p are considered
+// non canonical
+func Test_pointIsCanonical(t *testing.T) {
+
+	// buffer stores the candidate points (in little endian) that we'll test
+	// against, starting with `prime`
+	buffer := prime.Bytes()
+	for i, j := 0, len(buffer)-1; i < j; i, j = i+1, j-1 {
+		buffer[i], buffer[j] = buffer[j], buffer[i]
+	}
+
+	// Iterate over the 19*2 finite field elements
+	point := group.Point()
+	actualNonCanonicalCount := 0
+	expectedNonCanonicalCount := 24
+	for i := 0; i < 19; i++ {
+		buffer[0] = byte(237 + i)
+		buffer[31] = byte(127)
+
+		// Check if it's a valid point on the curve that's
+		// not canonical
+		err := point.UnmarshalBinary(buffer)
+		if err == nil && !pointIsCanonical(buffer) {
+			actualNonCanonicalCount++
+		}
+
+		// flip bit
+		buffer[31] |= 128
+
+		// Check if it's a valid point on the curve that's
+		// not canonical
+		err = point.UnmarshalBinary(buffer)
+		if err == nil && !pointIsCanonical(buffer) {
+			actualNonCanonicalCount++
+		}
+	}
+	require.Equal(t, expectedNonCanonicalCount, actualNonCanonicalCount, "Incorrect number of non canonical points detected")
+}
+
+func Test_scalarIsCanonical(t *testing.T) {
+	candidate := big.NewInt(-2)
+	candidate.Add(candidate, primeOrder)
+
+	candidateBuf := candidate.Bytes()
+	for i, j := 0, len(candidateBuf)-1; i < j; i, j = i+1, j-1 {
+		candidateBuf[i], candidateBuf[j] = candidateBuf[j], candidateBuf[i]
+	}
+
+	expected := []bool{true, true, false, false}
+
+	// We check in range [L-2, L+4)
+	for i := 0; i < 4; i++ {
+		require.Equal(t, expected[i], scalarIsCanonical(candidateBuf), fmt.Sprintf("`lMinus2 + %d` does not pass canonicality test", i))
+		candidateBuf[0]++
 	}
 }
