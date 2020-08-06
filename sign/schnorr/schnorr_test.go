@@ -64,6 +64,16 @@ func TestEdDSACompatibility(t *testing.T) {
 		t.Fatalf("Couldn't verify signature: \n%+v\nfor msg:'%s'. Error:\n%v", s, msg, err)
 	}
 
+	ed := eddsa.NewEdDSA(suite.RandomStream())
+	s2, err := ed.Sign(msg)
+	if err != nil {
+		t.Fatalf("Couldn't sign msg (eddsa.Sign): %s: %v", msg, err)
+	}
+	err = Verify(suite, ed.Public, msg, s2)
+	if err != nil {
+		t.Fatalf("Couldn't verify signature (schnorr.Verify): \n%+v\nfor msg:'%s'. Error:\n%v", s, msg, err)
+	}
+
 }
 
 // Simple random stream using the random instance provided by the testing tool

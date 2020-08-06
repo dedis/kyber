@@ -163,3 +163,18 @@ type Group interface {
 	PointLen() int // Max length of point in bytes
 	Point() Point  // Create new point
 }
+
+// Ed25519Point is used to verify Ed25519 signatures
+// with checks around canonicality and group order
+type Ed25519Point interface {
+	Point
+	// HasSmallOrder checks if the given buffer (in little endian)
+	// represents a point with a small order
+	HasSmallOrder() bool
+}
+
+// Ed25519Scalar is used to verify Ed25519 signatures
+// with checks around canonicality and group order
+type Ed25519Scalar interface {
+	Scalar
+}
