@@ -106,7 +106,6 @@ func TestEdDSASigning(t *testing.T) {
 }
 
 // Test signature malleability
-// TODO
 func TestEdDSAVerifyMalleability(t *testing.T) {
 	/* l = 2^252+27742317777372353535851937790883648493, prime order of the base point */
 	var L []uint16 = []uint16{0xed, 0xd3, 0xf5, 0x5c, 0x1a, 0x63, 0x12, 0x58, 0xd6, 0x9c, 0xf7,
