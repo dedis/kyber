@@ -6,8 +6,6 @@ import (
 	"compress/gzip"
 	"crypto/cipher"
 	"encoding/hex"
-	"fmt"
-	"math/big"
 	"math/rand"
 	"os"
 	"strings"
@@ -344,62 +342,5 @@ func TestGolden(t *testing.T) {
 
 	if err := scanner.Err(); err != nil {
 		t.Fatalf("error reading test data: %s", err)
-	}
-}
-
-// Test_pointIsCanonical ensures that elements >= p are considered
-// non canonical
-func Test_pointIsCanonical(t *testing.T) {
-
-	// buffer stores the candidate points (in little endian) that we'll test
-	// against, starting with `prime`
-	buffer := prime.Bytes()
-	for i, j := 0, len(buffer)-1; i < j; i, j = i+1, j-1 {
-		buffer[i], buffer[j] = buffer[j], buffer[i]
-	}
-
-	// Iterate over the 19*2 finite field elements
-	point := group.Point()
-	actualNonCanonicalCount := 0
-	expectedNonCanonicalCount := 24
-	for i := 0; i < 19; i++ {
-		buffer[0] = byte(237 + i)
-		buffer[31] = byte(127)
-
-		// Check if it's a valid point on the curve that's
-		// not canonical
-		err := point.UnmarshalBinary(buffer)
-		if err == nil && !pointIsCanonical(buffer) {
-			actualNonCanonicalCount++
-		}
-
-		// flip bit
-		buffer[31] |= 128
-
-		// Check if it's a valid point on the curve that's
-		// not canonical
-		err = point.UnmarshalBinary(buffer)
-		if err == nil && !pointIsCanonical(buffer) {
-			actualNonCanonicalCount++
-		}
-	}
-	require.Equal(t, expectedNonCanonicalCount, actualNonCanonicalCount, "Incorrect number of non canonical points detected")
-}
-
-func Test_scalarIsCanonical(t *testing.T) {
-	candidate := big.NewInt(-2)
-	candidate.Add(candidate, primeOrder)
-
-	candidateBuf := candidate.Bytes()
-	for i, j := 0, len(candidateBuf)-1; i < j; i, j = i+1, j-1 {
-		candidateBuf[i], candidateBuf[j] = candidateBuf[j], candidateBuf[i]
-	}
-
-	expected := []bool{true, true, false, false}
-
-	// We check in range [L-2, L+4)
-	for i := 0; i < 4; i++ {
-		require.Equal(t, expected[i], scalarIsCanonical(candidateBuf), fmt.Sprintf("`lMinus2 + %d` does not pass canonicality test", i))
-		candidateBuf[0]++
 	}
 }

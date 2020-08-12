@@ -18,8 +18,6 @@ import (
 	"fmt"
 
 	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/kyber/v3/group/edwards25519"
-	"go.dedis.ch/kyber/v3/sign/eddsa"
 )
 
 // Suite represents the set of functionalities needed by the package schnorr.
@@ -65,8 +63,13 @@ func Sign(s Suite, private kyber.Scalar, msg []byte) ([]byte, error) {
 // additional checks around the canonicality and ensures the public key
 // does not have a small order when using `edwards25519` group.
 func VerifyWithChecks(g kyber.Group, pub, msg, sig []byte) error {
-	if _, ok := g.(*edwards25519.SuiteEd25519); ok {
-		return eddsa.VerifyWithChecks(pub, msg, sig)
+	type scalarCanCheckCanonical interface {
+		IsCanonical(b []byte) bool
+	}
+
+	type pointCanCheckCanonicalAndSmallOrder interface {
+		HasSmallOrder() bool
+		IsCanonical(b []byte) bool
 	}
 
 	R := g.Point()
@@ -80,6 +83,17 @@ func VerifyWithChecks(g kyber.Group, pub, msg, sig []byte) error {
 	if err := R.UnmarshalBinary(sig[:pointSize]); err != nil {
 		return err
 	}
+	if p, ok := R.(pointCanCheckCanonicalAndSmallOrder); ok {
+		if !p.IsCanonical(sig[:pointSize]) {
+			return fmt.Errorf("R is not canonical")
+		}
+		if p.HasSmallOrder() {
+			return fmt.Errorf("R has small order")
+		}
+	}
+	if s, ok := g.Scalar().(scalarCanCheckCanonical); ok && !s.IsCanonical(sig[pointSize:]) {
+		return fmt.Errorf("signature is not canonical")
+	}
 	if err := s.UnmarshalBinary(sig[pointSize:]); err != nil {
 		return err
 	}
@@ -88,6 +102,14 @@ func VerifyWithChecks(g kyber.Group, pub, msg, sig []byte) error {
 	err := public.UnmarshalBinary(pub)
 	if err != nil {
 		return fmt.Errorf("schnorr: error unmarshalling public key")
+	}
+	if p, ok := public.(pointCanCheckCanonicalAndSmallOrder); ok {
+		if !p.IsCanonical(pub) {
+			return fmt.Errorf("public key is not canonical")
+		}
+		if p.HasSmallOrder() {
+			return fmt.Errorf("public key has small order")
+		}
 	}
 	// recompute hash(public || R || msg)
 	h, err := hash(g, public, R, msg)

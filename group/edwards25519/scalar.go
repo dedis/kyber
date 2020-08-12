@@ -2230,3 +2230,37 @@ func scReduce(out *[32]byte, s *[64]byte) {
 	out[30] = byte(s11 >> 9)
 	out[31] = byte(s11 >> 17)
 }
+
+// IsCanonical whether scalar s is in the range 0<=s<L as required by RFC8032, Section 5.1.7.
+// Also provides Strong Unforgeability under Chosen Message Attacks (SUF-CMA)
+// See paper https://eprint.iacr.org/2020/823.pdf for definitions and theorems
+// See https://github.com/jedisct1/libsodium/blob/4744636721d2e420f8bbe2d563f31b1f5e682229/src/libsodium/crypto_core/ed25519/ref10/ed25519_ref10.c#L2568
+// for a reference.
+// The method accepts a buffer instead of calling `MarshalBinary` on the receiver since that
+// always returns values modulo `primeOrder`
+func (s *scalar) IsCanonical(sb []byte) bool {
+	if len(sb) != 32 {
+		return false
+	}
+
+	if sb[31]&0xf0 == 0 {
+		return true
+	}
+
+	L := primeOrder.Bytes()
+	for i, j := 0, 31; i < j; i, j = i+1, j-1 {
+		L[i], L[j] = L[j], L[i]
+	}
+
+	var c byte
+	var n byte = 1
+
+	for i := 31; i >= 0; i-- {
+		// subtraction might lead to an underflow which needs
+		// to be accounted for in the right shift
+		c |= byte((uint16(sb[i])-uint16(L[i]))>>8) & n
+		n &= byte((uint16(sb[i]) ^ uint16(L[i]) - 1) >> 8)
+	}
+
+	return c != 0
+}
