@@ -96,3 +96,32 @@ func TestQuickSchnorrSignature(t *testing.T) {
 		t.Error(err)
 	}
 }
+
+func TestSchnorrMalleability(t *testing.T) {
+	/* l = 2^252+27742317777372353535851937790883648493, prime order of the base point */
+	var L []uint16 = []uint16{0xed, 0xd3, 0xf5, 0x5c, 0x1a, 0x63, 0x12, 0x58, 0xd6, 0x9c, 0xf7,
+		0xa2, 0xde, 0xf9, 0xde, 0x14, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10}
+	var c uint16 = 0
+
+	msg := []byte("Hello Schnorr")
+	suite := edwards25519.NewBlakeSHA256Ed25519()
+	kp := key.NewKeyPair(suite)
+
+	s, err := Sign(suite, kp.Private, msg)
+	assert.NoErrorf(t, err, "Couldn't sign msg: %s: %v", msg, err)
+
+	err = Verify(suite, kp.Public, msg, s)
+	assert.NoErrorf(t, err, "Couldn't verify signature (schnorr.Verify): \n%+v\nfor msg:'%s'. Error:\n%v", s, msg, err)
+
+	// Add l to signature
+	for i := 0; i < 32; i++ {
+		c += uint16(s[32+i]) + L[i]
+		s[32+i] = byte(c)
+		c >>= 8
+	}
+	assert.Error(t, eddsa.Verify(kp.Public, msg, s))
+
+	err = Verify(suite, kp.Public, msg, s)
+	assert.Error(t, err, "schnorr signature malleable")
+}

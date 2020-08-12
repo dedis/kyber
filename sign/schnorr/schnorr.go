@@ -18,6 +18,8 @@ import (
 	"fmt"
 
 	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/group/edwards25519"
+	"go.dedis.ch/kyber/v3/sign/eddsa"
 )
 
 // Suite represents the set of functionalities needed by the package schnorr.
@@ -57,9 +59,16 @@ func Sign(s Suite, private kyber.Scalar, msg []byte) ([]byte, error) {
 	return b.Bytes(), nil
 }
 
-// Verify verifies a given Schnorr signature. It returns nil iff the
-// given signature is valid.
-func Verify(g kyber.Group, public kyber.Point, msg, sig []byte) error {
+// VerifyWithChecks uses a public key buffer, a message and a signature.
+// It will return nil if sig is a valid signature for msg created by
+// key public, or an error otherwise. Compared to `Verify`, it performs
+// additional checks around the canonicality and ensures the public key
+// does not have a small order when using `edwards25519` group.
+func VerifyWithChecks(g kyber.Group, pub, msg, sig []byte) error {
+	if _, ok := g.(*edwards25519.SuiteEd25519); ok {
+		return eddsa.VerifyWithChecks(pub, msg, sig)
+	}
+
 	R := g.Point()
 	s := g.Scalar()
 	pointSize := R.MarshalSize()
@@ -73,6 +82,12 @@ func Verify(g kyber.Group, public kyber.Point, msg, sig []byte) error {
 	}
 	if err := s.UnmarshalBinary(sig[pointSize:]); err != nil {
 		return err
+	}
+
+	public := g.Point()
+	err := public.UnmarshalBinary(pub)
+	if err != nil {
+		return fmt.Errorf("schnorr: error unmarshalling public key")
 	}
 	// recompute hash(public || R || msg)
 	h, err := hash(g, public, R, msg)
@@ -91,6 +106,17 @@ func Verify(g kyber.Group, public kyber.Point, msg, sig []byte) error {
 	}
 
 	return nil
+
+}
+
+// Verify verifies a given Schnorr signature. It returns nil iff the
+// given signature is valid.
+func Verify(g kyber.Group, public kyber.Point, msg, sig []byte) error {
+	PBuf, err := public.MarshalBinary()
+	if err != nil {
+		return fmt.Errorf("error unmarshalling public key: %s", err)
+	}
+	return VerifyWithChecks(g, PBuf, msg, sig)
 }
 
 func hash(g kyber.Group, public, r kyber.Point, msg []byte) (kyber.Scalar, error) {
