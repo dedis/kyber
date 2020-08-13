@@ -272,7 +272,7 @@ func (P *point) HasSmallOrder() bool {
 // Taken from
 // https://github.com/jedisct1/libsodium/blob/4744636721d2e420f8bbe2d563f31b1f5e682229/src/libsodium/crypto_core/ed25519/ref10/ed25519_ref10.c#L1113
 //
-// The meethod accepts a buffer instead of calling `MarshalBianry` on the receiver
+// The method accepts a buffer instead of calling `MarshalBinary` on the receiver
 // because that always returns a value modulo `prime`.
 func (P *point) IsCanonical(s []byte) bool {
 	if len(s) != 32 {
