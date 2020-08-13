@@ -38,11 +38,7 @@ func NewSchemeOnG1(suite pairing.Suite) sign.AggregatableScheme {
 	sigGroup := suite.G1()
 	keyGroup := suite.G2()
 	pairing := func(public, hashedMsg, sigPoint kyber.Point) bool {
-		// e ( H(m) , g^x)
-		left := suite.Pair(hashedMsg, public)
-		// e ( H(m)^x , g)
-		right := suite.Pair(sigPoint, keyGroup.Point().Base())
-		return left.Equal(right)
+		return suite.ValidatePairing(hashedMsg, public, sigPoint, keyGroup.Point().Base())
 	}
 	return &scheme{
 		sigGroup: sigGroup,
@@ -57,11 +53,7 @@ func NewSchemeOnG2(suite pairing.Suite) sign.AggregatableScheme {
 	sigGroup := suite.G2()
 	keyGroup := suite.G1()
 	pairing := func(public, hashedMsg, sigPoint kyber.Point) bool {
-		// e (g^x, H(m))
-		left := suite.Pair(public, hashedMsg)
-		// e( g, H(m)^x)
-		right := suite.Pair(keyGroup.Point().Base(), sigPoint)
-		return left.Equal(right)
+		return suite.ValidatePairing(public, hashedMsg, keyGroup.Point().Base(), sigPoint)
 	}
 	return &scheme{
 		sigGroup: sigGroup,
