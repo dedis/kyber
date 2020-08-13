@@ -23,10 +23,10 @@ import (
 	"io"
 	"reflect"
 
-	"go.dedis.ch/fixbuf"
 	"github.com/drand/kyber"
 	"github.com/drand/kyber/util/random"
 	"github.com/drand/kyber/xof/blake2xb"
+	"go.dedis.ch/fixbuf"
 )
 
 // Suite implements the pairing.Suite interface for the BN256 bilinear pairing.
@@ -96,6 +96,10 @@ func (s *Suite) GT() kyber.Group {
 // and computes their pairing in GT.
 func (s *Suite) Pair(p1 kyber.Point, p2 kyber.Point) kyber.Point {
 	return s.GT().Point().(*pointGT).Pair(p1, p2)
+}
+
+func (s *Suite) ValidatePairing(p1, p2, inv1, inv2 kyber.Point) bool {
+	return s.Pair(p1, p2).Equal(s.Pair(inv1, inv2))
 }
 
 // Not used other than for reflect.TypeOf()
