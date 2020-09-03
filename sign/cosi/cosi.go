@@ -36,6 +36,12 @@ response r_i = v_i + c*a_i and sends it back to the leader.
 P' or a timer has run out. If he has not enough replies he aborts. Finally,
 the leader computes the aggregate response r = \sum{j ∈ P'}(r_j) and publishes
 (V,r,Z) as the signature for the message M.
+
+Note: This package is kept here for historical and research purposes. It
+should not be used in new code as it has been deprecated by the
+bls package, which was in turn deprecated by the bdn package. See
+https://eprint.iacr.org/2018/417.pdf for an attack on CoSi as implemented
+here.
 */
 package cosi
 
