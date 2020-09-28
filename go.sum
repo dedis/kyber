@@ -6,14 +6,19 @@ github.com/drand/bls12-381 v0.3.2 h1:RImU8Wckmx8XQx1tp1q04OV73J9Tj6mmpQLYDP7V1XE
 github.com/drand/bls12-381 v0.3.2/go.mod h1:dtcLgPtYT38L3NO6mPDYH0nbpc5tjPassDqiniuAt4Y=
 github.com/drand/kyber v1.0.1-0.20200110225416-8de27ed8c0e2/go.mod h1:UpXoA0Upd1N9l4TvRPHr1qAUBBERj6JQ/mnKI3BPEmw=
 github.com/drand/kyber v1.0.2/go.mod h1:x6KOpK7avKj0GJ4emhXFP5n7M7W7ChAPmnQh/OL6vRw=
+github.com/drand/kyber v1.1.4/go.mod h1:9+IgTq7kadePhZg7eRwSD7+bA+bmvqRK+8DtmoV5a3U=
 github.com/drand/kyber-bls12381 v0.2.0 h1:3GJfiHaMggQS2l2n7yrfX0PjY9BYikLM2f0zKP1eZTs=
 github.com/drand/kyber-bls12381 v0.2.0/go.mod h1:zQip/bHdeEB6HFZSU3v+d3cQE0GaBVQw9aR2E7AdoeI=
+github.com/drand/kyber-bls12381 v0.2.1 h1:/d5/YAdaCmHpYjF1NZevOEcKGaq6LBbyvkCTIdGqDjs=
+github.com/drand/kyber-bls12381 v0.2.1/go.mod h1:JwWn4nHO9Mp4F5qCie5sVIPQZ0X6cw8XAeMRvc/GXBE=
 github.com/jonboulle/clockwork v0.1.0 h1:VKV+ZcuP6l3yW9doeqz6ziZGgcynBVQO+obU0+0hcPo=
 github.com/jonboulle/clockwork v0.1.0/go.mod h1:Ii8DK3G1RaLaWxj9trq07+26W01tbo22gdxWY5EU2bo=
 github.com/kilic/bls12-381 v0.0.0-20200607163746-32e1441c8a9f h1:qET3Wx0v8tMtoTOQnsJXVvqvCopSf48qobR6tcJuDHo=
 github.com/kilic/bls12-381 v0.0.0-20200607163746-32e1441c8a9f/go.mod h1:XXfR6YFCRSrkEXbNlIyDsgXVNJWVUV30m/ebkVy9n6s=
 github.com/kilic/bls12-381 v0.0.0-20200731194930-64c428e1bff5 h1:RAGCvOaqSiey3BGHopL/JI6+baO7D7AYQVDb6I8pRTs=
 github.com/kilic/bls12-381 v0.0.0-20200731194930-64c428e1bff5/go.mod h1:XXfR6YFCRSrkEXbNlIyDsgXVNJWVUV30m/ebkVy9n6s=
+github.com/kilic/bls12-381 v0.0.0-20200820230200-6b2c19996391 h1:51kHw7l/dUDdOdW06AlUGT5jnpj6nqQSILebcsikSjA=
+github.com/kilic/bls12-381 v0.0.0-20200820230200-6b2c19996391/go.mod h1:XXfR6YFCRSrkEXbNlIyDsgXVNJWVUV30m/ebkVy9n6s=
 github.com/kr/pretty v0.1.0 h1:L/CwN0zerZDmRFUapSPitk6f+Q3+0za1rQkzVuMiMFI=
 github.com/kr/pretty v0.1.0/go.mod h1:dAy3ld7l9f0ibDNOQOHHMYYIIbhfbHSm3C4ZsoJORNo=
 github.com/kr/pty v1.1.1/go.mod h1:pFQYn66WHrOpPYNljwOMqo10TkYh1fy3cYio2l3bCsQ=
@@ -43,6 +48,8 @@ golang.org/x/crypto v0.0.0-20200604202706-70a84ac30bf9 h1:vEg9joUBmeBcK9iSJftGNf
 golang.org/x/crypto v0.0.0-20200604202706-70a84ac30bf9/go.mod h1:LzIPMQfyMNhhGPhUkYOs5KpL4U8rLKemX1yGLhDgUto=
 golang.org/x/crypto v0.0.0-20200728195943-123391ffb6de h1:ikNHVSjEfnvz6sxdSPCaPt572qowuyMDMJLLm3Db3ig=
 golang.org/x/crypto v0.0.0-20200728195943-123391ffb6de/go.mod h1:LzIPMQfyMNhhGPhUkYOs5KpL4U8rLKemX1yGLhDgUto=
+golang.org/x/crypto v0.0.0-20200820211705-5c72a883971a h1:vclmkQCjlDX5OydZ9wv8rBCcS0QyQY66Mpf/7BZbInM=
+golang.org/x/crypto v0.0.0-20200820211705-5c72a883971a/go.mod h1:LzIPMQfyMNhhGPhUkYOs5KpL4U8rLKemX1yGLhDgUto=
 golang.org/x/net v0.0.0-20190404232315-eb5bcb51f2a3/go.mod h1:t9HGtf8HONx5eT2rtn7q6eTqICYqUVnKs3thJo3Qplg=
 golang.org/x/sys v0.0.0-20190124100055-b90733256f2e/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
 golang.org/x/sys v0.0.0-20190215142949-d0b11bdaac8a/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
@@ -54,6 +61,8 @@ golang.org/x/sys v0.0.0-20200602225109-6fdc65e7d980 h1:OjiUf46hAmXblsZdnoSXsEUSK
 golang.org/x/sys v0.0.0-20200602225109-6fdc65e7d980/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20200812155832-6a926be9bd1d h1:QQrM/CCYEzTs91GZylDCQjGHudbPTxF/1fvXdVh5lMo=
 golang.org/x/sys v0.0.0-20200812155832-6a926be9bd1d/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
+golang.org/x/sys v0.0.0-20200926100807-9d91bd62050c h1:38q6VNPWR010vN82/SB121GujZNIfAUb4YttE2rhGuc=
+golang.org/x/sys v0.0.0-20200926100807-9d91bd62050c/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/text v0.3.0/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405 h1:yhCVgyC4o1eVCa2tZl7eS0r+SDo693bJlVdllGtEeKM=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
