@@ -35,7 +35,7 @@ main package is.
 Using the module
 ----------------
 
-Kyber support Go modules, and currently have a major version of 3, which means that
+Kyber supports Go modules, and currently has a major version of 3, which means that
 the import path is: `go.dedis.ch/kyber/v3`.
 
 Here is a basic example of getting started using it:
