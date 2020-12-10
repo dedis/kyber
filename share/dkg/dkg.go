@@ -377,21 +377,19 @@ func (d *DistKeyGenerator) Deals() (*DealBundle, error) {
 // missing deals. It returns an error if the node is not in the right state, or
 // if there is not enough valid shares, i.e. the dkg is failing already.
 func (d *DistKeyGenerator) ProcessDeals(bundles []*DealBundle) (*ResponseBundle, error) {
-	if !d.canReceive {
-		// a node that is only in the group node should not process deals
-		// XXX it was an error before, but it simplifies the higher level logic
-		// if the library itself takes care of ignoring irrelevant messages. It
-		// means higher level library can simply broadcast to all nodes (old and
-		// new) without looking at which nodes should a packet be sent.
-		return nil, nil
-	}
+
 	if d.canIssue && d.state != DealPhase {
 		// oldnode member is not in the right state
-		return nil, fmt.Errorf("processdeals can only be called after producing shares")
+		return nil, fmt.Errorf("processdeals can only be called after producing shares - state %s", d.state.String())
 	}
 	if d.canReceive && !d.canIssue && d.state != InitPhase {
 		// newnode member which is not in the old group is not in the riht state
-		return nil, fmt.Errorf("processdeals can only be called once after creating the dkg for a new member")
+		return nil, fmt.Errorf("processdeals can only be called once after creating the dkg for a new member - state %s", d.state.String())
+	}
+	if !d.canReceive {
+		// a node that is only in the old group should not process deals
+		d.state = ResponsePhase // he moves on to the next phase silently
+		return nil, nil
 	}
 	seenIndex := make(map[uint32]bool)
 	for _, bundle := range bundles {
@@ -542,7 +540,7 @@ func (d *DistKeyGenerator) ProcessResponses(bundles []*ResponseBundle) (*Result,
 		// if we are a old node that will leave
 		return nil, nil, fmt.Errorf("leaving node can process responses only after creating shares")
 	} else if d.state != ResponsePhase {
-		return nil, nil, fmt.Errorf("can only process responses after processing shares")
+		return nil, nil, fmt.Errorf("can only process responses after processing shares - current state %s", d.state)
 	}
 
 	if !d.c.FastSync && len(bundles) == 0 && d.canReceive && d.statuses.CompleteSuccess() {
@@ -614,13 +612,15 @@ func (d *DistKeyGenerator) ProcessResponses(bundles []*ResponseBundle) (*Result,
 		}
 	}
 
-	if !foundComplaint {
-		// there is no complaint !
-		if d.canReceive && d.statuses.CompleteSuccess() {
+	// there is no complaint in the responses received and the status matrix
+	// is all filled with success that means we can finish the protocol -
+	// regardless of the mode chosen (fast sync or not).
+	if !foundComplaint && d.statuses.CompleteSuccess() {
+		d.state = FinishPhase
+		if d.canReceive {
 			res, err := d.computeResult()
 			return res, nil, err
 		} else {
-			d.state = FinishPhase
 			// old nodes that are not present in the new group
 			return nil, nil, nil
 		}
@@ -690,7 +690,7 @@ func (d *DistKeyGenerator) ProcessJustifications(bundles []*JustificationBundle)
 		return nil, nil
 	}
 	if d.state != JustifPhase {
-		return nil, fmt.Errorf("node can only process justifications after processing responses")
+		return nil, fmt.Errorf("node can only process justifications after processing responses - current state %s", d.state.String())
 	}
 
 	seen := make(map[uint32]bool)

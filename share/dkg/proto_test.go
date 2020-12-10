@@ -15,6 +15,7 @@ import (
 
 type TestNetwork struct {
 	boards []*TestBoard
+	noops  []uint32
 }
 
 func NewTestNetwork(n int) *TestNetwork {
@@ -23,6 +24,10 @@ func NewTestNetwork(n int) *TestNetwork {
 		t.boards = append(t.boards, NewTestBoard(uint32(i), n, t))
 	}
 	return t
+}
+
+func (n *TestNetwork) SetNoop(index uint32) {
+	n.noops = append(n.noops, index)
 }
 
 func (n *TestNetwork) BoardFor(index uint32) *TestBoard {
@@ -34,21 +39,36 @@ func (n *TestNetwork) BoardFor(index uint32) *TestBoard {
 	panic("no such indexes")
 }
 
+func (n *TestNetwork) isNoop(i uint32) bool {
+	for _, j := range n.noops {
+		if i == j {
+			return true
+		}
+	}
+	return false
+}
+
 func (n *TestNetwork) BroadcastDeal(a *DealBundle) {
 	for _, board := range n.boards {
-		board.newDeals <- (*a)
+		if !n.isNoop(board.index) {
+			board.newDeals <- (*a)
+		}
 	}
 }
 
 func (n *TestNetwork) BroadcastResponse(a *ResponseBundle) {
 	for _, board := range n.boards {
-		board.newResps <- *a
+		if !n.isNoop(board.index) {
+			board.newResps <- *a
+		}
 	}
 }
 
 func (n *TestNetwork) BroadcastJustification(a *JustificationBundle) {
 	for _, board := range n.boards {
-		board.newJusts <- *a
+		if !n.isNoop(board.index) {
+			board.newJusts <- *a
+		}
 	}
 }
 
@@ -290,6 +310,7 @@ func TestProtoResharing(t *testing.T) {
 		}
 	}
 	testResults(t, suite, newT, newN, results)
+
 }
 
 func TestProtoThreshold(t *testing.T) {
@@ -382,6 +403,132 @@ func TestProtoFullFast(t *testing.T) {
 		}
 	}
 	testResults(t, suite, thr, n, results)
+}
+
+func TestProtoResharingAbsent(t *testing.T) {
+	n := 4
+	thr := 3
+	// we setup now the second group with one node left from old group and two
+	// new node
+	newN := n + 1
+	newT := thr + 1
+
+	period := 1 * time.Second
+	suite := edwards25519.NewBlakeSHA256Ed25519()
+	tns := GenerateTestNodes(suite, n)
+	list := NodesFromTest(tns)
+	network := NewTestNetwork(n)
+	dkgConf := Config{
+		Suite:     suite,
+		NewNodes:  list,
+		Threshold: thr,
+		Auth:      schnorr.NewScheme(suite),
+	}
+	SetupNodes(tns, &dkgConf)
+	SetupProto(tns, &dkgConf, period, network)
+
+	var resCh = make(chan OptionResult, 1)
+	// start all nodes and wait until each end
+	for _, node := range tns {
+		go func(n *TestNode) {
+			optRes := <-n.proto.WaitEnd()
+			n.res = optRes.Result
+			resCh <- optRes
+		}(node)
+
+	}
+	// start the phasers
+	for _, node := range tns {
+		go node.phaser.Start()
+	}
+	time.Sleep(100 * time.Millisecond)
+	// move two periods:
+	// nodes already sent they deals, so they need to receive them after one
+	// period, then they send their responses. Second period to receive the
+	// responses, and then they send the justifications, if any.
+	// since there is no faults we expect to receive the result only after two
+	// periods.
+	for i := 0; i < 2; i++ {
+		moveTime(tns, period)
+		time.Sleep(100 * time.Millisecond)
+	}
+
+	// expect all results
+	var results []*Result
+	for optRes := range resCh {
+		require.NoError(t, optRes.Error)
+		results = append(results, optRes.Result)
+		if len(results) == n {
+			break
+		}
+	}
+	testResults(t, suite, thr, n, results)
+
+	fmt.Printf("\n\n ----- RESHARING ----\n\n")
+	// RESHARING
+	var newTns = make([]*TestNode, newN)
+	copy(newTns, tns[:n-1])
+	//  new node can have the same index as a previous one, separation is made
+	newTns[n-1] = NewTestNode(suite, n-1)
+	newTns[n] = NewTestNode(suite, n)
+	network = NewTestNetwork(newN)
+	newList := NodesFromTest(newTns)
+	newConf := &Config{
+		Suite:        suite,
+		NewNodes:     newList,
+		OldNodes:     list,
+		Threshold:    newT,
+		OldThreshold: thr,
+		Auth:         schnorr.NewScheme(suite),
+	}
+
+	SetupReshareNodes(newTns, newConf, tns[0].res.Key.Commits)
+	SetupProto(newTns, newConf, period, network)
+	///
+	/// We set a node as registered but offline
+	///
+	network.SetNoop(newTns[0].Index)
+	resCh = make(chan OptionResult, 1)
+	// start all nodes and wait until each end
+	for _, node := range newTns {
+		go func(n *TestNode) {
+			optRes := <-n.proto.WaitEnd()
+			n.res = optRes.Result
+			resCh <- optRes
+		}(node)
+	}
+	// start the phasers
+	for _, node := range newTns {
+		go node.phaser.Start()
+	}
+	time.Sleep(100 * time.Millisecond)
+	// move three periods:
+	// nodes already sent they deals, so they need to receive them after one
+	// period, then they send their responses. Second period to receive the
+	// responses, and then they send the justifications, if any. A third period
+	// is needed to receive all justifications.
+	for i := 0; i < 3; i++ {
+		moveTime(newTns, period)
+		time.Sleep(100 * time.Millisecond)
+	}
+
+	// expect results-1 OK and 1 Err
+	results = nil
+	var errNode error
+	for optRes := range resCh {
+		if optRes.Error != nil {
+			fmt.Printf("GOT ONE ERROR\n")
+			require.Nil(t, errNode, "already an error saved!?")
+			errNode = optRes.Error
+			continue
+		}
+		results = append(results, optRes.Result)
+		fmt.Printf("GOT %d RESULTS\n", len(results))
+		if len(results) == newN-1 {
+			break
+		}
+	}
+	testResults(t, suite, newT, newN, results)
 }
 
 func TestProtoThresholdFast(t *testing.T) {

@@ -156,53 +156,58 @@ func (p *Protocol) startFast() {
 	var justifs = newSet()
 	var newN = len(p.dkg.c.NewNodes)
 	var oldN = len(p.dkg.c.OldNodes)
-	var phase Phase
-	sendResponseFn := func() bool {
-		if phase != DealPhase {
+	// we keep the phase in sync with the dkg phase
+	phase := func() Phase {
+		return p.dkg.state
+	}
+	// each of the following function returns true or false depending on whether
+	// the protocol should be aborted or not.
+	toResp := func() bool {
+		// for all dealers, we should be in the DealPhase
+		if p.canIssue && phase() != DealPhase {
 			return true
 		}
-		phase = ResponsePhase
-		if !p.sendResponses(deals.ToDeals()) {
-			return false
-		}
-		return true
-	}
-	sendJustifFn := func() bool {
-		if phase != ResponsePhase {
+		// for all *new* share holders, we should be in the InitPhase
+		if !p.canIssue && phase() != InitPhase {
 			return true
 		}
-		phase = JustifPhase
-		if !p.sendJustifications(resps.ToResponses()) {
-			return false
-		}
-		return true
+		return p.sendResponses(deals.ToDeals())
 	}
-	finishFn := func() {
-		if phase != JustifPhase {
-			// although it should never happen twice but never too sure
-			return
+
+	toJust := func() bool {
+		if phase() != ResponsePhase {
+			return true
+		}
+		return p.sendJustifications(resps.ToResponses())
+	}
+	// always return false when we are in the finish phase - we quit the
+	// protocol.
+	toFinish := func() bool {
+		if phase() != JustifPhase {
+			return true
 		}
 		p.finish(justifs.ToJustifications())
+		return false
 	}
 	for {
 		select {
 		case newPhase := <-p.phaser.NextPhase():
 			switch newPhase {
 			case DealPhase:
-				phase = DealPhase
 				if !p.sendDeals() {
 					return
 				}
 			case ResponsePhase:
-				if !sendResponseFn() {
+				if !toResp() {
 					return
 				}
 			case JustifPhase:
-				if !sendJustifFn() {
+				if !toJust() {
 					return
 				}
 			case FinishPhase:
-				finishFn()
+				// whatever happens here, if phaser says it's finished we finish
+				toFinish()
 				return
 			}
 		case newDeal := <-p.board.IncomingDeal():
@@ -210,7 +215,7 @@ func (p *Protocol) startFast() {
 				deals.Push(&newDeal)
 			}
 			if deals.Len() == oldN {
-				if !sendResponseFn() {
+				if !toResp() {
 					return
 				}
 			}
@@ -219,7 +224,7 @@ func (p *Protocol) startFast() {
 				resps.Push(&newResp)
 			}
 			if resps.Len() == newN {
-				if !sendJustifFn() {
+				if !toJust() {
 					return
 				}
 			}
@@ -228,8 +233,13 @@ func (p *Protocol) startFast() {
 				justifs.Push(&newJust)
 			}
 			if justifs.Len() == oldN {
-				finishFn()
-				return
+				// we finish only if it's time to do so, maybe we received
+				// justifications but are not in the right phase yet since it
+				// may not be the right time or haven't received enough msg from
+				// previous phase
+				if !toFinish() {
+					return
+				}
 			}
 		}
 	}
@@ -277,15 +287,9 @@ func (p *Protocol) sendResponses(deals []*DealBundle) bool {
 
 func (p *Protocol) sendJustifications(resps []*ResponseBundle) bool {
 	res, just, err := p.dkg.ProcessResponses(resps)
-	if err != nil {
+	if err != nil || res != nil {
 		p.res <- OptionResult{
-			Error: err,
-		}
-		return false
-	}
-	if res != nil {
-		// we finished
-		p.res <- OptionResult{
+			Error:  err,
 			Result: res,
 		}
 		return false
