@@ -6,13 +6,40 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/pairing"
+	"go.dedis.ch/kyber/v3/pairing/bls12381"
 	"go.dedis.ch/kyber/v3/pairing/bn256"
 	"go.dedis.ch/kyber/v3/util/random"
 )
 
-func TestBLS(t *testing.T) {
-	msg := []byte("Hello Boneh-Lynn-Shacham")
+func TestBn256(t *testing.T) {
 	suite := bn256.NewSuite()
+	testBLS(t, suite)
+	testBLSFailSig(t, suite)
+	testBLSFailKey(t, suite)
+	testBLSAggregateSignatures(t, suite)
+	testBLSFailAggregatedSig(t, suite)
+	testBLSFailAggregatedKey(t, suite)
+	testBLSBatchVerify(t, suite)
+	testBLSFailBatchVerify(t, suite)
+	testBinaryMarshalAfterAggregation_issue400(t, suite)
+}
+
+func TestBLS12381(t *testing.T) {
+	suite := bls12381.NewSuite()
+	testBLS(t, suite)
+	testBLSFailSig(t, suite)
+	testBLSFailKey(t, suite)
+	testBLSAggregateSignatures(t, suite)
+	testBLSFailAggregatedSig(t, suite)
+	testBLSFailAggregatedKey(t, suite)
+	testBLSBatchVerify(t, suite)
+	testBLSFailBatchVerify(t, suite)
+	testBinaryMarshalAfterAggregation_issue400(t, suite)
+}
+
+func testBLS(t *testing.T, suite pairing.Suite) {
+	msg := []byte("Hello Boneh-Lynn-Shacham")
 	private, public := NewKeyPair(suite, random.New())
 	sig, err := Sign(suite, private, msg)
 	require.Nil(t, err)
@@ -20,9 +47,8 @@ func TestBLS(t *testing.T) {
 	require.Nil(t, err)
 }
 
-func TestBLSFailSig(t *testing.T) {
+func testBLSFailSig(t *testing.T, suite pairing.Suite) {
 	msg := []byte("Hello Boneh-Lynn-Shacham")
-	suite := bn256.NewSuite()
 	private, public := NewKeyPair(suite, random.New())
 	sig, err := Sign(suite, private, msg)
 	require.Nil(t, err)
@@ -32,9 +58,8 @@ func TestBLSFailSig(t *testing.T) {
 	}
 }
 
-func TestBLSFailKey(t *testing.T) {
+func testBLSFailKey(t *testing.T, suite pairing.Suite) {
 	msg := []byte("Hello Boneh-Lynn-Shacham")
-	suite := bn256.NewSuite()
 	private, _ := NewKeyPair(suite, random.New())
 	sig, err := Sign(suite, private, msg)
 	require.Nil(t, err)
@@ -44,9 +69,8 @@ func TestBLSFailKey(t *testing.T) {
 	}
 }
 
-func TestBLSAggregateSignatures(t *testing.T) {
+func testBLSAggregateSignatures(t *testing.T, suite pairing.Suite) {
 	msg := []byte("Hello Boneh-Lynn-Shacham")
-	suite := bn256.NewSuite()
 	private1, public1 := NewKeyPair(suite, random.New())
 	private2, public2 := NewKeyPair(suite, random.New())
 	sig1, err := Sign(suite, private1, msg)
@@ -62,9 +86,8 @@ func TestBLSAggregateSignatures(t *testing.T) {
 	require.Nil(t, err)
 }
 
-func TestBLSFailAggregatedSig(t *testing.T) {
+func testBLSFailAggregatedSig(t *testing.T, suite pairing.Suite) {
 	msg := []byte("Hello Boneh-Lynn-Shacham")
-	suite := bn256.NewSuite()
 	private1, public1 := NewKeyPair(suite, random.New())
 	private2, public2 := NewKeyPair(suite, random.New())
 	sig1, err := Sign(suite, private1, msg)
@@ -80,9 +103,8 @@ func TestBLSFailAggregatedSig(t *testing.T) {
 		t.Fatal("bls: verification succeeded unexpectedly")
 	}
 }
-func TestBLSFailAggregatedKey(t *testing.T) {
+func testBLSFailAggregatedKey(t *testing.T, suite pairing.Suite) {
 	msg := []byte("Hello Boneh-Lynn-Shacham")
-	suite := bn256.NewSuite()
 	private1, public1 := NewKeyPair(suite, random.New())
 	private2, public2 := NewKeyPair(suite, random.New())
 	_, public3 := NewKeyPair(suite, random.New())
@@ -98,10 +120,9 @@ func TestBLSFailAggregatedKey(t *testing.T) {
 		t.Fatal("bls: verification succeeded unexpectedly")
 	}
 }
-func TestBLSBatchVerify(t *testing.T) {
+func testBLSBatchVerify(t *testing.T, suite pairing.Suite) {
 	msg1 := []byte("Hello Boneh-Lynn-Shacham")
 	msg2 := []byte("Hello Dedis & Boneh-Lynn-Shacham")
-	suite := bn256.NewSuite()
 	private1, public1 := NewKeyPair(suite, random.New())
 	private2, public2 := NewKeyPair(suite, random.New())
 	sig1, err := Sign(suite, private1, msg1)
@@ -114,10 +135,9 @@ func TestBLSBatchVerify(t *testing.T) {
 	err = BatchVerify(suite, []kyber.Point{public1, public2}, [][]byte{msg1, msg2}, aggregatedSig)
 	require.Nil(t, err)
 }
-func TestBLSFailBatchVerify(t *testing.T) {
+func testBLSFailBatchVerify(t *testing.T, suite pairing.Suite) {
 	msg1 := []byte("Hello Boneh-Lynn-Shacham")
 	msg2 := []byte("Hello Dedis & Boneh-Lynn-Shacham")
-	suite := bn256.NewSuite()
 	private1, public1 := NewKeyPair(suite, random.New())
 	private2, public2 := NewKeyPair(suite, random.New())
 	sig1, err := Sign(suite, private1, msg1)
@@ -146,6 +166,29 @@ func TestBLSFailBatchVerify(t *testing.T) {
 		}
 	})
 
+}
+func testBinaryMarshalAfterAggregation_issue400(t *testing.T, suite pairing.Suite) {
+	_, public1 := NewKeyPair(suite, random.New())
+	_, public2 := NewKeyPair(suite, random.New())
+
+	workingKey := AggregatePublicKeys(suite, public1, public2, public1)
+
+	workingBits, err := workingKey.MarshalBinary()
+	require.Nil(t, err)
+
+	workingPoint := suite.G2().Point()
+	err = workingPoint.UnmarshalBinary(workingBits)
+	require.Nil(t, err)
+
+	// this was failing before the fix
+	aggregatedKey := AggregatePublicKeys(suite, public1, public1, public2)
+
+	bits, err := aggregatedKey.MarshalBinary()
+	require.Nil(t, err)
+
+	point := suite.G2().Point()
+	err = point.UnmarshalBinary(bits)
+	require.Nil(t, err)
 }
 
 func BenchmarkBLSKeyCreation(b *testing.B) {
@@ -224,30 +267,4 @@ func BenchmarkBLSVerifyBatchVerify(b *testing.B) {
 		aggregateSig, _ := AggregateSignatures(suite, sigs...)
 		BatchVerify(suite, publics, msgs, aggregateSig)
 	}
-}
-
-func TestBinaryMarshalAfterAggregation_issue400(t *testing.T) {
-	suite := bn256.NewSuite()
-
-	_, public1 := NewKeyPair(suite, random.New())
-	_, public2 := NewKeyPair(suite, random.New())
-
-	workingKey := AggregatePublicKeys(suite, public1, public2, public1)
-
-	workingBits, err := workingKey.MarshalBinary()
-	require.Nil(t, err)
-
-	workingPoint := suite.G2().Point()
-	err = workingPoint.UnmarshalBinary(workingBits)
-	require.Nil(t, err)
-
-	// this was failing before the fix
-	aggregatedKey := AggregatePublicKeys(suite, public1, public1, public2)
-
-	bits, err := aggregatedKey.MarshalBinary()
-	require.Nil(t, err)
-
-	point := suite.G2().Point()
-	err = point.UnmarshalBinary(bits)
-	require.Nil(t, err)
 }
