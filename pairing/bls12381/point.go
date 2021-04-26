@@ -16,7 +16,7 @@ type pointG1 struct {
 	p *bls12381.PointG1
 }
 
-func NullpointG1() *pointG1 {
+func nullpointG1() *pointG1 {
 	var p bls12381.PointG1
 	return newPointG1(&p)
 }
@@ -88,7 +88,7 @@ func (k *pointG1) Neg(a kyber.Point) kyber.Point {
 
 func (k *pointG1) Mul(s kyber.Scalar, q kyber.Point) kyber.Point {
 	if q == nil {
-		q = NullpointG1().Base()
+		q = nullpointG1().Base()
 	}
 	bls12381.NewG1().MulScalarBig(
 		k.p,
@@ -154,7 +154,7 @@ type pointG2 struct {
 	p *bls12381.PointG2
 }
 
-func NullpointG2() *pointG2 {
+func nullpointG2() *pointG2 {
 	var p bls12381.PointG2
 	return newPointG2(&p)
 }
@@ -226,7 +226,7 @@ func (k *pointG2) Neg(a kyber.Point) kyber.Point {
 
 func (k *pointG2) Mul(s kyber.Scalar, q kyber.Point) kyber.Point {
 	if q == nil {
-		q = NullpointG2().Base()
+		q = nullpointG2().Base()
 	}
 	bls12381.NewG2().MulScalarBig(
 		k.p,

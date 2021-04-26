@@ -60,7 +60,7 @@ func (g *groupG1) String() string {
 }
 
 func (g *groupG1) Point() kyber.Point {
-	return NullpointG1()
+	return nullpointG1()
 }
 
 func (g *groupG1) PointLen() int {
@@ -77,7 +77,7 @@ func (g *groupG2) String() string {
 }
 
 func (g *groupG2) Point() kyber.Point {
-	return NullpointG2()
+	return nullpointG2()
 }
 
 func (g *groupG2) PointLen() int {
@@ -101,20 +101,14 @@ func (g *groupGT) PointLen() int {
 	return g.Point().MarshalSize()
 }
 
-func NewGroupG1() kyber.Group {
+func newGroupG1() kyber.Group {
 	return &groupG1{
 		common: common{isPrime: true},
 	}
 }
 
-func NewGroupG2() kyber.Group {
+func newGroupG2() kyber.Group {
 	return &groupG2{
-		common: common{isPrime: false},
-	}
-}
-
-func NewGroupGT() kyber.Group {
-	return &groupGT{
 		common: common{isPrime: false},
 	}
 }

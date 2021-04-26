@@ -77,6 +77,8 @@ func (s *Suite) GT() kyber.Group {
 	return s.gt
 }
 
+// ValidatePairing is a simpler way to verify a pairing equation.
+// e(p1,p2) =?= e(inv1^-1, inv2^-1)
 func (s *Suite) ValidatePairing(p1, p2, p3, p4 kyber.Point) bool {
 	e := bls12381.NewEngine()
 	e.AddPair(p1.(*pointG1).p, p2.(*pointG2).p)
@@ -84,6 +86,8 @@ func (s *Suite) ValidatePairing(p1, p2, p3, p4 kyber.Point) bool {
 	return e.Check()
 }
 
+// Pair takes the points p1 and p2 in groups G1 and G2, respectively, as input
+// and computes their pairing in GT.
 func (s *Suite) Pair(p1, p2 kyber.Point) kyber.Point {
 	e := bls12381.NewEngine()
 	g1point := p1.(*pointG1).p

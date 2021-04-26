@@ -22,7 +22,7 @@ func TestBn256(t *testing.T) {
 	testBLSFailAggregatedKey(t, suite)
 	testBLSBatchVerify(t, suite)
 	testBLSFailBatchVerify(t, suite)
-	testBinaryMarshalAfterAggregation_issue400(t, suite)
+	testBinaryMarshalAfterAggregationIssue400(t, suite)
 }
 
 func TestBLS12381(t *testing.T) {
@@ -35,7 +35,7 @@ func TestBLS12381(t *testing.T) {
 	testBLSFailAggregatedKey(t, suite)
 	testBLSBatchVerify(t, suite)
 	testBLSFailBatchVerify(t, suite)
-	testBinaryMarshalAfterAggregation_issue400(t, suite)
+	testBinaryMarshalAfterAggregationIssue400(t, suite)
 }
 
 func testBLS(t *testing.T, suite pairing.Suite) {
@@ -167,7 +167,7 @@ func testBLSFailBatchVerify(t *testing.T, suite pairing.Suite) {
 	})
 
 }
-func testBinaryMarshalAfterAggregation_issue400(t *testing.T, suite pairing.Suite) {
+func testBinaryMarshalAfterAggregationIssue400(t *testing.T, suite pairing.Suite) {
 	_, public1 := NewKeyPair(suite, random.New())
 	_, public2 := NewKeyPair(suite, random.New())
 
