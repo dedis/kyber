@@ -80,23 +80,23 @@ func TestVSSWhole(t *testing.T) {
 
 func TestVSSDealerNew(t *testing.T) {
 	goodT := MinimumT(nbVerifiers)
-	_, err := NewDealer(suite, dealerSec, secret, verifiersPub, goodT)
+	_, err := NewDealer(suite, suite, dealerSec, secret, verifiersPub, goodT)
 	assert.NoError(t, err)
 
 	for _, badT := range []int{0, 1, -4} {
-		_, err = NewDealer(suite, dealerSec, secret, verifiersPub, badT)
+		_, err = NewDealer(suite, suite, dealerSec, secret, verifiersPub, badT)
 		assert.Error(t, err)
 	}
 }
 
 func TestVSSVerifierNew(t *testing.T) {
 	randIdx := rand.Int() % len(verifiersPub)
-	v, err := NewVerifier(suite, verifiersSec[randIdx], dealerPub, verifiersPub)
+	v, err := NewVerifier(suite, suite, verifiersSec[randIdx], dealerPub, verifiersPub)
 	assert.NoError(t, err)
 	assert.Equal(t, randIdx, v.index)
 
 	wrongKey := suite.Scalar().Pick(suite.RandomStream())
-	_, err = NewVerifier(suite, wrongKey, dealerPub, verifiersPub)
+	_, err = NewVerifier(suite, suite, wrongKey, dealerPub, verifiersPub)
 	assert.Error(t, err)
 }
 
@@ -531,7 +531,7 @@ func TestVSSVerifierSetTimeout(t *testing.T) {
 }
 
 func TestVSSSessionID(t *testing.T) {
-	dealer, _ := NewDealer(suite, dealerSec, secret, verifiersPub, vssThreshold)
+	dealer, _ := NewDealer(suite, suite, dealerSec, secret, verifiersPub, vssThreshold)
 	commitments := dealer.deals[0].Commitments
 	sid, err := sessionID(suite, dealerPub, verifiersPub, commitments, dealer.t)
 	assert.NoError(t, err)
@@ -585,7 +585,7 @@ func genCommits(n int) ([]kyber.Scalar, []kyber.Point) {
 }
 
 func genDealer() *Dealer {
-	d, _ := NewDealer(suite, dealerSec, secret, verifiersPub, vssThreshold)
+	d, _ := NewDealer(suite, suite, dealerSec, secret, verifiersPub, vssThreshold)
 	return d
 }
 
@@ -593,7 +593,7 @@ func genAll() (*Dealer, []*Verifier) {
 	dealer := genDealer()
 	var verifiers = make([]*Verifier, nbVerifiers)
 	for i := 0; i < nbVerifiers; i++ {
-		v, _ := NewVerifier(suite, verifiersSec[i], dealerPub, verifiersPub)
+		v, _ := NewVerifier(suite, suite, verifiersSec[i], dealerPub, verifiersPub)
 		verifiers[i] = v
 	}
 	return dealer, verifiers
