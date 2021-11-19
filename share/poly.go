@@ -40,7 +40,7 @@ func (p *PriShare) Hash(s kyber.HashFactory) []byte {
 }
 
 func (p *PriShare) String() string {
-	return fmt.Sprintf("{%d:%p}", p.I, p.V)
+	return fmt.Sprintf("{%d:%v}", p.I, p.V)
 }
 
 // PriPoly represents a secret sharing polynomial.
