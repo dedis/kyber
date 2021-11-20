@@ -113,7 +113,7 @@ type DealBundle struct {
 // Hash hashes the index, public coefficients and deals
 func (d *DealBundle) Hash() []byte {
 	// first order the deals in a  stable order
-	sort.Slice(d.Deals, func(i, j int) bool {
+	sort.SliceStable(d.Deals, func(i, j int) bool {
 		return d.Deals[i].ShareIndex < d.Deals[j].ShareIndex
 	})
 	h := sha256.New()
@@ -163,7 +163,7 @@ type ResponseBundle struct {
 // Hash hashes the share index and responses
 func (r *ResponseBundle) Hash() []byte {
 	// first order the response slice in a canonical order
-	sort.Slice(r.Responses, func(i, j int) bool {
+	sort.SliceStable(r.Responses, func(i, j int) bool {
 		return r.Responses[i].DealerIndex < r.Responses[j].DealerIndex
 	})
 	h := sha256.New()
@@ -218,7 +218,7 @@ type Justification struct {
 
 func (j *JustificationBundle) Hash() []byte {
 	// sort them in a canonical order
-	sort.Slice(j.Justifications, func(a, b int) bool {
+	sort.SliceStable(j.Justifications, func(a, b int) bool {
 		return j.Justifications[a].ShareIndex < j.Justifications[b].ShareIndex
 	})
 	h := sha256.New()
