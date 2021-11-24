@@ -24,7 +24,7 @@ import (
 //  (1,0)  (1,1)  (1,2)
 //  (2,0)  (2,1)  (2,2)
 //
-// In the code coordinates are (j,i), where 1 ≤ i ≤ k, 1 ≤ j ≤ NQ
+// In the code coordinates are (j,i), where 0 ≤ j ≤ NQ-1, 0 ≤ i ≤ k-1
 //
 // Last coordinate is (NQ-1, k-1)
 //
