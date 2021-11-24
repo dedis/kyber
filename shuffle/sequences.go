@@ -3,9 +3,11 @@ package shuffle
 import (
 	"crypto/cipher"
 	"fmt"
+	"math/big"
 
 	"go.dedis.ch/kyber/v3"
 	"go.dedis.ch/kyber/v3/proof"
+	"go.dedis.ch/kyber/v3/util/random"
 )
 
 // SequencesShuffle shuffles a sequence of ElGamal pairs based on Section 5 of
@@ -48,7 +50,7 @@ func SequencesShuffle(group kyber.Group, g, h kyber.Point, X, Y [][]kyber.Point,
 	// Fisher–Yates shuffle
 	for i := k - 1; i > 0; i-- {
 
-		j := int(randUint64(rand) % uint64(i+1))
+		j := int(random.Int(big.NewInt(int64(i+1)), rand).Int64())
 		if j != i {
 			pi[i], pi[j] = pi[j], pi[i]
 		}
