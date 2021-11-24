@@ -41,7 +41,10 @@ func (p *PriShare) Hash(s kyber.HashFactory) []byte {
 }
 
 func (p *PriShare) String() string {
-	data, _ := p.V.MarshalBinary()
+	data, err := p.V.MarshalBinary()
+	if err != nil {
+		panic("couldn't marshal point")
+	}
 	return fmt.Sprintf("{%d:%s}", p.I, hex.EncodeToString(data))
 }
 
