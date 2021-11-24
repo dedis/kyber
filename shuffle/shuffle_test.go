@@ -85,21 +85,19 @@ func sequenceShuffleTest(suite Suite, k, NQ, N int) {
 	for i := 0; i < k; i++ {
 		c[i] = suite.Scalar().Pick(rand)
 		C[i] = suite.Point().Mul(c[i], nil)
-		//		fmt.Println(" "+C[i].String())
 	}
 
 	X := make([][]kyber.Point, NQ)
 	Y := make([][]kyber.Point, NQ)
 
 	// generate random sequences
-
 	for i := 0; i < NQ; i++ {
 		xs := make([]kyber.Point, k)
 		ys := make([]kyber.Point, k)
 
-		for i := 0; i < k; i++ {
-			xs[i] = suite.Point().Mul(suite.Scalar().Pick(suite.RandomStream()), nil)
-			ys[i] = suite.Point().Mul(suite.Scalar().Pick(suite.RandomStream()), nil)
+		for j := 0; j < k; j++ {
+			xs[j] = suite.Point().Mul(suite.Scalar().Pick(suite.RandomStream()), nil)
+			ys[j] = suite.Point().Mul(suite.Scalar().Pick(suite.RandomStream()), nil)
 		}
 
 		X[i] = xs

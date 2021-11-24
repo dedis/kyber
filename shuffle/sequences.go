@@ -47,6 +47,7 @@ func SequencesShuffle(group kyber.Group, g, h kyber.Point, X, Y [][]kyber.Point,
 
 	// Fisher–Yates shuffle
 	for i := k - 1; i > 0; i-- {
+
 		j := int(randUint64(rand) % uint64(i+1))
 		if j != i {
 			pi[i], pi[j] = pi[j], pi[i]
@@ -64,7 +65,6 @@ func SequencesShuffle(group kyber.Group, g, h kyber.Point, X, Y [][]kyber.Point,
 	}
 
 	// Perform the Shuffle
-
 	XX = make([][]kyber.Point, NQ)
 	YY = make([][]kyber.Point, NQ)
 
@@ -120,7 +120,6 @@ func GetSequenceVerifiable(group kyber.Group, X, Y, XX, YY [][]kyber.Point, e []
 	XXUp, YYUp, XXDown, YYDown []kyber.Point) {
 
 	// EGAR1 (Verifier) - Consolidate input and output
-
 	NQ := len(X)
 	k := len(X[0])
 
