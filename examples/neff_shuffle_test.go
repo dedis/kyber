@@ -83,6 +83,7 @@ func Test_Example_Neff_Shuffle_Sequence(t *testing.T) {
 	require.NoError(t, err)
 
 	proof, err := kproof.HashProve(suite, "SequencesShuffle", prover)
+	require.NoError(t, err)
 
 	// check the proof
 	XXUp, YYUp, XXDown, YYDown := shuffle.GetSequenceVerifiable(suite, X, Y, XX, YY, e)
