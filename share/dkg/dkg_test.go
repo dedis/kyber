@@ -2,6 +2,7 @@ package dkg
 
 import (
 	"fmt"
+	"math/rand"
 	"testing"
 
 	"github.com/drand/kyber"
@@ -199,6 +200,110 @@ func RunDKG(t *testing.T, tns []*TestNode, conf Config,
 	return results
 }
 
+// This test is running DKG and resharing with skipped indices given there is no
+// guarantees that the indices of the nodes are going to be sequentials.
+func TestDKGSkipIndex(t *testing.T) {
+	n := 5
+	thr := 4
+	suite := edwards25519.NewBlakeSHA256Ed25519()
+	tns := GenerateTestNodes(suite, n)
+	skippedIndex := rand.Intn(n)
+	var newIndex uint32 = 53 // XXX should there be a limit to the index ?
+	tns[skippedIndex].Index = newIndex
+	list := NodesFromTest(tns)
+	conf := Config{
+		Suite:     suite,
+		NewNodes:  list,
+		Threshold: thr,
+		Auth:      schnorr.NewScheme(suite),
+	}
+	results := RunDKG(t, tns, conf, nil, nil, nil)
+	testResults(t, suite, thr, n, results)
+
+	for i, t := range tns {
+		t.res = results[i]
+	}
+	testResults(t, suite, thr, n, results)
+
+	// we setup now the second group with higher node count and higher threshold
+	// and we remove one node from the previous group
+	nodesToAdd := 5
+	newN := n - 1 + nodesToAdd   // we remove one old node
+	newT := thr + nodesToAdd - 1 // set the threshold to accept one offline new node
+	var newTns = make([]*TestNode, 0, newN)
+	// remove a random node from the previous group
+	offlineToRemove := uint32(rand.Intn(n))
+	for _, node := range tns {
+		if node.Index == offlineToRemove {
+			continue
+		}
+		newTns = append(newTns, node)
+		t.Logf("Added old node newTns[%d].Index = %d\n", len(newTns), newTns[len(newTns)-1].Index)
+	}
+	// we also mess up with indexing here
+	newSkipped := rand.Intn(nodesToAdd)
+	t.Logf("skippedIndex: %d, newSkipped: %d\n", skippedIndex, newSkipped)
+	for i := 0; i <= nodesToAdd; i++ {
+		if i == newSkipped {
+			continue // gonna get filled up at last iteration
+		}
+		// we start at n to be sure we dont overlap with previous indices
+		newTns = append(newTns, NewTestNode(suite, n+i))
+		t.Logf("Added new node newTns[%d].Index = %d\n", len(newTns), newTns[len(newTns)-1].Index)
+	}
+	newList := NodesFromTest(newTns)
+	newConf := &Config{
+		Suite:        suite,
+		NewNodes:     newList,
+		OldNodes:     list,
+		Threshold:    newT,
+		OldThreshold: thr,
+		Auth:         schnorr.NewScheme(suite),
+	}
+	SetupReshareNodes(newTns, newConf, tns[0].res.Key.Commits)
+
+	var deals []*DealBundle
+	for _, node := range newTns {
+		if node.res == nil {
+			// new members don't issue deals
+			continue
+		}
+		d, err := node.dkg.Deals()
+		require.NoError(t, err)
+		deals = append(deals, d)
+	}
+
+	var responses []*ResponseBundle
+	for _, node := range newTns {
+		resp, err := node.dkg.ProcessDeals(deals)
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		// a node from the old group is not present so there should be
+		// some responses !
+		responses = append(responses, resp)
+	}
+	// all nodes in the new group should have reported an error
+	require.Equal(t, newN, len(responses))
+
+	results = nil
+	for _, node := range newTns {
+		res, just, err := node.dkg.ProcessResponses(responses)
+		// we should have enough old nodes available to get a successful DKG
+		require.NoError(t, err)
+		require.Nil(t, res)
+		// since the last old node is absent he can't give any justifications
+		require.Nil(t, just)
+	}
+
+	for _, node := range newTns {
+		res, err := node.dkg.ProcessJustifications(nil)
+		require.NoError(t, err)
+		require.NotNil(t, res)
+		results = append(results, res)
+	}
+	testResults(t, suite, newT, newN, results)
+
+}
 func TestDKGFull(t *testing.T) {
 	n := 5
 	thr := n
@@ -805,4 +910,24 @@ func TestDKGTooManyComplaints(t *testing.T) {
 		}
 	}
 	testResults(t, suite, thr, n, filtered)
+}
+
+func TestConfigDuplicate(t *testing.T) {
+	n := 5
+	nodes := make([]Node, n)
+	for i := 0; i < n; i++ {
+		nodes[i] = Node{
+			Index:  Index(i),
+			Public: nil,
+		}
+	}
+	nodes[2].Index = nodes[1].Index
+	c := &Config{
+		OldNodes: nodes,
+	}
+	require.Error(t, c.CheckForDuplicates())
+	c = &Config{
+		NewNodes: nodes,
+	}
+	require.Error(t, c.CheckForDuplicates())
 }
