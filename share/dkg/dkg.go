@@ -114,7 +114,7 @@ type Config struct {
 	// errors).  from participants. Errors don't mean the protocol should be
 	// stopped, so logging is the best way to communicate information to the
 	// application layer. It can be nil.
-	Logger func(keyvals ...interface{})
+	Log Logger
 }
 
 // Phase is a type that represents the different stages of the DKG protocol.
@@ -403,7 +403,7 @@ func (d *DistKeyGenerator) ProcessDeals(bundles []*DealBundle) (*ResponseBundle,
 	seenIndex := make(map[uint32]bool)
 	for _, bundle := range bundles {
 		if bundle == nil {
-			d.Log("error", "found nil Deal bundle")
+			d.c.Error("found nil Deal bundle")
 			continue
 		}
 		if d.canIssue && bundle.DealerIndex == uint32(d.oidx) {
@@ -411,13 +411,13 @@ func (d *DistKeyGenerator) ProcessDeals(bundles []*DealBundle) (*ResponseBundle,
 			continue
 		}
 		if !isIndexIncluded(d.c.OldNodes, bundle.DealerIndex) {
-			d.Log("error", fmt.Sprintf("dealer %d not in OldNodes", bundle.DealerIndex))
+			d.c.Error(fmt.Sprintf("dealer %d not in OldNodes", bundle.DealerIndex))
 			continue
 		}
 
 		if bytes.Compare(bundle.SessionID, d.c.Nonce) != 0 {
 			d.evicted = append(d.evicted, bundle.DealerIndex)
-			d.Log("error", "Deal with invalid session ID")
+			d.c.Error("Deal with invalid session ID")
 			continue
 		}
 
@@ -427,7 +427,7 @@ func (d *DistKeyGenerator) ProcessDeals(bundles []*DealBundle) (*ResponseBundle,
 			// since we assume broadcast channel, every honest player will evict
 			// this party as well
 			d.evicted = append(d.evicted, bundle.DealerIndex)
-			d.Log("error", "Deal with nil public key or invalid threshold")
+			d.c.Error("Deal with nil public key or invalid threshold")
 			continue
 		}
 		pubPoly := share.NewPubPoly(d.c.Suite, d.c.Suite.Point().Base(), bundle.Public)
@@ -435,7 +435,7 @@ func (d *DistKeyGenerator) ProcessDeals(bundles []*DealBundle) (*ResponseBundle,
 			// already saw a bundle from the same dealer - clear sign of
 			// cheating so we evict him from the list
 			d.evicted = append(d.evicted, bundle.DealerIndex)
-			d.Log("error", "Deal bundle already seen")
+			d.c.Error("Deal bundle already seen")
 			continue
 		}
 		seenIndex[bundle.DealerIndex] = true
@@ -446,7 +446,7 @@ func (d *DistKeyGenerator) ProcessDeals(bundles []*DealBundle) (*ResponseBundle,
 				// so we evict him from the list
 				// and we don't even need to look at the rest
 				d.evicted = append(d.evicted, bundle.DealerIndex)
-				d.Log("error", "Deal share holder evicted normally")
+				d.c.Error("Deal share holder evicted normally")
 				break
 			}
 			if deal.ShareIndex != uint32(d.nidx) {
@@ -455,19 +455,19 @@ func (d *DistKeyGenerator) ProcessDeals(bundles []*DealBundle) (*ResponseBundle,
 			}
 			shareBuff, err := ecies.Decrypt(d.c.Suite, d.long, deal.EncryptedShare, sha256.New)
 			if err != nil {
-				d.Log("error", "Deal share decryption invalid")
+				d.c.Error("Deal share decryption invalid")
 				continue
 			}
 			share := d.c.Suite.Scalar()
 			if err := share.UnmarshalBinary(shareBuff); err != nil {
-				d.Log("error", "Deal share unmarshalling invalid")
+				d.c.Error("Deal share unmarshalling invalid")
 				continue
 			}
 			// check if share is valid w.r.t. public commitment
 			comm := pubPoly.Eval(int(d.nidx)).V
 			commShare := d.c.Suite.Point().Mul(share, nil)
 			if !comm.Equal(commShare) {
-				d.Log("error", "Deal share invalid wrt public poly")
+				d.c.Error("Deal share invalid wrt public poly")
 				// invalid share - will issue complaint
 				continue
 			}
@@ -524,7 +524,7 @@ func (d *DistKeyGenerator) ProcessDeals(bundles []*DealBundle) (*ResponseBundle,
 				DealerIndex: uint32(node.Index),
 				Status:      Complaint,
 			})
-			d.Log("info", fmt.Sprintf("Complaint towards node %d", node.Index))
+			d.c.Info(fmt.Sprintf("Complaint towards node %d", node.Index))
 		}
 	}
 	var bundle *ResponseBundle
@@ -541,7 +541,7 @@ func (d *DistKeyGenerator) ProcessDeals(bundles []*DealBundle) (*ResponseBundle,
 		bundle.Signature = sig
 	}
 	d.state = ResponsePhase
-	d.Log("info", fmt.Sprintf("sending back %d responses", len(responses)))
+	d.c.Info(fmt.Sprintf("sending back %d responses", len(responses)))
 	return bundle, nil
 }
 
@@ -581,12 +581,12 @@ func (d *DistKeyGenerator) ProcessResponses(bundles []*ResponseBundle) (*Result,
 			continue
 		}
 		if !isIndexIncluded(d.c.NewNodes, bundle.ShareIndex) {
-			d.Log("error", "Response author already evicted")
+			d.c.Error("Response author already evicted")
 			continue
 		}
 
 		if bytes.Compare(bundle.SessionID, d.c.Nonce) != 0 {
-			d.Log("error", "Response invalid session ID")
+			d.c.Error("Response invalid session ID")
 			d.evictedHolders = append(d.evictedHolders, bundle.ShareIndex)
 			continue
 		}
@@ -596,7 +596,7 @@ func (d *DistKeyGenerator) ProcessResponses(bundles []*ResponseBundle) (*Result,
 				// the index of the dealer doesn't exist - clear violation
 				// so we evict
 				d.evictedHolders = append(d.evictedHolders, bundle.ShareIndex)
-				d.Log("error", "Response dealer index already evicted")
+				d.c.Error("Response dealer index already evicted")
 				continue
 			}
 
@@ -605,7 +605,7 @@ func (d *DistKeyGenerator) ProcessResponses(bundles []*ResponseBundle) (*Result,
 				// mode - clear violation
 				// so we evict
 				d.evictedHolders = append(d.evictedHolders, bundle.ShareIndex)
-				d.Log("error", "Response success but in regular mode")
+				d.c.Error("Response success but in regular mode")
 				continue
 			}
 
@@ -631,7 +631,7 @@ func (d *DistKeyGenerator) ProcessResponses(bundles []*ResponseBundle) (*Result,
 				continue // we dont evict ourself
 			}
 			if !contains(allSent, n.Index) {
-				d.Log("error", fmt.Sprintf("Response not seen from node %d (eviction)", n.Index))
+				d.c.Error(fmt.Sprintf("Response not seen from node %d (eviction)", n.Index))
 				d.evictedHolders = append(d.evictedHolders, n.Index)
 			}
 		}
@@ -641,7 +641,7 @@ func (d *DistKeyGenerator) ProcessResponses(bundles []*ResponseBundle) (*Result,
 	// is all filled with success that means we can finish the protocol -
 	// regardless of the mode chosen (fast sync or not).
 	if !foundComplaint && d.statuses.CompleteSuccess() {
-		d.Log("info", "DKG successful")
+		d.c.Info("DKG successful")
 		d.state = FinishPhase
 		if d.canReceive {
 			res, err := d.computeResult()
@@ -659,7 +659,7 @@ func (d *DistKeyGenerator) ProcessResponses(bundles []*ResponseBundle) (*Result,
 		complaints := d.statuses.StatusesOfDealer(n.Index).LengthComplaints()
 		if complaints >= d.c.Threshold {
 			d.evicted = append(d.evicted, n.Index)
-			d.Log("error", fmt.Sprintf("Response phase eviction of node %d", n.Index))
+			d.c.Error(fmt.Sprintf("Response phase eviction of node %d", n.Index))
 		}
 	}
 
@@ -684,7 +684,7 @@ func (d *DistKeyGenerator) ProcessResponses(bundles []*ResponseBundle) (*Result,
 			ShareIndex: shareIndex,
 			Share:      sh,
 		})
-		d.Log("dkg-event", fmt.Sprintf("Producing justifications for node %d", shareIndex))
+		d.c.Info(fmt.Sprintf("Producing justifications for node %d", shareIndex))
 		foundJustifs = true
 		// mark those shares as resolved in the statuses
 		d.statuses.Set(uint32(d.oidx), shareIndex, true)
@@ -702,7 +702,7 @@ func (d *DistKeyGenerator) ProcessResponses(bundles []*ResponseBundle) (*Result,
 
 	signature, err := d.sign(bundle)
 	bundle.Signature = signature
-	d.Log("dkg-event", "Justifications returned")
+	d.c.Info(fmt.Sprintf("%d justifications returned", len(justifications)))
 	return nil, bundle, err
 }
 
@@ -1071,12 +1071,23 @@ func (d *DistKeyGenerator) sign(p Packet) ([]byte, error) {
 	return d.c.Auth.Sign(priv, msg)
 }
 
+func (d *DistKeyGenerator) Info(keyvals ...interface{}) {
+	d.c.Info(append([]interface{}{"generator"}, keyvals...))
+}
 
-// Log tries to log the given entries only if the logger has been set in the
-// config
-func (d *DistKeyGenerator) Log(keyvals ...interface{}) {
-	if d.c.Logger != nil {
-		d.c.Logger(append([]interface{}{"dkg-log"}, keyvals...))
+func (d *DistKeyGenerator) Error(keyvals ...interface{}) {
+	d.c.Info(append([]interface{}{"generator"}, keyvals...))
+}
+
+func (c *Config) Info(keyvals ...interface{}) {
+	if c.Log != nil {
+		c.Log.Info(append([]interface{}{"dkg-log"}, keyvals...))
+	}
+}
+
+func (c *Config) Error(keyvals ...interface{}) {
+	if c.Log != nil {
+		c.Log.Error(append([]interface{}{"dkg-log"}, keyvals...))
 	}
 }
 
