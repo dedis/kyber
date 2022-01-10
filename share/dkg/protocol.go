@@ -105,6 +105,12 @@ func NewProtocol(c *Config, b Board, phaser Phaser, skipVerification bool) (*Pro
 	return p, nil
 }
 
+func (p *Protocol) Log(keyvals ...interface{}) {
+	if p.dkg.c.Logger != nil {
+		p.dkg.c.Logger(append([]interface{}{"source", "dkg-proto"}, keyvals...))
+	}
+}
+
 func (p *Protocol) Start() {
 	var fastSync = p.dkg.c.FastSync
 	if fastSync {
@@ -194,14 +200,17 @@ func (p *Protocol) startFast() {
 		case newPhase := <-p.phaser.NextPhase():
 			switch newPhase {
 			case DealPhase:
+				p.Log("phaser", "moving to sending deals phase")
 				if !p.sendDeals() {
 					return
 				}
 			case ResponsePhase:
+				p.Log("phaser", fmt.Sprintf("moving to response phase, got %d deals", deals.Len()))
 				if !toResp() {
 					return
 				}
 			case JustifPhase:
+				p.Log("phaser", fmt.Sprintf("moving to justifications phase, got %d resps", resps.Len()))
 				if !toJust() {
 					return
 				}
@@ -213,8 +222,11 @@ func (p *Protocol) startFast() {
 		case newDeal := <-p.board.IncomingDeal():
 			if err := p.verify(&newDeal); err == nil {
 				deals.Push(&newDeal)
+			} else {
+				p.Log("error", "Received invalid deal signature")
 			}
 			if deals.Len() == oldN {
+				p.Log("info", fmt.Sprintf("fast moving to response phase, got %d deals", oldN))
 				if !toResp() {
 					return
 				}
@@ -222,8 +234,11 @@ func (p *Protocol) startFast() {
 		case newResp := <-p.board.IncomingResponse():
 			if err := p.verify(&newResp); err == nil {
 				resps.Push(&newResp)
+			} else {
+				p.Log("error", "Received invalid response signature")
 			}
 			if resps.Len() == newN {
+				p.Log("info", fmt.Sprintf("fast moving to justifications phase, got %d resps", newN))
 				if !toJust() {
 					return
 				}
@@ -231,6 +246,8 @@ func (p *Protocol) startFast() {
 		case newJust := <-p.board.IncomingJustification():
 			if err := p.verify(&newJust); err == nil {
 				justifs.Push(&newJust)
+			} else {
+				p.Log("error", "Received invalid justification signature")
 			}
 			if justifs.Len() == oldN {
 				// we finish only if it's time to do so, maybe we received
@@ -238,6 +255,7 @@ func (p *Protocol) startFast() {
 				// may not be the right time or haven't received enough msg from
 				// previous phase
 				if !toFinish() {
+					p.Log("info", fmt.Sprintf("fast moving to finish phase phase, got %d resps", justifs.Len()))
 					return
 				}
 			}
@@ -265,6 +283,7 @@ func (p *Protocol) sendDeals() bool {
 		return false
 	}
 	if bundle != nil {
+		p.Log("info", fmt.Sprintf("Sending out the bundle with %d deals", len(bundle.Deals)))
 		p.board.PushDeals(bundle)
 	}
 	return true
@@ -280,6 +299,7 @@ func (p *Protocol) sendResponses(deals []*DealBundle) bool {
 		return false
 	}
 	if bundle != nil {
+		p.Log("info", fmt.Sprintf("Sending out responses (from %d deals)", len(deals)))
 		p.board.PushResponses(bundle)
 	}
 	return true
@@ -295,7 +315,10 @@ func (p *Protocol) sendJustifications(resps []*ResponseBundle) bool {
 		return false
 	}
 	if just != nil {
+		p.Log("info", fmt.Sprintf("node sends justifications out (from %d responses)", len(resps)))
 		p.board.PushJustifications(just)
+	} else {
+		p.Log("info", "DKG finished in response phase")
 	}
 	return true
 }
