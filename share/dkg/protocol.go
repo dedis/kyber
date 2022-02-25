@@ -106,11 +106,11 @@ func NewProtocol(c *Config, b Board, phaser Phaser, skipVerification bool) (*Pro
 }
 
 func (p *Protocol) Info(keyvals ...interface{}) {
-	p.dkg.c.Info(append([]interface{}{"protocol"}, keyvals...))
+	p.dkg.c.Info(append([]interface{}{"dkg-step"}, keyvals...))
 }
 
 func (p *Protocol) Error(keyvals ...interface{}) {
-	p.dkg.c.Error(append([]interface{}{"protocol"}, keyvals...))
+	p.dkg.c.Error(append([]interface{}{"dkg-step"}, keyvals...))
 }
 
 func (p *Protocol) Start() {
@@ -202,17 +202,17 @@ func (p *Protocol) startFast() {
 		case newPhase := <-p.phaser.NextPhase():
 			switch newPhase {
 			case DealPhase:
-				p.Info("phaser", "moving to sending deals phase")
+				p.Info("phaser", "msg", "moving to sending deals phase")
 				if !p.sendDeals() {
 					return
 				}
 			case ResponsePhase:
-				p.Info("phaser", fmt.Sprintf("moving to response phase, got %d deals", deals.Len()))
+				p.Info("phaser", "msg", fmt.Sprintf("moving to response phase, got %d deals", deals.Len()))
 				if !toResp() {
 					return
 				}
 			case JustifPhase:
-				p.Info("phaser", fmt.Sprintf("moving to justifications phase, got %d resps", resps.Len()))
+				p.Info("phaser", "msg", fmt.Sprintf("moving to justifications phase, got %d resps", resps.Len()))
 				if !toJust() {
 					return
 				}
@@ -225,10 +225,10 @@ func (p *Protocol) startFast() {
 			if err := p.verify(&newDeal); err == nil {
 				deals.Push(&newDeal)
 			} else {
-				p.Error("invalid deal signature:", err)
+				p.Error("newDeal", "invalid deal signature:", err)
 			}
 			if deals.Len() == oldN {
-				p.Info("fast moving to response phase", fmt.Sprintf(" got %d deals", oldN))
+				p.Info("newDeal", "fast moving to response phase", fmt.Sprintf(" got %d deals", oldN))
 				if !toResp() {
 					return
 				}
@@ -237,10 +237,10 @@ func (p *Protocol) startFast() {
 			if err := p.verify(&newResp); err == nil {
 				resps.Push(&newResp)
 			} else {
-				p.Error("Received invalid response signature:", err)
+				p.Error("newResp", "Received invalid response signature:", err)
 			}
 			if resps.Len() == newN {
-				p.Info("fast moving to justifications phase", fmt.Sprintf("got %d resps", newN))
+				p.Info("newResp", "fast moving to justifications phase", fmt.Sprintf("got %d resps", newN))
 				if !toJust() {
 					return
 				}
@@ -249,7 +249,7 @@ func (p *Protocol) startFast() {
 			if err := p.verify(&newJust); err == nil {
 				justifs.Push(&newJust)
 			} else {
-				p.Error("invalid justification signature:", err)
+				p.Error("newJust", "invalid justification signature:", err)
 			}
 			if justifs.Len() == oldN {
 				// we finish only if it's time to do so, maybe we received
@@ -257,7 +257,7 @@ func (p *Protocol) startFast() {
 				// may not be the right time or haven't received enough msg from
 				// previous phase
 				if !toFinish() {
-					p.Info("fast moving to finish phase phase", fmt.Sprintf("got %d resps", justifs.Len()))
+					p.Info("newJust", "fast moving to finish phase phase", fmt.Sprintf("got %d resps", justifs.Len()))
 					return
 				}
 			}
@@ -285,7 +285,7 @@ func (p *Protocol) sendDeals() bool {
 		return false
 	}
 	if bundle != nil {
-		p.Info("Sending out deal bundle", fmt.Sprintf("%d deals", len(bundle.Deals)))
+		p.Info("sendDeals", "Sending out deal bundle", fmt.Sprintf("%d deals", len(bundle.Deals)))
 		p.board.PushDeals(bundle)
 	}
 	return true
@@ -301,7 +301,7 @@ func (p *Protocol) sendResponses(deals []*DealBundle) bool {
 		return false
 	}
 	if bundle != nil {
-		p.Info("sending out response bundle", fmt.Sprintf("from %d deals", len(deals)))
+		p.Info("sendResponses", "sending out response bundle", fmt.Sprintf("from %d deals", len(deals)))
 		p.board.PushResponses(bundle)
 	}
 	return true
@@ -317,10 +317,10 @@ func (p *Protocol) sendJustifications(resps []*ResponseBundle) bool {
 		return false
 	}
 	if just != nil {
-		p.Info("sending justification", fmt.Sprintf("from %d responses", len(resps)))
+		p.Info("sendJustifications", "sending", fmt.Sprintf("from %d responses", len(resps)))
 		p.board.PushJustifications(just)
 	} else {
-		p.Info("DKG FINISH", "from response phase")
+		p.Info("sendJustifications", "DKG FINISH", "from response phase")
 	}
 	return true
 }
