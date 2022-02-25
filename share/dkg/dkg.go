@@ -641,7 +641,7 @@ func (d *DistKeyGenerator) ProcessResponses(bundles []*ResponseBundle) (*Result,
 	// is all filled with success that means we can finish the protocol -
 	// regardless of the mode chosen (fast sync or not).
 	if !foundComplaint && d.statuses.CompleteSuccess() {
-		d.c.Info("DKG successful")
+		d.c.Info("msg", "DKG successful")
 		d.state = FinishPhase
 		if d.canReceive {
 			res, err := d.computeResult()
