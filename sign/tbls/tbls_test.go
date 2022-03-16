@@ -1,7 +1,6 @@
 package tbls
 
 import (
-	"log"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -54,29 +53,23 @@ func TestTBLS(test *testing.T) {
 		zero := g2.Scalar().Zero()
 		zero.Mul(zero, xScalars[i])
 		zero.Add(zero, priv1)
-		shares[i] = &share.PriShare{i, zero}
+		shares[i] = &share.PriShare{I: i, V: zero}
 	}
 
 	for i := range shares {
 		shares[i].V.Mul(shares[i].V, xScalars[i])
 		shares[i].V.Add(shares[i].V, priv2)
-		shares[i] = &share.PriShare{i, shares[i].V}
+		shares[i] = &share.PriShare{I: i, V: shares[i].V}
 	}
 
 	sigShares = make([][]byte, 0)
 	for _, x := range shares {
 		sig, err := Sign(suite, x, msg)
-		if err != nil {
-			log.Panicln(err)
-		}
+		require.Nil(test, err)
 		sigShares = append(sigShares, sig)
 	}
 	sig, err = Recover(suite, pubPoly, msg, sigShares, t, n)
-	if err != nil {
-		log.Panicln(err)
-	}
+	require.Nil(test, err)
 	err = bls.Verify(suite, pubPoly.Commit(), msg, sig)
-	if err != nil {
-		log.Panicln(err)
-	}
+	require.Nil(test, err)
 }
