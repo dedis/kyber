@@ -2,9 +2,11 @@
 *.o
 *.pyc
 *.swp
+*.deb
 *~
 moc_*
 ext/
+.idea/
 dissent
 docs/html
 test.log
