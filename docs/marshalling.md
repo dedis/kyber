@@ -7,7 +7,7 @@ it concurrently.
 
 ## Data Members
 ### BinaryMarshaler
-```azure
+```
 type BinaryMarshaler interface {
 	MarshalBinary() (data []byte, err error)
 }
@@ -16,7 +16,7 @@ BinaryMarshaler is an interface present in the encoding library of Golang. It is
 MarshalBinary function encodes the receiver into a binary form and returns the result.
 
 ### BinaryUnmarshaler
-```azure
+```
 type BinaryUnmarshaler interface {
 	UnmarshalBinary(data []byte) error
 }
