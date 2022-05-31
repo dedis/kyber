@@ -59,8 +59,8 @@ func (P *point) UnmarshalFrom(r io.Reader) (int, error) {
 func (P *point) Equal(P2 kyber.Point) bool {
 	b1, _ := P.MarshalBinary()
 	b2, _ := P2.(*point).MarshalBinary()
-	fp1, _ := filippo_ed25519.NewIdentityPoint().SetBytes(b1)
-	fp2, _ := filippo_ed25519.NewIdentityPoint().SetBytes(b2)
+	fp1, _ := new(filippo_ed25519.Point).SetBytes(b1)
+	fp2, _ := new(filippo_ed25519.Point).SetBytes(b2)
 	return fp1.Equal(fp2) == 1
 }
 
@@ -152,41 +152,87 @@ func (P *point) Data() ([]byte, error) {
 	return []byte{}, nil
 }
 
+//func (P *point) Add(P1, P2 kyber.Point) kyber.Point {
+//	b1, _ := P1.(*point).MarshalBinary()
+//	b2, _ := P2.(*point).MarshalBinary()
+//	fp1, _ := new(filippo_ed25519.Point).SetBytes(b1)
+//	fp2, _ := new(filippo_ed25519.Point).SetBytes(b2)
+//	ans := new(filippo_ed25519.Point).Add(fp1, fp2)
+//	P.UnmarshalBinary(ans.Bytes())
+//	return P
+//}
+
+//func (P *point) Sub(P1, P2 kyber.Point) kyber.Point {
+//	b1, _ := P1.(*point).MarshalBinary()
+//	b2, _ := P2.(*point).MarshalBinary()
+//	fp1, _ := new(filippo_ed25519.Point).SetBytes(b1)
+//	fp2, _ := new(filippo_ed25519.Point).SetBytes(b2)
+//	ans := new(filippo_ed25519.Point).Subtract(fp1, fp2)
+//	P.UnmarshalBinary(ans.Bytes())
+//	return P
+//}
+
+// Neg finds the negative of point A.
+// For Edwards curves, the negative of (x,y) is (-x,y).
+//func (P *point) Neg(A kyber.Point) kyber.Point {
+//	b1, _ := A.(*point).MarshalBinary()
+//	fp1, _ := new(filippo_ed25519.Point).SetBytes(b1)
+//	fp1 = fp1.Negate(fp1)
+//	P.UnmarshalBinary(fp1.Bytes())
+//	return P
+//}
+
+//func (P *point) Mul(s kyber.Scalar, A kyber.Point) kyber.Point {
+//
+//	b2, _ := s.(*scalar).MarshalBinary()
+//	fs, _ := new(filippo_ed25519.Scalar).SetCanonicalBytes(b2)
+//
+//	if A == nil {
+//		ans := new(filippo_ed25519.Point).ScalarBaseMult(fs)
+//		P.UnmarshalBinary(ans.Bytes())
+//	} else {
+//		b1, _ := A.(*point).MarshalBinary()
+//		fp, _ := new(filippo_ed25519.Point).SetBytes(b1)
+//		//ans := new(filippo_ed25519.Point).VarTimeMultiScalarMult([]*filippo_ed25519.Scalar{fs2}, []*filippo_ed25519.Point{fp1})
+//		ans := new(filippo_ed25519.Point).ScalarMult(fs, fp)
+//		P.UnmarshalBinary(ans.Bytes())
+//	}
+//	return P
+//}
+
+func (P *point) Mul(s kyber.Scalar, A kyber.Point) kyber.Point {
+	//b1 := []byte{48, 189, 120, 52, 214, 153, 57, 176, 74, 4, 78, 97, 103, 85, 224, 99, 98, 78, 100, 216, 88, 14, 23, 222, 44, 61, 152, 82, 209, 243, 248, 188}
+	b2 := []byte{100, 8, 188, 29, 221, 44, 54, 97, 129, 110, 7, 249, 145, 95, 32, 44, 67, 14, 73, 78, 28, 178, 136, 76, 125, 179, 228, 94, 104, 126, 124, 15}
+	//fp1, _ := new(filippo_ed25519.Point).SetBytes(b1)
+	fs2, _ := new(filippo_ed25519.Scalar).SetCanonicalBytes(b2)
+	ans := new(filippo_ed25519.Point).ScalarBaseMult(fs2)
+	_ = ans
+	return nil
+}
+
 func (P *point) Add(P1, P2 kyber.Point) kyber.Point {
+	b1 := []byte{167, 10, 92, 129, 31, 23, 10, 53, 34, 181, 164, 254, 101, 205, 20, 10, 184, 242, 223, 94, 198, 156, 188, 80, 225, 68, 64, 138, 149, 18, 167, 20}
+	b2 := []byte{59, 209, 167, 90, 176, 41, 11, 248, 108, 1, 72, 130, 216, 87, 116, 102, 146, 170, 206, 228, 234, 247, 58, 78, 230, 181, 251, 218, 165, 110, 246, 176}
+	fp1, _ := new(filippo_ed25519.Point).SetBytes(b1)
+	fp2, _ := new(filippo_ed25519.Point).SetBytes(b2)
+	ans := new(filippo_ed25519.Point).Add(fp1, fp2)
+	_ = ans
 	return nil
 }
 
 func (P *point) Sub(P1, P2 kyber.Point) kyber.Point {
-	return nil
-}
-
-// Neg finds the negative of point A.
-// For Edwards curves, the negative of (x,y) is (-x,y).
-func (P *point) Neg(A kyber.Point) kyber.Point {
-	return nil
-}
-
-//func (P *point) Mul(s kyber.Scalar, A kyber.Point) kyber.Point {
-//	b1, _ := A.(*point).MarshalBinary()
-//	fp1, _ := filippo_ed25519.NewIdentityPoint().SetBytes(b1)
-//	b2, _ := s.(*scalar).MarshalBinary()
-//	fs2, _ := filippo_ed25519.NewScalar().SetCanonicalBytes(b2)
-//	//ans := filippo_ed25519.NewIdentityPoint().VarTimeMultiScalarMult([]*filippo_ed25519.Scalar{fs2}, []*filippo_ed25519.Point{fp1})
-//	ans := filippo_ed25519.NewIdentityPoint().ScalarMult(fs2, fp1)
-//	P.UnmarshalBinary(ans.Bytes())
-//	return nil
-//}
-
-func (P *point) Mul(s kyber.Scalar, A kyber.Point) kyber.Point {
-	//b1, _ := A.(*point).MarshalBinary()
-	b1 := []byte{48, 189, 120, 52, 214, 153, 57, 176, 74, 4, 78, 97, 103, 85, 224, 99, 98, 78, 100, 216, 88, 14, 23, 222, 44, 61, 152, 82, 209, 243, 248, 188}
-	b2 := []byte{100, 8, 188, 29, 221, 44, 54, 97, 129, 110, 7, 249, 145, 95, 32, 44, 67, 14, 73, 78, 28, 178, 136, 76, 125, 179, 228, 94, 104, 126, 124, 15}
-	fp1, _ := filippo_ed25519.NewIdentityPoint().SetBytes(b1)
-	//b2, _ := s.(*scalar).MarshalBinary()
-	fs2, _ := filippo_ed25519.NewScalar().SetCanonicalBytes(b2)
-	//ans := filippo_ed25519.NewIdentityPoint().VarTimeMultiScalarMult([]*filippo_ed25519.Scalar{fs2}, []*filippo_ed25519.Point{fp1})
-	ans := filippo_ed25519.NewIdentityPoint().ScalarMult(fs2, fp1)
+	b1 := []byte{167, 10, 92, 129, 31, 23, 10, 53, 34, 181, 164, 254, 101, 205, 20, 10, 184, 242, 223, 94, 198, 156, 188, 80, 225, 68, 64, 138, 149, 18, 167, 20}
+	b2 := []byte{59, 209, 167, 90, 176, 41, 11, 248, 108, 1, 72, 130, 216, 87, 116, 102, 146, 170, 206, 228, 234, 247, 58, 78, 230, 181, 251, 218, 165, 110, 246, 176}
+	fp1, _ := new(filippo_ed25519.Point).SetBytes(b1)
+	fp2, _ := new(filippo_ed25519.Point).SetBytes(b2)
+	ans := new(filippo_ed25519.Point).Subtract(fp1, fp2)
 	_ = ans
-	//P.UnmarshalBinary(ans.Bytes())
+	return nil
+}
+
+func (P *point) Neg(P1 kyber.Point) kyber.Point {
+	b1 := []byte{167, 10, 92, 129, 31, 23, 10, 53, 34, 181, 164, 254, 101, 205, 20, 10, 184, 242, 223, 94, 198, 156, 188, 80, 225, 68, 64, 138, 149, 18, 167, 20}
+	fp1, _ := new(filippo_ed25519.Point).SetBytes(b1)
+	fp1 = fp1.Negate(fp1)
 	return nil
 }
