@@ -1,5 +1,0 @@
-- **General purpose**
-- [Introduction](introduction.md)
-- **Components**
-- [Point](point.md)
-- [Scalar](scalar.md)
