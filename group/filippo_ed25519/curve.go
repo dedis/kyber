@@ -4,10 +4,14 @@ import (
 	"crypto/cipher"
 	"crypto/sha512"
 <<<<<<< HEAD
+<<<<<<< HEAD
 	filippo_ed25519 "filippo.io/edwards25519"
 =======
 
 >>>>>>> Docs added and filippo integration initiated
+=======
+	filippo_ed25519 "filippo.io/edwards25519"
+>>>>>>> Filippo integration completed
 	"go.dedis.ch/kyber/v3"
 	"go.dedis.ch/kyber/v3/util/random"
 )
@@ -36,10 +40,14 @@ func (c *Curve) ScalarLen() int {
 // of the EdDSA signature.
 func (c *Curve) Scalar() kyber.Scalar {
 <<<<<<< HEAD
+<<<<<<< HEAD
 	return &Scalar{new(filippo_ed25519.Scalar)}
 =======
 	return &scalar{}
 >>>>>>> Docs added and filippo integration initiated
+=======
+	return &Scalar{new(filippo_ed25519.Scalar)}
+>>>>>>> Filippo integration completed
 }
 
 // PointLen returns 32, the size in bytes of an encoded Point on the Ed25519 curve.
@@ -50,12 +58,17 @@ func (c *Curve) PointLen() int {
 // Point creates a new Point on the Ed25519 curve.
 func (c *Curve) Point() kyber.Point {
 <<<<<<< HEAD
+<<<<<<< HEAD
 	P := Point{new(filippo_ed25519.Point)}
 	return &P
 =======
 	P := new(point)
 	return P
 >>>>>>> Docs added and filippo integration initiated
+=======
+	P := Point{new(filippo_ed25519.Point)}
+	return &P
+>>>>>>> Filippo integration completed
 }
 
 // NewKeyAndSeedWithInput returns a formatted Ed25519 key (avoid subgroup attack by
@@ -73,9 +86,14 @@ func (c *Curve) NewKeyAndSeedWithInput(buffer []byte) (kyber.Scalar, []byte, []b
 	digest[31] &= 0x7f
 	digest[31] |= 0x40
 
+<<<<<<< HEAD
 	secret := c.Scalar().(*scalar)
 	copy(secret.v[:], digest[:])
 >>>>>>> Docs added and filippo integration initiated
+=======
+	secret := c.Scalar().(*Scalar)
+	secret.SetBytes(digest[:32])
+>>>>>>> Filippo integration completed
 	return secret, buffer, digest[32:]
 }
 

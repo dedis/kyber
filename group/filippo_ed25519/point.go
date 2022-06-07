@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"errors"
 <<<<<<< HEAD
+<<<<<<< HEAD
 	filippo_ed25519 "filippo.io/edwards25519"
 	"go.dedis.ch/kyber/v3"
 	"io"
@@ -84,52 +85,48 @@ func (p *Point) Mul(a kyber.Scalar, b kyber.Point) kyber.Point {
 
 func (p *Point) EmbedLen() int {
 =======
-	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/kyber/v3/group/internal/marshalling"
-	"io"
-
+=======
 	filippo_ed25519 "filippo.io/edwards25519"
+>>>>>>> Filippo integration completed
+	"go.dedis.ch/kyber/v3"
+	"io"
 )
 
-var nullPoint = new(point).Null()
-
-type point struct {
-	ge extendedGroupElement
+type Point struct {
+	point *filippo_ed25519.Point
 }
 
-var marshalPointID = [8]byte{'e', 'd', '.', 'p', 'o', 'i', 'n', 't'}
-
-func (P *point) String() string {
-	var b [32]byte
-	P.ge.ToBytes(&b)
-	return hex.EncodeToString(b[:])
+func (p *Point) Equal(s2 kyber.Point) bool {
+	return p.point.Equal(s2.(*Point).point) == 1
 }
 
-func (P *point) MarshalSize() int {
-	return 32
+func (p *Point) Null() kyber.Point {
+	p.point = filippo_ed25519.NewIdentityPoint()
+	return p
 }
 
-func (P *point) MarshalBinary() ([]byte, error) {
-	var b [32]byte
-	P.ge.ToBytes(&b)
-	return b[:], nil
+func (p *Point) Base() kyber.Point {
+	p.point = filippo_ed25519.NewGeneratorPoint()
+	return p
 }
 
-// MarshalID returns the type tag used in encoding/decoding
-func (P *point) MarshalID() [8]byte {
-	return marshalPointID
+func (p *Point) Pick(rand cipher.Stream) kyber.Point {
+	return p.Embed(nil, rand)
 }
 
-func (P *point) UnmarshalBinary(b []byte) error {
-	if !P.ge.FromBytes(b) {
-		return errors.New("invalid Ed25519 curve point")
+func (p *Point) Set(a kyber.Point) kyber.Point {
+	if p.point == nil {
+		p.point = new(filippo_ed25519.Point)
 	}
-	return nil
+	p.point.Set(a.(*Point).point)
+	return p
 }
 
-func (P *point) MarshalTo(w io.Writer) (int, error) {
-	return marshalling.PointMarshalTo(P, w)
+func (p *Point) Clone() kyber.Point {
+	p2 := *p
+	return &p2
 }
+<<<<<<< HEAD
 
 func (P *point) UnmarshalFrom(r io.Reader) (int, error) {
 	return marshalling.PointUnmarshalFrom(P, r)
@@ -148,31 +145,57 @@ func (P *point) Equal(P2 kyber.Point) bool {
 func (P *point) Set(P2 kyber.Point) kyber.Point {
 	P.ge = P2.(*point).ge
 	return P
+=======
+func (p *Point) Add(a, b kyber.Point) kyber.Point {
+	if p.point == nil {
+		p.point = new(filippo_ed25519.Point)
+	}
+	p.point.Add(a.(*Point).point, b.(*Point).point)
+	return p
+>>>>>>> Filippo integration completed
 }
 
-// Set point to be equal to P2.
-func (P *point) Clone() kyber.Point {
-	return &point{ge: P.ge}
+func (p *Point) Sub(a, b kyber.Point) kyber.Point {
+	if p.point == nil {
+		p.point = new(filippo_ed25519.Point)
+	}
+	p.point.Subtract(a.(*Point).point, b.(*Point).point)
+	return p
 }
 
-// Set to the neutral element, which is (0,1) for twisted Edwards curves.
-func (P *point) Null() kyber.Point {
-	P.ge.Zero()
-	return P
+func (p *Point) Neg(a kyber.Point) kyber.Point {
+	if p.point == nil {
+		p.point = new(filippo_ed25519.Point)
+	}
+	p.point.Negate(a.(*Point).point)
+	return p
 }
 
-func (P *point) Base() kyber.Point {
-	return nil
+func (p *Point) Mul(a kyber.Scalar, b kyber.Point) kyber.Point {
+	if p.point == nil {
+		p.point = new(filippo_ed25519.Point)
+	}
+	if b == nil || b.(*Point).point == nil {
+		p.point = p.point.ScalarBaseMult(a.(*Scalar).scalar)
+	} else {
+		p.point.VarTimeMultiScalarMult([]*filippo_ed25519.Scalar{a.(*Scalar).scalar}, []*filippo_ed25519.Point{b.(*Point).point})
+	}
+	return p
 }
 
+<<<<<<< HEAD
 func (P *point) EmbedLen() int {
 >>>>>>> Docs added and filippo integration initiated
+=======
+func (p *Point) EmbedLen() int {
+>>>>>>> Filippo integration completed
 	// Reserve the most-significant 8 bits for pseudo-randomness.
 	// Reserve the least-significant 8 bits for embedded data length.
 	// (Hopefully it's unlikely we'll need >=2048-bit curves soon.)
 	return (255 - 8 - 8) / 8
 }
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 func (p *Point) Embed(data []byte, rand cipher.Stream) kyber.Point {
 
@@ -184,15 +207,26 @@ func (P *point) Embed(data []byte, rand cipher.Stream) kyber.Point {
 	// How many bytes to embed?
 	dl := P.EmbedLen()
 >>>>>>> Docs added and filippo integration initiated
+=======
+func (p *Point) Embed(data []byte, rand cipher.Stream) kyber.Point {
+
+	// How many bytes to embed?
+	dl := p.EmbedLen()
+>>>>>>> Filippo integration completed
 	if dl > len(data) {
 		dl = len(data)
 	}
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 	p.point = new(filippo_ed25519.Point)
 
 =======
 >>>>>>> Docs added and filippo integration initiated
+=======
+	p.point = new(filippo_ed25519.Point)
+
+>>>>>>> Filippo integration completed
 	for {
 		// Pick a random point, with optional embedded data
 		var b [32]byte
@@ -202,10 +236,14 @@ func (P *point) Embed(data []byte, rand cipher.Stream) kyber.Point {
 			copy(b[1:1+dl], data) // Copy in data to embed
 		}
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> Filippo integration completed
 
 		_, err := p.point.SetBytes(b[:])
 		if err != nil {
 			continue
+<<<<<<< HEAD
 		}
 
 		if data == nil {
@@ -217,36 +255,35 @@ func (P *point) Embed(data []byte, rand cipher.Stream) kyber.Point {
 =======
 		if !P.ge.FromBytes(b[:]) { // Try to decode
 			continue // invalid point, retry
+=======
+>>>>>>> Filippo integration completed
 		}
 
-		// If we're using the full group,
-		// we just need any point on the curve, so we're done.
-		//		if c.full {
-		//			return P,data[dl:]
-		//		}
-
-		// We're using the prime-order subgroup,
-		// so we need to make sure the point is in that subencoding.
-		// If we're not trying to embed data,
-		// we can convert our point into one in the subgroup
-		// simply by multiplying it by the cofactor.
 		if data == nil {
-			P.Mul(cofactorScalar, P) // multiply by cofactor
-			if P.Equal(nullPoint) {
-				continue // unlucky; try again
+			p.Mul(filippoCofactorScalar, p)
+			if p.Equal(&filippoNullPoint) {
+				continue
 			}
+<<<<<<< HEAD
 			return P // success
 >>>>>>> Docs added and filippo integration initiated
+=======
+			return p
+>>>>>>> Filippo integration completed
 		}
 
 		// Since we need the point's y-coordinate to hold our data,
 		// we must simply check if the point is in the subgroup
 		// and retry point generation until it is.
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> Filippo integration completed
 		var Q Point
 		Q.Mul(filippoPrimeOrderScalar, p)
 		if Q.Equal(&filippoNullPoint) {
 			return p // success
+<<<<<<< HEAD
 		}
 		// setCannonicalBytes()
 =======
@@ -256,11 +293,18 @@ func (P *point) Embed(data []byte, rand cipher.Stream) kyber.Point {
 			return P // success
 		}
 >>>>>>> Docs added and filippo integration initiated
+=======
+		}
+		// setCannonicalBytes()
+>>>>>>> Filippo integration completed
 		// Keep trying...
 	}
 }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> Filippo integration completed
 func (p *Point) Data() ([]byte, error) {
 	if p.point == nil {
 		return nil, errors.New("point not initialized")
@@ -321,6 +365,7 @@ func (p *Point) UnmarshalFrom(r io.Reader) (int, error) {
 		return n, err
 	}
 	return n, p.UnmarshalBinary(buf)
+<<<<<<< HEAD
 =======
 func (P *point) Pick(rand cipher.Stream) kyber.Point {
 	return P.Embed(nil, rand)
@@ -369,4 +414,6 @@ func (P *point) Mul(s kyber.Scalar, A kyber.Point) kyber.Point {
 	//P.UnmarshalBinary(ans.Bytes())
 	return nil
 >>>>>>> Docs added and filippo integration initiated
+=======
+>>>>>>> Filippo integration completed
 }
