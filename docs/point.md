@@ -7,8 +7,28 @@ A point can contain a Diffie-Hellman public key, an Elgamal ciphertext, etc.
 
 In here a point is implemented by the use of an interface by the name **Point**.
 
+```
+type Point interface {
+	Marshaling
+	
+	Equal(s2 Point) bool
+	Null() Point
+	Base() Point
+	Pick(rand cipher.Stream) Point
+	Set(p Point) Point
+	Clone() Point
+	EmbedLen() int
+	Embed(data []byte, r cipher.Stream) Point
+	Data() ([]byte, error)
+	Add(a, b Point) Point
+	Sub(a, b Point) Point
+	Neg(a Point) Point
+	Mul(s Scalar, p Point) Point
+}
+```
+
 ## Data Members
-### Marshaling
+### [Marshaling](marshalling.md)
 Marshaling is a basic interface representing fixed-length (or known-length)
 cryptographic objects or structures having a built-in binary encoding.
 Implementors must ensure that calls to these methods do not modify
