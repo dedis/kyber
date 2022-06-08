@@ -1,5 +1,25 @@
 ## Introduction
-Scalar represents a scalar value by which a Point (group element) may be encrypted to prduce another Point. This is an exponent in DSA-style groups, in which security is based on the Discrete Logarithm assumption, and a scalar multiplier in elliptic curve groups.
+Scalar represents a scalar value by which a Point (group element) may be encrypted to produce another Point. This is an exponent in DSA-style groups, in which security is based on the Discrete Logarithm assumption, and a scalar multiplier in elliptic curve groups.
+```
+type Scalar interface {
+	Marshaling
+	
+	Equal(s2 Scalar) bool
+	Set(a Scalar) Scalar
+	Clone() Scalar
+	SetInt64(v int64) Scalar
+	Zero() Scalar
+	Add(a, b Scalar) Scalar
+	Sub(a, b Scalar) Scalar
+	Neg(a Scalar) Scalar
+	One() Scalar
+	Mul(a, b Scalar) Scalar
+	Div(a, b Scalar) Scalar
+	Inv(a Scalar) Scalar
+	Pick(rand cipher.Stream) Scalar
+	SetBytes([]byte) Scalar
+}
+```
 
 ## Data Members
 ### Marshalling
@@ -149,4 +169,4 @@ This functions sets the receiver object to a random or psuedo-random Scalar, whi
 | Output     | `Scalar`                         |
 
 SetBytes sets the value of the scalar from a byte-slice, reducing if necessary to the appropriate modulus. The endianess of the byte-slice is determined by the implementation.
-
+For example - In the case of the ED25519 curve the endianess is Little Endianess.
