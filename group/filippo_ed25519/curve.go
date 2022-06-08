@@ -51,8 +51,7 @@ func (c *Curve) Point() kyber.Point {
 func (c *Curve) NewKeyAndSeedWithInput(buffer []byte) (kyber.Scalar, []byte, []byte) {
 	digest := sha512.Sum512(buffer[:])
 	digest[0] &= 0xf8
-	digest[31] &= 0x7f
-	digest[31] |= 0x40
+	digest[31] &= 0xf
 
 	secret := c.Scalar().(*Scalar)
 	secret.SetBytes(digest[:32])

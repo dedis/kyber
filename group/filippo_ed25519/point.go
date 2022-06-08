@@ -40,8 +40,10 @@ func (p *Point) Set(a kyber.Point) kyber.Point {
 }
 
 func (p *Point) Clone() kyber.Point {
-	p2 := *p
-	return &p2
+	p2 := new(Point)
+	p2.point = new(filippo_ed25519.Point)
+	p2.point.Set(p.point)
+	return p2
 }
 func (p *Point) Add(a, b kyber.Point) kyber.Point {
 	if p.point == nil {
@@ -68,13 +70,13 @@ func (p *Point) Neg(a kyber.Point) kyber.Point {
 }
 
 func (p *Point) Mul(a kyber.Scalar, b kyber.Point) kyber.Point {
-	if p.point == nil {
+	if p == nil || p.point == nil {
 		p.point = new(filippo_ed25519.Point)
 	}
 	if b == nil || b.(*Point).point == nil {
 		p.point = p.point.ScalarBaseMult(a.(*Scalar).scalar)
 	} else {
-		p.point.VarTimeMultiScalarMult([]*filippo_ed25519.Scalar{a.(*Scalar).scalar}, []*filippo_ed25519.Point{b.(*Point).point})
+		p.point.ScalarMult(a.(*Scalar).scalar, b.(*Point).point)
 	}
 	return p
 }

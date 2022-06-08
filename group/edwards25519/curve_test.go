@@ -44,3 +44,24 @@ func BenchmarkPointBaseMul(b *testing.B) { groupBench.PointBaseMul(b.N) }
 func BenchmarkPointPick(b *testing.B)    { groupBench.PointPick(b.N) }
 func BenchmarkPointEncode(b *testing.B)  { groupBench.PointEncode(b.N) }
 func BenchmarkPointDecode(b *testing.B)  { groupBench.PointDecode(b.N) }
+
+//func TestScalarMulAdd(t *testing.T) {
+//	p1 := new(scalar)
+//	err1 := p1.UnmarshalBinary([]byte{238, 211, 245, 92, 26, 99, 18, 88, 214, 156, 247, 162, 222, 249, 222, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 16})
+//	if err1 != nil {
+//		fmt.Println(err1)
+//		t.Fail()
+//	}
+//	p2 := new(scalar)
+//	err2 := p2.UnmarshalBinary([]byte{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
+//	if err2 != nil {
+//		fmt.Println(err2)
+//		t.Fail()
+//	}
+//	p3 := new(point).Mul(p1, nil)
+//	p4 := new(point).Mul(p2, nil)
+//	if p3.Equal(p4) {
+//		fmt.Println("Two different private keys give the same public key")
+//		t.Fail()
+//	}
+//}

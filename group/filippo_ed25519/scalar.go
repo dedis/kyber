@@ -30,8 +30,10 @@ func (s *Scalar) Set(a kyber.Scalar) kyber.Scalar {
 }
 
 func (s *Scalar) Clone() kyber.Scalar {
-	s2 := *s
-	return &s2
+	s2 := new(Scalar)
+	s2.scalar = new(filippo_ed25519.Scalar)
+	s2.scalar.Set(s.scalar)
+	return s2
 }
 
 func (s *Scalar) SetInt64(v int64) kyber.Scalar {
@@ -153,7 +155,7 @@ func (s *Scalar) MarshalSize() int {
 
 func (s *Scalar) MarshalBinary() ([]byte, error) {
 	if s.scalar == nil {
-		s.scalar = new(filippo_ed25519.Scalar)
+		return nil, errors.New("point not initialized")
 	}
 	b := s.scalar.Bytes()
 	return b, nil
@@ -161,7 +163,7 @@ func (s *Scalar) MarshalBinary() ([]byte, error) {
 
 func (s *Scalar) UnmarshalBinary(b []byte) error {
 	if s.scalar == nil {
-		return errors.New("scalar not initialized")
+		s.scalar = new(filippo_ed25519.Scalar)
 	}
 	_, err := s.scalar.SetCanonicalBytes(b)
 	return err
