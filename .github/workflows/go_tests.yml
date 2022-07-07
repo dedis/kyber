@@ -40,6 +40,9 @@ jobs:
             -Dsonar.projectKey=dedis_kyber
             -Dsonar.go.tests.reportPaths=report.json
             -Dsonar.go.coverage.reportPaths=profile.cov
+            -Dsonar.c.file.suffixes=-
+            -Dsonar.cpp.file.suffixes=-
+            -Dsonar.objc.file.suffixes=-
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
