@@ -1,0 +1,61 @@
+name: Go test
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+
+jobs:
+
+  test:
+    strategy:
+      matrix:
+        platform: [ubuntu-latest, macos-latest, windows-latest]
+    
+    runs-on: ${{matrix.platform}}
+
+    steps:
+      - name: Use go >= 1.13 
+        uses: actions/setup-go@v3
+        with:
+          go-version: '>=1.13'
+
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v3
+        
+      - name: Test with coverage
+        if: matrix.platform == 'ubuntu-latest'
+        run: go test -json -covermode=count -coverprofile=profile.cov ./... > report.json
+
+      - name: Test without coverage
+        if: matrix.platform == 'macos-latest' || matrix.platform == 'windows-latest'
+        run: go test ./...
+
+      - name: Sonarcloud scan
+        if: matrix.platform == 'ubuntu-latest'
+        uses: sonarsource/sonarcloud-github-action@master
+        with:
+          args: >
+            -Dsonar.organization=dedis
+            -Dsonar.projectKey=dedis_kyber
+            -Dsonar.go.tests.reportPaths=report.json
+            -Dsonar.go.coverage.reportPaths=profile.cov
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+      - name: Send coverage
+        if: matrix.platform == 'ubuntu-latest'
+        uses: shogo82148/actions-goveralls@v1
+        with:
+          path-to-profile: profile.cov
+          parallel: true
+        
+  # notifies that all test jobs are finished.
+  finish:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: shogo82148/actions-goveralls@v1
+        with:
+          parallel-finished: true
