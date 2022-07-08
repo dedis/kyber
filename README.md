@@ -1,5 +1,7 @@
-[![Docs](https://img.shields.io/badge/docs-current-brightgreen.svg)](https://godoc.org/go.dedis.ch/kyber)
-[![Build Status](https://travis-ci.org/dedis/kyber.svg?branch=master)](https://travis-ci.org/dedis/kyber)
+[![Go test](https://github.com/dedis/kyber/actions/workflows/go_tests.yml/badge.svg)](https://github.com/dedis/kyber/actions/workflows/go_tests.yml)
+[![Coverage Status](https://coveralls.io/repos/github/dedis/kyber/badge.svg?branch=master)](https://coveralls.io/github/dedis/kyber?branch=master)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=dedis_kyber&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=dedis_kyber)
+[![Go Reference](https://pkg.go.dev/badge/github.com/dedis/kyber.svg)](https://pkg.go.dev/github.com/dedis/kyber)
 
 DEDIS Advanced Crypto Library for Go
 ====================================
