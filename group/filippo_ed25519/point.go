@@ -128,7 +128,6 @@ func (p *Point) Embed(data []byte, rand cipher.Stream) kyber.Point {
 		if Q.Equal(&filippoNullPoint) {
 			return p // success
 		}
-		// setCannonicalBytes()
 		// Keep trying...
 	}
 }
