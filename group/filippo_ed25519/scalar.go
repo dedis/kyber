@@ -7,6 +7,7 @@ import (
 	filippo_ed25519 "filippo.io/edwards25519"
 	"fmt"
 	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/group/internal/marshalling"
 	"go.dedis.ch/kyber/v3/group/mod"
 	"go.dedis.ch/kyber/v3/util/random"
 	"io"
@@ -175,22 +176,9 @@ func (s *Scalar) String() string {
 }
 
 func (s *Scalar) MarshalTo(w io.Writer) (int, error) {
-	buf, err := s.MarshalBinary()
-	if err != nil {
-		return 0, err
-	}
-	return w.Write(buf)
+	return marshalling.ScalarMarshalTo(s, w)
 }
 
 func (s *Scalar) UnmarshalFrom(r io.Reader) (int, error) {
-	if strm, ok := r.(cipher.Stream); ok {
-		s.Pick(strm)
-		return -1, nil // no byte-count when picking randomly
-	}
-	buf := make([]byte, s.MarshalSize())
-	n, err := io.ReadFull(r, buf)
-	if err != nil {
-		return n, err
-	}
-	return n, s.UnmarshalBinary(buf)
+	return marshalling.ScalarUnmarshalFrom(s, r)
 }

@@ -6,6 +6,7 @@ import (
 	"errors"
 	filippo_ed25519 "filippo.io/edwards25519"
 	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/group/internal/marshalling"
 	"io"
 )
 
@@ -45,6 +46,7 @@ func (p *Point) Clone() kyber.Point {
 	p2.point.Set(p.point)
 	return p2
 }
+
 func (p *Point) Add(a, b kyber.Point) kyber.Point {
 	if p.point == nil {
 		p.point = new(filippo_ed25519.Point)
@@ -98,6 +100,8 @@ func (p *Point) Embed(data []byte, rand cipher.Stream) kyber.Point {
 
 	p.point = new(filippo_ed25519.Point)
 
+	// Github issue raised for the problem of the infinite loop
+
 	for {
 		// Pick a random point, with optional embedded data
 		var b [32]byte
@@ -112,12 +116,24 @@ func (p *Point) Embed(data []byte, rand cipher.Stream) kyber.Point {
 			continue
 		}
 
+		// If we're using the full group,
+		// we just need any point on the curve, so we're done.
+		//		if c.full {
+		//			return P,data[dl:]
+		//		}
+
+		// We're using the prime-order subgroup,
+		// so we need to make sure the point is in that subencoding.
+		// If we're not trying to embed data,
+		// we can convert our point into one in the subgroup
+		// simply by multiplying it by the cofactor.
+
 		if data == nil {
-			p.Mul(filippoCofactorScalar, p)
+			p.Mul(filippoCofactorScalar, p) // multiply by cofactor
 			if p.Equal(&filippoNullPoint) {
-				continue
+				continue // unlucky; try again
 			}
-			return p
+			return p // success
 		}
 
 		// Since we need the point's y-coordinate to hold our data,
@@ -174,22 +190,9 @@ func (p *Point) UnmarshalBinary(b []byte) error {
 }
 
 func (p *Point) MarshalTo(w io.Writer) (int, error) {
-	buf, err := p.MarshalBinary()
-	if err != nil {
-		return 0, err
-	}
-	return w.Write(buf)
+	return marshalling.PointMarshalTo(p, w)
 }
 
 func (p *Point) UnmarshalFrom(r io.Reader) (int, error) {
-	if strm, ok := r.(cipher.Stream); ok {
-		p.Pick(strm)
-		return -1, nil // no byte-count when picking randomly
-	}
-	buf := make([]byte, p.MarshalSize())
-	n, err := io.ReadFull(r, buf)
-	if err != nil {
-		return n, err
-	}
-	return n, p.UnmarshalBinary(buf)
+	return marshalling.PointUnmarshalFrom(p, r)
 }

@@ -53,6 +53,11 @@ func (c *Curve) NewKeyAndSeedWithInput(buffer []byte) (kyber.Scalar, []byte, []b
 	digest[0] &= 0xf8
 	digest[31] &= 0xf
 
+	// In here the 31st byte has been done AND 16 just to bring the secret key chosen below the group order i.e. l
+	// in which the highest priority byte is 16. Doing the normal procedure of unsetting the highest priority bit and
+	// setting the highest priority bit leads to errors when the secret is passed to the filippo library which expects
+	// all the scalars to be below l.
+
 	secret := c.Scalar().(*Scalar)
 	secret.SetBytes(digest[:32])
 	return secret, buffer, digest[32:]

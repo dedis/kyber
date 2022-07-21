@@ -27,8 +27,8 @@ func (s *SuiteFilippoEd25519) Hash() hash.Hash {
 }
 
 // XOF returns an XOF which is implemented via the Blake2b hash.
-func (s *SuiteFilippoEd25519) XOF(key []byte) kyber.XOF {
-	return blake2xb.New(key)
+func (s *SuiteFilippoEd25519) XOF(seed []byte) kyber.XOF {
+	return blake2xb.New(seed)
 }
 
 func (s *SuiteFilippoEd25519) Read(r io.Reader, objs ...interface{}) error {

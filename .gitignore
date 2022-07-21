@@ -2,7 +2,6 @@
 *.o
 *.pyc
 *.swp
-*.deb
 *~
 moc_*
 ext/

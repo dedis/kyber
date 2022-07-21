@@ -1,7 +1,7 @@
 module go.dedis.ch/kyber/v3
 
 require (
-	filippo.io/edwards25519 v1.0.0-rc.1
+	filippo.io/edwards25519 v1.0.0
 	github.com/stretchr/testify v1.3.0
 	go.dedis.ch/fixbuf v1.0.3
 	go.dedis.ch/protobuf v1.0.11

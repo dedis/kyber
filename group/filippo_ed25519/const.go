@@ -13,4 +13,4 @@ var filippoPrimeOrderScalar = setBigInt(primeOrder)
 var filippoCofactorScalar = setBigInt(cofactor)
 var filippoNullPoint = Point{filippo_ed25519.NewIdentityPoint()}
 
-var marshalPointID = [8]byte{'e', 'd', '.', 'p', 'o', 'i', 'n', 't'}
+var marshalPointID = [16]byte{'f', 'i', 'l', 'i', 'p', 'p', 'o', '_', 'e', 'd', '.', 'p', 'o', 'i', 'n', 't'}
