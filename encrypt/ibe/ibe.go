@@ -9,7 +9,6 @@ import (
 
 	"github.com/drand/kyber"
 	"github.com/drand/kyber/pairing"
-	"github.com/drand/kyber/util/random"
 )
 
 type Ciphertext struct {
@@ -140,7 +139,11 @@ func h3(s pairing.Suite, sigma, msg []byte) (kyber.Scalar, error) {
 		return nil, fmt.Errorf("err hashing sigma to XOF: %v", err)
 	}
 	_, _ = h3.Write(msg)
-	return s.G1().Scalar().Pick(random.New(h3)), nil
+	hashable, ok := s.G1().Scalar().(kyber.HashableScalar)
+	if !ok {
+		panic("scalar can't be created from hash")
+	}
+	return hashable.Hash(s, h3)
 }
 
 func h4(sigma []byte, length int) ([]byte, error) {
