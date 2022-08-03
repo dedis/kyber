@@ -1,12 +1,10 @@
 package ibe
 
 import (
+	"bytes"
 	"crypto/rand"
 	"errors"
 	"fmt"
-
-	"golang.org/x/crypto/blake2s"
-
 	"github.com/drand/kyber"
 	"github.com/drand/kyber/pairing"
 )
@@ -44,10 +42,10 @@ func H4Tag() []byte {
 // - seed is the random seed to generate the random element (sigma) of the encryption
 // The suite must produce points which implements the `HashablePoint` interface.
 func Encrypt(s pairing.Suite, master kyber.Point, ID, msg []byte) (*Ciphertext, error) {
-	if len(msg)>>16 > 0 {
-		// we're using blake2 as XOF which only outputs 2^16-1 length
-		return nil, errors.New("plaintext too long for blake2")
+	if len(msg) > s.Hash().Size() {
+		return nil, errors.New("plaintext too long for the hash function provided")
 	}
+
 	// 1. Compute Gid = e(master,Q_id)
 	hG2, ok := s.G2().Point().(kyber.HashablePoint)
 	if !ok {
@@ -71,14 +69,14 @@ func Encrypt(s pairing.Suite, master kyber.Point, ID, msg []byte) (*Ciphertext, 
 
 	// 5. Compute V = sigma XOR H2(rGid)
 	rGid := Gid.Mul(r, Gid) // even in Gt, it's additive notation
-	hrGid, err := gtToHash(rGid, len(msg), H2Tag())
+	hrGid, err := gtToHash(s, rGid, len(msg), H2Tag())
 	if err != nil {
 		return nil, err
 	}
 	V := xor(sigma, hrGid)
 
 	// 6. Compute M XOR H(sigma)
-	hsigma, err := h4(sigma, len(msg))
+	hsigma, err := h4(s, sigma, len(msg))
 	if err != nil {
 		return nil, err
 	}
@@ -92,19 +90,23 @@ func Encrypt(s pairing.Suite, master kyber.Point, ID, msg []byte) (*Ciphertext, 
 }
 
 func Decrypt(s pairing.Suite, private kyber.Point, c *Ciphertext) ([]byte, error) {
+	if len(c.W) > s.Hash().Size() {
+		return nil, errors.New("ciphertext too long for the hash function provided")
+	}
+
 	// 1. Compute sigma = V XOR H2(e(rP,private))
-	gidt := s.Pair(c.U, private)
-	hgidt, err := gtToHash(gidt, len(c.W), H2Tag())
+	rGid := s.Pair(c.U, private)
+	hrGid, err := gtToHash(s, rGid, len(c.W), H2Tag())
 	if err != nil {
 		return nil, err
 	}
-	if len(hgidt) != len(c.V) {
-		return nil, fmt.Errorf("XorSigma is of invalid length: exp %d vs got %d", len(hgidt), len(c.V))
+	if len(hrGid) != len(c.V) {
+		return nil, fmt.Errorf("XorSigma is of invalid length: exp %d vs got %d", len(hrGid), len(c.V))
 	}
-	sigma := xor(hgidt, c.V)
+	sigma := xor(hrGid, c.V)
 
 	// 2. Compute M = W XOR H4(sigma)
-	hsigma, err := h4(sigma, len(c.W))
+	hsigma, err := h4(s, sigma, len(c.W))
 	if err != nil {
 		return nil, err
 	}
@@ -124,58 +126,60 @@ func Decrypt(s pairing.Suite, private kyber.Point, c *Ciphertext) ([]byte, error
 
 }
 
-const maxSize = 1 << 10
-
 // hash sigma and msg to get r
 func h3(s pairing.Suite, sigma, msg []byte) (kyber.Scalar, error) {
-	h3, err := blake2s.NewXOF(maxSize, nil)
-	if err != nil {
-		panic(err)
-	}
+	h3 := s.Hash()
+
 	if _, err := h3.Write(H3Tag()); err != nil {
 		return nil, fmt.Errorf("err hashing h3 tag: %v", err)
 	}
 	if _, err := h3.Write(sigma); err != nil {
-		return nil, fmt.Errorf("err hashing sigma to XOF: %v", err)
+		return nil, fmt.Errorf("err hashing sigma: %v", err)
 	}
 	_, _ = h3.Write(msg)
 	hashable, ok := s.G1().Scalar().(kyber.HashableScalar)
 	if !ok {
 		panic("scalar can't be created from hash")
 	}
-	return hashable.Hash(s, h3)
+
+	h3Reader := bytes.NewReader(h3.Sum(nil))
+
+	return hashable.Hash(s, h3Reader)
 }
 
-func h4(sigma []byte, length int) ([]byte, error) {
-	h4, err := blake2s.NewXOF(maxSize, nil)
-	if err != nil {
-		panic(err)
-	}
+func h4(s pairing.Suite, sigma []byte, length int) ([]byte, error) {
+	h4 := s.Hash()
+
 	if _, err := h4.Write(H4Tag()); err != nil {
 		return nil, fmt.Errorf("err writing h4tag: %v", err)
 	}
 	if _, err := h4.Write(sigma); err != nil {
 		return nil, fmt.Errorf("err writing sigma to h4: %v", err)
 	}
+
+	h4Reader := bytes.NewReader(h4.Sum(nil))
 	h4sigma := make([]byte, length)
-	if _, err := h4.Read(h4sigma); err != nil {
+
+	if _, err := h4Reader.Read(h4sigma); err != nil {
 		return nil, fmt.Errorf("err reading from h4: %v", err)
 	}
 	return h4sigma, nil
 }
 
-func gtToHash(gt kyber.Point, length int, dst []byte) ([]byte, error) {
-	xof, err := blake2s.NewXOF(maxSize, nil)
-	if err != nil {
-		return nil, err
-	}
-	if _, err := xof.Write(dst); err != nil {
+func gtToHash(s pairing.Suite, gt kyber.Point, length int, dst []byte) ([]byte, error) {
+	hash := s.Hash()
+
+	if _, err := hash.Write(dst); err != nil {
 		return nil, errors.New("err writing dst to gtHash")
 	}
-	gt.MarshalTo(xof)
+	if _, err := gt.MarshalTo(hash); err != nil {
+		return nil, errors.New("err marshalling gt to the hash function")
+	}
+
+	hashReader := bytes.NewReader(hash.Sum(nil))
 	var b = make([]byte, length)
-	if _, err := xof.Read(b); err != nil {
-		return nil, errors.New("couldn't read from xof")
+	if _, err := hashReader.Read(b); err != nil {
+		return nil, errors.New("couldn't read from hash output")
 	}
 	return b[:], nil
 }

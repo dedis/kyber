@@ -79,5 +79,18 @@ func TestVeryLongCipherFailsDecryptionBecauseOfLength(t *testing.T) {
 	_, err = Decrypt(suite, sQid, c)
 
 	require.Error(t, err)
+	require.ErrorContains(t, err, "ciphertext too long for the hash function provided")
+}
+
+func TestInvalidWFailsDecryptionBecauseOfLength(t *testing.T) {
+	suite, Ppub, ID, sQid := newSetting()
+	msg := []byte("hello world")
+	c, err := Encrypt(suite, Ppub, ID, msg)
+	require.NoError(t, err)
+
+	c.W = []byte(strings.Repeat("A", 25))
+	_, err = Decrypt(suite, sQid, c)
+
+	require.Error(t, err)
 	require.ErrorContains(t, err, "XorSigma is of invalid length")
 }
