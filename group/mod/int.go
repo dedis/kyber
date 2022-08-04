@@ -442,7 +442,7 @@ func (i *Int) Hash(h kyber.HashFactory, input io.Reader) (kyber.Scalar, error) {
 		hash := h.Hash()
 		_, _ = hash.Write(buffer)
 		copy(buffer, hash.Sum(nil))
-		if i.BO == LittleEndian {
+		if i.BO == BigEndian {
 			buffer[0] = buffer[0] >> toMask
 		} else {
 			buffer[len(buffer)-1] = buffer[len(buffer)-1] >> toMask
