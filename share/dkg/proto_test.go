@@ -659,15 +659,35 @@ func TestProtoSkip(t *testing.T) {
 	}
 
 	network.BoardFor(1).badSig = true
+
+	var resCh = make(chan OptionResult, 1)
+	// start all nodes and wait until each end
+	for _, node := range tns {
+		go func(n *TestNode) { resCh <- <-n.proto.WaitEnd() }(node)
+	}
 	// start the phasers
 	for _, node := range tns {
 		go node.phaser.Start()
 	}
 	time.Sleep(100 * time.Millisecond)
-	moveTime(tns, period)
-	time.Sleep(100 * time.Millisecond)
-	moveTime(tns, period)
-	time.Sleep(100 * time.Millisecond)
+	for i := 0; i < 2; i++ {
+		moveTime(tns, period)
+		time.Sleep(100 * time.Millisecond)
+	}
+	// expect all results
+	var results []*Result
+	for optRes := range resCh {
+		//require.NoError(t, optRes.Error)
+		results = append(results, optRes.Result)
+		if len(results) == n {
+			break
+		}
+	}
+	//	time.Sleep(100 * time.Millisecond)
+	//	moveTime(tns, period)
+	//	time.Sleep(100 * time.Millisecond)
+	//	moveTime(tns, period)
+	//	time.Sleep(100 * time.Millisecond)
 	// check that all dkgs have all good entries
 	// that should be the case since signature verification is not performed
 	for _, tn := range tns {
