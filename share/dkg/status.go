@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"sort"
 	"strings"
-	"sync"
 )
 
 const (
@@ -13,10 +12,7 @@ const (
 )
 
 type BitSet map[uint32]bool
-type StatusMatrix struct {
-	b map[uint32]BitSet
-	m sync.Mutex
-}
+type StatusMatrix map[uint32]BitSet
 
 func NewStatusMatrix(dealers []Node, shareHolders []Node, status bool) *StatusMatrix {
 	statuses := make(map[uint32]BitSet)
@@ -27,15 +23,13 @@ func NewStatusMatrix(dealers []Node, shareHolders []Node, status bool) *StatusMa
 		}
 		statuses[dealer.Index] = bitset
 	}
-	sm := &StatusMatrix{b: statuses}
-	return sm
+	sm := StatusMatrix(statuses)
+	return &sm
 }
 
 func (s *StatusMatrix) StatusesForShare(shareIndex uint32) BitSet {
 	bt := make(BitSet)
-	s.m.Lock()
-	defer s.m.Unlock()
-	for dealerIdx, bs := range (*s).b {
+	for dealerIdx, bs := range *s {
 		status, ok := bs[shareIndex]
 		if !ok {
 			panic("index out of range - not supposed to happen")
@@ -46,28 +40,22 @@ func (s *StatusMatrix) StatusesForShare(shareIndex uint32) BitSet {
 }
 
 func (s *StatusMatrix) StatusesOfDealer(dealerIndex uint32) BitSet {
-	s.m.Lock()
-	defer s.m.Unlock()
-	return (*s).b[dealerIndex]
+	return (*s)[dealerIndex]
 }
 
 // can panic if indexes are not from the original list of nodes
 func (s *StatusMatrix) Set(dealer, share uint32, status bool) {
-	s.m.Lock()
-	defer s.m.Unlock()
-	(*s).b[dealer][share] = status
+	(*s)[dealer][share] = status
 }
 
 func (s *StatusMatrix) SetAll(dealer uint32, status bool) {
-	s.m.Lock()
-	defer s.m.Unlock()
-	for share := range (*s).b[dealer] {
-		(*s).b[dealer][share] = status
+	for share := range (*s)[dealer] {
+		(*s)[dealer][share] = status
 	}
 }
 
 func (s *StatusMatrix) AllTrue(dealer uint32) bool {
-	for _, status := range (*s).b[dealer] {
+	for _, status := range (*s)[dealer] {
 		if status == Complaint {
 			return false
 		}
@@ -76,9 +64,7 @@ func (s *StatusMatrix) AllTrue(dealer uint32) bool {
 }
 
 func (s *StatusMatrix) CompleteSuccess() bool {
-	s.m.Lock()
-	defer s.m.Unlock()
-	for dealer := range (*s).b {
+	for dealer := range *s {
 		if !s.AllTrue(dealer) {
 			return false
 		}
@@ -88,22 +74,18 @@ func (s *StatusMatrix) CompleteSuccess() bool {
 
 // can panic if indexes are not from the original list of nodes
 func (s *StatusMatrix) Get(dealer, share uint32) bool {
-	s.m.Lock()
-	defer s.m.Unlock()
-	return (*s).b[dealer][share]
+	return (*s)[dealer][share]
 }
 
 func (s *StatusMatrix) String() string {
-	s.m.Lock()
-	defer s.m.Unlock()
 	// get dealer indexes
-	dealerIdx := make([]int, 0, len((*s).b))
-	for didx := range (*s).b {
+	dealerIdx := make([]int, 0, len((*s)))
+	for didx := range *s {
 		dealerIdx = append(dealerIdx, int(didx))
 	}
 	// get share holder indexes
-	sharesIdx := make([]int, 0, len((*s).b[uint32(dealerIdx[0])]))
-	for sidx := range (*s).b[uint32(dealerIdx[0])] {
+	sharesIdx := make([]int, 0, len((*s)[uint32(dealerIdx[0])]))
+	for sidx := range (*s)[uint32(dealerIdx[0])] {
 		sharesIdx = append(sharesIdx, int(sidx))
 	}
 	sort.Ints(dealerIdx)
@@ -112,7 +94,7 @@ func (s *StatusMatrix) String() string {
 	for _, dealerIndex := range dealerIdx {
 		var statuses []string
 		for _, shareIndex := range sharesIdx {
-			status := (*s).b[uint32(dealerIndex)][uint32(shareIndex)]
+			status := (*s)[uint32(dealerIndex)][uint32(shareIndex)]
 			var st string
 			if status {
 				st = fmt.Sprintf(" %d: ok", shareIndex)
