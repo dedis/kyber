@@ -1016,7 +1016,7 @@ func TestDKGResharingNewNodes(t *testing.T) {
 		for _, resp := range dealResponses {
 			for _, dkg := range oldDkgs {
 				// Ignore messages from ourselves
-				if resp.Response.Index == uint32(dkg.nidx) {
+				if uint32(dkg.oidx) == uint32(oldN-1) && resp.Response.Index == uint32(dkg.nidx) {
 					continue
 				}
 				j, err := dkg.ProcessResponse(resp)
@@ -1454,7 +1454,7 @@ func TestDKGResharingNewNodesCertifyCheck(t *testing.T) {
 		for _, resp := range dealResponses {
 			for _, dkg := range oldDkgs {
 				// Ignore messages from ourselves
-				if resp.Response.Index == uint32(dkg.nidx) {
+				if uint32(dkg.oidx) == uint32(oldN-1) && resp.Response.Index == uint32(dkg.nidx) {
 					continue
 				}
 				j, err := dkg.ProcessResponse(resp)
@@ -1495,6 +1495,21 @@ func TestDKGResharingNewNodesCertifyCheck(t *testing.T) {
 			require.True(t, dkg.isInQUAL(uint32(dkg2.oidx)), "new dkg %d has not in qual old dkg %d (qual = %v)", dkg.nidx, dkg2.oidx, dkg.QUAL())
 		}
 	}
+	// see how many responses the new nodes have received, each new node should have
+	// oldN verifiers and each verifier should have newN responses
+	for i, dkg := range newDkgs {
+		for j, v := range dkg.verifiers {
+			fmt.Println("new node ", i, " verifier num", j, len(v.Aggregator.Responses()))
+		}
+	}
+	// see how many responses the old nodes have received, ideally each old node should have
+	// oldN aggregators and each aggregators should have newN responses
+
+	for i, dkg := range oldDkgs {
+		for j, aggr := range dkg.oldAggregators {
+			fmt.Println("old node ", i, "aggregator num ", j, "len: ", len(aggr.Responses()))
+		}
+	}
 
 	// make sure the new dkg members can certify
 	for _, dkg := range newDkgs {
@@ -1520,4 +1535,5 @@ func TestDKGResharingNewNodesCertifyCheck(t *testing.T) {
 	newSecret, err := share.RecoverSecret(suite, newSShares, newT, newN)
 	require.NoError(t, err)
 	require.Equal(t, oldSecret.String(), newSecret.String())
+
 }
