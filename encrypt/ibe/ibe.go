@@ -142,9 +142,7 @@ func h3(s pairing.Suite, sigma, msg []byte) (kyber.Scalar, error) {
 		panic("scalar can't be created from hash")
 	}
 
-	h3Reader := bytes.NewReader(h3.Sum(nil))
-
-	return hashable.Hash(s, h3Reader)
+	return hashable.Hash(s, bytes.NewReader(h3.Sum(nil)))
 }
 
 func h4(s pairing.Suite, sigma []byte, length int) ([]byte, error) {
@@ -156,13 +154,8 @@ func h4(s pairing.Suite, sigma []byte, length int) ([]byte, error) {
 	if _, err := h4.Write(sigma); err != nil {
 		return nil, fmt.Errorf("err writing sigma to h4: %v", err)
 	}
+	h4sigma := h4.Sum(nil)[:length]
 
-	h4Reader := bytes.NewReader(h4.Sum(nil))
-	h4sigma := make([]byte, length)
-
-	if _, err := h4Reader.Read(h4sigma); err != nil {
-		return nil, fmt.Errorf("err reading from h4: %v", err)
-	}
 	return h4sigma, nil
 }
 
