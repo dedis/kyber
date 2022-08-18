@@ -921,7 +921,7 @@ func TestDKGResharingNewNodes(t *testing.T) {
 	newPrivs := make([]kyber.Scalar, newN)
 	newPubs := make([]kyber.Point, newN)
 
-	// old[-1], old[-2] = new[0], new[1]
+	// new[0], new[1] = old[-1], old[-2]
 	newPrivs[0] = oldPrivs[oldN-1]
 	newPubs[0] = oldPubs[oldN-1]
 	newPrivs[1] = oldPrivs[oldN-2]
