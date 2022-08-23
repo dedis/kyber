@@ -311,6 +311,7 @@ type Verifier struct {
 //   - its longterm secret key
 //   - the longterm dealer public key
 //   - the list of public key of verifiers. The list MUST include the public key of this Verifier also.
+//
 // The security parameter t of the secret sharing scheme is automatically set to
 // a default safe value. If a different t value is required, it is possible to set
 // it with `verifier.SetT()`.
