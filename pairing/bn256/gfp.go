@@ -1,6 +1,7 @@
 package bn256
 
 import (
+	"crypto/subtle"
 	"fmt"
 )
 
@@ -27,6 +28,13 @@ func (e *gfP) Set(f *gfP) {
 	e[1] = f[1]
 	e[2] = f[2]
 	e[3] = f[3]
+}
+
+func (e *gfP) Equals(f *gfP) bool {
+	var ebin, fbin [32]byte
+	e.Marshal(ebin[:])
+	f.Marshal(fbin[:])
+	return subtle.ConstantTimeCompare(ebin[:], fbin[:]) == 1
 }
 
 func (e *gfP) Invert(f *gfP) {

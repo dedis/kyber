@@ -239,6 +239,36 @@ func TestBilinearity(t *testing.T) {
 	require.Equal(t, pc, pd)
 }
 
+type hashablePoint interface {
+	Hash([]byte) kyber.Point
+}
+
+func TestHashBilinearity(t *testing.T) {
+	suite := NewSuite()
+
+	// Compute hash to G1
+	A := suite.G1().Point().(hashablePoint).Hash([]byte("1234"))
+
+	// Compute hash to G2
+	B := suite.G2().Point().(hashablePoint).Hash([]byte("1234"))
+
+	// Choose a random scalar s
+	s := suite.G1().Scalar().Pick(random.New())
+
+	// Compute As = A^s
+	As := suite.G1().Point().Mul(s, A)
+
+	// Compute Bs = B^s
+	Bs := suite.G2().Point().Mul(s, B)
+
+	// Compute e(As, B) and e(A, Bs)
+	res1 := suite.Pair(As, B)
+	res2 := suite.Pair(A, Bs)
+
+	// Check they are equal
+	require.Equal(t, res1, res2)
+}
+
 func TestTripartiteDiffieHellman(t *testing.T) {
 	suite := NewSuite()
 	a := suite.G1().Scalar().Pick(random.New())
