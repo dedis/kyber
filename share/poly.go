@@ -332,7 +332,7 @@ func (p *PubPoly) Threshold() int {
 
 // Commit returns the secret commitment p(0), i.e., the constant term of the polynomial.
 func (p *PubPoly) Commit() kyber.Point {
-	return p.commits[0]
+	return p.commits[0].Clone()
 }
 
 // Eval computes the public share v = p(i).
