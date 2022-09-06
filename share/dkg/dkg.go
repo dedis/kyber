@@ -400,6 +400,7 @@ func (d *DistKeyGenerator) ProcessDeals(bundles []*DealBundle) (*ResponseBundle,
 		d.state = ResponsePhase // he moves on to the next phase silently
 		return nil, nil
 	}
+
 	seenIndex := make(map[uint32]bool)
 	for _, bundle := range bundles {
 		if bundle == nil {
@@ -408,6 +409,8 @@ func (d *DistKeyGenerator) ProcessDeals(bundles []*DealBundle) (*ResponseBundle,
 		}
 		if d.canIssue && bundle.DealerIndex == uint32(d.oidx) {
 			// dont look at our own deal
+			// Note that's why we are not checking if we are evicted at the end of this function and return an error
+			// because we're supposing we are honest and we don't look at our own deal
 			continue
 		}
 		if !isIndexIncluded(d.c.OldNodes, bundle.DealerIndex) {
@@ -485,6 +488,7 @@ func (d *DistKeyGenerator) ProcessDeals(bundles []*DealBundle) (*ResponseBundle,
 			// share is valid -> store it
 			d.statuses.Set(bundle.DealerIndex, deal.ShareIndex, true)
 			d.validShares[bundle.DealerIndex] = share
+			d.c.Info("Valid deal processed received from dealer %d", bundle.DealerIndex)
 		}
 	}
 
@@ -555,7 +559,7 @@ func (d *DistKeyGenerator) ExpectedResponsesFastSync() int {
 // - the justification bundle if this node must produce at least one. If nil,
 // this node must still wait on the justification phase.
 // - error if the dkg must stop now, an unrecoverable failure.
-func (d *DistKeyGenerator) ProcessResponses(bundles []*ResponseBundle) (*Result, *JustificationBundle, error) {
+func (d *DistKeyGenerator) ProcessResponses(bundles []*ResponseBundle) (res *Result, jb *JustificationBundle, err error) {
 	if !d.canReceive && d.state != DealPhase {
 		// if we are a old node that will leave
 		return nil, nil, fmt.Errorf("leaving node can process responses only after creating shares")
@@ -563,11 +567,17 @@ func (d *DistKeyGenerator) ProcessResponses(bundles []*ResponseBundle) (*Result,
 		return nil, nil, fmt.Errorf("can only process responses after processing shares - current state %s", d.state)
 	}
 
+	defer func() {
+		if err == nil {
+			err = d.checkIfEvicted(ResponsePhase)
+		}
+	}()
+
 	if !d.c.FastSync && len(bundles) == 0 && d.canReceive && d.statuses.CompleteSuccess() {
 		// if we are not in fastsync, we expect only complaints
 		// if there is no complaints all is good
-		res, err := d.computeResult()
-		return res, nil, err
+		res, err = d.computeResult()
+		return
 	}
 
 	var validAuthors []Index
@@ -701,9 +711,12 @@ func (d *DistKeyGenerator) ProcessResponses(bundles []*ResponseBundle) (*Result,
 	}
 
 	signature, err := d.sign(bundle)
+	if err != nil {
+		return nil, nil, err
+	}
 	bundle.Signature = signature
 	d.c.Info(fmt.Sprintf("%d justifications returned", len(justifications)))
-	return nil, bundle, err
+	return nil, bundle, nil
 }
 
 // ProcessJustifications takes the justifications of the nodes and returns the
@@ -793,6 +806,11 @@ func (d *DistKeyGenerator) ProcessJustifications(bundles []*JustificationBundle)
 		}
 	}
 
+	// check if we are evicted or not
+	if err := d.checkIfEvicted(JustifPhase); err != nil {
+		return nil, fmt.Errorf("wvicted at justification: %w", err)
+	}
+
 	// check if there is enough dealer entries marked as all success
 	var allGood int
 	for _, n := range d.c.OldNodes {
@@ -817,6 +835,7 @@ func (d *DistKeyGenerator) ProcessJustifications(bundles []*JustificationBundle)
 		d.state = FinishPhase
 		return nil, fmt.Errorf("process-justifications: only %d/%d valid deals - dkg abort", allGood, targetThreshold)
 	}
+
 	// otherwise it's all good - let's compute the result
 	return d.computeResult()
 }
@@ -1003,6 +1022,43 @@ func (d *DistKeyGenerator) computeDKGResult() (*Result, error) {
 			},
 		},
 	}, nil
+}
+
+var ErrEvicted = errors.New("our node is evicted from list of qualified participants")
+
+// checkIfEvicted returns an error if this node is in one of the two eviction list. This is useful to detect
+// our own misbehaviour or lack of connectivity: for example if this node can receive messages from others but is
+// not able to send, everyone will send a complaint about this node, and thus it is going to be evicted.
+// This method checks if you are and returns an error from the DKG to stop it. Once evicted a node's messages are
+// not processed anymore and it is left out of the protocol.
+func (d *DistKeyGenerator) checkIfEvicted(phase Phase) error {
+	var arr []Index
+	var indexToUse Index
+
+	// For DKG -> for all phases look at evicted dealers since both lists are the same anyway
+	// For resharing ->  only at response phase we evict some new share holders
+	// 			otherwise, it's only dealers we evict (since deal and justif are made by dealers)
+	if d.isResharing && phase == ResponsePhase {
+		if !d.canReceive {
+			// we can't be evicted as an old node leaving the group here
+			return nil
+		}
+		arr = d.evictedHolders
+		indexToUse = d.nidx
+	} else {
+		if !d.canIssue {
+			// we can't be evicted as a new node in this setting
+			return nil
+		}
+		arr = d.evicted
+		indexToUse = d.oidx
+	}
+	for _, idx := range arr {
+		if indexToUse == idx {
+			return ErrEvicted
+		}
+	}
+	return nil
 }
 
 func findPub(list []Node, toFind kyber.Point) (Index, bool) {
