@@ -744,24 +744,30 @@ func (d *DistKeyGenerator) ProcessJustifications(bundles []*JustificationBundle)
 			// bundle contains duplicate - clear violation
 			// so we evict
 			d.evicted = append(d.evicted, bundle.DealerIndex)
+			d.c.Error("Justification bundle contains duplicate - evicting dealer", bundle.DealerIndex)
 			continue
 		}
 		if d.canIssue && bundle.DealerIndex == uint32(d.oidx) {
 			// we dont treat our own justifications
+			d.c.Info("Skipping own justification", true)
 			continue
 		}
 		if !isIndexIncluded(d.c.OldNodes, bundle.DealerIndex) {
 			// index is invalid
+			d.c.Error("Invalid index - evicting dealer", bundle.DealerIndex)
 			continue
 		}
 		if contains(d.evicted, bundle.DealerIndex) {
 			// already evicted node
+			d.c.Error("Already evicted dealer - evicting dealer", bundle.DealerIndex)
 			continue
 		}
 		if bytes.Compare(bundle.SessionID, d.c.Nonce) != 0 {
 			d.evicted = append(d.evicted, bundle.DealerIndex)
+			d.c.Error("Justification bundle contains invalid session ID - evicting dealer", bundle.DealerIndex)
 			continue
 		}
+		d.c.Info("ProcessJustifications - basic sanity checks done", true)
 
 		seen[bundle.DealerIndex] = true
 		for _, justif := range bundle.Justifications {
@@ -769,6 +775,7 @@ func (d *DistKeyGenerator) ProcessJustifications(bundles []*JustificationBundle)
 				// invalid index - clear violation
 				// so we evict
 				d.evicted = append(d.evicted, bundle.DealerIndex)
+				d.c.Error("Invalid index in justifications - evicting dealer", bundle.DealerIndex)
 				continue
 			}
 			pubPoly, ok := d.allPublics[bundle.DealerIndex]
@@ -776,6 +783,7 @@ func (d *DistKeyGenerator) ProcessJustifications(bundles []*JustificationBundle)
 				// dealer hasn't given any public polynomial at the first phase
 				// so we evict directly - no need to look at its justifications
 				d.evicted = append(d.evicted, bundle.DealerIndex)
+				d.c.Error("Public polynomial missing - evicting dealer", bundle.DealerIndex)
 				break
 			}
 			// compare commit and public poly
@@ -784,6 +792,7 @@ func (d *DistKeyGenerator) ProcessJustifications(bundles []*JustificationBundle)
 			if !commit.Equal(expected) {
 				// invalid justification - evict
 				d.evicted = append(d.evicted, bundle.DealerIndex)
+				d.c.Error("New share commit invalid - evicting dealer", bundle.DealerIndex)
 				continue
 			}
 			if d.isResharing {
@@ -794,13 +803,17 @@ func (d *DistKeyGenerator) ProcessJustifications(bundles []*JustificationBundle)
 				if !oldShareCommit.Equal(publicCommit) {
 					// inconsistent share from old member
 					d.evicted = append(d.evicted, bundle.DealerIndex)
+
+					d.c.Error("Old share commit not equal to public commit - evicting dealer", bundle.DealerIndex)
 					continue
 				}
+				d.c.Info("Old share commit and public commit valid", true)
 			}
 			// valid share -> mark OK
 			d.statuses.Set(bundle.DealerIndex, justif.ShareIndex, true)
 			if justif.ShareIndex == uint32(d.nidx) {
 				// store the share if it's for us
+				d.c.Info("Saving our key share for", justif.ShareIndex)
 				d.validShares[bundle.DealerIndex] = justif.Share
 			}
 		}
@@ -808,7 +821,7 @@ func (d *DistKeyGenerator) ProcessJustifications(bundles []*JustificationBundle)
 
 	// check if we are evicted or not
 	if err := d.checkIfEvicted(JustifPhase); err != nil {
-		return nil, fmt.Errorf("wvicted at justification: %w", err)
+		return nil, fmt.Errorf("evicted at justification: %w", err)
 	}
 
 	// check if there is enough dealer entries marked as all success
@@ -1081,10 +1094,6 @@ func findIndex(list []Node, index Index) (kyber.Point, bool) {
 
 func MinimumT(n int) int {
 	return (n + 1) / 2
-}
-
-func validT(t int, verifiers []kyber.Point) bool {
-	return t >= 2 && t <= len(verifiers) && int(uint32(t)) == t
 }
 
 func isIndexIncluded(list []Node, index uint32) bool {
