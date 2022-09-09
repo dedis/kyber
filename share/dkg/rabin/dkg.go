@@ -348,6 +348,7 @@ func (d *DistKeyGenerator) ProcessJustification(j *Justification) error {
 // SetTimeout triggers the timeout on all verifiers, and thus makes sure
 // all verifiers have either responded, or have a StatusComplaint response.
 func (d *DistKeyGenerator) SetTimeout() {
+	(*d).dealer.SetTimeout()
 	for _, v := range d.verifiers {
 		v.SetTimeout()
 	}
