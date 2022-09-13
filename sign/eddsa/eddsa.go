@@ -10,7 +10,6 @@ import (
 
 	"go.dedis.ch/kyber/v3"
 	"go.dedis.ch/kyber/v3/group/edwards25519"
-	"go.dedis.ch/kyber/v3/util/random"
 )
 
 var group = new(edwards25519.Curve)
@@ -33,17 +32,13 @@ func NewEdDSA(stream cipher.Stream) *EdDSA {
 	if stream == nil {
 		panic("stream is required")
 	}
-	var buffer [32]byte
-	random.Bytes(buffer[:], stream)
 
-	scalar := hashSeed(buffer[:])
-
-	secret := group.Scalar().SetBytes(scalar[:32])
+	secret, buffer, prefix := group.NewKeyAndSeed(stream)
 	public := group.Point().Mul(secret, nil)
 
 	return &EdDSA{
-		seed:   buffer[:],
-		prefix: scalar[32:],
+		seed:   buffer,
+		prefix: prefix,
 		Secret: secret,
 		Public: public,
 	}
@@ -69,10 +64,11 @@ func (e *EdDSA) UnmarshalBinary(buff []byte) error {
 		return errors.New("wrong length for decoding EdDSA private")
 	}
 
+	secret, _, prefix := group.NewKeyAndSeedWithInput(buff[:32])
+
 	e.seed = buff[:32]
-	scalar := hashSeed(e.seed)
-	e.prefix = scalar[32:]
-	e.Secret = group.Scalar().SetBytes(scalar[:32])
+	e.prefix = prefix
+	e.Secret = secret
 	e.Public = group.Point().Mul(e.Secret, nil)
 	return nil
 }
@@ -123,16 +119,38 @@ func (e *EdDSA) Sign(msg []byte) ([]byte, error) {
 	return sig[:], nil
 }
 
-// Verify uses a public key, a message and a signature. It will return nil if
-// sig is a valid signature for msg created by key public, or an error otherwise.
-func Verify(public kyber.Point, msg, sig []byte) error {
+// VerifyWithChecks uses a public key buffer, a message and a signature.
+// It will return nil if sig is a valid signature for msg created by
+// key public, or an error otherwise. Compared to `Verify`, it performs
+// additional checks around the canonicality and ensures the public key
+// does not have a small order.
+func VerifyWithChecks(pub, msg, sig []byte) error {
 	if len(sig) != 64 {
 		return fmt.Errorf("signature length invalid, expect 64 but got %v", len(sig))
 	}
 
+	type scalarCanCheckCanonical interface {
+		IsCanonical(b []byte) bool
+	}
+
+	if !group.Scalar().(scalarCanCheckCanonical).IsCanonical(sig[32:]) {
+		return fmt.Errorf("signature is not canonical")
+	}
+
+	type pointCanCheckCanonicalAndSmallOrder interface {
+		HasSmallOrder() bool
+		IsCanonical(b []byte) bool
+	}
+
 	R := group.Point()
+	if !R.(pointCanCheckCanonicalAndSmallOrder).IsCanonical(sig[:32]) {
+		return fmt.Errorf("R is not canonical")
+	}
 	if err := R.UnmarshalBinary(sig[:32]); err != nil {
 		return fmt.Errorf("got R invalid point: %s", err)
+	}
+	if R.(pointCanCheckCanonicalAndSmallOrder).HasSmallOrder() {
+		return fmt.Errorf("R has small order")
 	}
 
 	s := group.Scalar()
@@ -140,14 +158,21 @@ func Verify(public kyber.Point, msg, sig []byte) error {
 		return fmt.Errorf("schnorr: s invalid scalar %s", err)
 	}
 
-	// reconstruct h = H(R || Public || Msg)
-	Pbuff, err := public.MarshalBinary()
-	if err != nil {
-		return err
+	public := group.Point()
+	if !public.(pointCanCheckCanonicalAndSmallOrder).IsCanonical(pub) {
+		return fmt.Errorf("public key is not canonical")
 	}
+	if err := public.UnmarshalBinary(pub); err != nil {
+		return fmt.Errorf("invalid public key: %s", err)
+	}
+	if public.(pointCanCheckCanonicalAndSmallOrder).HasSmallOrder() {
+		return fmt.Errorf("public key has small order")
+	}
+
+	// reconstruct h = H(R || Public || Msg)
 	hash := sha512.New()
 	_, _ = hash.Write(sig[:32])
-	_, _ = hash.Write(Pbuff)
+	_, _ = hash.Write(pub)
 	_, _ = hash.Write(msg)
 
 	h := group.Scalar().SetBytes(hash.Sum(nil))
@@ -162,10 +187,12 @@ func Verify(public kyber.Point, msg, sig []byte) error {
 	return nil
 }
 
-func hashSeed(seed []byte) (hash [64]byte) {
-	hash = sha512.Sum512(seed)
-	hash[0] &= 0xf8
-	hash[31] &= 0x3f
-	hash[31] |= 0x40
-	return
+// Verify uses a public key, a message and a signature. It will return nil if
+// sig is a valid signature for msg created by key public, or an error otherwise.
+func Verify(public kyber.Point, msg, sig []byte) error {
+	PBuf, err := public.MarshalBinary()
+	if err != nil {
+		return fmt.Errorf("error unmarshalling public key: %s", err)
+	}
+	return VerifyWithChecks(PBuf, msg, sig)
 }

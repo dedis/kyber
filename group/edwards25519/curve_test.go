@@ -1,8 +1,10 @@
 package edwards25519
 
 import (
+	"math"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"go.dedis.ch/kyber/v3/util/test"
 )
 
@@ -10,6 +12,19 @@ var tSuite = NewBlakeSHA256Ed25519()
 var groupBench = test.NewGroupBench(tSuite)
 
 func TestSuite(t *testing.T) { test.SuiteTest(t, tSuite) }
+
+// Test that NewKey generates correct secret keys
+func TestCurve_NewKey(t *testing.T) {
+	group := Curve{}
+	stream := tSuite.RandomStream()
+
+	for i := 0.0; i < math.Pow(10, 6); i++ {
+		s := group.NewKey(stream).(*scalar)
+
+		// little-endian check of a multiple of 8
+		assert.Equal(t, uint8(0), s.v[0]&7)
+	}
+}
 
 func BenchmarkScalarAdd(b *testing.B)    { groupBench.ScalarAdd(b.N) }
 func BenchmarkScalarSub(b *testing.B)    { groupBench.ScalarSub(b.N) }

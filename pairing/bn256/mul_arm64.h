@@ -60,7 +60,7 @@
 	ADCS R0, R29 \
 	UMULH R4, R8, c7 \
 	ADCS ZR, c7 \
-	ADDS R25, c3 \
+	ADDS R1, c3 \
 	ADCS R26, c4 \
 	ADCS R27, c5 \
 	ADCS R29, c6 \

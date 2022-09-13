@@ -1,3 +1,19 @@
+// Package bn256 implements a particular bilinear group.
+//
+// Bilinear groups are the basis of many of the new cryptographic protocols that
+// have been proposed over the past decade. They consist of a triplet of groups
+// (G₁, G₂ and GT) such that there exists a function e(g₁ˣ,g₂ʸ)=gTˣʸ (where gₓ
+// is a generator of the respective group). That function is called a pairing
+// function.
+//
+// This package specifically implements the Optimal Ate pairing over a 256-bit
+// Barreto-Naehrig curve as described in
+// http://cryptojedi.org/papers/dclxvi-20100714.pdf. Its output is compatible
+// with the implementation described in that paper.
+//
+// This package previously claimed to operate at a 128-bit security level.
+// However, recent improvements in attacks mean that is no longer true. See
+// https://moderncrypto.org/mail-archive/curves/2016/000740.html.
 package bn256
 
 import (

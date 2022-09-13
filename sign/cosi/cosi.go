@@ -36,6 +36,12 @@ response r_i = v_i + c*a_i and sends it back to the leader.
 P' or a timer has run out. If he has not enough replies he aborts. Finally,
 the leader computes the aggregate response r = \sum{j ∈ P'}(r_j) and publishes
 (V,r,Z) as the signature for the message M.
+
+Note: This package is kept here for historical and research purposes. It
+should not be used in new code as it has been deprecated by the
+bls package, which was in turn deprecated by the bdn package. See
+https://eprint.iacr.org/2018/417.pdf for an attack on CoSi as implemented
+here.
 */
 package cosi
 
@@ -380,12 +386,16 @@ func AggregateMasks(a, b []byte) ([]byte, error) {
 // use any other relevant contextual information (e.g., how security-critical
 // the operation relying on the collective signature is) in determining whether
 // the collective signature was produced by an acceptable set of cosigners.
+//
+// Deprecated: the policies have moved to the package kyber/sign
 type Policy interface {
 	Check(m ParticipationMask) bool
 }
 
 // CompletePolicy is the default policy requiring that all participants have
 // cosigned to make a collective signature valid.
+//
+// Deprecated: the policy has moved to the package kyber/sign
 type CompletePolicy struct {
 }
 
@@ -398,11 +408,15 @@ func (p CompletePolicy) Check(m ParticipationMask) bool {
 // ThresholdPolicy allows to specify a simple t-of-n policy requring that at
 // least the given threshold number of participants t have cosigned to make a
 // collective signature valid.
+//
+// Deprecated: the policy has moved to the package kyber/sign
 type ThresholdPolicy struct {
 	thold int
 }
 
 // NewThresholdPolicy returns a new ThresholdPolicy with the given threshold.
+//
+// Deprecated: the policy has moved to the package kyber/sign
 func NewThresholdPolicy(thold int) *ThresholdPolicy {
 	return &ThresholdPolicy{thold: thold}
 }

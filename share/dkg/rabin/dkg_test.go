@@ -89,20 +89,6 @@ func TestDKGProcessDeal(t *testing.T) {
 	assert.Error(t, err)
 	rec.participants = goodP
 
-	// good deal
-	resp, err = rec.ProcessDeal(deal)
-	assert.NotNil(t, resp)
-	assert.Equal(t, true, resp.Response.Approved)
-	assert.Nil(t, err)
-	_, ok := rec.verifiers[deal.Index]
-	require.True(t, ok)
-	assert.Equal(t, uint32(0), resp.Index)
-
-	// duplicate
-	resp, err = rec.ProcessDeal(deal)
-	assert.Nil(t, resp)
-	assert.Error(t, err)
-
 	// wrong index
 	goodIdx := deal.Index
 	deal.Index = uint32(nbParticipants + 1)
@@ -118,6 +104,20 @@ func TestDKGProcessDeal(t *testing.T) {
 	assert.Nil(t, resp)
 	assert.Error(t, err)
 	deal.Deal.Signature = goodSig
+
+	// good deal
+	resp, err = rec.ProcessDeal(deal)
+	assert.NotNil(t, resp)
+	assert.Equal(t, true, resp.Response.Approved)
+	assert.Nil(t, err)
+	_, ok := rec.verifiers[deal.Index]
+	require.True(t, ok)
+	assert.Equal(t, uint32(0), resp.Index)
+
+	// duplicate
+	resp, err = rec.ProcessDeal(deal)
+	assert.Nil(t, resp)
+	assert.Error(t, err)
 
 }
 

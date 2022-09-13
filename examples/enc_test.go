@@ -79,6 +79,7 @@ func Example_elGamalEncryption() {
 	}
 	if string(mm) != string(m) {
 		fmt.Println("decryption produced wrong output: " + string(mm))
+		return
 	}
 	fmt.Println("Decryption succeeded: " + string(mm))
 

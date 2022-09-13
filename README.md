@@ -1,5 +1,7 @@
-[![Docs](https://img.shields.io/badge/docs-current-brightgreen.svg)](https://godoc.org/go.dedis.ch/kyber)
-[![Build Status](https://travis-ci.org/dedis/kyber.svg?branch=master)](https://travis-ci.org/dedis/kyber)
+[![Go test](https://github.com/dedis/kyber/actions/workflows/go_tests.yml/badge.svg)](https://github.com/dedis/kyber/actions/workflows/go_tests.yml)
+[![Coverage Status](https://coveralls.io/repos/github/dedis/kyber/badge.svg?branch=master)](https://coveralls.io/github/dedis/kyber?branch=master)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=dedis_kyber&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=dedis_kyber)
+[![Go Reference](https://pkg.go.dev/badge/github.com/dedis/kyber.svg)](https://pkg.go.dev/github.com/dedis/kyber)
 
 DEDIS Advanced Crypto Library for Go
 ====================================
@@ -32,20 +34,31 @@ to time. If you need something that doesn't change in a backward-compatible
 way you should use have a `go.mod` file in the directory where your
 main package is.
 
-Installing
-----------
+Using the module
+----------------
 
-First make sure you have [Go](https://golang.org) version 1.11 or newer installed.
+Kyber supports Go modules, and currently has a major version of 3, which means that
+the import path is: `go.dedis.ch/kyber/v3`.
 
-The basic crypto library requires only Go and a few
-third-party Go-language dependencies that can be installed automatically
-as follows:
+Here is a basic example of getting started using it:
+1. Make a new directory called “ex". Change directory to “ex" and put this in main.go:
+```go
+package main
 
-	go get go.dedis.ch/kyber
+import (
+    "fmt"
+    "go.dedis.ch/kyber/v3/suites"
+)
 
-You can recursively test all the packages in the library as follows:
-
-	go test -v ./...
+func main() {
+    s := suites.MustFind("Ed25519")
+    x := s.Scalar().Zero()
+    fmt.Println(x)
+}
+```
+2. Type “go mod init example.com/ex”. The resulting go.mod file will have no dependencies listed yet.
+3. Type “go build”. The go tool will fill in the new dependencies that it find for you, i.e. "require go.dedis.ch/kyber/v3 v3.0.13”.
+4. Running `./ex` will print `0000000000000000000000000000000000000000000000000000000000000000`.
 
 A note on deriving shared secrets
 ---------------------------------

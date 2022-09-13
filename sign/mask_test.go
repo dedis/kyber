@@ -54,6 +54,12 @@ func TestMask_SetBit(t *testing.T) {
 	require.Equal(t, uint8(0x6), mask.Mask()[0])
 	require.Equal(t, 2, len(mask.Participants()))
 
+	// Set it again, nothing should change.
+	err = mask.SetBit(1, true)
+	require.NoError(t, err)
+	require.Equal(t, uint8(0x6), mask.Mask()[0])
+	require.Equal(t, 2, len(mask.Participants()))
+
 	err = mask.SetBit(2, false)
 	require.NoError(t, err)
 	require.Equal(t, uint8(0x2), mask.Mask()[0])
