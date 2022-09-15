@@ -569,6 +569,10 @@ func TestVSSContext(t *testing.T) {
 	assert.Len(t, c, keySize)
 }
 
+func TestMinimumT(t *testing.T) {
+	require.Equal(t, MinimumT(6), 4)
+}
+
 func genPair() (kyber.Scalar, kyber.Point) {
 	secret := suite.Scalar().Pick(suite.RandomStream())
 	public := suite.Point().Mul(secret, nil)

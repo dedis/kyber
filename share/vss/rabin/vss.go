@@ -694,7 +694,7 @@ func (a *aggregator) UnsafeSetResponseDKG(idx uint32, approval bool) {
 // the whole protocol insecure. Setting a higher T only makes it harder to
 // reconstruct the secret.
 func MinimumT(n int) int {
-	return (n + 1) / 2
+	return (n / 2) + 1
 }
 
 func validT(t int, verifiers []kyber.Point) bool {
