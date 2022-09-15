@@ -306,7 +306,7 @@ func (d *DistKeyGenerator) ProcessDeal(dd *Deal) (*Response, error) {
 func (d *DistKeyGenerator) ProcessResponse(resp *Response) (*Justification, error) {
 	v, ok := d.verifiers[resp.Index]
 	if !ok {
-		return nil, errors.New("dkg: complaint received but no deal for it")
+		return nil, errors.New("dkg: response received but no deal for it")
 	}
 
 	if err := v.ProcessResponse(resp.Response); err != nil {
