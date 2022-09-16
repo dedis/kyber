@@ -129,10 +129,9 @@ type Justification struct {
 
 // NewDealer returns a Dealer capable of leading the secret sharing scheme. It
 // does not have to be trusted by other Verifiers. The security parameter t is
-// the number of shares required to reconstruct the secret. It is HIGHLY
-// RECOMMENDED to use a threshold higher or equal than what the method
-// MinimumT() returns, otherwise it breaks the security assumptions of the whole
-// scheme. It returns an error if the t is inferior or equal to 2.
+// the number of shares required to reconstruct the secret. It must be no larger
+// than MaximumT(), otherwise an error is returned.
+// This function also returns an error if the t is inferior or equal to 2.
 func NewDealer(suite Suite, longterm, secret kyber.Scalar, verifiers []kyber.Point, t int) (*Dealer, error) {
 	d := &Dealer{
 		suite:     suite,
@@ -140,7 +139,7 @@ func NewDealer(suite Suite, longterm, secret kyber.Scalar, verifiers []kyber.Poi
 		secret:    secret,
 		verifiers: verifiers,
 	}
-	if !validT(t, verifiers) {
+	if !(validT(t, verifiers) && t <= MaximumT(len(verifiers))) {
 		return nil, fmt.Errorf("dealer: t %d invalid", t)
 	}
 	d.t = t
@@ -688,13 +687,11 @@ func (a *aggregator) UnsafeSetResponseDKG(idx uint32, approval bool) {
 	a.addResponse(r)
 }
 
-// MinimumT returns the minimum safe T that is proven to be secure with this
+// MaximumT returns the maximum T proven to be secure and robust with this
 // protocol. It expects n, the total number of participants.
-// WARNING: Setting a lower T could make
-// the whole protocol insecure. Setting a higher T only makes it harder to
-// reconstruct the secret.
-func MinimumT(n int) int {
-	return (n / 2) + 1
+// WARNING: Setting a higher T could make the whole protocol insecure.
+func MaximumT(n int) int {
+	return n / 2
 }
 
 func validT(t int, verifiers []kyber.Point) bool {

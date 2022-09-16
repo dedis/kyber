@@ -30,7 +30,7 @@ func init() {
 	verifiersSec, verifiersPub = genCommits(nbVerifiers)
 	dealerSec, dealerPub = genPair()
 	secret, _ = genPair()
-	vssThreshold = MinimumT(nbVerifiers)
+	vssThreshold = MaximumT(nbVerifiers)
 }
 
 func TestVSSWhole(t *testing.T) {
@@ -72,14 +72,14 @@ func TestVSSWhole(t *testing.T) {
 	}
 
 	// 5. recover
-	sec, err := RecoverSecret(suite, deals, nbVerifiers, MinimumT(nbVerifiers))
+	sec, err := RecoverSecret(suite, deals, nbVerifiers, MaximumT(nbVerifiers))
 	assert.Nil(t, err)
 	require.NotNil(t, sec)
 	assert.Equal(t, dealer.secret.String(), sec.String())
 }
 
 func TestVSSDealerNew(t *testing.T) {
-	goodT := MinimumT(nbVerifiers)
+	goodT := MaximumT(nbVerifiers)
 	_, err := NewDealer(suite, dealerSec, secret, verifiersPub, goodT)
 	assert.NoError(t, err)
 
@@ -569,8 +569,9 @@ func TestVSSContext(t *testing.T) {
 	assert.Len(t, c, keySize)
 }
 
-func TestMinimumT(t *testing.T) {
-	require.Equal(t, MinimumT(6), 4)
+func TestMaximum(t *testing.T) {
+	require.Equal(t, MaximumT(6), 3)
+	require.Equal(t, MaximumT(7), 3)
 }
 
 func genPair() (kyber.Scalar, kyber.Point) {
