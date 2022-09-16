@@ -691,7 +691,7 @@ func (a *aggregator) UnsafeSetResponseDKG(idx uint32, approval bool) {
 // protocol. It expects n, the total number of participants.
 // WARNING: Setting a higher T could make the whole protocol insecure.
 func MaximumT(n int) int {
-	return n / 2
+	return (n + 1) / 2
 }
 
 func validT(t int, verifiers []kyber.Point) bool {

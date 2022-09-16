@@ -571,7 +571,7 @@ func TestVSSContext(t *testing.T) {
 
 func TestMaximum(t *testing.T) {
 	require.Equal(t, MaximumT(6), 3)
-	require.Equal(t, MaximumT(7), 3)
+	require.Equal(t, MaximumT(7), 4)
 }
 
 func genPair() (kyber.Scalar, kyber.Point) {
