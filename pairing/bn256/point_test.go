@@ -3,6 +3,7 @@ package bn256
 import (
 	"bytes"
 	"encoding/hex"
+	"go.dedis.ch/kyber/v3/util/random"
 	"testing"
 )
 
@@ -37,5 +38,19 @@ func TestPointG1_HashToPoint(t *testing.T) {
 	}
 	if !bytes.Equal(p2Buf, refBuf2) {
 		t.Error("hash does not match reference")
+	}
+}
+
+func TestPointG1_EmbedData(t *testing.T) {
+	m := []byte("The quick brown fox")
+	// Embed m onto prime group
+	M := newPointG1().Embed(m, random.New())
+
+	// Retrieve message encoded in x coordinate
+	mm, err := M.Data()
+	if err != nil {
+		t.Error(err)
+	} else if string(mm) != string(m) {
+		t.Error("G1: Embed/Data produced wrong output: ", string(mm), " expected ", string(m))
 	}
 }
