@@ -8,7 +8,12 @@ on:
 
 jobs:
   permission:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        platform: [ubuntu-latest, macos-latest, windows-latest]
+    
+    runs-on: ${{matrix.platform}}
+
     steps:
     - name: Add comment if PR permission failed
       if: ${{ !contains(github.event.pull_request.labels.*.name, 'safe PR') }}
@@ -28,13 +33,9 @@ jobs:
         echo "::error:: Could not start CI tests due to missing *safe PR* label."
         exit 1
 
-  test:
+  coverage:
     needs: permission
-    strategy:
-      matrix:
-        platform: [ubuntu-latest, macos-latest, windows-latest]
-    
-    runs-on: ${{matrix.platform}}
+    runs-on: ubuntu-latest
 
     steps:
       - name: Setup go ^1.13 
@@ -48,16 +49,11 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
         
-      - name: Test without coverage
-        if: matrix.platform == 'macos-latest' || matrix.platform == 'windows-latest'
-        run: go test ./...
-
       - name: Test with coverage
-        if: matrix.platform == 'ubuntu-latest'
+        # running 'go test' requires permission
         run: go test -json -covermode=count -coverprofile=profile.cov ./... > report.json
 
       - name: Sonarcloud scan
-        if: matrix.platform == 'ubuntu-latest'
         uses: sonarsource/sonarcloud-github-action@master
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -76,15 +72,38 @@ jobs:
             -Dsonar.pullrequest.base=${{ github.event.pull_request.base }}
 
       - name: Send coverage
-        if: matrix.platform == 'ubuntu-latest'
         uses: shogo82148/actions-goveralls@v1
         with:
           path-to-profile: profile.cov
           parallel: true
+
+  test:
+    needs: permission
+    strategy:
+      matrix:
+        platform: [macos-latest, windows-latest]
+    
+    runs-on: ${{matrix.platform}}
+
+    steps:
+      - name: Setup go ^1.13 
+        uses: actions/setup-go@v3
+        with:
+          go-version: ^1.13
+
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
         
+      - name: Test without coverage
+        # running 'go test' requires permission
+        run: go test ./...
+
   # notifies that all test jobs are finished.
   finish:
-    needs: test
+    needs: [coverage, test]
     runs-on: ubuntu-latest
     steps:
       - uses: shogo82148/actions-goveralls@v1
