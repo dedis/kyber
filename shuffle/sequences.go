@@ -2,6 +2,7 @@ package shuffle
 
 import (
 	"crypto/cipher"
+	"errors"
 	"fmt"
 	"math/big"
 
@@ -14,28 +15,32 @@ import (
 // "Verifiable Mixing (Shuffling) of ElGamal Pairs" by Andrew Neff (April 2004)
 //
 // The function expects X and Y to be the same dimension, with each row having
-// the same length. It also expect X and Y to have at least one element.
+// the same length. It also expect X and Y to have at least one element. The
+// function will panic if the expectations are not met.
 //
 // Dim X and Y: [<sequence length, j>, <number of sequences, i>]
 //
 // The number of rows defines the sequences length. The number of columns
 // defines the number of sequences.
 //
-//  Seq 1  Seq 2  Seq 3
-//  (0,0)  (0,1)  (0,2)
-//  (1,0)  (1,1)  (1,2)
-//  (2,0)  (2,1)  (2,2)
+//	Seq 1  Seq 2  Seq 3
+//	(0,0)  (0,1)  (0,2)
+//	(1,0)  (1,1)  (1,2)
+//	(2,0)  (2,1)  (2,2)
 //
-// In the code coordinates are (j,i), where 0 ≤ j ≤ NQ-1, 0 ≤ i ≤ k-1
+// # In the code coordinates are (j,i), where 0 ≤ j ≤ NQ-1, 0 ≤ i ≤ k-1
 //
 // Last coordinate is (NQ-1, k-1)
 //
-// Variable names are as representative to the paper as possible. Instead of
-// representing (variable name with a bar on top), such as (X with a bar on top)
-// with Xbar, we represent it with a repeating letter, such as XX
+// Variable names are as representative to the paper as possible.
 func SequencesShuffle(group kyber.Group, g, h kyber.Point, X, Y [][]kyber.Point,
-	rand cipher.Stream) (XX, YY [][]kyber.Point, getProver func(e []kyber.Scalar) (
+	rand cipher.Stream) (Xbar, Ybar [][]kyber.Point, getProver func(e []kyber.Scalar) (
 	proof.Prover, error)) {
+
+	err := assertXY(X, Y)
+	if err != nil {
+		panic(fmt.Sprintf("invalid data: %v", err))
+	}
 
 	NQ := len(X)
 	k := len(X[0])
@@ -49,7 +54,6 @@ func SequencesShuffle(group kyber.Group, g, h kyber.Point, X, Y [][]kyber.Point,
 
 	// Fisher–Yates shuffle
 	for i := k - 1; i > 0; i-- {
-
 		j := int(random.Int(big.NewInt(int64(i+1)), rand).Int64())
 		if j != i {
 			pi[i], pi[j] = pi[j], pi[i]
@@ -67,25 +71,25 @@ func SequencesShuffle(group kyber.Group, g, h kyber.Point, X, Y [][]kyber.Point,
 	}
 
 	// Perform the Shuffle
-	XX = make([][]kyber.Point, NQ)
-	YY = make([][]kyber.Point, NQ)
+	Xbar = make([][]kyber.Point, NQ)
+	Ybar = make([][]kyber.Point, NQ)
 
 	for j := 0; j < NQ; j++ {
-		XX[j] = make([]kyber.Point, k)
-		YY[j] = make([]kyber.Point, k)
+		Xbar[j] = make([]kyber.Point, k)
+		Ybar[j] = make([]kyber.Point, k)
 
 		for i := 0; i < k; i++ {
-			XX[j][i] = group.Point().Mul(beta[j][pi[i]], g)
-			XX[j][i].Add(XX[j][i], X[j][pi[i]])
+			Xbar[j][i] = group.Point().Mul(beta[j][pi[i]], g)
+			Xbar[j][i].Add(Xbar[j][i], X[j][pi[i]])
 
-			YY[j][i] = group.Point().Mul(beta[j][pi[i]], h)
-			YY[j][i].Add(YY[j][i], Y[j][pi[i]])
+			Ybar[j][i] = group.Point().Mul(beta[j][pi[i]], h)
+			Ybar[j][i].Add(Ybar[j][i], Y[j][pi[i]])
 		}
 	}
 
 	getProver = func(e []kyber.Scalar) (proof.Prover, error) {
 		// EGAR 2 (Prover) - Standard ElGamal k-shuffle proof: Knowledge of
-		// (XXUp, YYUp), (XXDown, YYDown) and e[j]
+		// (XUp, YUp), (XDown, YDown) and e[j]
 
 		ps := PairShuffle{}
 		ps.Init(group, k)
@@ -107,50 +111,77 @@ func SequencesShuffle(group kyber.Group, g, h kyber.Point, X, Y [][]kyber.Point,
 				}
 			}
 
-			XXUp, YYUp, _, _ := GetSequenceVerifiable(group, X, Y, XX, YY, e)
+			XUp, YUp, _, _ := GetSequenceVerifiable(group, X, Y, Xbar, Ybar, e)
 
-			return ps.Prove(pi, g, h, beta2, XXUp, YYUp, rand, ctx)
+			return ps.Prove(pi, g, h, beta2, XUp, YUp, rand, ctx)
 		}, nil
 	}
 
-	return XX, YY, getProver
+	return Xbar, Ybar, getProver
+}
+
+// assertXY checks that X, Y have the same dimensions and at least one element
+func assertXY(X, Y [][]kyber.Point) error {
+	if len(X) == 0 || len(X[0]) == 0 {
+		return errors.New("X is empty")
+	}
+	if len(Y) == 0 || len(Y[0]) == 0 {
+		return errors.New("Y is empty")
+	}
+
+	if len(X) != len(Y) {
+		return fmt.Errorf("X and Y have a different size: %d != %d", len(X), len(Y))
+	}
+
+	expected := len(X[0])
+
+	for i := range X {
+		if len(X[i]) != expected {
+			return fmt.Errorf("X[%d] has unexpected size: %d != %d", i, expected, len(X[i]))
+		}
+		if len(Y[i]) != expected {
+			return fmt.Errorf("Y[%d] has unexpected size: %d != %d", i, expected, len(Y[i]))
+		}
+	}
+
+	return nil
 }
 
 // GetSequenceVerifiable returns the consolidated input and output of sequence
 // shuffling elements. Needed by the prover and verifier.
-func GetSequenceVerifiable(group kyber.Group, X, Y, XX, YY [][]kyber.Point, e []kyber.Scalar) (
-	XXUp, YYUp, XXDown, YYDown []kyber.Point) {
+func GetSequenceVerifiable(group kyber.Group, X, Y, Xbar, Ybar [][]kyber.Point, e []kyber.Scalar) (
+	XUp, YUp, XDown, YDown []kyber.Point) {
 
 	// EGAR1 (Verifier) - Consolidate input and output
 	NQ := len(X)
 	k := len(X[0])
 
-	XXUp = make([]kyber.Point, k)
-	YYUp = make([]kyber.Point, k)
-	XXDown = make([]kyber.Point, k)
-	YYDown = make([]kyber.Point, k)
+	XUp = make([]kyber.Point, k)
+	YUp = make([]kyber.Point, k)
+	XDown = make([]kyber.Point, k)
+	YDown = make([]kyber.Point, k)
 
 	for i := 0; i < k; i++ {
 		// No modification could be made for e[0] -> e[0] = 1 if one wanted -
 		// Remark 7 in the paper
-		XXUp[i] = group.Point().Mul(e[0], X[0][i])
-		YYUp[i] = group.Point().Mul(e[0], Y[0][i])
+		XUp[i] = group.Point().Mul(e[0], X[0][i])
+		YUp[i] = group.Point().Mul(e[0], Y[0][i])
 
-		XXDown[i] = group.Point().Mul(e[0], XX[0][i])
-		YYDown[i] = group.Point().Mul(e[0], YY[0][i])
+		XDown[i] = group.Point().Mul(e[0], Xbar[0][i])
+		YDown[i] = group.Point().Mul(e[0], Ybar[0][i])
 
 		for j := 1; j < NQ; j++ {
-			XXUp[i] = group.Point().Add(XXUp[i],
+			XUp[i] = group.Point().Add(XUp[i],
 				group.Point().Mul(e[j], X[j][i]))
-			YYUp[i] = group.Point().Add(YYUp[i],
+			YUp[i] = group.Point().Add(YUp[i],
 				group.Point().Mul(e[j], Y[j][i]))
 
-			XXDown[i] = group.Point().Add(XXDown[i],
-				group.Point().Mul(e[j], XX[j][i]))
-			YYDown[i] = group.Point().Add(YYDown[i],
-				group.Point().Mul(e[j], YY[j][i]))
+			XDown[i] = group.Point().Add(XDown[i],
+				group.Point().Mul(e[j], Xbar[j][i]))
+			YDown[i] = group.Point().Add(YDown[i],
+				group.Point().Mul(e[j], Ybar[j][i]))
 		}
 	}
 
-	return XXUp, YYUp, XXDown, YYDown
+	return XUp, YUp, XDown, YDown
 }
