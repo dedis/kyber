@@ -3,13 +3,13 @@ module github.com/drand/kyber
 go 1.17
 
 require (
-	github.com/drand/kyber-bls12381 v0.2.3
+	github.com/drand/kyber-bls12381 v0.2.4
 	github.com/jonboulle/clockwork v0.3.0
-	github.com/stretchr/testify v1.8.0
+	github.com/stretchr/testify v1.8.1
 	go.dedis.ch/fixbuf v1.0.3
 	go.dedis.ch/protobuf v1.0.11
-	golang.org/x/crypto v0.0.0-20220829220503-c86fa9a7ed90
-	golang.org/x/sys v0.0.0-20220829200755-d48e67d00261
+	golang.org/x/crypto v0.3.0
+	golang.org/x/sys v0.3.0
 )
 
 require (
