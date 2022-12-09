@@ -221,19 +221,29 @@ func (p *Protocol) startFast() {
 				toFinish()
 				return
 			}
-		case newDeal := <-p.board.IncomingDeal():
+		case newDeal, ok := <-p.board.IncomingDeal():
+			if !ok {
+				p.Error("incoming deal channel closed unexpectedly")
+				return
+			}
+
 			if err := p.verify(&newDeal); err == nil {
 				deals.Push(&newDeal)
 			} else {
 				p.Error("newDeal", "invalid deal signature:", err)
 			}
+
 			if deals.Len() == oldN {
 				p.Info("newDeal", "fast moving to response phase", fmt.Sprintf(" got %d deals", oldN))
 				if !toResp() {
 					return
 				}
 			}
-		case newResp := <-p.board.IncomingResponse():
+		case newResp, ok := <-p.board.IncomingResponse():
+			if !ok {
+				p.Error("incoming response channel closed unexpectedly")
+				return
+			}
 			if err := p.verify(&newResp); err == nil {
 				resps.Push(&newResp)
 			} else {
@@ -245,7 +255,11 @@ func (p *Protocol) startFast() {
 					return
 				}
 			}
-		case newJust := <-p.board.IncomingJustification():
+		case newJust, ok := <-p.board.IncomingJustification():
+			if !ok {
+				p.Error("incoming justification channel closed unexpectedly")
+				return
+			}
 			if err := p.verify(&newJust); err == nil {
 				justifs.Push(&newJust)
 			} else {
