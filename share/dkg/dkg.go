@@ -1093,7 +1093,7 @@ func findIndex(list []Node, index Index) (kyber.Point, bool) {
 }
 
 func MinimumT(n int) int {
-	return (n + 1) / 2
+	return (n >> 1) + 1
 }
 
 func isIndexIncluded(list []Node, index uint32) bool {
