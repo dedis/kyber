@@ -52,11 +52,11 @@ jobs:
 
     - name: Test without coverage
       if: matrix.platform == 'macos-latest' || matrix.platform == 'windows-latest'
-      run: go test ./...
+      run: make test
 
     - name: Test with coverage
       if: matrix.platform == 'ubuntu-latest'
-      run: go test -json -covermode=count -coverprofile=profile.cov ./... > report.json
+      run: make coverage
 
     - name: SonarCloud scan
       if: matrix.platform == 'ubuntu-latest'
@@ -77,18 +77,3 @@ jobs:
           -Dsonar.cpp.file.suffixes=-
           -Dsonar.objc.file.suffixes=-
           
-    - name: Send coverage
-      if: matrix.platform == 'ubuntu-latest'
-      uses: shogo82148/actions-goveralls@v1
-      with:
-        path-to-profile: profile.cov
-        parallel: true
-        
-  # notifies that all test jobs are finished.
-  finish:
-    needs: test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: shogo82148/actions-goveralls@v1
-        with:
-          parallel-finished: true  
