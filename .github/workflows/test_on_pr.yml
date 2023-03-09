@@ -57,7 +57,7 @@ jobs:
     - name: Test with coverage
       if: matrix.platform == 'ubuntu-latest'
       run: make coverage
-        
+
     - name: SonarCloud scan
       if: matrix.platform == 'ubuntu-latest'
       uses: sonarsource/sonarcloud-github-action@master
@@ -76,3 +76,4 @@ jobs:
           -Dsonar.c.file.suffixes=-
           -Dsonar.cpp.file.suffixes=-
           -Dsonar.objc.file.suffixes=-
+          
