@@ -488,7 +488,7 @@ func (d *DistKeyGenerator) ProcessDeals(bundles []*DealBundle) (*ResponseBundle,
 			// share is valid -> store it
 			d.statuses.Set(bundle.DealerIndex, deal.ShareIndex, true)
 			d.validShares[bundle.DealerIndex] = share
-			d.c.Info("Valid deal processed received from dealer %d", bundle.DealerIndex)
+			d.c.Info("Valid deal processed received from dealer", bundle.DealerIndex)
 		}
 	}
 

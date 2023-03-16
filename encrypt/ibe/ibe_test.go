@@ -12,92 +12,196 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func newSetting() (pairing.Suite, kyber.Point, []byte, kyber.Point) {
+func newSetting(i uint) (
+	pairing.Suite, kyber.Point, []byte, kyber.Point,
+	func(s pairing.Suite, master kyber.Point, ID []byte, msg []byte) (*Ciphertext, error),
+	func(s pairing.Suite, private kyber.Point, c *Ciphertext) ([]byte, error),
+) {
+	if !(i == 1 || i == 2) {
+		panic("invalid test")
+	}
+	if i == 1 {
+		suite := bls.NewBLS12381Suite()
+		P := suite.G1().Point().Base()
+		s := suite.G1().Scalar().Pick(random.New())
+		Ppub := suite.G1().Point().Mul(s, P)
+
+		ID := []byte("passtherand")
+		IDP := suite.G2().Point().(kyber.HashablePoint)
+		Qid := IDP.Hash(ID)     // public key
+		sQid := Qid.Mul(s, Qid) // secret key
+		return suite, Ppub, ID, sQid, EncryptCCAonG1, DecryptCCAonG1
+	}
+	// i == 2
 	suite := bls.NewBLS12381Suite()
-	P := suite.G1().Point().Base()
-	s := suite.G1().Scalar().Pick(random.New())
-	Ppub := suite.G1().Point().Mul(s, P)
+	P := suite.G2().Point().Base()
+	s := suite.G2().Scalar().Pick(random.New())
+	Ppub := suite.G2().Point().Mul(s, P)
 
 	ID := []byte("passtherand")
-	IDP := suite.G2().Point().(kyber.HashablePoint)
+	IDP := suite.G1().Point().(kyber.HashablePoint)
 	Qid := IDP.Hash(ID)     // public key
 	sQid := Qid.Mul(s, Qid) // secret key
-	return suite, Ppub, ID, sQid
+	return suite, Ppub, ID, sQid, EncryptCCAonG2, DecryptCCAonG2
 }
 
-func TestValidTimelockEncryptionDecryptsCorrectly(t *testing.T) {
-	suite, Ppub, ID, sQid := newSetting()
-	msg := []byte("Hello World\n")
+func TestValidEncryptionDecrypts(t *testing.T) {
+	t.Run("OnG1", func(t *testing.T) {
+		suite, Ppub, ID, sQid, encrypt, decrypt := newSetting(1)
+		msg := []byte("Hello World\n")
 
-	c, err := Encrypt(suite, Ppub, ID, msg)
-	require.NoError(t, err)
-	msg2, err := Decrypt(suite, sQid, c)
-	require.NoError(t, err)
-	require.Equal(t, msg, msg2)
+		c, err := encrypt(suite, Ppub, ID, msg)
+		require.NoError(t, err)
+		msg2, err := decrypt(suite, sQid, c)
+		require.NoError(t, err)
+		require.Equal(t, msg, msg2)
+	})
+
+	t.Run("OnG2", func(t *testing.T) {
+		suite, Ppub, ID, sQid, encrypt, decrypt := newSetting(2)
+		msg := []byte("Hello World\n")
+
+		c, err := encrypt(suite, Ppub, ID, msg)
+		require.NoError(t, err)
+		msg2, err := decrypt(suite, sQid, c)
+		require.NoError(t, err)
+		require.Equal(t, msg, msg2)
+	})
 }
 
 func TestInvalidSigmaFailsDecryption(t *testing.T) {
-	suite, Ppub, ID, sQid := newSetting()
-	msg := []byte("Hello World\n")
+	t.Run("OnG1", func(t *testing.T) {
 
-	c, err := Encrypt(suite, Ppub, ID, msg)
-	require.NoError(t, err)
+		suite, Ppub, ID, sQid, encrypt, decrypt := newSetting(1)
+		msg := []byte("Hello World\n")
 
-	c.V = []byte("somenonsense")
+		c, err := encrypt(suite, Ppub, ID, msg)
+		require.NoError(t, err)
 
-	_, err = Decrypt(suite, sQid, c)
-	require.Error(t, err)
-	require.ErrorContains(t, err, "invalid proof")
+		c.V = []byte("somenonsense")
+
+		_, err = decrypt(suite, sQid, c)
+		require.Error(t, err)
+		require.ErrorContains(t, err, "invalid proof")
+	})
+
+	t.Run("OnG2", func(t *testing.T) {
+
+		suite, Ppub, ID, sQid, encrypt, decrypt := newSetting(2)
+		msg := []byte("Hello World\n")
+
+		c, err := encrypt(suite, Ppub, ID, msg)
+		require.NoError(t, err)
+
+		c.V = []byte("somenonsense")
+
+		_, err = decrypt(suite, sQid, c)
+		require.Error(t, err)
+		require.ErrorContains(t, err, "invalid proof")
+	})
 }
 
 func TestInvalidMessageFailsDecryption(t *testing.T) {
-	suite, Ppub, ID, sQid := newSetting()
-	msg := []byte("Hello World\n")
+	t.Run("OnG1", func(t *testing.T) {
+		suite, Ppub, ID, sQid, encrypt, decrypt := newSetting(1)
+		msg := []byte("Hello World\n")
 
-	c, err := Encrypt(suite, Ppub, ID, msg)
-	require.NoError(t, err)
+		c, err := encrypt(suite, Ppub, ID, msg)
+		require.NoError(t, err)
 
-	c.W = []byte("somenonsense")
-	_, err = Decrypt(suite, sQid, c)
-	require.Error(t, err)
-	require.ErrorContains(t, err, "invalid proof")
+		c.W = []byte("somenonsense")
+		_, err = decrypt(suite, sQid, c)
+		require.Error(t, err)
+		require.ErrorContains(t, err, "invalid proof")
+	})
+
+	t.Run("OnG2", func(t *testing.T) {
+		suite, Ppub, ID, sQid, encrypt, decrypt := newSetting(2)
+		msg := []byte("Hello World\n")
+
+		c, err := encrypt(suite, Ppub, ID, msg)
+		require.NoError(t, err)
+
+		c.W = []byte("somenonsense")
+		_, err = decrypt(suite, sQid, c)
+		require.Error(t, err)
+		require.ErrorContains(t, err, "invalid proof")
+	})
 }
 
 func TestVeryLongInputFailsEncryption(t *testing.T) {
-	suite, Ppub, ID, _ := newSetting()
-	msg := []byte(strings.Repeat("And you have to understand this, that a prince, especially a new one, cannot observe all those things for which men are esteemed", 1000))
-	_, err := Encrypt(suite, Ppub, ID, msg)
-	require.Error(t, err)
+	t.Run("OnG1", func(t *testing.T) {
+		suite, Ppub, ID, _, encrypt, _ := newSetting(1)
+		msg := []byte(strings.Repeat("And you have to understand this, that a prince, especially a new one, cannot observe all those things for which men are esteemed", 1000))
+		_, err := encrypt(suite, Ppub, ID, msg)
+		require.Error(t, err)
+
+	})
+	t.Run("OnG2", func(t *testing.T) {
+		suite, Ppub, ID, _, encrypt, _ := newSetting(2)
+		msg := []byte(strings.Repeat("And you have to understand this, that a prince, especially a new one, cannot observe all those things for which men are esteemed", 1000))
+		_, err := encrypt(suite, Ppub, ID, msg)
+		require.Error(t, err)
+	})
 }
 
 func TestVeryLongCipherFailsDecryptionBecauseOfLength(t *testing.T) {
-	suite, Ppub, ID, sQid := newSetting()
-	msg := []byte("hello world")
-	c, err := Encrypt(suite, Ppub, ID, msg)
-	require.NoError(t, err)
+	t.Run("OnG1", func(t *testing.T) {
+		suite, Ppub, ID, sQid, encrypt, decrypt := newSetting(1)
+		msg := []byte("hello world")
+		c, err := encrypt(suite, Ppub, ID, msg)
+		require.NoError(t, err)
 
-	c.W = []byte(strings.Repeat("And you have to understand this, that a prince, especially a new one, cannot observe all those things for which men are esteemed", 1000))
-	_, err = Decrypt(suite, sQid, c)
+		c.W = []byte(strings.Repeat("And you have to understand this, that a prince, especially a new one, cannot observe all those things for which men are esteemed", 1000))
+		_, err = decrypt(suite, sQid, c)
 
-	require.Error(t, err)
-	require.ErrorContains(t, err, "ciphertext too long for the hash function provided")
+		require.Error(t, err)
+		require.ErrorContains(t, err, "ciphertext too long for the hash function provided")
+	})
+	t.Run("OnG2", func(t *testing.T) {
+		suite, Ppub, ID, sQid, encrypt, decrypt := newSetting(2)
+		msg := []byte("hello world")
+		c, err := encrypt(suite, Ppub, ID, msg)
+		require.NoError(t, err)
+
+		c.W = []byte(strings.Repeat("And you have to understand this, that a prince, especially a new one, cannot observe all those things for which men are esteemed", 1000))
+		_, err = decrypt(suite, sQid, c)
+
+		require.Error(t, err)
+		require.ErrorContains(t, err, "ciphertext too long for the hash function provided")
+	})
 }
 
 func TestInvalidWFailsDecryptionBecauseOfLength(t *testing.T) {
-	suite, Ppub, ID, sQid := newSetting()
-	msg := []byte("hello world")
-	c, err := Encrypt(suite, Ppub, ID, msg)
-	require.NoError(t, err)
+	t.Run("OnG1", func(t *testing.T) {
+		suite, Ppub, ID, sQid, encrypt, decrypt := newSetting(1)
+		msg := []byte("hello world")
+		c, err := encrypt(suite, Ppub, ID, msg)
+		require.NoError(t, err)
 
-	c.W = []byte(strings.Repeat("A", 25))
-	_, err = Decrypt(suite, sQid, c)
+		c.W = []byte(strings.Repeat("A", 25))
+		_, err = decrypt(suite, sQid, c)
 
-	require.Error(t, err)
-	require.ErrorContains(t, err, "XorSigma is of invalid length")
+		require.Error(t, err)
+		require.ErrorContains(t, err, "XorSigma is of invalid length")
+	})
+	t.Run("OnG2", func(t *testing.T) {
+		suite, Ppub, ID, sQid, encrypt, decrypt := newSetting(2)
+		msg := []byte("hello world")
+		c, err := encrypt(suite, Ppub, ID, msg)
+		require.NoError(t, err)
+
+		c.W = []byte(strings.Repeat("A", 25))
+		_, err = decrypt(suite, sQid, c)
+
+		require.Error(t, err)
+		require.ErrorContains(t, err, "XorSigma is of invalid length")
+	})
 }
 
 func TestBackwardsInteropWithTypescript(t *testing.T) {
-	suite, _, _, _ := newSetting()
+	t.Skip("Typescript library not yet updated to support both G2 keys")
+	suite, _, _, _, _, decrypt := newSetting(1)
 
 	hexToPoint := func(p kyber.Point, input string) (kyber.Point, error) {
 		h, err := hex.DecodeString(input)
@@ -134,7 +238,24 @@ func TestBackwardsInteropWithTypescript(t *testing.T) {
 
 	ciphertext := Ciphertext{U: U, W: W, V: V}
 
-	result, err := Decrypt(suite, beacon, &ciphertext)
+	result, err := decrypt(suite, beacon, &ciphertext)
 	require.NoError(t, err)
 	require.Equal(t, expectedFileKey, result)
+}
+
+func TestCPAEncryptOnG1(t *testing.T) {
+	suite := bls.NewBLS12381Suite()
+	P := suite.G1().Point().Pick(random.New())
+	s := suite.G1().Scalar().Pick(random.New())
+	Ppub := suite.G1().Point().Mul(s, P)
+	ID := []byte("passtherand")
+	IDP := suite.G2().Point().(kyber.HashablePoint)
+	Qid := IDP.Hash(ID)
+	sQid := Qid.Mul(s, Qid)
+	msg := []byte("Hello World\n")
+	c, err := EncryptCPAonG1(suite, P, Ppub, ID, msg)
+	require.NoError(t, err)
+	msg2, err := DecryptCPAonG1(suite, sQid, c)
+	require.NoError(t, err)
+	require.Equal(t, msg, msg2)
 }
