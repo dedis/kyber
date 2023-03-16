@@ -5,11 +5,11 @@ go 1.18
 require (
 	github.com/drand/kyber-bls12381 v0.2.5
 	github.com/jonboulle/clockwork v0.3.0
-	github.com/stretchr/testify v1.8.1
+	github.com/stretchr/testify v1.8.2
 	go.dedis.ch/fixbuf v1.0.3
 	go.dedis.ch/protobuf v1.0.11
-	golang.org/x/crypto v0.5.0
-	golang.org/x/sys v0.5.0
+	golang.org/x/crypto v0.7.0
+	golang.org/x/sys v0.6.0
 )
 
 require (
