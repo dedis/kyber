@@ -6,14 +6,13 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/kyber/v3/pairing"
 	"go.dedis.ch/kyber/v3/pairing/bn256"
 	"go.dedis.ch/kyber/v3/sign"
 	"go.dedis.ch/kyber/v3/sign/bls"
 	"go.dedis.ch/kyber/v3/util/random"
 )
 
-var suite = pairing.NewSuiteBn256()
+var suite = bn256.NewSuiteBn256()
 var two = suite.Scalar().Add(suite.Scalar().One(), suite.Scalar().One())
 var three = suite.Scalar().Add(two, suite.Scalar().One())
 

@@ -1,4 +1,4 @@
-package pairing
+package bn256
 
 import (
 	"testing"
