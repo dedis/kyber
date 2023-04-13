@@ -4,15 +4,24 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"go.dedis.ch/kyber/v3/pairing"
+	"go.dedis.ch/kyber/v3/pairing/bls12381"
 	"go.dedis.ch/kyber/v3/pairing/bn256"
 	"go.dedis.ch/kyber/v3/share"
 	"go.dedis.ch/kyber/v3/sign/bls"
 )
 
-func TestTBLS(test *testing.T) {
+func TestTBLS_BN256(test *testing.T) {
+	testTBLS(test, bn256.NewSuite())
+}
+
+func TestTBLS_BLS12381(test *testing.T) {
+	testTBLS(test, bls12381.NewSuite())
+}
+
+func testTBLS(test *testing.T, suite pairing.Suite) {
 	var err error
 	msg := []byte("Hello threshold Boneh-Lynn-Shacham")
-	suite := bn256.NewSuite()
 	n := 10
 	t := n/2 + 1
 	secret := suite.G1().Scalar().Pick(suite.RandomStream())
