@@ -1,8 +1,7 @@
-package pairing
+package bn256
 
 import (
 	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/kyber/v3/pairing/bn256"
 )
 
 // SuiteBn256 is an adapter that implements the suites.Suite interface so that
@@ -13,14 +12,14 @@ import (
 // compatible with public keys only (group G2) where the signature must be
 // used as a point from the group G1.
 type SuiteBn256 struct {
-	Suite
+	*Suite
 	kyber.Group
 }
 
 // NewSuiteBn256 makes a new BN256 suite
 func NewSuiteBn256() *SuiteBn256 {
 	return &SuiteBn256{
-		Suite: bn256.NewSuite(),
+		Suite: NewSuite(),
 	}
 }
 
