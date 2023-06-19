@@ -720,7 +720,7 @@ func (a *Aggregator) MissingResponses() []int {
 // difficulty for an adversary to break secrecy. However, a too large T makes
 // it possible for an adversary to prevent recovery (robustness).
 func MinimumT(n int) int {
-	return (n + 1) / 2
+	return (n >> 1) + 1
 }
 
 func validT(t int, verifiers []kyber.Point) bool {
