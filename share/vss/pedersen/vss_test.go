@@ -1,15 +1,16 @@
 package vss
 
 import (
+	"fmt"
 	"math/rand"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"github.com/drand/kyber"
 	"github.com/drand/kyber/group/edwards25519"
 	"github.com/drand/kyber/sign/schnorr"
 	"github.com/drand/kyber/xof/blake2xb"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.dedis.ch/protobuf"
 )
 
@@ -34,6 +35,31 @@ func init() {
 	dealerSec, dealerPub = genPair()
 	secret, _ = genPair()
 	vssThreshold = MinimumT(nbVerifiers)
+}
+
+func TestMinimumT(t *testing.T) {
+	tests := []struct {
+		input  int
+		output int
+	}{
+		{10, 6},
+		{6, 4},
+		{4, 3},
+		{3, 2},
+		{2, 2},
+		{7, 4},
+		{8, 5},
+		{9, 5},
+	}
+	for _, test := range tests {
+		in := test.input
+		exp := test.output
+		t.Run(fmt.Sprintf("VSS-MininumT-%d", test.input), func(t *testing.T) {
+			if MinimumT(in) != exp {
+				t.Fail()
+			}
+		})
+	}
 }
 
 func TestVSSWhole(t *testing.T) {

@@ -719,7 +719,7 @@ func (a *Aggregator) MissingResponses() []int {
 // the whole protocol insecure. Setting a higher T only makes it harder to
 // reconstruct the secret.
 func MinimumT(n int) int {
-	return (n + 1) / 2
+	return (n >> 1) + 1
 }
 
 func validT(t int, verifiers []kyber.Point) bool {

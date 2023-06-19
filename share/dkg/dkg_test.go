@@ -1086,3 +1086,28 @@ func TestConfigDuplicate(t *testing.T) {
 	}
 	require.Error(t, c.CheckForDuplicates())
 }
+
+func TestMinimumT(t *testing.T) {
+	tests := []struct {
+		input  int
+		output int
+	}{
+		{10, 6},
+		{6, 4},
+		{4, 3},
+		{3, 2},
+		{2, 2},
+		{7, 4},
+		{8, 5},
+		{9, 5},
+	}
+	for _, test := range tests {
+		in := test.input
+		exp := test.output
+		t.Run(fmt.Sprintf("DKG-MininumT-%d", test.input), func(t *testing.T) {
+			if MinimumT(in) != exp {
+				t.Fail()
+			}
+		})
+	}
+}
