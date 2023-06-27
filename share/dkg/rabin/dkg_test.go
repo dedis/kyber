@@ -643,7 +643,7 @@ func genPair() (kyber.Scalar, kyber.Point) {
 
 func randomBytes(n int) []byte {
 	var buff = make([]byte, n)
-	_, _ = rand.Read(buff[:])
+	_, _ = rand.Read(buff)
 	return buff
 }
 func checkDks(dks1, dks2 *DistKeyShare) bool {

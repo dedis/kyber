@@ -378,7 +378,7 @@ func (v *Verifier) ProcessEncryptedDeal(e *EncryptedDeal) (*Response, error) {
 		r.Status = StatusComplaint
 	}
 
-	if err == errDealAlreadyProcessed {
+	if errors.Is(err, errDealAlreadyProcessed) {
 		return nil, err
 	}
 
