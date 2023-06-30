@@ -668,6 +668,10 @@ func TestDKGResharing(t *testing.T) {
 	newSecret, err := share.RecoverSecret(suite, newSShares, thr, defaultN)
 	require.NoError(t, err)
 	require.Equal(t, oldSecret.String(), newSecret.String())
+	// 3.
+	for i := 0; i < len(dkgs); i++ {
+		require.Equal(t, shares[i].Public(), newShares[i].Public())
+	}
 }
 
 // Test resharing functionality with one node less
