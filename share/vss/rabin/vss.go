@@ -8,24 +8,26 @@
 // verifier can check the validity of the received share. The protocol has the
 // following steps:
 //
-//   1) The dealer send a Deal to every verifiers using `Deals()`. Each deal must
-//   be sent securely to one verifier whose public key is at the same index than
-//   the index of the Deal.
+//  1. The dealer send a Deal to every verifiers using `Deals()`. Each deal must
+//     be sent securely to one verifier whose public key is at the same index than
+//     the index of the Deal.
 //
-//   2) Each verifier processes the Deal with `ProcessDeal`.
-//   This function returns a Response which can be twofold:
-//   - an approval, to confirm a correct deal
-//   - a complaint to announce an incorrect deal notifying others that the
+//  2. Each verifier processes the Deal with `ProcessDeal`.
+//     This function returns a Response which can be twofold:
+//     - an approval, to confirm a correct deal
+//     - a complaint to announce an incorrect deal notifying others that the
 //     dealer might be malicious.
-//	 All Responses must be broadcasted to every verifiers and the dealer.
-//   3) The dealer can respond to each complaint by a justification revealing the
-//   share he originally sent out to the accusing verifier. This is done by
-//   calling `ProcessResponse` on the `Dealer`.
-//   4) The verifiers refuse the shared secret and abort the protocol if there
-//   are at least t complaints OR if a Justification is wrong. The verifiers
-//   accept the shared secret if there are at least t approvals at which point
-//   any t out of n verifiers can reveal their shares to reconstruct the shared
-//   secret.
+//     All Responses must be broadcasted to every verifiers and the dealer.
+//
+//  3. The dealer can respond to each complaint by a justification revealing the
+//     share he originally sent out to the accusing verifier. This is done by
+//     calling `ProcessResponse` on the `Dealer`.
+//
+//  4. The verifiers refuse the shared secret and abort the protocol if there
+//     are at least t complaints OR if a Justification is wrong. The verifiers
+//     accept the shared secret if there are at least t approvals at which point
+//     any t out of n verifiers can reveal their shares to reconstruct the shared
+//     secret.
 package vss
 
 import (
@@ -400,7 +402,7 @@ func (v *Verifier) ProcessEncryptedDeal(e *EncryptedDeal) (*Response, error) {
 		r.Approved = false
 	}
 
-	if err == errDealAlreadyProcessed {
+	if errors.Is(err, errDealAlreadyProcessed) {
 		return nil, err
 	}
 
