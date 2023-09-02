@@ -150,7 +150,11 @@ type ReconstructCommits struct {
 
 // DistKeyGenerator is the struct that runs the DKG protocol.
 type DistKeyGenerator struct {
-	suite Suite
+	// Suite for the generated shared keys.
+	destSuite Suite
+
+	// Suite for working with the long term keys (node identities).
+	longSuite Suite
 
 	index uint32
 	long  kyber.Scalar
@@ -178,8 +182,11 @@ type DistKeyGenerator struct {
 // the longterm secret key, the list of participants, and the
 // threshold t parameter. It returns an error if the secret key's
 // commitment can't be found in the list of participants.
-func NewDistKeyGenerator(suite Suite, longterm kyber.Scalar, participants []kyber.Point, t int) (*DistKeyGenerator, error) {
-	pub := suite.Point().Mul(longterm, nil)
+// The destSuite is for handling the keys to be genrated, and the
+// longSuite is used to handle all the operations related to the
+// longterm key.
+func NewDistKeyGenerator(destSuite Suite, longSuite Suite, longterm kyber.Scalar, participants []kyber.Point, t int) (*DistKeyGenerator, error) {
+	pub := longSuite.Point().Mul(longterm, nil)
 	// find our index
 	var found bool
 	var index uint32
@@ -195,8 +202,8 @@ func NewDistKeyGenerator(suite Suite, longterm kyber.Scalar, participants []kybe
 	}
 	var err error
 	// generate our dealer / deal
-	ownSec := suite.Scalar().Pick(suite.RandomStream())
-	dealer, err := vss.NewDealer(suite, longterm, ownSec, participants, t)
+	ownSec := destSuite.Scalar().Pick(destSuite.RandomStream())
+	dealer, err := vss.NewDealer(destSuite, longSuite, longterm, ownSec, participants, t) // TODO: KP, add destSuite
 	if err != nil {
 		return nil, err
 	}
@@ -208,7 +215,8 @@ func NewDistKeyGenerator(suite Suite, longterm kyber.Scalar, participants []kybe
 		pendingReconstruct: make(map[uint32][]*ReconstructCommits),
 		reconstructed:      make(map[uint32]bool),
 		t:                  t,
-		suite:              suite,
+		destSuite:          destSuite,
+		longSuite:          longSuite,
 		long:               longterm,
 		pub:                pub,
 		participants:       participants,
@@ -277,7 +285,7 @@ func (d *DistKeyGenerator) ProcessDeal(dd *Deal) (*Response, error) {
 	}
 
 	// verifier receiving the dealer's deal
-	ver, err := vss.NewVerifier(d.suite, d.long, pub, d.participants)
+	ver, err := vss.NewVerifier(d.destSuite, d.longSuite, d.long, pub, d.participants)
 	if err != nil {
 		return nil, err
 	}
@@ -411,14 +419,14 @@ func (d *DistKeyGenerator) SecretCommits() (*SecretCommits, error) {
 		Index:       uint32(d.index),
 		SessionID:   d.dealer.SessionID(),
 	}
-	msg := sc.Hash(d.suite)
-	sig, err := schnorr.Sign(d.suite, d.long, msg)
+	msg := sc.Hash(d.longSuite)
+	sig, err := schnorr.Sign(d.longSuite, d.long, msg)
 	if err != nil {
 		return nil, err
 	}
 	sc.Signature = sig
 	// adding our own commitments
-	d.commitments[uint32(d.index)] = share.NewPubPoly(d.suite, d.suite.Point().Base(), sc.Commitments)
+	d.commitments[uint32(d.index)] = share.NewPubPoly(d.destSuite, d.destSuite.Point().Base(), sc.Commitments)
 	return sc, err
 }
 
@@ -444,13 +452,13 @@ func (d *DistKeyGenerator) ProcessSecretCommits(sc *SecretCommits) (*ComplaintCo
 		return nil, errors.New("dkg: secretcommits received with wrong session id")
 	}
 
-	msg := sc.Hash(d.suite)
-	if err := schnorr.Verify(d.suite, pub, msg, sc.Signature); err != nil {
+	msg := sc.Hash(d.longSuite)
+	if err := schnorr.Verify(d.longSuite, pub, msg, sc.Signature); err != nil {
 		return nil, err
 	}
 
 	deal := v.Deal()
-	poly := share.NewPubPoly(d.suite, d.suite.Point().Base(), sc.Commitments)
+	poly := share.NewPubPoly(d.destSuite, d.destSuite.Point().Base(), sc.Commitments)
 	if !poly.Check(deal.SecShare) {
 		cc := &ComplaintCommits{
 			Index:       uint32(d.index),
@@ -458,8 +466,8 @@ func (d *DistKeyGenerator) ProcessSecretCommits(sc *SecretCommits) (*ComplaintCo
 			Deal:        deal,
 		}
 		var err error
-		msg := cc.Hash(d.suite)
-		if cc.Signature, err = schnorr.Sign(d.suite, d.long, msg); err != nil {
+		msg := cc.Hash(d.longSuite)
+		if cc.Signature, err = schnorr.Sign(d.longSuite, d.long, msg); err != nil {
 			return nil, err
 		}
 		return cc, nil
@@ -483,7 +491,7 @@ func (d *DistKeyGenerator) ProcessComplaintCommits(cc *ComplaintCommits) (*Recon
 		return nil, errors.New("dkg: complaintcommit from non-qual member")
 	}
 
-	if err := schnorr.Verify(d.suite, issuer, cc.Hash(d.suite), cc.Signature); err != nil {
+	if err := schnorr.Verify(d.longSuite, issuer, cc.Hash(d.longSuite), cc.Signature); err != nil {
 		return nil, err
 	}
 
@@ -522,9 +530,9 @@ func (d *DistKeyGenerator) ProcessComplaintCommits(cc *ComplaintCommits) (*Recon
 		Share:       deal.SecShare,
 	}
 
-	msg := rc.Hash(d.suite)
+	msg := rc.Hash(d.longSuite)
 	var err error
-	rc.Signature, err = schnorr.Sign(d.suite, d.long, msg)
+	rc.Signature, err = schnorr.Sign(d.longSuite, d.long, msg)
 	if err != nil {
 		return nil, err
 	}
@@ -551,8 +559,8 @@ func (d *DistKeyGenerator) ProcessReconstructCommits(rs *ReconstructCommits) err
 		return errors.New("dkg: reconstruct commits with invalid verifier index")
 	}
 
-	msg := rs.Hash(d.suite)
-	if err := schnorr.Verify(d.suite, pub, msg, rs.Signature); err != nil {
+	msg := rs.Hash(d.longSuite)
+	if err := schnorr.Verify(d.longSuite, pub, msg, rs.Signature); err != nil {
 		return err
 	}
 
@@ -578,8 +586,8 @@ func (d *DistKeyGenerator) ProcessReconstructCommits(rs *ReconstructCommits) err
 		}
 		// error only happens when you have less than t shares, but we ensure
 		// there are more just before
-		pri, _ := share.RecoverPriPoly(d.suite, shares, d.t, len(d.participants))
-		d.commitments[rs.DealerIndex] = pri.Commit(d.suite.Point().Base())
+		pri, _ := share.RecoverPriPoly(d.destSuite, shares, d.t, len(d.participants))
+		d.commitments[rs.DealerIndex] = pri.Commit(d.destSuite.Point().Base())
 		// note it has been reconstructed.
 		d.reconstructed[rs.DealerIndex] = true
 		delete(d.pendingReconstruct, rs.DealerIndex)
@@ -618,7 +626,7 @@ func (d *DistKeyGenerator) DistKeyShare() (*DistKeyShare, error) {
 		return nil, errors.New("dkg: distributed key not certified")
 	}
 
-	sh := d.suite.Scalar().Zero()
+	sh := d.destSuite.Scalar().Zero()
 	var pub *share.PubPoly
 	var err error
 

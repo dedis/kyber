@@ -55,8 +55,9 @@ type Suite interface {
 // Dealer encapsulates for creating and distributing the shares and for
 // replying to any Responses.
 type Dealer struct {
-	suite  Suite
-	reader cipher.Stream
+	destSuite Suite
+	longSuite Suite
+	reader    cipher.Stream
 	// long is the longterm key of the Dealer
 	long          kyber.Scalar
 	pub           kyber.Point
@@ -135,9 +136,10 @@ type Justification struct {
 // RECOMMENDED to use a threshold higher or equal than what the method
 // MinimumT() returns, otherwise it breaks the security assumptions of the whole
 // scheme. It returns an error if the t is inferior or equal to 2.
-func NewDealer(suite Suite, longterm, secret kyber.Scalar, verifiers []kyber.Point, t int) (*Dealer, error) {
+func NewDealer(destSuite Suite, longSuite Suite, longterm, secret kyber.Scalar, verifiers []kyber.Point, t int) (*Dealer, error) {
 	d := &Dealer{
-		suite:     suite,
+		destSuite: destSuite,
+		longSuite: longSuite,
 		long:      longterm,
 		secret:    secret,
 		verifiers: verifiers,
@@ -147,13 +149,13 @@ func NewDealer(suite Suite, longterm, secret kyber.Scalar, verifiers []kyber.Poi
 	}
 	d.t = t
 
-	H := deriveH(d.suite, d.verifiers)
-	f := share.NewPriPoly(d.suite, d.t, d.secret, suite.RandomStream())
-	g := share.NewPriPoly(d.suite, d.t, nil, suite.RandomStream())
-	d.pub = d.suite.Point().Mul(d.long, nil)
+	H := deriveH(d.destSuite, d.verifiers)
+	f := share.NewPriPoly(d.destSuite, d.t, d.secret, destSuite.RandomStream())
+	g := share.NewPriPoly(d.destSuite, d.t, nil, destSuite.RandomStream())
+	d.pub = d.longSuite.Point().Mul(d.long, nil)
 
 	// Compute public polynomial coefficients
-	F := f.Commit(d.suite.Point().Base())
+	F := f.Commit(d.destSuite.Point().Base())
 	_, d.secretCommits = F.Info()
 	G := g.Commit(H)
 
@@ -163,12 +165,12 @@ func NewDealer(suite Suite, longterm, secret kyber.Scalar, verifiers []kyber.Poi
 	}
 	_, commitments := C.Info()
 
-	d.sessionID, err = sessionID(d.suite, d.pub, d.verifiers, commitments, d.t)
+	d.sessionID, err = sessionID(d.longSuite, d.pub, d.verifiers, commitments, d.t)
 	if err != nil {
 		return nil, err
 	}
 
-	d.aggregator = newAggregator(d.suite, d.pub, d.verifiers, commitments, d.t, d.sessionID)
+	d.aggregator = newAggregator(d.destSuite, d.longSuite, d.pub, d.verifiers, commitments, d.t, d.sessionID)
 	// C = F + G
 	d.deals = make([]*Deal, len(d.verifiers))
 	for i := range d.verifiers {
@@ -182,7 +184,7 @@ func NewDealer(suite Suite, longterm, secret kyber.Scalar, verifiers []kyber.Poi
 			T:           uint32(d.t),
 		}
 	}
-	d.hkdfContext = context(suite, d.pub, verifiers)
+	d.hkdfContext = context(longSuite, d.pub, verifiers)
 	return d, nil
 }
 
@@ -208,17 +210,17 @@ func (d *Dealer) EncryptedDeal(i int) (*EncryptedDeal, error) {
 		return nil, errors.New("dealer: wrong index to generate encrypted deal")
 	}
 	// gen ephemeral key
-	dhSecret := d.suite.Scalar().Pick(d.suite.RandomStream())
-	dhPublic := d.suite.Point().Mul(dhSecret, nil)
+	dhSecret := d.longSuite.Scalar().Pick(d.longSuite.RandomStream())
+	dhPublic := d.longSuite.Point().Mul(dhSecret, nil)
 	// signs the public key
 	dhPublicBuff, _ := dhPublic.MarshalBinary()
-	signature, err := schnorr.Sign(d.suite, d.long, dhPublicBuff)
+	signature, err := schnorr.Sign(d.longSuite, d.long, dhPublicBuff)
 	if err != nil {
 		return nil, err
 	}
 	// AES128-GCM
-	pre := dhExchange(d.suite, dhSecret, vPub)
-	gcm, err := newAEAD(d.suite.Hash, pre, d.hkdfContext)
+	pre := dhExchange(d.longSuite, dhSecret, vPub)
+	gcm, err := newAEAD(d.longSuite.Hash, pre, d.hkdfContext)
 	if err != nil {
 		return nil, err
 	}
@@ -270,7 +272,7 @@ func (d *Dealer) ProcessResponse(r *Response) (*Justification, error) {
 		Index: r.Index,
 		Deal:  d.deals[int(r.Index)],
 	}
-	sig, err := schnorr.Sign(d.suite, d.long, j.Hash(d.suite))
+	sig, err := schnorr.Sign(d.longSuite, d.long, j.Hash(d.longSuite))
 	if err != nil {
 		return nil, err
 	}
@@ -285,7 +287,7 @@ func (d *Dealer) SecretCommit() kyber.Point {
 	if !d.EnoughApprovals() || !d.DealCertified() {
 		return nil
 	}
-	return d.suite.Point().Mul(d.secret, nil)
+	return d.destSuite.Point().Mul(d.secret, nil)
 }
 
 // Commits returns the commitments of the coefficient of the secret polynomial
@@ -318,7 +320,8 @@ func (d *Dealer) SetTimeout() {
 // Verifier receives a Deal from a Dealer, can reply with a Complaint, and can
 // collaborate with other Verifiers to reconstruct a secret.
 type Verifier struct {
-	suite       Suite
+	destSuite   Suite
+	longSuite   Suite
 	longterm    kyber.Scalar
 	pub         kyber.Point
 	dealer      kyber.Point
@@ -336,10 +339,10 @@ type Verifier struct {
 // The security parameter t of the secret sharing scheme is automatically set to
 // a default safe value. If a different t value is required, it is possible to set
 // it with `verifier.SetT()`.
-func NewVerifier(suite Suite, longterm kyber.Scalar, dealerKey kyber.Point,
+func NewVerifier(destSuite Suite, longSuite Suite, longterm kyber.Scalar, dealerKey kyber.Point,
 	verifiers []kyber.Point) (*Verifier, error) {
 
-	pub := suite.Point().Mul(longterm, nil)
+	pub := longSuite.Point().Mul(longterm, nil)
 	var ok bool
 	var index int
 	for i, v := range verifiers {
@@ -353,13 +356,14 @@ func NewVerifier(suite Suite, longterm kyber.Scalar, dealerKey kyber.Point,
 		return nil, errors.New("vss: public key not found in the list of verifiers")
 	}
 	v := &Verifier{
-		suite:       suite,
+		destSuite:   destSuite,
+		longSuite:   longSuite,
 		longterm:    longterm,
 		dealer:      dealerKey,
 		verifiers:   verifiers,
 		pub:         pub,
 		index:       index,
-		hkdfContext: context(suite, dealerKey, verifiers),
+		hkdfContext: context(longSuite, dealerKey, verifiers),
 	}
 	return v, nil
 }
@@ -384,13 +388,13 @@ func (v *Verifier) ProcessEncryptedDeal(e *EncryptedDeal) (*Response, error) {
 
 	t := int(d.T)
 
-	sid, err := sessionID(v.suite, v.dealer, v.verifiers, d.Commitments, t)
+	sid, err := sessionID(v.longSuite, v.dealer, v.verifiers, d.Commitments, t)
 	if err != nil {
 		return nil, err
 	}
 
 	if v.aggregator == nil {
-		v.aggregator = newAggregator(v.suite, v.dealer, v.verifiers, d.Commitments, t, d.SessionID)
+		v.aggregator = newAggregator(v.destSuite, v.longSuite, v.dealer, v.verifiers, d.Commitments, t, d.SessionID)
 	}
 
 	r := &Response{
@@ -406,7 +410,7 @@ func (v *Verifier) ProcessEncryptedDeal(e *EncryptedDeal) (*Response, error) {
 		return nil, err
 	}
 
-	if r.Signature, err = schnorr.Sign(v.suite, v.longterm, r.Hash(v.suite)); err != nil {
+	if r.Signature, err = schnorr.Sign(v.longSuite, v.longterm, r.Hash(v.longSuite)); err != nil {
 		return nil, err
 	}
 
@@ -422,13 +426,13 @@ func (v *Verifier) decryptDeal(e *EncryptedDeal) (*Deal, error) {
 		return nil, err
 	}
 	// verify signature
-	if err := schnorr.Verify(v.suite, v.dealer, ephBuff, e.Signature); err != nil {
+	if err := schnorr.Verify(v.longSuite, v.dealer, ephBuff, e.Signature); err != nil {
 		return nil, err
 	}
 
 	// compute shared key and AES526-GCM cipher
-	pre := dhExchange(v.suite, v.longterm, e.DHKey)
-	gcm, err := newAEAD(v.suite.Hash, pre, v.hkdfContext)
+	pre := dhExchange(v.longSuite, v.longterm, e.DHKey)
+	gcm, err := newAEAD(v.longSuite.Hash, pre, v.hkdfContext)
 	if err != nil {
 		return nil, err
 	}
@@ -437,7 +441,7 @@ func (v *Verifier) decryptDeal(e *EncryptedDeal) (*Deal, error) {
 		return nil, err
 	}
 	deal := &Deal{}
-	err = deal.decode(v.suite, decrypted)
+	err = deal.decode(v.destSuite, decrypted)
 	return deal, err
 }
 
@@ -510,7 +514,8 @@ func (v *Verifier) SetTimeout() {
 // aggregator is used to collect all deals, and responses for one protocol run.
 // It brings common functionalities for both Dealer and Verifier structs.
 type aggregator struct {
-	suite     Suite
+	destSuite Suite
+	longSuite Suite
 	dealer    kyber.Point
 	verifiers []kyber.Point
 	commits   []kyber.Point
@@ -522,9 +527,10 @@ type aggregator struct {
 	badDealer bool
 }
 
-func newAggregator(suite Suite, dealer kyber.Point, verifiers, commitments []kyber.Point, t int, sid []byte) *aggregator {
+func newAggregator(destSuite Suite, longSuite Suite, dealer kyber.Point, verifiers, commitments []kyber.Point, t int, sid []byte) *aggregator {
 	agg := &aggregator{
-		suite:     suite,
+		destSuite: destSuite,
+		longSuite: longSuite,
 		dealer:    dealer,
 		verifiers: verifiers,
 		commits:   commitments,
@@ -568,12 +574,12 @@ func (a *aggregator) VerifyDeal(d *Deal, inclusion bool) error {
 		return errors.New("vss: index out of bounds in Deal")
 	}
 	// compute fi * G + gi * H
-	fig := a.suite.Point().Base().Mul(fi.V, nil)
-	H := deriveH(a.suite, a.verifiers)
-	gih := a.suite.Point().Mul(gi.V, H)
-	ci := a.suite.Point().Add(fig, gih)
+	fig := a.destSuite.Point().Base().Mul(fi.V, nil)
+	H := deriveH(a.destSuite, a.verifiers)
+	gih := a.destSuite.Point().Mul(gi.V, H)
+	ci := a.destSuite.Point().Add(fig, gih)
 
-	commitPoly := share.NewPubPoly(a.suite, nil, d.Commitments)
+	commitPoly := share.NewPubPoly(a.destSuite, nil, d.Commitments)
 
 	pubShare := commitPoly.Eval(fi.I)
 	if !ci.Equal(pubShare.V) {
@@ -606,7 +612,7 @@ func (a *aggregator) verifyResponse(r *Response) error {
 		return errors.New("vss: index out of bounds in response")
 	}
 
-	if err := schnorr.Verify(a.suite, pub, r.Hash(a.suite), r.Signature); err != nil {
+	if err := schnorr.Verify(a.longSuite, pub, r.Hash(a.longSuite), r.Signature); err != nil {
 		return err
 	}
 
@@ -720,8 +726,8 @@ func findPub(verifiers []kyber.Point, idx uint32) (kyber.Point, bool) {
 	return verifiers[iidx], true
 }
 
-func sessionID(suite Suite, dealer kyber.Point, verifiers, commitments []kyber.Point, t int) ([]byte, error) {
-	h := suite.Hash()
+func sessionID(longSuite Suite, dealer kyber.Point, verifiers, commitments []kyber.Point, t int) ([]byte, error) {
+	h := longSuite.Hash()
 	_, _ = dealer.MarshalTo(h)
 
 	for _, v := range verifiers {

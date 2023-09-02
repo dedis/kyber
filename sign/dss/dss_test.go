@@ -146,7 +146,7 @@ func getDSS(i int) *DSS {
 func genDistSecret() []*dkg.DistKeyShare {
 	dkgs := make([]*dkg.DistKeyGenerator, nbParticipants)
 	for i := 0; i < nbParticipants; i++ {
-		dkg, err := dkg.NewDistKeyGenerator(suite, partSec[i], partPubs, nbParticipants/2+1)
+		dkg, err := dkg.NewDistKeyGenerator(suite, suite, partSec[i], partPubs, nbParticipants/2+1)
 		if err != nil {
 			panic(err)
 		}

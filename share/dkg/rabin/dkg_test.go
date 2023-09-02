@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.dedis.ch/kyber/v3"
 	"go.dedis.ch/kyber/v3/group/edwards25519"
+	"go.dedis.ch/kyber/v3/pairing"
 	"go.dedis.ch/kyber/v3/share"
 	vss "go.dedis.ch/kyber/v3/share/vss/rabin"
 	"go.dedis.ch/kyber/v3/sign/schnorr"
@@ -30,12 +31,12 @@ func init() {
 		partPubs[i] = pub
 		partSec[i] = sec
 	}
-	dkgs = dkgGen()
+	dkgs = dkgGen(suite, suite)
 }
 
 func TestDKGNewDistKeyGenerator(t *testing.T) {
 	long := partSec[0]
-	dkg, err := NewDistKeyGenerator(suite, long, partPubs, nbParticipants/2+1)
+	dkg, err := NewDistKeyGenerator(suite, suite, long, partPubs, nbParticipants/2+1)
 	assert.Nil(t, err)
 	assert.NotNil(t, dkg.dealer)
 	// quick testing here; easier.
@@ -44,7 +45,7 @@ func TestDKGNewDistKeyGenerator(t *testing.T) {
 	assert.Error(t, err)
 
 	sec, _ := genPair()
-	_, err = NewDistKeyGenerator(suite, sec, partPubs, nbParticipants/2+1)
+	_, err = NewDistKeyGenerator(suite, suite, sec, partPubs, nbParticipants/2+1)
 	assert.Error(t, err)
 
 }
@@ -71,7 +72,7 @@ func TestDKGDeal(t *testing.T) {
 }
 
 func TestDKGProcessDeal(t *testing.T) {
-	dkgs = dkgGen()
+	dkgs = dkgGen(suite, suite)
 	dkg := dkgs[0]
 	deals, err := dkg.Deals()
 	require.Nil(t, err)
@@ -126,7 +127,7 @@ func TestDKGProcessResponse(t *testing.T) {
 	// second peer processes it and returns a complaint
 	// first peer process the complaint
 
-	dkgs = dkgGen()
+	dkgs = dkgGen(suite, suite)
 	dkg := dkgs[0]
 	idxRec := 1
 	rec := dkgs[idxRec]
@@ -225,7 +226,7 @@ func TestDKGProcessResponse(t *testing.T) {
 }
 
 func TestDKGSecretCommits(t *testing.T) {
-	fullExchange(t)
+	fullExchange(t, suite, suite)
 
 	dkg := dkgs[0]
 
@@ -287,7 +288,7 @@ func TestDKGSecretCommits(t *testing.T) {
 }
 
 func TestDKGComplaintCommits(t *testing.T) {
-	fullExchange(t)
+	fullExchange(t, suite, suite)
 
 	var scs []*SecretCommits
 	for _, dkg := range dkgs {
@@ -403,7 +404,7 @@ func TestDKGComplaintCommits(t *testing.T) {
 }
 
 func TestDKGReconstructCommits(t *testing.T) {
-	fullExchange(t)
+	fullExchange(t, suite, suite)
 
 	var scs []*SecretCommits
 	for _, dkg := range dkgs {
@@ -497,7 +498,7 @@ func TestDKGReconstructCommits(t *testing.T) {
 }
 
 func TestSetTimeout(t *testing.T) {
-	dkgs = dkgGen()
+	dkgs = dkgGen(suite, suite)
 	// full secret sharing exchange
 	// 1. broadcast deals
 	resps := make([]*Response, 0, nbParticipants*nbParticipants)
@@ -547,7 +548,15 @@ func TestSetTimeout(t *testing.T) {
 }
 
 func TestDistKeyShare(t *testing.T) {
-	fullExchange(t)
+	t.Run("edwards25519", func(tt *testing.T) {
+		testDistKeyShare(tt, suite, suite)
+	})
+	t.Run("bls", func(tt *testing.T) {
+		testDistKeyShare(tt, pairing.NewSuiteBn256(), suite)
+	})
+}
+func testDistKeyShare(t *testing.T, destSuite Suite, longSuite Suite) {
+	fullExchange(t, destSuite, longSuite)
 
 	var scs []*SecretCommits
 	for i, dkg := range dkgs[:len(dkgs)-1] {
@@ -617,17 +626,17 @@ func TestDistKeyShare(t *testing.T) {
 		shares[i] = dks.Share
 	}
 
-	secret, err := share.RecoverSecret(suite, shares, nbParticipants, nbParticipants)
+	secret, err := share.RecoverSecret(destSuite, shares, nbParticipants, nbParticipants)
 	assert.Nil(t, err)
 
-	commitSecret := suite.Point().Mul(secret, nil)
+	commitSecret := destSuite.Point().Mul(secret, nil)
 	assert.Equal(t, dkss[0].Public().String(), commitSecret.String())
 }
 
-func dkgGen() []*DistKeyGenerator {
+func dkgGen(destSuite Suite, longSuite Suite) []*DistKeyGenerator {
 	dkgs := make([]*DistKeyGenerator, nbParticipants)
 	for i := 0; i < nbParticipants; i++ {
-		dkg, err := NewDistKeyGenerator(suite, partSec[i], partPubs, nbParticipants/2+1)
+		dkg, err := NewDistKeyGenerator(destSuite, longSuite, partSec[i], partPubs, nbParticipants/2+1)
 		if err != nil {
 			panic(err)
 		}
@@ -658,8 +667,8 @@ func checkDks(dks1, dks2 *DistKeyShare) bool {
 	return true
 }
 
-func fullExchange(t *testing.T) {
-	dkgs = dkgGen()
+func fullExchange(t *testing.T, destSuite Suite, longSuite Suite) {
+	dkgs = dkgGen(destSuite, longSuite)
 	// full secret sharing exchange
 	// 1. broadcast deals
 	resps := make([]*Response, 0, nbParticipants*nbParticipants)
