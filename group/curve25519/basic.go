@@ -60,6 +60,18 @@ func (P *basicPoint) UnmarshalFrom(r io.Reader) (int, error) {
 	return marshalling.PointUnmarshalFrom(P, r)
 }
 
+func (P *basicPoint) HideLen() int {
+	return P.c.hide.HideLen()
+}
+
+func (P *basicPoint) HideEncode(rand cipher.Stream) []byte {
+	return P.c.hide.HideEncode(P, rand)
+}
+
+func (P *basicPoint) HideDecode(rep []byte) {
+	P.c.hide.HideDecode(P, rep)
+}
+
 // Equal tests for two Points on the same curve
 func (P *basicPoint) Equal(P2 kyber.Point) bool {
 	E2 := P2.(*basicPoint)

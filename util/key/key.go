@@ -24,12 +24,21 @@ type Suite interface {
 type Pair struct {
 	Public  kyber.Point  // Public key
 	Private kyber.Scalar // Private key
+	Hiding  kyber.Hiding // Hidden encoding of the public key
 }
 
 // NewKeyPair directly creates a secret/public key pair
 func NewKeyPair(suite Suite) *Pair {
 	kp := new(Pair)
 	kp.Gen(suite)
+	return kp
+}
+
+// NewHidingKeyPair creates a secret/public key pair and makes sure the
+// the public key is hiding-encodable.
+func NewHidingKeyPair(suite Suite) *Pair {
+	kp := new(Pair)
+	kp.GenHiding(suite)
 	return kp
 }
 
@@ -46,4 +55,21 @@ func (p *Pair) Gen(suite Suite) {
 		p.Private = suite.Scalar().Pick(random)
 	}
 	p.Public = suite.Point().Mul(p.Private, nil)
+}
+
+// GenHiding will generate key pairs repeatedly until one is found where the
+// public key has the property that it can be hidden.
+func (p *Pair) GenHiding(suite Suite) {
+	rand := suite.RandomStream()
+	p.Gen(suite)
+	Xh := p.Public.(kyber.Hiding)
+	for {
+		Xb := Xh.HideEncode(rand) // try to encode as uniform blob
+		if Xb != nil {
+			p.Hiding = Xh
+			return // success
+		}
+		p.Gen(suite)
+		Xh = p.Public.(kyber.Hiding)
+	}
 }

@@ -3,7 +3,9 @@ package curve25519
 import (
 	"testing"
 
+	"go.dedis.ch/kyber/v3"
 	"go.dedis.ch/kyber/v3/group/edwards25519"
+	"go.dedis.ch/kyber/v3/util/random"
 	"go.dedis.ch/kyber/v3/util/test"
 )
 
@@ -110,6 +112,43 @@ func TestCompareEd25519(t *testing.T) {
 	test.CompareGroups(t, testSuite.XOF,
 		new(ExtendedCurve).Init(Param25519(), false),
 		new(edwards25519.Curve))
+}
+
+// Test point hiding functionality
+
+func testHiding(g kyber.Group, k int) {
+	rand := random.New()
+
+	// Test conversion from random strings to points and back
+	p := g.Point()
+	p2 := g.Point()
+	l := p.(kyber.Hiding).HideLen()
+	buf := make([]byte, l)
+	for i := 0; i < k; i++ {
+		rand.XORKeyStream(buf, buf)
+		//println("R "+hex.EncodeToString(buf))
+		p.(kyber.Hiding).HideDecode(buf)
+		//println("P "+p.String())
+		b2 := p.(kyber.Hiding).HideEncode(rand)
+		if b2 == nil {
+			panic("HideEncode failed")
+		}
+		//println("R'"+hex.EncodeToString(b2))
+		p2.(kyber.Hiding).HideDecode(b2)
+		//println("P'"+p2.String())
+		if !p.Equal(p2) {
+			panic("HideDecode produced wrong point")
+		}
+		//println("")
+	}
+}
+
+func TestElligator1(t *testing.T) {
+	testHiding(new(ExtendedCurve).Init(Param1174(), true), 10)
+}
+
+func TestElligator2(t *testing.T) {
+	testHiding(new(ExtendedCurve).Init(Param25519(), true), 10)
 }
 
 // Benchmark contrasting implementations of the Ed25519 curve

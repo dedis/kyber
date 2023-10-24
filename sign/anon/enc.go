@@ -31,12 +31,17 @@ func header(suite Suite, X kyber.Point, x kyber.Scalar,
 
 // Create and encrypt a fresh key decryptable only by the given receivers.
 // Returns the secret key and the ciphertext.
-func encryptKey(suite Suite, anonymitySet Set) (k, c []byte) {
+func encryptKey(suite Suite, anonymitySet Set, hide bool) (k, c []byte) {
 	// Choose a keypair and encode its representation
 	kp := new(key.Pair)
 	var Xb []byte
-	kp.Gen(suite)
-	Xb, _ = kp.Public.MarshalBinary()
+	if hide {
+		kp.GenHiding(suite)
+		Xb = kp.Hiding.HideEncode(suite.RandomStream())
+	} else {
+		kp.Gen(suite)
+		Xb, _ = kp.Public.MarshalBinary()
+	}
 	xb, _ := kp.Private.MarshalBinary()
 	// Generate the ciphertext header
 	return xb, header(suite, kp.Public, kp.Private, Xb, xb, anonymitySet)
@@ -44,18 +49,31 @@ func encryptKey(suite Suite, anonymitySet Set) (k, c []byte) {
 
 // Decrypt and verify a key encrypted via encryptKey.
 // On success, returns the key and the length of the decrypted header.
-func decryptKey(suite Suite, ciphertext []byte, anonymitySet Set, mine int, privateKey kyber.Scalar) ([]byte, int, error) {
+func decryptKey(suite Suite, ciphertext []byte, anonymitySet Set,
+	mine int, privateKey kyber.Scalar,
+	hide bool) ([]byte, int, error) {
+
 	// Decode the (supposed) ephemeral public key from the front
 	X := suite.Point()
 	var Xb []byte
-	enclen := X.MarshalSize()
-	if len(ciphertext) < enclen {
-		return nil, 0, errors.New("ciphertext too short")
+	if hide {
+		Xh := X.(kyber.Hiding)
+		hidelen := Xh.HideLen()
+		if len(ciphertext) < hidelen {
+			return nil, 0, errors.New("ciphertext too short")
+		}
+		X.(kyber.Hiding).HideDecode(ciphertext[:hidelen])
+		Xb = ciphertext[:hidelen]
+	} else {
+		enclen := X.MarshalSize()
+		if len(ciphertext) < enclen {
+			return nil, 0, errors.New("ciphertext too short")
+		}
+		if err := X.UnmarshalBinary(ciphertext[:enclen]); err != nil {
+			return nil, 0, err
+		}
+		Xb = ciphertext[:enclen]
 	}
-	if err := X.UnmarshalBinary(ciphertext[:enclen]); err != nil {
-		return nil, 0, err
-	}
-	Xb = ciphertext[:enclen]
 	Xblen := len(Xb)
 
 	// Decode the (supposed) master secret with our private key
@@ -117,10 +135,18 @@ const macSize = 16
 // The caller supplies one or more keys representing the anonymity set.
 // If the provided set contains only one public key,
 // this reduces to conventional single-receiver public-key encryption.
+//
+// If hide is true,
+// Encrypt will produce a uniformly random-looking byte-stream,
+// which reveals no metadata other than message length
+// to anyone unable to decrypt the message.
+// The provided kyber.Suite must support
+// uniform-representation encoding of public keys for this to work.
+//
 func Encrypt(suite Suite, message []byte,
-	anonymitySet Set) []byte {
+	anonymitySet Set, hide bool) []byte {
 
-	xb, hdr := encryptKey(suite, anonymitySet)
+	xb, hdr := encryptKey(suite, anonymitySet, hide)
 	xof := suite.XOF(xb)
 
 	// We now know the ciphertext layout
@@ -157,10 +183,12 @@ func Encrypt(suite Suite, message []byte,
 // that is, it is infeasible for a sender to construct any ciphertext
 // that will be accepted by the receiver without knowing the plaintext.
 //
-func Decrypt(suite Suite, ciphertext []byte, anonymitySet Set, mine int, privateKey kyber.Scalar) ([]byte, error) {
+func Decrypt(suite Suite, ciphertext []byte, anonymitySet Set,
+	mine int, privateKey kyber.Scalar, hide bool) ([]byte, error) {
+
 	// Decrypt and check the encrypted key-header.
 	xb, hdrlen, err := decryptKey(suite, ciphertext, anonymitySet,
-		mine, privateKey)
+		mine, privateKey, hide)
 	if err != nil {
 		return nil, err
 	}
