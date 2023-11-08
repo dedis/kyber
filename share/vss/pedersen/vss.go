@@ -714,7 +714,7 @@ func (a *Aggregator) MissingResponses() []int {
 	return absents
 }
 
-// MinimumT returns the a safe value of T that balances secrecy and robustness.
+// MinimumT returns a safe value of T that balances secrecy and robustness.
 // It expects n, the total number of participants.
 // T should be adjusted to your threat model. Setting a lower T decreases the
 // difficulty for an adversary to break secrecy. However, a too large T makes
