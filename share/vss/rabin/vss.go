@@ -131,10 +131,10 @@ type Justification struct {
 
 // NewDealer returns a Dealer capable of leading the secret sharing scheme. It
 // does not have to be trusted by other Verifiers. The security parameter t is
-// the number of shares required to reconstruct the secret. It is HIGHLY
-// RECOMMENDED to use a threshold higher or equal than what the method
-// MinimumT() returns, otherwise it breaks the security assumptions of the whole
-// scheme. It returns an error if the t is inferior or equal to 2.
+// the number of shares required to reconstruct the secret. MinimumT() provides
+// a middle ground between robustness and secrecy. Increasing t will increase
+// the secrecy at the cost of the decreased robustness and vice versa. It 
+// returns an error if the t is inferior or equal to 2.
 func NewDealer(suite Suite, longterm, secret kyber.Scalar, verifiers []kyber.Point, t int) (*Dealer, error) {
 	d := &Dealer{
 		suite:     suite,
@@ -690,11 +690,11 @@ func (a *aggregator) UnsafeSetResponseDKG(idx uint32, approval bool) {
 	a.addResponse(r)
 }
 
-// MinimumT returns the minimum safe T that is proven to be secure with this
-// protocol. It expects n, the total number of participants.
-// WARNING: Setting a lower T could make
-// the whole protocol insecure. Setting a higher T only makes it harder to
-// reconstruct the secret.
+// MinimumT returns a safe value of T that balances secrecy and robustness.
+// It expects n, the total number of participants.
+// T should be adjusted to your threat model. Setting a lower T decreases the
+// difficulty for an adversary to break secrecy. However, a too large T makes
+// it possible for an adversary to prevent recovery (robustness).
 func MinimumT(n int) int {
 	return (n + 1) / 2
 }
