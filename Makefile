@@ -7,10 +7,7 @@ generate: tidy
 
 # Coding style static check.
 lint: tidy
-	@echo "Please setup a linter!"
-	#golangci-lint run
-	#staticcheck go list ./...
-
+	golangci-lint run
 
 vet: tidy
 	go vet ./...
