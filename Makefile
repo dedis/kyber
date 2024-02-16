@@ -7,8 +7,8 @@ generate: tidy
 
 # Coding style static check.
 lint: tidy
-	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.56.2
-	go mod tidy
+	@go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.56.2
+	@go mod tidy
 	golangci-lint run
 
 vet: tidy
