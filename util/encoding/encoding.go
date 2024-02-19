@@ -41,7 +41,12 @@ func ReadHexScalar(group kyber.Group, r io.Reader) (kyber.Scalar, error) {
 	if err != nil {
 		return nil, err
 	}
-	s.UnmarshalBinary(buf)
+
+	err = s.UnmarshalBinary(buf)
+	if err != nil {
+		return nil, err
+	}
+
 	return s, nil
 }
 
