@@ -250,9 +250,9 @@ func (c *curve) Point() kyber.Point {
 	return p
 }
 
-func (p *curvePoint) Set(P kyber.Point) kyber.Point {
-	p.x = P.(*curvePoint).x
-	p.y = P.(*curvePoint).y
+func (p *curvePoint) Set(a kyber.Point) kyber.Point {
+	p.x = a.(*curvePoint).x
+	p.y = a.(*curvePoint).y
 	return p
 }
 

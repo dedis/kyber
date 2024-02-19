@@ -338,7 +338,7 @@ func (p *pointG2) EmbedLen() int {
 	panic("bn256.G2: unsupported operation")
 }
 
-func (p *pointG2) Embed(data []byte, rand cipher.Stream) kyber.Point {
+func (p *pointG2) Embed(_ []byte, _ cipher.Stream) kyber.Point {
 	panic("bn256.G2: unsupported operation")
 }
 

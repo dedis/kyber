@@ -254,11 +254,11 @@ func (g *ResidueGroup) Valid() bool {
 }
 
 // SetParams explicitly initializes a ResidueGroup with given parameters.
-func (g *ResidueGroup) SetParams(P, Q, R, G *big.Int) {
-	g.P = P
-	g.Q = Q
-	g.R = R
-	g.G = G
+func (g *ResidueGroup) SetParams(p, q, r, g1 *big.Int) {
+	g.P = p
+	g.Q = q
+	g.R = r
+	g.G = g1
 	if !g.Valid() {
 		panic("SetParams: bad Residue group parameters")
 	}
@@ -271,7 +271,6 @@ func (g *ResidueGroup) QuadraticResidueGroup(bitlen uint, rand cipher.Stream) {
 	g.R = two
 
 	// pick primes p,q such that p = 2q+1
-	fmt.Printf("Generating %d-bit QR group", bitlen)
 	for i := 0; ; i++ {
 		if i > 1000 {
 			print(".")
@@ -282,23 +281,18 @@ func (g *ResidueGroup) QuadraticResidueGroup(bitlen uint, rand cipher.Stream) {
 		b := random.Bits(bitlen-1, true, rand)
 		b[len(b)-1] |= 1 // must be odd
 		g.Q = new(big.Int).SetBytes(b)
-		//println("q?",hex.EncodeToString(g.Q.Bytes()))
 		if !isPrime(g.Q) {
 			continue
 		}
 
-		// Does the corresponding P come out prime too?
+		// TODO:Does the corresponding P come out prime too?
 		g.P = new(big.Int)
 		g.P.Mul(g.Q, two)
 		g.P.Add(g.P, one)
-		//println("p?",hex.EncodeToString(g.P.Bytes()))
 		if uint(g.P.BitLen()) == bitlen && isPrime(g.P) {
 			break
 		}
 	}
-	println()
-	println("p", g.P.String())
-	println("q", g.Q.String())
 
 	// pick standard generator G
 	h := new(big.Int).Set(two)
@@ -310,5 +304,4 @@ func (g *ResidueGroup) QuadraticResidueGroup(bitlen uint, rand cipher.Stream) {
 		}
 		h.Add(h, one)
 	}
-	println("g", g.G.String())
 }
