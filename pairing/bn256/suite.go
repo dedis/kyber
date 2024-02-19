@@ -151,7 +151,7 @@ func (c *commonSuite) Read(r io.Reader, objs ...interface{}) error {
 
 // Write is the default implementation of kyber.Encoding interface Write.
 func (c *commonSuite) Write(w io.Writer, objs ...interface{}) error {
-	return fixbuf.Write(w, objs)
+	return fixbuf.Write(w, objs...)
 }
 
 // Hash returns a newly instantiated sha256 hash function.

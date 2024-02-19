@@ -37,11 +37,11 @@ func (s QrSuite) RandomStream() cipher.Stream {
 }
 
 func (s *QrSuite) Read(r io.Reader, objs ...interface{}) error {
-	return fixbuf.Read(r, s, objs)
+	return fixbuf.Read(r, s, objs...)
 }
 
 func (s *QrSuite) Write(w io.Writer, objs ...interface{}) error {
-	return fixbuf.Write(w, objs)
+	return fixbuf.Write(w, objs...)
 }
 
 // New implements the kyber.encoding interface
