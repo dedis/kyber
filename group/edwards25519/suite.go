@@ -36,7 +36,7 @@ func (s *SuiteEd25519) Read(r io.Reader, objs ...interface{}) error {
 }
 
 func (s *SuiteEd25519) Write(w io.Writer, objs ...interface{}) error {
-	return fixbuf.Write(w, objs)
+	return fixbuf.Write(w, objs...)
 }
 
 // New implements the kyber.Encoding interface
