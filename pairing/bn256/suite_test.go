@@ -333,7 +333,7 @@ type tsrPoint struct {
 }
 
 func TestSuiteProtobuf(t *testing.T) {
-	//bn := suites.MustFind("bn256.adapter")
+	// bn := suites.MustFind("bn256.adapter")
 	bn1 := NewSuiteG1()
 	bn2 := NewSuiteG2()
 	bnT := NewSuiteGT()
