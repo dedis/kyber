@@ -109,7 +109,7 @@ linters:
     - asciicheck # checks that your code does not contain non-ASCII identifiers
     - bidichk # checks for dangerous unicode character sequences
     - bodyclose # checks whether HTTP response body is closed successfully
-    #- contextcheck # checks the function whether use a non-inherited context # TODO: enable after golangci-lint uses https://github.com/sylvia7788/contextcheck/releases/tag/v1.0.7
+    - contextcheck # checks the function whether use a non-inherited context
     - cyclop # checks function and package cyclomatic complexity
     - dupl # tool for code clone detection
     - durationcheck # checks for two durations multiplied together
