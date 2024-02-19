@@ -146,7 +146,10 @@ func (p *pointG1) Mul(s kyber.Scalar, q kyber.Point) kyber.Point {
 
 func (p *pointG1) MarshalBinary() ([]byte, error) {
 	// Clone is required as we change the point
-	p = p.Clone().(*pointG1)
+	p, ok := p.Clone().(*pointG1)
+	if !ok {
+		return nil, errors.New("invalid type cast")
+	}
 
 	n := p.ElementSize()
 	// Take a copy so that p is not written to, so calls to MarshalBinary
@@ -373,8 +376,10 @@ func (p *pointG2) Mul(s kyber.Scalar, q kyber.Point) kyber.Point {
 
 func (p *pointG2) MarshalBinary() ([]byte, error) {
 	// Clone is required as we change the point during the operation
-	p = p.Clone().(*pointG2)
-
+	p, ok := p.Clone().(*pointG2)
+	if !ok {
+		return nil, errors.New("invalid type cast")
+	}
 	n := p.ElementSize()
 	if p.g == nil {
 		p.g = &twistPoint{}
