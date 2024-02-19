@@ -49,10 +49,26 @@ func NewDLEQProof(suite Suite, G kyber.Point, H kyber.Point, x kyber.Scalar) (pr
 
 	// Challenge
 	h := suite.Hash()
-	xG.MarshalTo(h)
-	xH.MarshalTo(h)
-	vG.MarshalTo(h)
-	vH.MarshalTo(h)
+	_, err = xG.MarshalTo(h)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	_, err = xH.MarshalTo(h)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	_, err = vG.MarshalTo(h)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	_, err = vH.MarshalTo(h)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
 	cb := h.Sum(nil)
 	c := suite.Scalar().Pick(suite.XOF(cb))
 
