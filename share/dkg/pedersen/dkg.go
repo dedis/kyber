@@ -243,7 +243,11 @@ func NewDistKeyHandler(c *Config) (*DistKeyGenerator, error) {
 
 // NewDistKeyGenerator returns a dist key generator ready to create a fresh
 // distributed key with the regular DKG protocol.
-func NewDistKeyGenerator(suite Suite, longterm kyber.Scalar, participants []kyber.Point, t int) (*DistKeyGenerator, error) {
+func NewDistKeyGenerator(
+	suite Suite,
+	longterm kyber.Scalar,
+	participants []kyber.Point,
+	t int) (*DistKeyGenerator, error) {
 	c := &Config{
 		Suite:     suite,
 		Longterm:  longterm,
@@ -267,7 +271,7 @@ func NewDistKeyGenerator(suite Suite, longterm kyber.Scalar, participants []kybe
 // results in a panic.
 func (d *DistKeyGenerator) Deals() (map[int]*Deal, error) {
 	if !d.canIssue {
-		// We do not hold a share, so we cannot make a deal, so
+		//nolint:nilnil // We do not hold a share, so we cannot make a deal, so
 		// return an empty map and no error. This makes callers not
 		// need to care if they are in a resharing context or not.
 		return nil, nil
@@ -421,7 +425,7 @@ func (d *DistKeyGenerator) ProcessResponse(resp *Response) (*Justification, erro
 
 	myIdx := uint32(d.oidx)
 	if !d.canIssue || resp.Index != myIdx {
-		// no justification if we dont issue deals or the deal's not from us
+		//nolint:nilnil // no justification if we dont issue deals or the deal's not from us
 		return nil, nil
 	}
 
@@ -430,6 +434,7 @@ func (d *DistKeyGenerator) ProcessResponse(resp *Response) (*Justification, erro
 		return nil, err
 	}
 	if j == nil {
+		//nolint:nilnil // nothing to do
 		return nil, nil
 	}
 	if err := v.ProcessJustification(j); err != nil {
@@ -459,6 +464,7 @@ func (d *DistKeyGenerator) processResharingResponse(resp *Response) (*Justificat
 	}
 
 	if resp.Response.Status == vss.StatusApproval {
+		//nolint:nilnil // status approved, no justification needed
 		return nil, nil
 	}
 
@@ -623,13 +629,13 @@ func (d *DistKeyGenerator) ExpectedDeals() int {
 func (d *DistKeyGenerator) QUAL() []int {
 	var good []int
 	if d.isResharing && d.canIssue && !d.newPresent {
-		d.oldQualIter(func(i uint32, v *vss.Aggregator) bool {
+		d.oldQualIter(func(i uint32, _ *vss.Aggregator) bool {
 			good = append(good, int(i))
 			return true
 		})
 		return good
 	}
-	d.qualIter(func(i uint32, v *vss.Verifier) bool {
+	d.qualIter(func(i uint32, _ *vss.Verifier) bool {
 		good = append(good, int(i))
 		return true
 	})
@@ -638,7 +644,7 @@ func (d *DistKeyGenerator) QUAL() []int {
 
 func (d *DistKeyGenerator) isInQUAL(idx uint32) bool {
 	var found bool
-	d.qualIter(func(i uint32, v *vss.Verifier) bool {
+	d.qualIter(func(i uint32, _ *vss.Verifier) bool {
 		if i == idx {
 			found = true
 			return false
@@ -694,7 +700,7 @@ func (d *DistKeyGenerator) dkgKey() (*DistKeyShare, error) {
 	sh := d.suite.Scalar().Zero()
 	var pub *share.PubPoly
 	var err error
-	d.qualIter(func(i uint32, v *vss.Verifier) bool {
+	d.qualIter(func(_ uint32, v *vss.Verifier) bool {
 		// share of dist. secret = sum of all share received.
 		deal := v.Deal()
 		s := deal.SecShare.V
@@ -858,6 +864,6 @@ func findPub(list []kyber.Point, toFind kyber.Point) (int, bool) {
 	return 0, false
 }
 
-func checksDealCertified(i uint32, v *vss.Verifier) bool {
+func checksDealCertified(_ uint32, v *vss.Verifier) bool {
 	return v.DealCertified()
 }

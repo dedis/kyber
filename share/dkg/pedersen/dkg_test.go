@@ -561,9 +561,10 @@ func genPair() (kyber.Scalar, kyber.Point) {
 
 func randomBytes(n int) []byte {
 	var buff = make([]byte, n)
-	_, _ = rand.Read(buff[:])
+	_, _ = rand.Read(buff)
 	return buff
 }
+
 func checkDks(dks1, dks2 *DistKeyShare) bool {
 	if len(dks1.Commits) != len(dks2.Commits) {
 		return false
@@ -841,7 +842,6 @@ func TestDKGResharingNewNodesThreshold(t *testing.T) {
 					continue
 				}
 				j, err := dkg.ProcessResponse(resp)
-				//fmt.Printf("old dkg %d process responses from new dkg %d about deal %d\n", dkg.oidx, dkg.nidx, resp.Index)
 				if err != nil {
 					fmt.Printf("old dkg at (oidx %d, nidx %d) has received response from idx %d for dealer idx %d\n", dkg.oidx, dkg.nidx, resp.Response.Index, resp.Index)
 				}
@@ -855,7 +855,6 @@ func TestDKGResharingNewNodesThreshold(t *testing.T) {
 					continue
 				}
 				j, err := dkg.ProcessResponse(resp)
-				//fmt.Printf("new dkg %d process responses from new dkg %d about deal %d\n", dkg.nidx, dkg.nidx, resp.Index)
 				if err != nil {
 					fmt.Printf("new dkg at nidx %d has received response from idx %d for deal %d\n", dkg.nidx, resp.Response.Index, resp.Index)
 				}
@@ -1223,9 +1222,6 @@ func TestDKGResharingPartialNewNodes(t *testing.T) {
 			require.Nil(t, err)
 			require.Equal(t, vss.StatusApproval, resp.Response.Status)
 			resps[i] = append(resps[i], resp)
-			if i == 0 {
-				//fmt.Printf("dealer (oidx %d, nidx %d) processing deal to %d from %d\n", newDkgs[i].oidx, newDkgs[i].nidx, i, d.Index)
-			}
 		}
 	}
 
@@ -1244,7 +1240,6 @@ func TestDKGResharingPartialNewNodes(t *testing.T) {
 					continue
 				}
 				j, err := dkg.ProcessResponse(resp)
-				//fmt.Printf("old dkg %d process responses from new dkg %d about deal %d\n", dkg.oidx, dkg.nidx, resp.Index)
 				if err != nil {
 					fmt.Printf("old dkg at (oidx %d, nidx %d) has received response from idx %d for dealer idx %d\n", dkg.oidx, dkg.nidx, resp.Response.Index, resp.Index)
 				}
