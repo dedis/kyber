@@ -21,7 +21,7 @@ func TestInvalidBiffle(t *testing.T) {
 	biffleInvalidTest(s)
 }
 
-func biffleTest(suite Suite, N int) {
+func biffleTest(suite Suite, n int) {
 	rand := suite.RandomStream()
 	h, c := setShuffleKeyPairs(rand, suite, 2)
 
@@ -35,8 +35,8 @@ func biffleTest(suite Suite, N int) {
 		Y[i].Add(Y[i], c[i])           // Encrypted client public key
 	}
 
-	// Repeat only the actual shuffle portion for benchmark purposes.
-	for i := 0; i < N; i++ {
+	// Repeat only the actual shuffle portion for test purposes.
+	for i := 0; i < n; i++ {
 
 		// Do a key-shuffle
 		Xbar, Ybar, prover := Biffle(suite, nil, h, X, Y, rand)
