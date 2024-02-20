@@ -253,3 +253,6 @@ issues:
     - path: 'group/edwards25519/scalar.go'
       linters:
         - ineffassign
+    - path: 'group/edwards25519/const.go'
+      linters:
+        - lll
