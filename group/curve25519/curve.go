@@ -267,17 +267,17 @@ func (c *curve) onCurve(x, y *mod.Int) bool {
 
 // Sanity-check a point to ensure that it is on the curve
 // and within the appropriate subgroup.
-func (c *curve) validPoint(P point) bool {
+func (c *curve) validPoint(p point) bool {
 
 	// Check on-curve
-	x, y := P.getXY()
+	x, y := p.getXY()
 	if !c.onCurve(x, y) {
 		return false
 	}
 
 	// Check in-subgroup by multiplying by subgroup order
 	Q := c.self.Point()
-	Q.Mul(&c.order, P)
+	Q.Mul(&c.order, p)
 	if !Q.Equal(c.null) {
 		return false
 	}
@@ -295,7 +295,7 @@ func (c *curve) embedLen() int {
 
 // Pick a [pseudo-]random curve point with optional embedded data,
 // filling in the point's x,y coordinates
-func (c *curve) embed(P point, data []byte, rand cipher.Stream) {
+func (c *curve) embed(p point, data []byte, rand cipher.Stream) {
 
 	// How much data to embed?
 	dl := c.embedLen()
@@ -334,7 +334,7 @@ func (c *curve) embed(P point, data []byte, rand cipher.Stream) {
 		}
 
 		// Initialize the point
-		P.initXY(&x.V, &y.V, c.self)
+		p.initXY(&x.V, &y.V, c.self)
 		if c.full {
 			// If we're using the full group,
 			// we just need any point on the curve, so we're done.
@@ -347,8 +347,8 @@ func (c *curve) embed(P point, data []byte, rand cipher.Stream) {
 		// we can convert our point into one in the subgroup
 		// simply by multiplying it by the cofactor.
 		if data == nil {
-			P.Mul(&c.cofact, P) // multiply by cofactor
-			if P.Equal(c.null) {
+			p.Mul(&c.cofact, p) // multiply by cofactor
+			if p.Equal(c.null) {
 				continue // unlucky; try again
 			}
 			return
@@ -360,7 +360,7 @@ func (c *curve) embed(P point, data []byte, rand cipher.Stream) {
 		if Q == nil {
 			Q = c.self.Point()
 		}
-		Q.Mul(&c.order, P)
+		Q.Mul(&c.order, p)
 		if Q.Equal(c.null) {
 			return
 		}

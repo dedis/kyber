@@ -432,6 +432,8 @@ func selectCached(c *cachedGroupElement, Ai *[8]cachedGroupElement, b int32) {
 // Preconditions:
 //
 //	a[31] <= 127
+//
+//nolint:gocritic
 func geScalarMult(h *extendedGroupElement, a *[32]byte,
 	A *extendedGroupElement) {
 
