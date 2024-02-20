@@ -29,12 +29,12 @@ func bifflePred() proof.Predicate {
 	return or
 }
 
-func bifflePoints(suite Suite, G, H kyber.Point,
+func bifflePoints(suite Suite, g, h kyber.Point,
 	X, Y, Xbar, Ybar [2]kyber.Point) map[string]kyber.Point {
 
 	return map[string]kyber.Point{
-		"G":        G,
-		"H":        H,
+		"G":        g,
+		"H":        h,
 		"Xbar0-X0": suite.Point().Sub(Xbar[0], X[0]),
 		"Ybar0-Y0": suite.Point().Sub(Ybar[0], Y[0]),
 		"Xbar1-X1": suite.Point().Sub(Xbar[1], X[1]),
@@ -46,7 +46,7 @@ func bifflePoints(suite Suite, G, H kyber.Point,
 }
 
 // Biffle is a binary shuffle ("biffle") for 2 ciphertexts based on general ZKPs.
-func Biffle(suite Suite, G, H kyber.Point,
+func Biffle(suite Suite, g, h kyber.Point,
 	X, Y [2]kyber.Point, rand cipher.Stream) (
 	Xbar, Ybar [2]kyber.Point, prover proof.Prover) {
 
@@ -64,9 +64,9 @@ func Biffle(suite Suite, G, H kyber.Point,
 	// Create the output pair vectors
 	for i := 0; i < 2; i++ {
 		piI := i ^ bit
-		Xbar[i] = suite.Point().Mul(beta[piI], G)
+		Xbar[i] = suite.Point().Mul(beta[piI], g)
 		Xbar[i].Add(Xbar[i], X[piI])
-		Ybar[i] = suite.Point().Mul(beta[piI], H)
+		Ybar[i] = suite.Point().Mul(beta[piI], h)
 		Ybar[i].Add(Ybar[i], Y[piI])
 	}
 
@@ -74,18 +74,18 @@ func Biffle(suite Suite, G, H kyber.Point,
 	secrets := map[string]kyber.Scalar{
 		"beta0": beta[0],
 		"beta1": beta[1]}
-	points := bifflePoints(suite, G, H, X, Y, Xbar, Ybar)
+	points := bifflePoints(suite, g, h, X, Y, Xbar, Ybar)
 	choice := map[proof.Predicate]int{or: bit}
 	prover = or.Prover(suite, secrets, points, choice)
 	return
 }
 
 // BiffleVerifier returns a verifier of the biffle
-func BiffleVerifier(suite Suite, G, H kyber.Point,
+func BiffleVerifier(suite Suite, g, h kyber.Point,
 	X, Y, Xbar, Ybar [2]kyber.Point) (
 	verifier proof.Verifier) {
 
 	or := bifflePred()
-	points := bifflePoints(suite, G, H, X, Y, Xbar, Ybar)
+	points := bifflePoints(suite, g, h, X, Y, Xbar, Ybar)
 	return or.Verifier(suite, points)
 }

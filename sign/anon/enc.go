@@ -8,22 +8,22 @@ import (
 	"go.dedis.ch/kyber/v3/util/key"
 )
 
-func header(suite Suite, X kyber.Point, x kyber.Scalar,
-	Xb, xb []byte, anonymitySet Set) []byte {
+func header(suite Suite, _ kyber.Point, x kyber.Scalar,
+	xb1, xb2 []byte, anonymitySet Set) []byte {
 
-	//fmt.Printf("Xb %s\nxb %s\n",
-	//		hex.EncodeToString(Xb),hex.EncodeToString(xb))
+	//fmt.Printf("xb1 %s\nxb %s\n",
+	//		hex.EncodeToString(xb1),hex.EncodeToString(xb2))
 
 	// Encrypt the master scalar key with each public key in the set
 	S := suite.Point()
-	hdr := Xb
+	hdr := xb1
 	for i := range anonymitySet {
 		Y := anonymitySet[i]
 		S.Mul(x, Y) // compute DH shared secret
 		seed, _ := S.MarshalBinary()
 		xof := suite.XOF(seed)
-		xc := make([]byte, len(xb))
-		xof.XORKeyStream(xc, xb)
+		xc := make([]byte, len(xb2))
+		xof.XORKeyStream(xc, xb2)
 		hdr = append(hdr, xc...)
 	}
 	return hdr
@@ -156,7 +156,6 @@ func Encrypt(suite Suite, message []byte,
 // As a side-effect, this verification also ensures plaintext-awareness:
 // that is, it is infeasible for a sender to construct any ciphertext
 // that will be accepted by the receiver without knowing the plaintext.
-//
 func Decrypt(suite Suite, ciphertext []byte, anonymitySet Set, mine int, privateKey kyber.Scalar) ([]byte, error) {
 	// Decrypt and check the encrypted key-header.
 	xb, hdrlen, err := decryptKey(suite, ciphertext, anonymitySet,

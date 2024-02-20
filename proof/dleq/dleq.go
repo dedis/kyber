@@ -1,7 +1,9 @@
 // Package dleq provides functionality to create and verify non-interactive
 // zero-knowledge (NIZK) proofs for the equality (EQ) of discrete logarithms (DL).
 // This means, for two values xG and xH one can check that
-//   log_{G}(xG) == log_{H}(xH)
+//
+//	log_{G}(xG) == log_{H}(xH)
+//
 // without revealing the secret value x.
 package dleq
 
@@ -35,39 +37,39 @@ type Proof struct {
 // and then computes the challenge c = H(xG,xH,vG,vH) and response r = v - cx.
 // Besides the proof, this function also returns the encrypted base points xG
 // and xH.
-func NewDLEQProof(suite Suite, G kyber.Point, H kyber.Point, x kyber.Scalar) (proof *Proof, xG kyber.Point, xH kyber.Point, err error) {
+func NewDLEQProof(suite Suite, g kyber.Point, h kyber.Point, x kyber.Scalar) (proof *Proof, xG kyber.Point, xH kyber.Point, err error) {
 	// Encrypt base points with secret
-	xG = suite.Point().Mul(x, G)
-	xH = suite.Point().Mul(x, H)
+	xG = suite.Point().Mul(x, g)
+	xH = suite.Point().Mul(x, h)
 
 	// Commitment
 	v := suite.Scalar().Pick(suite.RandomStream())
-	vG := suite.Point().Mul(v, G)
-	vH := suite.Point().Mul(v, H)
+	vG := suite.Point().Mul(v, g)
+	vH := suite.Point().Mul(v, h)
 
 	// Challenge
-	h := suite.Hash()
-	_, err = xG.MarshalTo(h)
+	hSuite := suite.Hash()
+	_, err = xG.MarshalTo(hSuite)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	_, err = xH.MarshalTo(h)
+	_, err = xH.MarshalTo(hSuite)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	_, err = vG.MarshalTo(h)
+	_, err = vG.MarshalTo(hSuite)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	_, err = vH.MarshalTo(h)
+	_, err = vH.MarshalTo(hSuite)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	cb := h.Sum(nil)
+	cb := hSuite.Sum(nil)
 	c := suite.Scalar().Pick(suite.XOF(cb))
 
 	// Response
@@ -80,8 +82,8 @@ func NewDLEQProof(suite Suite, G kyber.Point, H kyber.Point, x kyber.Scalar) (pr
 // NewDLEQProofBatch computes lists of NIZK dlog-equality proofs and of
 // encrypted base points xG and xH. Note that the challenge is computed over all
 // input values.
-func NewDLEQProofBatch(suite Suite, G []kyber.Point, H []kyber.Point, secrets []kyber.Scalar) (proof []*Proof, xG []kyber.Point, xH []kyber.Point, err error) {
-	if len(G) != len(H) || len(H) != len(secrets) {
+func NewDLEQProofBatch(suite Suite, g []kyber.Point, h []kyber.Point, secrets []kyber.Scalar) (proof []*Proof, xG []kyber.Point, xH []kyber.Point, err error) {
+	if len(g) != len(h) || len(h) != len(secrets) {
 		return nil, nil, nil, errorDifferentLengths
 	}
 
@@ -95,30 +97,30 @@ func NewDLEQProofBatch(suite Suite, G []kyber.Point, H []kyber.Point, secrets []
 
 	for i, x := range secrets {
 		// Encrypt base points with secrets
-		xG[i] = suite.Point().Mul(x, G[i])
-		xH[i] = suite.Point().Mul(x, H[i])
+		xG[i] = suite.Point().Mul(x, g[i])
+		xH[i] = suite.Point().Mul(x, h[i])
 
 		// Commitments
 		v[i] = suite.Scalar().Pick(suite.RandomStream())
-		vG[i] = suite.Point().Mul(v[i], G[i])
-		vH[i] = suite.Point().Mul(v[i], H[i])
+		vG[i] = suite.Point().Mul(v[i], g[i])
+		vH[i] = suite.Point().Mul(v[i], h[i])
 	}
 
 	// Collective challenge
-	h := suite.Hash()
+	hSuite := suite.Hash()
 	for _, x := range xG {
-		x.MarshalTo(h)
+		x.MarshalTo(hSuite)
 	}
 	for _, x := range xH {
-		x.MarshalTo(h)
+		x.MarshalTo(hSuite)
 	}
 	for _, x := range vG {
-		x.MarshalTo(h)
+		x.MarshalTo(hSuite)
 	}
 	for _, x := range vH {
-		x.MarshalTo(h)
+		x.MarshalTo(hSuite)
 	}
-	cb := h.Sum(nil)
+	cb := hSuite.Sum(nil)
 
 	c := suite.Scalar().Pick(suite.XOF(cb))
 
@@ -134,11 +136,12 @@ func NewDLEQProofBatch(suite Suite, G []kyber.Point, H []kyber.Point, secrets []
 
 // Verify examines the validity of the NIZK dlog-equality proof.
 // The proof is valid if the following two conditions hold:
-//   vG == rG + c(xG)
-//   vH == rH + c(xH)
-func (p *Proof) Verify(suite Suite, G kyber.Point, H kyber.Point, xG kyber.Point, xH kyber.Point) error {
-	rG := suite.Point().Mul(p.R, G)
-	rH := suite.Point().Mul(p.R, H)
+//
+//	vG == rG + c(xG)
+//	vH == rH + c(xH)
+func (p *Proof) Verify(suite Suite, g kyber.Point, h kyber.Point, xG kyber.Point, xH kyber.Point) error {
+	rG := suite.Point().Mul(p.R, g)
+	rH := suite.Point().Mul(p.R, h)
 	cxG := suite.Point().Mul(p.C, xG)
 	cxH := suite.Point().Mul(p.C, xH)
 	a := suite.Point().Add(rG, cxG)

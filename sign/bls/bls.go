@@ -65,9 +65,9 @@ func AggregateSignatures(suite pairing.Suite, sigs ...[]byte) ([]byte, error) {
 
 // AggregatePublicKeys takes a slice of public G2 points and returns
 // the sum of those points. This is used to verify multisignatures.
-func AggregatePublicKeys(suite pairing.Suite, Xs ...kyber.Point) kyber.Point {
+func AggregatePublicKeys(suite pairing.Suite, xs ...kyber.Point) kyber.Point {
 	aggregated := suite.G2().Point()
-	for _, X := range Xs {
+	for _, X := range xs {
 		aggregated.Add(aggregated, X)
 	}
 	return aggregated
@@ -116,13 +116,13 @@ func BatchVerify(suite pairing.Suite, publics []kyber.Point, msgs [][]byte, sig 
 // key X by verifying that the equality e(H(m), X) == e(H(m), x*B2) ==
 // e(x*H(m), B2) == e(S, B2) holds where e is the pairing operation and B2 is
 // the base point from curve G2.
-func Verify(suite pairing.Suite, X kyber.Point, msg, sig []byte) error {
+func Verify(suite pairing.Suite, x kyber.Point, msg, sig []byte) error {
 	hashable, ok := suite.G1().Point().(hashablePoint)
 	if !ok {
 		return errors.New("bls: point needs to implement hashablePoint")
 	}
 	HM := hashable.Hash(msg)
-	left := suite.Pair(HM, X)
+	left := suite.Pair(HM, x)
 	s := suite.G1().Point()
 	if err := s.UnmarshalBinary(sig); err != nil {
 		return err
