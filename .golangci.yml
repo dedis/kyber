@@ -250,3 +250,6 @@ issues:
     - path: 'group.go'
       linters:
         - interfacebloat
+    - path: 'group/edwards25519/scalar.go'
+      linters:
+        - ineffassign
