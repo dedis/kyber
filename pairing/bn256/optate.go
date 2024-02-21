@@ -46,7 +46,7 @@ func lineFunctionAdd(r, p *twistPoint, q *curvePoint, r2 *gfP2) (a, b, c *gfP2, 
 	b = (&gfP2{}).Neg(L1)
 	b.MulScalar(b, &q.x).Add(b, b)
 
-	return
+	return a, b, c, rOut
 }
 
 func lineFunctionDouble(r *twistPoint, q *curvePoint) (a, b, c *gfP2, rOut *twistPoint) {
@@ -88,7 +88,7 @@ func lineFunctionDouble(r *twistPoint, q *curvePoint) (a, b, c *gfP2, rOut *twis
 	c = (&gfP2{}).Mul(&rOut.z, &r.t)
 	c.Add(c, c).MulScalar(c, &q.y)
 
-	return
+	return a, b, c, rOut
 }
 
 func mulLine(ret *gfP12, a, b, c *gfP2) {
