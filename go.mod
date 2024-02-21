@@ -3,6 +3,7 @@ module github.com/drand/kyber
 go 1.18
 
 require (
+	github.com/cloudflare/circl v1.3.2
 	github.com/drand/kyber-bls12381 v0.2.5
 	github.com/jonboulle/clockwork v0.3.0
 	github.com/stretchr/testify v1.8.2
