@@ -522,7 +522,7 @@ func (p *pointGT) EmbedLen() int {
 	panic("bn256.GT: unsupported operation")
 }
 
-func (p *pointGT) Embed(data []byte, rand cipher.Stream) kyber.Point {
+func (p *pointGT) Embed(_ []byte, _ cipher.Stream) kyber.Point {
 	panic("bn256.GT: unsupported operation")
 }
 
