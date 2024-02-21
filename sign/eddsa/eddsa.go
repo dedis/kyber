@@ -142,20 +142,20 @@ func VerifyWithChecks(pub, msg, sig []byte) error {
 		IsCanonical(b []byte) bool
 	}
 
-	R := group.Point()
-	if !R.(pointCanCheckCanonicalAndSmallOrder).IsCanonical(sig[:32]) {
-		return fmt.Errorf("R is not canonical")
+	r := group.Point()
+	if !r.(pointCanCheckCanonicalAndSmallOrder).IsCanonical(sig[:32]) {
+		return fmt.Errorf("r is not canonical")
 	}
-	if err := R.UnmarshalBinary(sig[:32]); err != nil {
-		return fmt.Errorf("got R invalid point: %s", err)
+	if err := r.UnmarshalBinary(sig[:32]); err != nil {
+		return fmt.Errorf("got r invalid point: %w", err)
 	}
-	if R.(pointCanCheckCanonicalAndSmallOrder).HasSmallOrder() {
-		return fmt.Errorf("R has small order")
+	if r.(pointCanCheckCanonicalAndSmallOrder).HasSmallOrder() {
+		return fmt.Errorf("r has small order")
 	}
 
 	s := group.Scalar()
 	if err := s.UnmarshalBinary(sig[32:]); err != nil {
-		return fmt.Errorf("schnorr: s invalid scalar %s", err)
+		return fmt.Errorf("schnorr: s invalid scalar %w", err)
 	}
 
 	public := group.Point()
@@ -163,23 +163,23 @@ func VerifyWithChecks(pub, msg, sig []byte) error {
 		return fmt.Errorf("public key is not canonical")
 	}
 	if err := public.UnmarshalBinary(pub); err != nil {
-		return fmt.Errorf("invalid public key: %s", err)
+		return fmt.Errorf("invalid public key: %w", err)
 	}
 	if public.(pointCanCheckCanonicalAndSmallOrder).HasSmallOrder() {
 		return fmt.Errorf("public key has small order")
 	}
 
-	// reconstruct h = H(R || Public || Msg)
+	// reconstruct h = H(r || Public || Msg)
 	hash := sha512.New()
 	_, _ = hash.Write(sig[:32])
 	_, _ = hash.Write(pub)
 	_, _ = hash.Write(msg)
 
 	h := group.Scalar().SetBytes(hash.Sum(nil))
-	// reconstruct S == k*A + R
+	// reconstruct S == k*A + r
 	S := group.Point().Mul(s, nil)
 	hA := group.Point().Mul(h, public)
-	RhA := group.Point().Add(R, hA)
+	RhA := group.Point().Add(r, hA)
 
 	if !RhA.Equal(S) {
 		return errors.New("reconstructed S is not equal to signature")
