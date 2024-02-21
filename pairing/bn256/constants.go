@@ -68,9 +68,13 @@ var xiTo2PMinus2Over3 = &gfP2{
 }
 
 // p2 is p, represented as little-endian 64-bit words.
+//
+//nolint:unused // False positive
 var p2 = [4]uint64{0x185cac6c5e089667, 0xee5b88d120b5b59e, 0xaa6fecb86184dc21, 0x8fb501e34aa387f9}
 
 // np is the negative inverse of p, mod 2^256.
+//
+//nolint:unused // False positive
 var np = [4]uint64{0x2387f9007f17daa9, 0x734b3343ab8513c8, 0x2524282f48054c12, 0x38997ae661c3ef3c}
 
 // rN1 is R^-1 where R = 2^256 mod p.
