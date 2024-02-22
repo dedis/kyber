@@ -3,6 +3,7 @@ package test
 import (
 	"bytes"
 	"crypto/cipher"
+	"github.com/stretchr/testify/require"
 	"testing"
 
 	"go.dedis.ch/kyber/v4"
@@ -44,13 +45,11 @@ func testEmbed(t *testing.T, g kyber.Group, rand cipher.Stream, points *[]kyber.
 	if err != nil {
 		t.Errorf("Point extraction failed for %v: %v", p, err)
 	}
-	//println("extracted data (", len(x), " bytes): ", string(x))
-	//println("EmbedLen(): ", g.Point().EmbedLen())
-	max := g.Point().EmbedLen()
-	if max > len(b) {
-		max = len(b)
+	maxLen := g.Point().EmbedLen()
+	if maxLen > len(b) {
+		maxLen = len(b)
 	}
-	if !bytes.Equal(append(x, b[max:]...), b) {
+	if !bytes.Equal(append(x, b[maxLen:]...), b) {
 		t.Errorf("Point embedding corrupted the data")
 	}
 
@@ -232,7 +231,6 @@ func testGroup(t *testing.T, g kyber.Group, rand cipher.Stream) []kyber.Point {
 	}
 
 	// Zero and One identity secrets
-	//println("dh1^0 = ",ptmp.Mul(dh1, szero).String())
 	if !ptmp.Mul(szero, dh1).Equal(pzero) {
 		t.Errorf("Encryption with secret=0 didn't work: %v (x) %v == %v != %v", szero, dh1, ptmp, pzero)
 	}
@@ -393,12 +391,9 @@ func SuiteTest(t *testing.T, suite suite) {
 	// Try hashing something
 	h := suite.Hash()
 	l := h.Size()
-	//println("HashLen: ", l)
 
 	_, _ = h.Write([]byte("abc"))
 	hb := h.Sum(nil)
-	//println("Hash:")
-	//println(hex.Dump(hb))
 	if h.Size() != l || len(hb) != l {
 		t.Errorf("inconsistent hash output length: %v vs %v vs %v", l, h.Size(), len(hb))
 	}
@@ -406,9 +401,8 @@ func SuiteTest(t *testing.T, suite suite) {
 	// Generate some pseudorandom bits
 	x := suite.XOF(hb)
 	sb := make([]byte, 128)
-	x.Read(sb)
-	//fmt.Println("Stream:")
-	//fmt.Println(hex.Dump(sb))
+	_, err := x.Read(sb)
+	require.NoError(t, err)
 
 	// Test if it generates two fresh keys
 	p1 := key.NewKeyPair(suite)
