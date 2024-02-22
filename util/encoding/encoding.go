@@ -23,7 +23,7 @@ func ReadHexPoint(group kyber.Group, r io.Reader) (kyber.Point, error) {
 }
 
 // WriteHexPoint writes a point in hex representation to w.
-func WriteHexPoint(group kyber.Group, w io.Writer, point kyber.Point) error {
+func WriteHexPoint(w io.Writer, point kyber.Point) error {
 	buf, err := point.MarshalBinary()
 	if err != nil {
 		return err

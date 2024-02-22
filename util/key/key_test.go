@@ -21,7 +21,7 @@ func TestNewKeyPair(t *testing.T) {
 // A type to test interface Generator by intentionally creating a fixed private key.
 type fixedPrivSuiteEd25519 edwards25519.SuiteEd25519
 
-func (s *fixedPrivSuiteEd25519) NewKey(stream cipher.Stream) kyber.Scalar {
+func (s *fixedPrivSuiteEd25519) NewKey(_ cipher.Stream) kyber.Scalar {
 	return s.Scalar().SetInt64(33)
 }
 
