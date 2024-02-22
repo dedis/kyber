@@ -21,8 +21,8 @@ func ErrFatal(err error) {
 func TestPubHexStream(t *testing.T) {
 	b := &bytes.Buffer{}
 	p := s.Point().Pick(s.RandomStream())
-	ErrFatal(WriteHexPoint(s, b, p))
-	ErrFatal(WriteHexPoint(s, b, p))
+	ErrFatal(WriteHexPoint(b, p))
+	ErrFatal(WriteHexPoint(b, p))
 	p2, err := ReadHexPoint(s, b)
 	ErrFatal(err)
 	require.Equal(t, p.String(), p2.String())
