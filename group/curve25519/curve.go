@@ -101,10 +101,10 @@ func (c *curve) init(self kyber.Group, p *Param, fullGroup bool,
 	// Note that we do NOT initialize c.order with Init(),
 	// as that would normalize to the modulus, resulting in zero.
 	// Just to be sure it's never used, we leave c.order.M set to nil.
-	// We want it to be in a ModInt so we can pass it to P.Mul(),
+	// We want it to be in a ModInt, so we can pass it to P.Mul(),
 	// but the scalar's modulus isn't needed for point multiplication.
 	if fullGroup {
-		// Scalar modulus is prime-order times the ccofactor
+		// Scalar modulus is prime-order times the cofactor
 		c.order.V.SetInt64(int64(p.R)).Mul(&c.order.V, &p.Q)
 	} else {
 		c.order.V.Set(&p.Q) // Prime-order subgroup
@@ -146,8 +146,7 @@ func (c *curve) init(self kyber.Group, p *Param, fullGroup bool,
 				break // got one
 			}
 		}
-		//println("BX: "+x.V.String())
-		//println("BY: "+y.V.String())
+
 		bx, by = &x.V, &y.V
 	}
 	base.initXY(bx, by, self)
@@ -278,11 +277,8 @@ func (c *curve) validPoint(p point) bool {
 	// Check in-subgroup by multiplying by subgroup order
 	Q := c.self.Point()
 	Q.Mul(&c.order, p)
-	if !Q.Equal(c.null) {
-		return false
-	}
 
-	return true
+	return Q.Equal(c.null)
 }
 
 // Return number of bytes that can be embedded into points on this curve.

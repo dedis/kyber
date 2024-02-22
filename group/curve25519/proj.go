@@ -128,6 +128,8 @@ func (p *projPoint) Data() ([]byte, error) {
 //
 //	http://eprint.iacr.org/2008/013.pdf
 //	https://hyperelliptic.org/EFD/g1p/auto-twisted-projective.html
+//
+//nolint:dupl //Doesn't make sense to extract part of Add(), Sub()
 func (p *projPoint) Add(cp1, cp2 kyber.Point) kyber.Point {
 	P1 := cp1.(*projPoint)
 	P2 := cp2.(*projPoint)
@@ -155,6 +157,8 @@ func (p *projPoint) Add(cp1, cp2 kyber.Point) kyber.Point {
 }
 
 // Subtract points so that their scalars subtract homomorphically
+//
+//nolint:dupl //Doesn't make sense to extract part of Add(), Sub(), double()
 func (p *projPoint) Sub(cp1, cp2 kyber.Point) kyber.Point {
 	P1 := cp1.(*projPoint)
 	P2 := cp2.(*projPoint)
@@ -183,8 +187,8 @@ func (p *projPoint) Sub(cp1, cp2 kyber.Point) kyber.Point {
 
 // Find the negative of point A.
 // For Edwards curves, the negative of (x,y) is (-x,y).
-func (p *projPoint) Neg(CA kyber.Point) kyber.Point {
-	A := CA.(*projPoint)
+func (p *projPoint) Neg(ca kyber.Point) kyber.Point {
+	A := ca.(*projPoint)
 	p.c = A.c
 	p.X.Neg(&A.X)
 	p.Y.Set(&A.Y)

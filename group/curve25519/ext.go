@@ -119,14 +119,6 @@ func (p *extPoint) normalize() {
 	p.T.Mul(&p.X, &p.Y)
 }
 
-// Check the validity of the T coordinate
-func (p *extPoint) checkT() {
-	var t1, t2 mod.Int
-	if !t1.Mul(&p.X, &p.Y).Equal(t2.Mul(&p.Z, &p.T)) {
-		panic("oops")
-	}
-}
-
 func (p *extPoint) Embed(data []byte, rand cipher.Stream) kyber.Point {
 	p.c.embed(p, data, rand)
 	return p
@@ -144,6 +136,8 @@ func (p *extPoint) Data() ([]byte, error) {
 }
 
 // Add two points using optimized extended coordinate addition formulas.
+//
+//nolint:dupl //Doesn't make sense to extract part of Add(), Sub(), double()
 func (p *extPoint) Add(cp1, cp2 kyber.Point) kyber.Point {
 	p1 := cp1.(*extPoint)
 	p2 := cp2.(*extPoint)
@@ -168,6 +162,8 @@ func (p *extPoint) Add(cp1, cp2 kyber.Point) kyber.Point {
 }
 
 // Subtract points.
+//
+//nolint:dupl //Doesn't make sense to extract part of Add(), Sub(), double()
 func (p *extPoint) Sub(cp1, cp2 kyber.Point) kyber.Point {
 	p1 := cp1.(*extPoint)
 	p2 := cp2.(*extPoint)
