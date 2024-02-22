@@ -14,8 +14,6 @@ import (
 	"go.dedis.ch/kyber/v4/util/random"
 )
 
-var one = big.NewInt(1)
-var two = big.NewInt(2)
 var marshalScalarID = [8]byte{'m', 'o', 'd', '.', 'i', 'n', 't', ' '}
 
 // Int is a generic implementation of finite field arithmetic
@@ -48,8 +46,8 @@ func NewInt(v *big.Int, m *big.Int) *Int {
 }
 
 // NewInt64 creates a new Int with a given int64 value and big.Int modulus.
-func NewInt64(v int64, M *big.Int) *Int {
-	return new(Int).Init64(v, M)
+func NewInt64(v int64, m *big.Int) *Int {
+	return new(Int).Init64(v, m)
 }
 
 // NewIntBytes creates a new Int with a given slice of bytes and a big.Int
@@ -66,10 +64,10 @@ func NewIntString(n, d string, base int, m *big.Int) *Int {
 
 // Init a Int with a given big.Int value and modulus pointer.
 // Note that the value is copied; the modulus is not.
-func (i *Int) Init(V *big.Int, m *big.Int) *Int {
+func (i *Int) Init(v *big.Int, m *big.Int) *Int {
 	i.M = m
 	i.BO = kyber.BigEndian
-	i.V.Set(V).Mod(&i.V, m)
+	i.V.Set(v).Mod(&i.V, m)
 	return i
 }
 
@@ -143,7 +141,7 @@ func (i *Int) Nonzero() bool {
 // Since this method copies the modulus as well,
 // it may be used as an alternative to Init().
 func (i *Int) Set(a kyber.Scalar) kyber.Scalar {
-	ai := a.(*Int)
+	ai := a.(*Int) //nolint:errcheck // V4 may bring better error handling
 	i.V.Set(&ai.V)
 	i.M = ai.M
 	return i
@@ -196,8 +194,8 @@ func (i *Int) Uint64() uint64 {
 
 // Add sets the target to a + b mod M, where M is a's modulus..
 func (i *Int) Add(a, b kyber.Scalar) kyber.Scalar {
-	ai := a.(*Int)
-	bi := b.(*Int)
+	ai := a.(*Int) //nolint:errcheck // V4 may bring better error handling
+	bi := b.(*Int) //nolint:errcheck // V4 may bring better error handling
 	i.M = ai.M
 	i.V.Add(&ai.V, &bi.V).Mod(&i.V, i.M)
 	return i
@@ -206,8 +204,8 @@ func (i *Int) Add(a, b kyber.Scalar) kyber.Scalar {
 // Sub sets the target to a - b mod M.
 // Target receives a's modulus.
 func (i *Int) Sub(a, b kyber.Scalar) kyber.Scalar {
-	ai := a.(*Int)
-	bi := b.(*Int)
+	ai := a.(*Int) //nolint:errcheck // V4 may bring better error handling
+	bi := b.(*Int) //nolint:errcheck // V4 may bring better error handling
 	i.M = ai.M
 	i.V.Sub(&ai.V, &bi.V).Mod(&i.V, i.M)
 	return i
@@ -215,7 +213,7 @@ func (i *Int) Sub(a, b kyber.Scalar) kyber.Scalar {
 
 // Neg sets the target to -a mod M.
 func (i *Int) Neg(a kyber.Scalar) kyber.Scalar {
-	ai := a.(*Int)
+	ai := a.(*Int) //nolint:errcheck // V4 may bring better error handling
 	i.M = ai.M
 	if ai.V.Sign() > 0 {
 		i.V.Sub(i.M, &ai.V)
@@ -228,8 +226,8 @@ func (i *Int) Neg(a kyber.Scalar) kyber.Scalar {
 // Mul sets the target to a * b mod M.
 // Target receives a's modulus.
 func (i *Int) Mul(a, b kyber.Scalar) kyber.Scalar {
-	ai := a.(*Int)
-	bi := b.(*Int)
+	ai := a.(*Int) //nolint:errcheck // V4 may bring better error handling
+	bi := b.(*Int) //nolint:errcheck // V4 may bring better error handling
 	i.M = ai.M
 	i.V.Mul(&ai.V, &bi.V).Mod(&i.V, i.M)
 	return i
@@ -237,8 +235,8 @@ func (i *Int) Mul(a, b kyber.Scalar) kyber.Scalar {
 
 // Div sets the target to a * b^-1 mod M, where b^-1 is the modular inverse of b.
 func (i *Int) Div(a, b kyber.Scalar) kyber.Scalar {
-	ai := a.(*Int)
-	bi := b.(*Int)
+	ai := a.(*Int) //nolint:errcheck // V4 may bring better error handling
+	bi := b.(*Int) //nolint:errcheck // V4 may bring better error handling
 	var t big.Int
 	i.M = ai.M
 	i.V.Mul(&ai.V, t.ModInverse(&bi.V, i.M))
@@ -248,7 +246,7 @@ func (i *Int) Div(a, b kyber.Scalar) kyber.Scalar {
 
 // Inv sets the target to the modular inverse of a with respect to modulus M.
 func (i *Int) Inv(a kyber.Scalar) kyber.Scalar {
-	ai := a.(*Int)
+	ai := a.(*Int) //nolint:errcheck // V4 may bring better error handling
 	i.M = ai.M
 	i.V.ModInverse(&a.(*Int).V, i.M)
 	return i
@@ -257,7 +255,7 @@ func (i *Int) Inv(a kyber.Scalar) kyber.Scalar {
 // Exp sets the target to a^e mod M,
 // where e is an arbitrary big.Int exponent (not necessarily 0 <= e < M).
 func (i *Int) Exp(a kyber.Scalar, e *big.Int) kyber.Scalar {
-	ai := a.(*Int)
+	ai := a.(*Int) //nolint:errcheck // V4 may bring better error handling
 	i.M = ai.M
 	// to protect against golang/go#22830
 	var tmp big.Int
@@ -269,7 +267,7 @@ func (i *Int) Exp(a kyber.Scalar, e *big.Int) kyber.Scalar {
 // Jacobi computes the Jacobi symbol of (a/M), which indicates whether a is
 // zero (0), a positive square in M (1), or a non-square in M (-1).
 func (i *Int) Jacobi(as kyber.Scalar) kyber.Scalar {
-	ai := as.(*Int)
+	ai := as.(*Int) //nolint:errcheck // V4 may bring better error handling
 	i.M = ai.M
 	i.V.SetInt64(int64(big.Jacobi(&ai.V, i.M)))
 	return i
@@ -279,7 +277,7 @@ func (i *Int) Jacobi(as kyber.Scalar) kyber.Scalar {
 // Assumes the modulus M is an odd prime.
 // Returns true on success, false if input a is not a square.
 func (i *Int) Sqrt(as kyber.Scalar) bool {
-	ai := as.(*Int)
+	ai := as.(*Int) //nolint:errcheck // V4 may bring better error handling
 	out := i.V.ModSqrt(&ai.V, ai.M)
 	i.M = ai.M
 	return out != nil
