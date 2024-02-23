@@ -128,7 +128,6 @@ func (c *curve) init(self kyber.Group, p *Param, fullGroup bool,
 	if by.Sign() == 0 {
 		// No standard base point was defined, so pick one.
 		// Find the lowest-numbered y-coordinate that works.
-		//println("Picking base point:")
 		var x, y mod.Int
 		for y.Init64(2, &c.P); ; y.Add(&y, &c.one) {
 			if !c.solveForX(&x, &y) {
@@ -208,7 +207,6 @@ func (c *curve) encodePoint(x, y *mod.Int) []byte {
 func (c *curve) decodePoint(bb []byte, x, y *mod.Int) error {
 
 	// Convert from little-endian
-	//fmt.Printf("decoding:\n%s\n", hex.Dump(bb))
 	b := make([]byte, len(bb))
 	reverse(b, bb)
 
@@ -379,12 +377,11 @@ func (c *curve) data(x, y *mod.Int) ([]byte, error) {
 // reverse copies src into dst in byte-reversed order and returns dst,
 // such that src[0] goes into dst[len-1] and vice versa.
 // dst and src may be the same slice but otherwise must not overlap.
-func reverse(dst, src []byte) []byte {
+func reverse(dst, src []byte) {
 	l := len(dst)
 	for i, j := 0, l-1; i < (l+1)/2; {
 		dst[i], dst[j] = src[j], src[i]
 		i++
 		j--
 	}
-	return dst
 }
