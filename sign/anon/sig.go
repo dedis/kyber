@@ -31,12 +31,12 @@ func signH1pre(suite Suite, linkScope []byte, linkTag kyber.Point,
 	return H1pre
 }
 
-func signH1(suite Suite, H1pre kyber.XOF, PG, PH kyber.Point) kyber.Scalar {
-	H1 := H1pre.Clone()
-	PGb, _ := PG.MarshalBinary()
+func signH1(suite Suite, h1pre kyber.XOF, pg, ph kyber.Point) kyber.Scalar {
+	H1 := h1pre.Clone()
+	PGb, _ := pg.MarshalBinary()
 	_, _ = H1.Write(PGb)
-	if PH != nil {
-		PHb, _ := PH.MarshalBinary()
+	if ph != nil {
+		PHb, _ := ph.MarshalBinary()
 		_, _ = H1.Write(PHb)
 	}
 	return suite.Scalar().Pick(H1)
@@ -163,8 +163,6 @@ func Sign(suite Suite, message []byte,
 			PH.Add(PH.Mul(s[i], linkBase), P.Mul(c[i], linkTag))
 		}
 		c[(i+1)%n] = signH1(suite, H1pre, PG, PH)
-		//fmt.Printf("s%d %s\n",i,s[i].String())
-		//fmt.Printf("c%d %s\n",(i+1)%n,c[(i+1)%n].String())
 	}
 	s[pi] = suite.Scalar()
 	s[pi].Mul(privateKey, c[pi]).Sub(u, s[pi]) // s_pi = u - x_pi c_pi
