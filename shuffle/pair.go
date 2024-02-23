@@ -68,6 +68,8 @@ type ega5 struct {
 }
 
 // P and V, step 5: simple k-shuffle proof
+//
+//nolint:unused // may be useful later
 type ega6 struct {
 	SimpleShuffle
 }
@@ -124,7 +126,7 @@ func (ps *PairShuffle) Init(grp kyber.Group, k int) *PairShuffle {
 // Prove returns an error if the shuffle is not correct.
 func (ps *PairShuffle) Prove(
 	pi []int, g, h kyber.Point, beta []kyber.Scalar,
-	X, Y []kyber.Point, rand cipher.Stream,
+	x, y []kyber.Point, rand cipher.Stream,
 	ctx proof.ProverContext) error {
 
 	grp := ps.grp
@@ -148,7 +150,10 @@ func (ps *PairShuffle) Prove(
 	w := make([]kyber.Scalar, k)
 	a := make([]kyber.Scalar, k)
 	var tau0, nu, gamma kyber.Scalar
-	ctx.PriRand(u, w, a, &tau0, &nu, &gamma)
+	err := ctx.PriRand(u, w, a, &tau0, &nu, &gamma)
+	if err != nil {
+		return err
+	}
 
 	// compute public commits
 	p1.Gamma = grp.Point().Mul(gamma, g)
@@ -164,8 +169,8 @@ func (ps *PairShuffle) Prove(
 		p1.U[i] = grp.Point().Mul(u[i], g)
 		p1.W[i] = grp.Point().Mul(z.Mul(gamma, w[i]), g)
 		wbetasum.Add(wbetasum, wbeta.Mul(w[i], beta[pi[i]]))
-		p1.Lambda1.Add(p1.Lambda1, XY.Mul(wu.Sub(w[piinv[i]], u[i]), X[i]))
-		p1.Lambda2.Add(p1.Lambda2, XY.Mul(wu.Sub(w[piinv[i]], u[i]), Y[i]))
+		p1.Lambda1.Add(p1.Lambda1, XY.Mul(wu.Sub(w[piinv[i]], u[i]), x[i]))
+		p1.Lambda2.Add(p1.Lambda2, XY.Mul(wu.Sub(w[piinv[i]], u[i]), y[i]))
 	}
 	p1.Lambda1.Add(p1.Lambda1, XY.Mul(wbetasum, g))
 	p1.Lambda2.Add(p1.Lambda2, XY.Mul(wbetasum, h))
@@ -230,13 +235,13 @@ func (ps *PairShuffle) Prove(
 
 // Verify ElGamal Pair Shuffle proofs.
 func (ps *PairShuffle) Verify(
-	g, h kyber.Point, X, Y, Xbar, Ybar []kyber.Point,
+	g, h kyber.Point, x, y, xBar, yBar []kyber.Point,
 	ctx proof.VerifierContext) error {
 
 	// Validate all vector lengths
 	grp := ps.grp
 	k := ps.k
-	if len(X) != k || len(Y) != k || len(Xbar) != k || len(Ybar) != k {
+	if len(x) != k || len(y) != k || len(xBar) != k || len(yBar) != k {
 		panic("mismatched vector lengths")
 	}
 
@@ -286,10 +291,10 @@ func (ps *PairShuffle) Verify(
 	P := grp.Point() // scratch
 	Q := grp.Point() // scratch
 	for i := 0; i < k; i++ {
-		Phi1 = Phi1.Add(Phi1, P.Mul(p5.Zsigma[i], Xbar[i])) // (31)
-		Phi1 = Phi1.Sub(Phi1, P.Mul(v2.Zrho[i], X[i]))
-		Phi2 = Phi2.Add(Phi2, P.Mul(p5.Zsigma[i], Ybar[i])) // (32)
-		Phi2 = Phi2.Sub(Phi2, P.Mul(v2.Zrho[i], Y[i]))
+		Phi1 = Phi1.Add(Phi1, P.Mul(p5.Zsigma[i], xBar[i])) // (31)
+		Phi1 = Phi1.Sub(Phi1, P.Mul(v2.Zrho[i], x[i]))
+		Phi2 = Phi2.Add(Phi2, P.Mul(p5.Zsigma[i], yBar[i])) // (32)
+		Phi2 = Phi2.Sub(Phi2, P.Mul(v2.Zrho[i], y[i]))
 		//		println("i",i)
 		if !P.Mul(p5.Zsigma[i], p1.Gamma).Equal( // (33)
 			Q.Add(p1.W[i], p3.D[i])) {
@@ -313,12 +318,12 @@ func (ps *PairShuffle) Verify(
 // producing a correctness proof in the process.
 // Returns (Xbar,Ybar), the shuffled and randomized pairs.
 // If g or h is nil, the standard base point is used.
-func Shuffle(group kyber.Group, g, h kyber.Point, X, Y []kyber.Point,
-	rand cipher.Stream) (XX, YY []kyber.Point, P proof.Prover) {
+func Shuffle(group kyber.Group, g, h kyber.Point, x, y []kyber.Point,
+	rand cipher.Stream) (xx, yy []kyber.Point, p proof.Prover) {
 
-	k := len(X)
-	if k != len(Y) {
-		panic("X,Y vectors have inconsistent length")
+	k := len(x)
+	if k != len(y) {
+		panic("x,y vectors have inconsistent length")
 	}
 
 	ps := PairShuffle{}
@@ -332,9 +337,7 @@ func Shuffle(group kyber.Group, g, h kyber.Point, X, Y []kyber.Point,
 	for i := k - 1; i > 0; i-- { // Shuffle by random swaps
 		j := int(randUint64(rand) % uint64(i+1))
 		if j != i {
-			t := pi[j]
-			pi[j] = pi[i]
-			pi[i] = t
+			pi[j], pi[i] = pi[i], pi[j]
 		}
 	}
 
@@ -349,13 +352,13 @@ func Shuffle(group kyber.Group, g, h kyber.Point, X, Y []kyber.Point,
 	Ybar := make([]kyber.Point, k)
 	for i := 0; i < k; i++ {
 		Xbar[i] = ps.grp.Point().Mul(beta[pi[i]], g)
-		Xbar[i].Add(Xbar[i], X[pi[i]])
+		Xbar[i].Add(Xbar[i], x[pi[i]])
 		Ybar[i] = ps.grp.Point().Mul(beta[pi[i]], h)
-		Ybar[i].Add(Ybar[i], Y[pi[i]])
+		Ybar[i].Add(Ybar[i], y[pi[i]])
 	}
 
 	prover := func(ctx proof.ProverContext) error {
-		return ps.Prove(pi, g, h, beta, X, Y, rand, ctx)
+		return ps.Prove(pi, g, h, beta, x, y, rand, ctx)
 	}
 	return Xbar, Ybar, prover
 }
@@ -367,13 +370,11 @@ func randUint64(rand cipher.Stream) uint64 {
 }
 
 // Verifier produces a Sigma-protocol verifier to check the correctness of a shuffle.
-func Verifier(group kyber.Group, g, h kyber.Point,
-	X, Y, Xbar, Ybar []kyber.Point) proof.Verifier {
-
+func Verifier(group kyber.Group, g, h kyber.Point, x, y, xBar, yBar []kyber.Point) proof.Verifier {
 	ps := PairShuffle{}
-	ps.Init(group, len(X))
+	ps.Init(group, len(x))
 	verifier := func(ctx proof.VerifierContext) error {
-		return ps.Verify(g, h, X, Y, Xbar, Ybar, ctx)
+		return ps.Verify(g, h, x, y, xBar, yBar, ctx)
 	}
 	return verifier
 }
