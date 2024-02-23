@@ -11,9 +11,6 @@ import (
 func header(suite Suite, _ kyber.Point, x kyber.Scalar,
 	xb1, xb2 []byte, anonymitySet Set) []byte {
 
-	//fmt.Printf("xb1 %s\nxb %s\n",
-	//		hex.EncodeToString(xb1),hex.EncodeToString(xb2))
-
 	// Encrypt the master scalar key with each public key in the set
 	S := suite.Point()
 	hdr := xb1
@@ -44,7 +41,13 @@ func encryptKey(suite Suite, anonymitySet Set) (k, c []byte) {
 
 // Decrypt and verify a key encrypted via encryptKey.
 // On success, returns the key and the length of the decrypted header.
-func decryptKey(suite Suite, ciphertext []byte, anonymitySet Set, mine int, privateKey kyber.Scalar) ([]byte, int, error) {
+func decryptKey(
+	suite Suite,
+	ciphertext []byte,
+	anonymitySet Set,
+	mine int,
+	privateKey kyber.Scalar,
+) ([]byte, int, error) {
 	// Decode the (supposed) ephemeral public key from the front
 	X := suite.Point()
 	var Xb []byte
@@ -118,7 +121,7 @@ const macSize = 16
 // If the provided set contains only one public key,
 // this reduces to conventional single-receiver public-key encryption.
 func Encrypt(suite Suite, message []byte,
-	anonymitySet Set) []byte {
+	anonymitySet Set) ([]byte, error) {
 
 	xb, hdr := encryptKey(suite, anonymitySet)
 	xof := suite.XOF(xb)
@@ -136,9 +139,12 @@ func Encrypt(suite Suite, message []byte,
 
 	xof.XORKeyStream(ctx, message)
 	xof = suite.XOF(ctx)
-	xof.Read(mac)
+	_, err := xof.Read(mac)
+	if err != nil {
+		return nil, err
+	}
 
-	return ciphertext
+	return ciphertext, nil
 }
 
 // Decrypt a message encrypted for a particular anonymity set.
