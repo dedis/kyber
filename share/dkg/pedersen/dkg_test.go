@@ -2,7 +2,6 @@ package dkg
 
 import (
 	"crypto/rand"
-	"fmt"
 	mathRand "math/rand"
 	"strings"
 	"testing"
@@ -39,7 +38,7 @@ func generate(n, t int) (partPubs []kyber.Point, partSec []kyber.Scalar, dkgs []
 		}
 		dkgs[i] = dkg
 	}
-	return
+	return partPubs, partSec, dkgs
 }
 
 func TestDKGNewDistKeyGenerator(t *testing.T) {
@@ -161,8 +160,6 @@ func TestDKGProcessResponse(t *testing.T) {
 	require.NotNil(t, resp)
 	require.Equal(t, vss.StatusComplaint, resp.Response.Status)
 	deal.SecShare.V = goodSecret
-	dd, _ = dkg.Deals()
-	encD = dd[idxRec]
 
 	// no verifier tied to Response
 	v, ok := dkg.verifiers[0]
@@ -345,7 +342,7 @@ func TestDKGResharingThreshold(t *testing.T) {
 				}
 				j, err := dkg.ProcessResponse(resp)
 				if err != nil {
-					fmt.Printf("old dkg at (oidx %d, nidx %d) has received response from idx %d for dealer idx %d\n", dkg.oidx, dkg.nidx, resp.Response.Index, resp.Index)
+					t.Logf("old dkg at (oidx %d, nidx %d) has received response from idx %d for dealer idx %d\n", dkg.oidx, dkg.nidx, resp.Response.Index, resp.Index)
 				}
 				require.Nil(t, err)
 				require.Nil(t, j)
@@ -843,7 +840,7 @@ func TestDKGResharingNewNodesThreshold(t *testing.T) {
 				}
 				j, err := dkg.ProcessResponse(resp)
 				if err != nil {
-					fmt.Printf("old dkg at (oidx %d, nidx %d) has received response from idx %d for dealer idx %d\n", dkg.oidx, dkg.nidx, resp.Response.Index, resp.Index)
+					t.Logf("old dkg at (oidx %d, nidx %d) has received response from idx %d for dealer idx %d\n", dkg.oidx, dkg.nidx, resp.Response.Index, resp.Index)
 				}
 				require.Nil(t, err)
 				require.Nil(t, j)
@@ -856,7 +853,7 @@ func TestDKGResharingNewNodesThreshold(t *testing.T) {
 				}
 				j, err := dkg.ProcessResponse(resp)
 				if err != nil {
-					fmt.Printf("new dkg at nidx %d has received response from idx %d for deal %d\n", dkg.nidx, resp.Response.Index, resp.Index)
+					t.Logf("new dkg at nidx %d has received response from idx %d for deal %d\n", dkg.nidx, resp.Response.Index, resp.Index)
 				}
 				require.Nil(t, err)
 				require.Nil(t, j)
@@ -1241,7 +1238,7 @@ func TestDKGResharingPartialNewNodes(t *testing.T) {
 				}
 				j, err := dkg.ProcessResponse(resp)
 				if err != nil {
-					fmt.Printf("old dkg at (oidx %d, nidx %d) has received response from idx %d for dealer idx %d\n", dkg.oidx, dkg.nidx, resp.Response.Index, resp.Index)
+					t.Logf("old dkg at (oidx %d, nidx %d) has received response from idx %d for dealer idx %d\n", dkg.oidx, dkg.nidx, resp.Response.Index, resp.Index)
 				}
 				require.Nil(t, err)
 				require.Nil(t, j)

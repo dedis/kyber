@@ -863,7 +863,3 @@ func findPub(list []kyber.Point, toFind kyber.Point) (int, bool) {
 	}
 	return 0, false
 }
-
-func checksDealCertified(_ uint32, v *vss.Verifier) bool {
-	return v.DealCertified()
-}
