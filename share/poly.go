@@ -22,8 +22,8 @@ import (
 )
 
 // Some error definitions
-var errorGroups = errors.New("non-matching groups")
-var errorCoeffs = errors.New("different number of coefficients")
+var errGroups = errors.New("non-matching groups")
+var errCoeffs = errors.New("different number of coefficients")
 
 // PriShare represents a private share.
 type PriShare struct {
@@ -35,6 +35,7 @@ type PriShare struct {
 func (p *PriShare) Hash(s kyber.HashFactory) []byte {
 	h := s.Hash()
 	_, _ = p.V.MarshalTo(h)
+	//nolint:staticcheck // TODO: SA1003 fixed with https://github.com/dedis/kyber/issues/492
 	_ = binary.Write(h, binary.LittleEndian, p.I)
 	return h.Sum(nil)
 }
@@ -104,10 +105,10 @@ func (p *PriPoly) Shares(n int) []*PriShare {
 // as a new polynomial.
 func (p *PriPoly) Add(q *PriPoly) (*PriPoly, error) {
 	if p.g.String() != q.g.String() {
-		return nil, errorGroups
+		return nil, errGroups
 	}
 	if p.Threshold() != q.Threshold() {
-		return nil, errorCoeffs
+		return nil, errCoeffs
 	}
 	coeffs := make([]kyber.Scalar, p.Threshold())
 	for i := range coeffs {
@@ -263,7 +264,6 @@ func RecoverPriPoly(g kyber.Group, shares []*PriShare, t, n int) (*PriPoly, erro
 
 	var accPoly *PriPoly
 	var err error
-	//den := g.Scalar()
 	// Notations follow the Wikipedia article on Lagrange interpolation
 	// https://en.wikipedia.org/wiki/Lagrange_polynomial
 	for j := range x {
@@ -304,6 +304,7 @@ type PubShare struct {
 func (p *PubShare) Hash(s kyber.HashFactory) []byte {
 	h := s.Hash()
 	_, _ = p.V.MarshalTo(h)
+	//nolint:staticcheck // TODO: SA1003 fixed with https://github.com/dedis/kyber/issues/492
 	_ = binary.Write(h, binary.LittleEndian, p.I)
 	return h.Sum(nil)
 }
@@ -363,11 +364,11 @@ func (p *PubPoly) Shares(n int) []*PubShare {
 // base point and thus should not be used in further computations.
 func (p *PubPoly) Add(q *PubPoly) (*PubPoly, error) {
 	if p.g.String() != q.g.String() {
-		return nil, errorGroups
+		return nil, errGroups
 	}
 
 	if p.Threshold() != q.Threshold() {
-		return nil, errorCoeffs
+		return nil, errCoeffs
 	}
 
 	commits := make([]kyber.Point, p.Threshold())
