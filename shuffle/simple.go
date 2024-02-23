@@ -87,7 +87,7 @@ func (ss *SimpleShuffle) Init(grp kyber.Group, k int) *SimpleShuffle {
 // The Scalar vector y must be a permutation of Scalar vector x
 // but with all elements multiplied by common Scalar gamma.
 func (ss *SimpleShuffle) Prove(g kyber.Point, gamma kyber.Scalar,
-	x, y []kyber.Scalar, rand cipher.Stream,
+	x, y []kyber.Scalar, _ cipher.Stream,
 	ctx proof.ProverContext) error {
 
 	grp := ss.grp
@@ -133,7 +133,11 @@ func (ss *SimpleShuffle) Prove(g kyber.Point, gamma kyber.Scalar,
 	}
 	thlen := 2*k - 1 // (7) theta and Theta vectors
 	theta := make([]kyber.Scalar, thlen)
-	ctx.PriRand(theta)
+	err := ctx.PriRand(theta)
+	if err != nil {
+		return err
+	}
+
 	Theta := make([]kyber.Point, thlen+1)
 	Theta[0] = thenc(grp, g, nil, nil, theta[0], yhat[0])
 	for i := 1; i < k; i++ {
