@@ -21,8 +21,8 @@ type Suite interface {
 	kyber.Random
 }
 
-var errorDifferentLengths = errors.New("inputs of different lengths")
-var errorInvalidProof = errors.New("invalid proof")
+var errDifferentLengths = errors.New("inputs of different lengths")
+var errInvalidProof = errors.New("invalid proof")
 
 // Proof represents a NIZK dlog-equality proof.
 type Proof struct {
@@ -37,7 +37,12 @@ type Proof struct {
 // and then computes the challenge c = H(xG,xH,vG,vH) and response r = v - cx.
 // Besides the proof, this function also returns the encrypted base points xG
 // and xH.
-func NewDLEQProof(suite Suite, g kyber.Point, h kyber.Point, x kyber.Scalar) (proof *Proof, xG kyber.Point, xH kyber.Point, err error) {
+func NewDLEQProof(
+	suite Suite,
+	g kyber.Point,
+	h kyber.Point,
+	x kyber.Scalar,
+) (proof *Proof, xG kyber.Point, xH kyber.Point, err error) {
 	// Encrypt base points with secret
 	xG = suite.Point().Mul(x, g)
 	xH = suite.Point().Mul(x, h)
@@ -82,9 +87,14 @@ func NewDLEQProof(suite Suite, g kyber.Point, h kyber.Point, x kyber.Scalar) (pr
 // NewDLEQProofBatch computes lists of NIZK dlog-equality proofs and of
 // encrypted base points xG and xH. Note that the challenge is computed over all
 // input values.
-func NewDLEQProofBatch(suite Suite, g []kyber.Point, h []kyber.Point, secrets []kyber.Scalar) (proof []*Proof, xG []kyber.Point, xH []kyber.Point, err error) {
+func NewDLEQProofBatch(
+	suite Suite,
+	g []kyber.Point,
+	h []kyber.Point,
+	secrets []kyber.Scalar,
+) (proof []*Proof, xG []kyber.Point, xH []kyber.Point, err error) {
 	if len(g) != len(h) || len(h) != len(secrets) {
-		return nil, nil, nil, errorDifferentLengths
+		return nil, nil, nil, errDifferentLengths
 	}
 
 	n := len(secrets)
@@ -109,16 +119,28 @@ func NewDLEQProofBatch(suite Suite, g []kyber.Point, h []kyber.Point, secrets []
 	// Collective challenge
 	hSuite := suite.Hash()
 	for _, x := range xG {
-		x.MarshalTo(hSuite)
+		_, err := x.MarshalTo(hSuite)
+		if err != nil {
+			return nil, nil, nil, err
+		}
 	}
 	for _, x := range xH {
-		x.MarshalTo(hSuite)
+		_, err := x.MarshalTo(hSuite)
+		if err != nil {
+			return nil, nil, nil, err
+		}
 	}
 	for _, x := range vG {
-		x.MarshalTo(hSuite)
+		_, err := x.MarshalTo(hSuite)
+		if err != nil {
+			return nil, nil, nil, err
+		}
 	}
 	for _, x := range vH {
-		x.MarshalTo(hSuite)
+		_, err := x.MarshalTo(hSuite)
+		if err != nil {
+			return nil, nil, nil, err
+		}
 	}
 	cb := hSuite.Sum(nil)
 
@@ -147,7 +169,7 @@ func (p *Proof) Verify(suite Suite, g kyber.Point, h kyber.Point, xG kyber.Point
 	a := suite.Point().Add(rG, cxG)
 	b := suite.Point().Add(rH, cxH)
 	if !(p.VG.Equal(a) && p.VH.Equal(b)) {
-		return errorInvalidProof
+		return errInvalidProof
 	}
 	return nil
 }
