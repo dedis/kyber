@@ -10,29 +10,29 @@
 //
 // The protocol works as follow:
 //
-//   1. Each participant instantiates a DistKeyShare (DKS) struct.
-//   2. Then each participant runs an instance of the VSS protocol:
+//  1. Each participant instantiates a DistKeyShare (DKS) struct.
+//  2. Then each participant runs an instance of the VSS protocol:
 //     - each participant generates their deals with the method `Deals()` and then
-//      sends them to the right recipient.
+//     sends them to the right recipient.
 //     - each participant processes the received deal with `ProcessDeal()` and
-//      broadcasts the resulting response.
+//     broadcasts the resulting response.
 //     - each participant processes the response with `ProcessResponse()`. If a
-//      justification is returned, it must be broadcasted.
-//   3. Each participant can check if step 2. is done by calling
-//   `Certified()`.Those participants where Certified() returned true, belong to
-//   the set of "qualified" participants who will generate the distributed
-//   secret. To get the list of qualified participants, use QUAL().
-//   4. Each QUAL participant generates their secret commitments calling
-//    `SecretCommits()` and broadcasts them to the QUAL set.
-//   5. Each QUAL participant processes the received secret commitments using
-//    `SecretCommits()`. If there is an error, it can return a commitment complaint
-//    (ComplaintCommits) that must be broadcasted to the QUAL set.
-//   6. Each QUAL participant receiving a complaint can process it with
-//    `ProcessComplaintCommits()` which returns the secret share
-//    (ReconstructCommits) given from the malicious participant. This structure
-//    must be broadcasted to all the QUAL participant.
-//   7. At this point, every QUAL participant can issue the distributed key by
-//    calling `DistKeyShare()`.
+//     justification is returned, it must be broadcasted.
+//  3. Each participant can check if step 2. is done by calling
+//     `Certified()`.Those participants where Certified() returned true, belong to
+//     the set of "qualified" participants who will generate the distributed
+//     secret. To get the list of qualified participants, use QUAL().
+//  4. Each QUAL participant generates their secret commitments calling
+//     `SecretCommits()` and broadcasts them to the QUAL set.
+//  5. Each QUAL participant processes the received secret commitments using
+//     `SecretCommits()`. If there is an error, it can return a commitment complaint
+//     (ComplaintCommits) that must be broadcasted to the QUAL set.
+//  6. Each QUAL participant receiving a complaint can process it with
+//     `ProcessComplaintCommits()` which returns the secret share
+//     (ReconstructCommits) given from the malicious participant. This structure
+//     must be broadcasted to all the QUAL participant.
+//  7. At this point, every QUAL participant can issue the distributed key by
+//     calling `DistKeyShare()`.
 package dkg
 
 import (
@@ -79,8 +79,9 @@ func (d *DistKeyShare) Commitments() []kyber.Point {
 
 // Deal holds the Deal for one participant as well as the index of the issuing
 // Dealer.
-//  NOTE: Doing that in vss.go would be possible but then the Dealer is always
-//  assumed to be a member of the participants. It's only the case here.
+//
+//	NOTE: Doing that in vss.go would be possible but then the Dealer is always
+//	assumed to be a member of the participants. It's only the case here.
 type Deal struct {
 	// Index of the Dealer in the list of participants
 	Index uint32
@@ -178,7 +179,12 @@ type DistKeyGenerator struct {
 // the longterm secret key, the list of participants, and the
 // threshold t parameter. It returns an error if the secret key's
 // commitment can't be found in the list of participants.
-func NewDistKeyGenerator(suite Suite, longterm kyber.Scalar, participants []kyber.Point, t int) (*DistKeyGenerator, error) {
+func NewDistKeyGenerator(
+	suite Suite,
+	longterm kyber.Scalar,
+	participants []kyber.Point,
+	t int,
+) (*DistKeyGenerator, error) {
 	pub := suite.Point().Mul(longterm, nil)
 	// find our index
 	var found bool
@@ -222,9 +228,9 @@ func NewDistKeyGenerator(suite Suite, longterm kyber.Scalar, participants []kybe
 // to which participant a deal belongs to, loop over the keys as indices in
 // the list of participants:
 //
-//   for i,dd := range distDeals {
-//      sendTo(participants[i],dd)
-//   }
+//	for i,dd := range distDeals {
+//	   sendTo(participants[i],dd)
+//	}
 //
 // This method panics if it can't process its own deal.
 func (d *DistKeyGenerator) Deals() (map[int]*Deal, error) {
@@ -314,6 +320,7 @@ func (d *DistKeyGenerator) ProcessResponse(resp *Response) (*Justification, erro
 	}
 
 	if resp.Index != uint32(d.index) {
+		//nolint:nilnil // Expected behavior
 		return nil, nil
 	}
 
@@ -322,6 +329,7 @@ func (d *DistKeyGenerator) ProcessResponse(resp *Response) (*Justification, erro
 		return nil, err
 	}
 	if j == nil {
+		//nolint:nilnil // Expected behavior
 		return nil, nil
 	}
 	// a justification for our own deal, are we cheating !?
@@ -466,6 +474,8 @@ func (d *DistKeyGenerator) ProcessSecretCommits(sc *SecretCommits) (*ComplaintCo
 	}
 	// commitments are fine
 	d.commitments[sc.Index] = poly
+
+	//nolint:nilnil // Expected behavior
 	return nil, nil
 }
 
@@ -495,7 +505,7 @@ func (d *DistKeyGenerator) ProcessComplaintCommits(cc *ComplaintCommits) (*Recon
 	// the verification should pass for the deal, and not with the secret
 	// commits. Verification 4) in DKG Rabin's paper.
 	if err := v.VerifyDeal(cc.Deal, false); err != nil {
-		return nil, fmt.Errorf("dkg: verifying deal: %s", err)
+		return nil, fmt.Errorf("dkg: verifying deal: %w", err)
 	}
 
 	secretCommits, ok := d.commitments[cc.DealerIndex]
