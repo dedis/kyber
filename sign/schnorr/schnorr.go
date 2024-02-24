@@ -96,23 +96,23 @@ func VerifyWithChecks(g kyber.Group, pub, msg, sig []byte) error {
 		IsCanonical(b []byte) bool
 	}
 
-	R := g.Point()
+	r := g.Point()
 	s := g.Scalar()
-	pointSize := R.MarshalSize()
+	pointSize := r.MarshalSize()
 	scalarSize := s.MarshalSize()
 	sigSize := scalarSize + pointSize
 	if len(sig) != sigSize {
 		return fmt.Errorf("schnorr: signature of invalid length %d instead of %d", len(sig), sigSize)
 	}
-	if err := R.UnmarshalBinary(sig[:pointSize]); err != nil {
+	if err := r.UnmarshalBinary(sig[:pointSize]); err != nil {
 		return err
 	}
-	if p, ok := R.(pointCanCheckCanonicalAndSmallOrder); ok {
+	if p, ok := r.(pointCanCheckCanonicalAndSmallOrder); ok {
 		if !p.IsCanonical(sig[:pointSize]) {
-			return fmt.Errorf("R is not canonical")
+			return fmt.Errorf("r is not canonical")
 		}
 		if p.HasSmallOrder() {
-			return fmt.Errorf("R has small order")
+			return fmt.Errorf("r has small order")
 		}
 	}
 	if s, ok := g.Scalar().(scalarCanCheckCanonical); ok && !s.IsCanonical(sig[pointSize:]) {
@@ -138,17 +138,17 @@ func VerifyWithChecks(g kyber.Group, pub, msg, sig []byte) error {
 			return fmt.Errorf("public key has small order")
 		}
 	}
-	// recompute hash(public || R || msg)
-	h, err := hash(g, public, R, msg)
+	// recompute hash(public || r || msg)
+	h, err := hash(g, public, r, msg)
 	if err != nil {
 		return err
 	}
 
 	// compute S = g^s
 	S := g.Point().Mul(s, nil)
-	// compute RAh = R + A^h
+	// compute RAh = r + A^h
 	Ah := g.Point().Mul(h, public)
-	RAs := g.Point().Add(R, Ah)
+	RAs := g.Point().Add(r, Ah)
 
 	if !S.Equal(RAs) {
 		return errors.New("schnorr: invalid signature")
@@ -163,7 +163,7 @@ func VerifyWithChecks(g kyber.Group, pub, msg, sig []byte) error {
 func Verify(g kyber.Group, public kyber.Point, msg, sig []byte) error {
 	PBuf, err := public.MarshalBinary()
 	if err != nil {
-		return fmt.Errorf("error unmarshalling public key: %s", err)
+		return fmt.Errorf("error unmarshalling public key: %w", err)
 	}
 	return VerifyWithChecks(g, PBuf, msg, sig)
 }

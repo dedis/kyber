@@ -30,7 +30,7 @@ func TestBDN_HashPointToR_BN256(t *testing.T) {
 	require.Equal(t, "933f6013eb3f654f9489d6d45ad04eaf", coefs[2].String())
 	require.Equal(t, 16, coefs[0].MarshalSize())
 
-	mask, _ := sign.NewMask(suite, []kyber.Point{p1, p2, p3}, nil)
+	mask, _ := sign.NewMask([]kyber.Point{p1, p2, p3}, nil)
 	mask.SetBit(0, true)
 	mask.SetBit(1, true)
 	mask.SetBit(2, true)
@@ -54,7 +54,7 @@ func TestBDN_AggregateSignatures(t *testing.T) {
 	sig2, err := Sign(suite, private2, msg)
 	require.NoError(t, err)
 
-	mask, _ := sign.NewMask(suite, []kyber.Point{public1, public2}, nil)
+	mask, _ := sign.NewMask([]kyber.Point{public1, public2}, nil)
 	mask.SetBit(0, true)
 	mask.SetBit(1, true)
 
@@ -65,6 +65,7 @@ func TestBDN_AggregateSignatures(t *testing.T) {
 	require.NoError(t, err)
 
 	aggregatedKey, err := AggregatePublicKeys(suite, mask)
+	require.NoError(t, err)
 
 	sig, err := aggregatedSig.MarshalBinary()
 	require.NoError(t, err)
@@ -74,6 +75,7 @@ func TestBDN_AggregateSignatures(t *testing.T) {
 
 	mask.SetBit(1, false)
 	aggregatedKey, err = AggregatePublicKeys(suite, mask)
+	require.NoError(t, err)
 
 	err = Verify(suite, aggregatedKey, msg, sig)
 	require.Error(t, err)
@@ -90,7 +92,7 @@ func TestBDN_SubsetSignature(t *testing.T) {
 	sig2, err := Sign(suite, private2, msg)
 	require.NoError(t, err)
 
-	mask, _ := sign.NewMask(suite, []kyber.Point{public1, public3, public2}, nil)
+	mask, _ := sign.NewMask([]kyber.Point{public1, public3, public2}, nil)
 	mask.SetBit(0, true)
 	mask.SetBit(2, true)
 
@@ -98,6 +100,7 @@ func TestBDN_SubsetSignature(t *testing.T) {
 	require.NoError(t, err)
 
 	aggregatedKey, err := AggregatePublicKeys(suite, mask)
+	require.NoError(t, err)
 
 	sig, err := aggregatedSig.MarshalBinary()
 	require.NoError(t, err)
@@ -128,7 +131,7 @@ func TestBDN_RogueAttack(t *testing.T) {
 	require.NoError(t, scheme.Verify(agg, msg, sig))
 
 	// New scheme that should detect
-	mask, _ := sign.NewMask(suite, pubs, nil)
+	mask, _ := sign.NewMask(pubs, nil)
 	mask.SetBit(0, true)
 	mask.SetBit(1, true)
 	agg, err = AggregatePublicKeys(suite, mask)
@@ -146,7 +149,7 @@ func Benchmark_BDN_AggregateSigs(b *testing.B) {
 	sig2, err := Sign(suite, private2, msg)
 	require.Nil(b, err)
 
-	mask, _ := sign.NewMask(suite, []kyber.Point{public1, public2}, nil)
+	mask, _ := sign.NewMask([]kyber.Point{public1, public2}, nil)
 	mask.SetBit(0, true)
 	mask.SetBit(1, false)
 
