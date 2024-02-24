@@ -192,7 +192,7 @@ func VerifyWithChecks(pub, msg, sig []byte) error {
 func Verify(public kyber.Point, msg, sig []byte) error {
 	PBuf, err := public.MarshalBinary()
 	if err != nil {
-		return fmt.Errorf("error unmarshalling public key: %s", err)
+		return fmt.Errorf("error unmarshalling public key: %w", err)
 	}
 	return VerifyWithChecks(PBuf, msg, sig)
 }

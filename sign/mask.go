@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/kyber/v3/pairing"
 )
 
 // Mask is a bitmask of the participation to a collective signature.
@@ -17,7 +16,7 @@ type Mask struct {
 
 // NewMask creates a new mask from a list of public keys. If a key is provided, it
 // will set the bit of the key to 1 or return an error if it is not found.
-func NewMask(suite pairing.Suite, publics []kyber.Point, myKey kyber.Point) (*Mask, error) {
+func NewMask(publics []kyber.Point, myKey kyber.Point) (*Mask, error) {
 	m := &Mask{
 		publics: publics,
 	}
@@ -26,8 +25,8 @@ func NewMask(suite pairing.Suite, publics []kyber.Point, myKey kyber.Point) (*Ma
 	if myKey != nil {
 		for i, key := range publics {
 			if key.Equal(myKey) {
-				m.SetBit(i, true)
-				return m, nil
+				err := m.SetBit(i, true)
+				return m, err
 			}
 		}
 
@@ -40,7 +39,7 @@ func NewMask(suite pairing.Suite, publics []kyber.Point, myKey kyber.Point) (*Ma
 // Mask returns the bitmask as a byte array.
 func (m *Mask) Mask() []byte {
 	clone := make([]byte, len(m.mask))
-	copy(clone[:], m.mask)
+	copy(clone, m.mask)
 	return clone
 }
 

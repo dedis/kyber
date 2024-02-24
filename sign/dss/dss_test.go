@@ -24,8 +24,6 @@ var partSec []kyber.Scalar
 var longterms []*dkg.DistKeyShare
 var randoms []*dkg.DistKeyShare
 
-var dss []*DSS
-
 func init() {
 	partPubs = make([]kyber.Point, nbParticipants)
 	partSec = make([]kyber.Scalar, nbParticipants)
@@ -220,6 +218,6 @@ func genPair() (kyber.Scalar, kyber.Point) {
 
 func randomBytes(n int) []byte {
 	var buff = make([]byte, n)
-	_, _ = rand.Read(buff[:])
+	_, _ = rand.Read(buff)
 	return buff
 }
