@@ -108,7 +108,7 @@ func TestDKGProcessDeal(t *testing.T) {
 	// good deal
 	resp, err = rec.ProcessDeal(deal)
 	require.NotNil(t, resp)
-	require.Equal(t, vss.StatusApproval, resp.Response.Status)
+	require.Equal(t, vss.StatusApproval, resp.Response.StatusApproved)
 	require.Nil(t, err)
 	_, ok := rec.verifiers[deal.Index]
 	require.True(t, ok)
@@ -158,7 +158,7 @@ func TestDKGProcessResponse(t *testing.T) {
 	resp, err := rec.ProcessDeal(encD)
 	require.Nil(t, err)
 	require.NotNil(t, resp)
-	require.Equal(t, vss.StatusComplaint, resp.Response.Status)
+	require.Equal(t, vss.StatusComplaint, resp.Response.StatusApproved)
 	deal.SecShare.V = goodSecret
 
 	// no verifier tied to Response
@@ -201,10 +201,10 @@ func TestDKGProcessResponse(t *testing.T) {
 	resp12, err := rec.ProcessDeal(deals2[idxRec])
 	require.NoError(t, err)
 	require.NotNil(t, resp)
-	require.Equal(t, vss.StatusComplaint, resp12.Response.Status)
+	require.Equal(t, vss.StatusComplaint, resp12.Response.StatusApproved)
 	require.Equal(t, deals2[idxRec].Index, uint32(dkg2.nidx))
 	require.Equal(t, resp12.Index, uint32(dkg2.nidx))
-	require.Equal(t, vss.StatusComplaint, rec.verifiers[uint32(dkg2.oidx)].Responses()[uint32(rec.nidx)].Status)
+	require.Equal(t, vss.StatusComplaint, rec.verifiers[uint32(dkg2.oidx)].Responses()[uint32(rec.nidx)].StatusApproved)
 
 	deal21.SecShare.V = goodRnd21
 	deals2, err = dkg2.Deals()
@@ -229,7 +229,7 @@ func TestDKGProcessResponse(t *testing.T) {
 
 	// hack because all is local, and resp has been modified locally by dkg2's
 	// dealer, the status has became "justified"
-	resp12.Response.Status = vss.StatusComplaint
+	resp12.Response.StatusApproved = vss.StatusComplaint
 	err = dkg.ProcessJustification(j)
 	require.Nil(t, err)
 
@@ -326,7 +326,7 @@ func TestDKGResharingThreshold(t *testing.T) {
 				if dkg.newPresent && dkg.nidx == j {
 					resp, err := dkg.ProcessDeal(d)
 					require.Nil(t, err)
-					require.Equal(t, vss.StatusApproval, resp.Response.Status)
+					require.Equal(t, vss.StatusApproval, resp.Response.StatusApproved)
 					resps[i] = append(resps[i], resp)
 				}
 			}
@@ -447,7 +447,7 @@ func TestDKGThreshold(t *testing.T) {
 			}
 			resp, err := recipient.ProcessDeal(d)
 			require.Nil(t, err)
-			require.Equal(t, vss.StatusApproval, resp.Response.Status)
+			require.Equal(t, vss.StatusApproval, resp.Response.StatusApproved)
 			resps = append(resps, resp)
 		}
 	}
@@ -478,7 +478,7 @@ func TestDKGThreshold(t *testing.T) {
 		for i, v := range dkg.verifiers {
 			var app int
 			for _, r := range v.Responses() {
-				if r.Status == vss.StatusApproval {
+				if r.StatusApproved == vss.StatusApproval {
 					app++
 				}
 			}
@@ -585,7 +585,7 @@ func fullExchange(t *testing.T, dkgs []*DistKeyGenerator, checkQUAL bool) {
 		for i, d := range deals {
 			resp, err := dkgs[i].ProcessDeal(d)
 			require.Nil(t, err)
-			require.Equal(t, vss.StatusApproval, resp.Response.Status)
+			require.Equal(t, vss.StatusApproval, resp.Response.StatusApproved)
 			resps = append(resps, resp)
 		}
 	}
@@ -824,7 +824,7 @@ func TestDKGResharingNewNodesThreshold(t *testing.T) {
 			dkg := newDkgs[j]
 			resp, err := dkg.ProcessDeal(d)
 			require.Nil(t, err)
-			require.Equal(t, vss.StatusApproval, resp.Response.Status)
+			require.Equal(t, vss.StatusApproval, resp.Response.StatusApproved)
 			resps[i] = append(resps[i], resp)
 		}
 	}
@@ -1030,7 +1030,7 @@ func TestDKGResharingNewNodes(t *testing.T) {
 			dkg := newDkgs[dest]
 			resp, err := dkg.ProcessDeal(d)
 			require.NoError(t, err)
-			require.Equal(t, vss.StatusApproval, resp.Response.Status)
+			require.Equal(t, vss.StatusApproval, resp.Response.StatusApproved)
 			resps[i] = append(resps[i], resp)
 		}
 	}
@@ -1217,7 +1217,7 @@ func TestDKGResharingPartialNewNodes(t *testing.T) {
 			dkg := newDkgs[j]
 			resp, err := dkg.ProcessDeal(d)
 			require.Nil(t, err)
-			require.Equal(t, vss.StatusApproval, resp.Response.Status)
+			require.Equal(t, vss.StatusApproval, resp.Response.StatusApproved)
 			resps[i] = append(resps[i], resp)
 		}
 	}

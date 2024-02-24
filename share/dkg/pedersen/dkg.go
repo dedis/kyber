@@ -139,10 +139,7 @@ func NewDistKeyHandler(c *Config) (*DistKeyGenerator, error) {
 		return nil, errors.New("dkg: can't run with empty node list")
 	}
 
-	var isResharing bool
-	if c.Share != nil || c.PublicCoeffs != nil {
-		isResharing = true
-	}
+	isResharing := c.Share != nil || c.PublicCoeffs != nil
 	if isResharing {
 		if len(c.OldNodes) == 0 {
 			return nil, errors.New("dkg: resharing config needs old nodes list")
@@ -153,7 +150,7 @@ func NewDistKeyHandler(c *Config) (*DistKeyGenerator, error) {
 	}
 	// canReceive is true by default since in the default DKG mode everyone
 	// participates
-	var canReceive = true
+	var canReceive, canIssue = true, false
 	pub := c.Suite.Point().Mul(c.Longterm, nil)
 	oidx, oldPresent := findPub(c.OldNodes, pub)
 	nidx, newPresent := findPub(c.NewNodes, pub)
@@ -170,7 +167,6 @@ func NewDistKeyHandler(c *Config) (*DistKeyGenerator, error) {
 
 	var dealer *vss.Dealer
 	var err error
-	var canIssue bool
 	if c.Share != nil {
 		// resharing case
 		secretCoeff := c.Share.Share.V
@@ -306,7 +302,7 @@ func (d *DistKeyGenerator) Deals() (map[int]*Deal, error) {
 			d.processed = true
 			if resp, err := d.ProcessDeal(distd); err != nil {
 				panic("dkg: cannot process own deal: " + err.Error())
-			} else if resp.Response.Status != vss.StatusApproval {
+			} else if resp.Response.StatusApproved != vss.StatusApproval {
 				panic("dkg: own deal gave a complaint")
 			}
 			continue
@@ -365,7 +361,7 @@ func (d *DistKeyGenerator) ProcessDeal(dd *Deal) (*Response, error) {
 		// indicate to VSS that this dkg's new status is complaint for this
 		// deal
 		d.verifiers[uint32(dd.Index)].UnsafeSetResponseDKG(uint32(d.nidx), vss.StatusComplaint)
-		resp.Status = vss.StatusComplaint
+		resp.StatusApproved = vss.StatusComplaint
 		s, err := schnorr.Sign(d.suite, d.long, resp.Hash(d.suite))
 		if err != nil {
 			return nil, err
@@ -463,7 +459,7 @@ func (d *DistKeyGenerator) processResharingResponse(resp *Response) (*Justificat
 		return nil, err
 	}
 
-	if resp.Response.Status == vss.StatusApproval {
+	if resp.Response.StatusApproved == vss.StatusApproval {
 		//nolint:nilnil // status approved, no justification needed
 		return nil, nil
 	}
@@ -575,7 +571,7 @@ func (d *DistKeyGenerator) QualifiedShares() []int {
 		}
 		for holderIndex := range d.c.NewNodes {
 			resp, ok := responses[uint32(holderIndex)]
-			if ok && resp.Status == vss.StatusComplaint {
+			if ok && resp.StatusApproved == vss.StatusComplaint {
 				// 1. rule
 				invalidDeals[int(dealerIndex)] = true
 				break
