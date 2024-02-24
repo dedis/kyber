@@ -105,7 +105,7 @@ func TestDeniable(t *testing.T) {
 			msgs[i] = <-n.outbox
 
 			if n.done {
-				t.Log(string(n.log.Bytes()))
+				t.Log(n.log.Bytes())
 				nodes[i] = nil
 			}
 		}

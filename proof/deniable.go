@@ -76,7 +76,12 @@ func (dp *deniableProver) run(suite Suite, self int, prv Prover,
 	}
 
 	// Run the prover, which will also drive the verifiers.
-	dp.initStep()
+	err := dp.initStep()
+	if err != nil {
+		dp.err[self] = err
+		return dp.err
+	}
+
 	if err := (func(ProverContext) error)(prv)(dp); err != nil {
 		dp.err[self] = err
 	}
@@ -105,17 +110,24 @@ func (dp *deniableProver) run(suite Suite, self int, prv Prover,
 const keySize = 128
 
 // Start the message buffer off in each step with a randomness commitment
-func (dp *deniableProver) initStep() {
+func (dp *deniableProver) initStep() error {
 	key := make([]byte, keySize) // secret random key
-	_, _ = dp.prirand.Read(key)
+	_, err := dp.prirand.Read(key)
+	if err != nil {
+		return err
+	}
 	dp.key = key
 
 	msg := make([]byte, keySize) // send commitment to it
 	xof := dp.suite.XOF(key)
-	xof.Read(msg)
+	_, err = xof.Read(msg)
+	if err != nil {
+		return err
+	}
 	dp.msg = bytes.NewBuffer(msg)
 
 	// The Sigma-Prover will now append its proof content to dp.msg...
+	return nil
 }
 
 func (dp *deniableProver) proofStep() (bool, error) {
@@ -179,7 +191,11 @@ func (dp *deniableProver) challengeStep() error {
 			continue // ignore participants who dropped out
 		}
 		chk := make([]byte, keySize)
-		dp.suite.XOF(key).Read(chk)
+		_, err := dp.suite.XOF(key).Read(chk)
+		if err != nil {
+			return err
+		}
+
 		if !bytes.Equal(com, chk) {
 			return errors.New("wrong key for commit")
 		}
@@ -203,8 +219,8 @@ func (dp *deniableProver) challengeStep() error {
 	}
 
 	// Setup for the next proof step
-	dp.initStep()
-	return nil
+	err = dp.initStep()
+	return err
 }
 
 func (dp *deniableProver) Put(message interface{}) error {
