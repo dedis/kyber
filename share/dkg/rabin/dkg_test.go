@@ -144,8 +144,6 @@ func TestDKGProcessResponse(t *testing.T) {
 	require.NotNil(t, resp)
 	assert.Equal(t, false, resp.Response.Approved)
 	deal.RndShare.V = goodSecret
-	dd, _ = dkg.Deals()
-	encD = dd[idxRec]
 
 	// no verifier tied to Response
 	v, ok := dkg.verifiers[0]
@@ -174,9 +172,8 @@ func TestDKGProcessResponse(t *testing.T) {
 	// valid complaint from another deal from another peer
 	dkg2 := dkgs[2]
 	require.Nil(t, err)
+
 	// fake a wrong deal
-	//deal20, err := dkg2.dealer.PlaintextDeal(0)
-	//require.Nil(t, err)
 	deal21, err := dkg2.dealer.PlaintextDeal(1)
 	require.Nil(t, err)
 	goodRnd21 := deal21.RndShare.V
@@ -185,7 +182,8 @@ func TestDKGProcessResponse(t *testing.T) {
 	require.Nil(t, err)
 
 	resp12, err := rec.ProcessDeal(deals2[idxRec])
-	assert.NotNil(t, resp)
+	assert.NotNil(t, resp12)
+	assert.Nil(t, err)
 	assert.Equal(t, false, resp12.Response.Approved)
 
 	deal21.RndShare.V = goodRnd21
@@ -210,7 +208,7 @@ func TestDKGProcessResponse(t *testing.T) {
 	assert.NotNil(t, j)
 
 	// hack because all is local, and resp has been modified locally by dkg2's
-	// dealer, the status has became "justified"
+	// dealer, the status has become "justified"
 	resp12.Response.Approved = false
 	err = dkg.ProcessJustification(j)
 	assert.Nil(t, err)
@@ -310,7 +308,6 @@ func TestDKGComplaintCommits(t *testing.T) {
 	wrongSc.SessionID = scs[0].SessionID
 	wrongSc.Commitments = make([]kyber.Point, len(scs[0].Commitments))
 	copy(wrongSc.Commitments, scs[0].Commitments)
-	//goodScCommit := scs[0].Commitments[0]
 	wrongSc.Commitments[0] = suite.Point().Null()
 	msg := wrongSc.Hash(suite)
 	wrongSc.Signature, _ = schnorr.Sign(suite, dkgs[0].long, msg)
