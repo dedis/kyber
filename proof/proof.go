@@ -157,16 +157,16 @@ type repPred struct {
 // A Rep statement of the form Rep(P,x1,B1,...,xn,Bn)
 // indicates that the prover knows secrets x1,...,xn
 // such that point P is the sum x1*B1+...+xn*Bn.
-func Rep(P string, SB ...string) Predicate {
-	if len(SB)&1 != 0 {
+func Rep(p string, sb ...string) Predicate {
+	if len(sb)&1 != 0 {
 		panic("mismatched Scalar")
 	}
-	t := make([]term, len(SB)/2)
+	t := make([]term, len(sb)/2)
 	for i := range t {
-		t[i].S = SB[i*2]
-		t[i].B = SB[i*2+1]
+		t[i].S = sb[i*2]
+		t[i].B = sb[i*2+1]
 	}
-	return &repPred{P, t}
+	return &repPred{p, t}
 }
 
 // Return a string representation of this proof-of-representation predicate,
@@ -175,7 +175,7 @@ func (rp *repPred) String() string {
 	return rp.precString(precNone)
 }
 
-func (rp *repPred) precString(prec int) string {
+func (rp *repPred) precString(_ int) string {
 	s := rp.P + "="
 	for i := range rp.T {
 		if i > 0 {
@@ -220,7 +220,10 @@ func (rp *repPred) commit(prf *proof, w kyber.Scalar, pv []kyber.Scalar) error {
 		// we encounter each variable
 		if v[s] == nil {
 			v[s] = prf.s.Scalar()
-			prf.pc.PriRand(v[s])
+			err := prf.pc.PriRand(v[s])
+			if err != nil {
+				return err
+			}
 		}
 		P.Mul(v[s], prf.pval[t.B])
 		V.Add(V, P)
@@ -366,8 +369,6 @@ func (ap *andPred) commit(prf *proof, w kyber.Scalar, pv []kyber.Scalar) error {
 
 	// Create per-predicate prover state
 	v := prf.makeScalars(pv)
-	//pp := proverPred{w,v,nil}
-	//prf.pp[ap] = pp
 
 	// Recursively generate commitments
 	for i := 0; i < len(sub); i++ {
@@ -381,7 +382,6 @@ func (ap *andPred) commit(prf *proof, w kyber.Scalar, pv []kyber.Scalar) error {
 
 func (ap *andPred) respond(prf *proof, c kyber.Scalar, pr []kyber.Scalar) error {
 	sub := []Predicate(*ap)
-	//pp := prf.pp[ap]
 
 	// Recursively compute responses in all sub-predicates
 	r := prf.makeScalars(pr)
@@ -495,7 +495,10 @@ func (op *orPred) commit(prf *proof, w kyber.Scalar, pv []kyber.Scalar) error {
 		for i := 0; i < len(sub); i++ {
 			if i != choice {
 				wi[i] = prf.s.Scalar()
-				prf.pc.PriRand(wi[i])
+				err := prf.pc.PriRand(wi[i])
+				if err != nil {
+					return err
+				}
 			} // else wi[i] == nil for proof-obligated sub
 		}
 	} else {
@@ -506,7 +509,10 @@ func (op *orPred) commit(prf *proof, w kyber.Scalar, pv []kyber.Scalar) error {
 		wl := prf.s.Scalar().Set(w)
 		for i := 0; i < last; i++ { // choose all but last
 			wi[i] = prf.s.Scalar()
-			prf.pc.PriRand(wi[i])
+			err := prf.pc.PriRand(wi[i])
+			if err != nil {
+				return err
+			}
 			wl.Sub(wl, wi[i])
 		}
 		wi[last] = wl
@@ -561,7 +567,7 @@ func (op *orPred) respond(prf *proof, c kyber.Scalar, pr []kyber.Scalar) error {
 }
 
 // Get from the verifier all the commitments needed for this predicate
-func (op *orPred) getCommits(prf *proof, pr []kyber.Scalar) error {
+func (op *orPred) getCommits(prf *proof, _ []kyber.Scalar) error {
 	sub := []Predicate(*op)
 	for i := range sub {
 		if e := sub[i].getCommits(prf, nil); e != nil {
