@@ -36,13 +36,13 @@ func Encrypt(group kyber.Group, public kyber.Point, message []byte, hash func() 
 	// ephemeral key for every ECIES encryption and thus have a fresh
 	// HKDF-derived key for AES-GCM, the nonce for AES-GCM can be an arbitrary
 	// (even static) value. We derive it here simply via HKDF as well.)
-	len := 32 + 12
-	buf, err := deriveKey(hash, dh, len)
+	l := 32 + 12
+	buf, err := deriveKey(hash, dh, l)
 	if err != nil {
 		return nil, err
 	}
 	key := buf[:32]
-	nonce := buf[32:len]
+	nonce := buf[32:l]
 
 	// Encrypt message using AES-GCM
 	aes, err := aes.NewCipher(key)
@@ -91,13 +91,13 @@ func Decrypt(group kyber.Group, private kyber.Scalar, ctx []byte, hash func() ha
 
 	// Compute shared DH key and derive the symmetric key and nonce via HKDF
 	dh := group.Point().Mul(private, R)
-	len := 32 + 12
-	buf, err := deriveKey(hash, dh, len)
+	length := 32 + 12
+	buf, err := deriveKey(hash, dh, length)
 	if err != nil {
 		return nil, err
 	}
 	key := buf[:32]
-	nonce := buf[32:len]
+	nonce := buf[32:length]
 
 	// Decrypt message using AES-GCM
 	aes, err := aes.NewCipher(key)
@@ -111,18 +111,18 @@ func Decrypt(group kyber.Group, private kyber.Scalar, ctx []byte, hash func() ha
 	return aesgcm.Open(nil, nonce, ctx[l:], nil)
 }
 
-func deriveKey(hash func() hash.Hash, dh kyber.Point, len int) ([]byte, error) {
+func deriveKey(hash func() hash.Hash, dh kyber.Point, l int) ([]byte, error) {
 	dhb, err := dh.MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
 	hkdf := hkdf.New(hash, dhb, nil, nil)
-	key := make([]byte, len, len)
+	key := make([]byte, l)
 	n, err := hkdf.Read(key)
 	if err != nil {
 		return nil, err
 	}
-	if n < len {
+	if n < l {
 		return nil, errors.New("ecies: hkdf-derived key too short")
 	}
 	return key, nil
