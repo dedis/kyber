@@ -23,7 +23,7 @@ func (p *curvePoint) String() string {
 }
 
 func (p *curvePoint) Equal(p2 kyber.Point) bool {
-	cp2 := p2.(*curvePoint)
+	cp2 := p2.(*curvePoint) //nolint:errcheck // curvePoint implements kyber.Point
 
 	// Make sure both coordinates are normalized.
 	// Apparently Go's elliptic curve code doesn't always ensure this.
@@ -58,7 +58,6 @@ func (p *curvePoint) Valid() bool {
 // Try to generate a point on this curve from a chosen x-coordinate,
 // with a random sign.
 func (p *curvePoint) genPoint(x *big.Int, rand cipher.Stream) bool {
-
 	// Compute the corresponding Y coordinate, if any
 	y2 := new(big.Int).Mul(x, x)
 	y2.Mul(y2, x)
@@ -99,10 +98,9 @@ func (p *curvePoint) Pick(rand cipher.Stream) kyber.Point {
 	return p.Embed(nil, rand)
 }
 
-// Pick a curve point containing a variable amount of embedded data.
+// Embed pick a curve point containing a variable amount of embedded data.
 // Remaining bits comprising the point are chosen randomly.
 func (p *curvePoint) Embed(data []byte, rand cipher.Stream) kyber.Point {
-
 	l := p.c.coordLen()
 	dl := p.EmbedLen()
 	if dl > len(data) {
@@ -121,7 +119,7 @@ func (p *curvePoint) Embed(data []byte, rand cipher.Stream) kyber.Point {
 	}
 }
 
-// Extract embedded data from a curve point
+// Data extract embedded data from a curve point
 func (p *curvePoint) Data() ([]byte, error) {
 	b := p.x.Bytes()
 	l := p.c.coordLen()
@@ -136,15 +134,15 @@ func (p *curvePoint) Data() ([]byte, error) {
 }
 
 func (p *curvePoint) Add(a, b kyber.Point) kyber.Point {
-	ca := a.(*curvePoint)
-	cb := b.(*curvePoint)
+	ca := a.(*curvePoint) //nolint:errcheck // curvePoint implements kyber.Point
+	cb := b.(*curvePoint) //nolint:errcheck // curvePoint implements kyber.Point
 	p.x, p.y = p.c.Add(ca.x, ca.y, cb.x, cb.y)
 	return p
 }
 
 func (p *curvePoint) Sub(a, b kyber.Point) kyber.Point {
-	ca := a.(*curvePoint)
-	cb := b.(*curvePoint)
+	ca := a.(*curvePoint) //nolint:errcheck // curvePoint implements kyber.Point
+	cb := b.(*curvePoint) //nolint:errcheck // curvePoint implements kyber.Point
 
 	cbn := p.c.Point().Neg(cb).(*curvePoint)
 	p.x, p.y = p.c.Add(ca.x, ca.y, cbn.x, cbn.y)
@@ -152,7 +150,6 @@ func (p *curvePoint) Sub(a, b kyber.Point) kyber.Point {
 }
 
 func (p *curvePoint) Neg(a kyber.Point) kyber.Point {
-
 	s := p.c.Scalar().One()
 	s.Neg(s)
 	return p.Mul(s, a).(*curvePoint)
