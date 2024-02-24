@@ -43,23 +43,31 @@ func (c *hashProver) Put(message interface{}) error {
 	return c.suite.Write(&c.msg, message)
 }
 
-func (c *hashProver) consumeMsg() {
+func (c *hashProver) consumeMsg() error {
 	if c.msg.Len() > 0 {
-
 		// Stir the message into the public randomness pool
 		buf := c.msg.Bytes()
 		c.pubrand.Reseed()
-		c.pubrand.Write(buf)
+		_, err := c.pubrand.Write(buf)
+		if err != nil {
+			return err
+		}
 
 		// Append the current message data to the proof
 		c.proof.Write(buf)
 		c.msg.Reset()
 	}
+
+	return nil
 }
 
 // Get public randomness that depends on every bit in the proof so far.
 func (c *hashProver) PubRand(data ...interface{}) error {
-	c.consumeMsg()
+	err := c.consumeMsg()
+	if err != nil {
+		return err
+	}
+
 	return c.suite.Read(c.pubrand, data...)
 }
 
@@ -72,9 +80,9 @@ func (c *hashProver) PriRand(data ...interface{}) error {
 }
 
 // Obtain the encoded proof once the Sigma protocol is complete.
-func (c *hashProver) Proof() []byte {
-	c.consumeMsg()
-	return c.proof.Bytes()
+func (c *hashProver) Proof() ([]byte, error) {
+	err := c.consumeMsg()
+	return c.proof.Bytes(), err
 }
 
 // Noninteractive Sigma-protocol verifier context
@@ -97,16 +105,21 @@ func newHashVerifier(suite Suite, protoName string,
 	return &c, nil
 }
 
-func (c *hashVerifier) consumeMsg() {
+func (c *hashVerifier) consumeMsg() error {
 	l := len(c.prbuf) - c.proof.Len() // How many bytes read?
 	if l > 0 {
 		// Stir consumed bytes into the public randomness pool
 		buf := c.prbuf[:l]
 		c.pubrand.Reseed()
-		c.pubrand.Write(buf)
+		_, err := c.pubrand.Write(buf)
+		if err != nil {
+			return err
+		}
 
 		c.prbuf = c.proof.Bytes() // Reset to remaining bytes
 	}
+
+	return nil
 }
 
 // Read structured data from the proof
@@ -116,7 +129,12 @@ func (c *hashVerifier) Get(message interface{}) error {
 
 // Get public randomness that depends on every bit in the proof so far.
 func (c *hashVerifier) PubRand(data ...interface{}) error {
-	c.consumeMsg() // Stir in newly-read data
+	// Stir in newly-read data
+	err := c.consumeMsg()
+	if err != nil {
+		return err
+	}
+
 	return c.suite.Read(c.pubrand, data...)
 }
 
@@ -138,7 +156,7 @@ func HashProve(suite Suite, protocolName string, prover Prover) ([]byte, error) 
 	if e := (func(ProverContext) error)(prover)(ctx); e != nil {
 		return nil, e
 	}
-	return ctx.Proof(), nil
+	return ctx.Proof()
 }
 
 // HashVerify computes a hash-based noninteractive proof generated with HashProve.
