@@ -273,7 +273,6 @@ func (g *ResidueGroup) QuadraticResidueGroup(bitlen uint, rand cipher.Stream) {
 	// pick primes p,q such that p = 2q+1
 	for i := 0; ; i++ {
 		if i > 1000 {
-			print(".")
 			i = 0
 		}
 
