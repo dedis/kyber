@@ -32,7 +32,6 @@ package vss
 
 import (
 	"bytes"
-	"crypto/cipher"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -55,8 +54,8 @@ type Suite interface {
 // Dealer encapsulates for creating and distributing the shares and for
 // replying to any Responses.
 type Dealer struct {
-	suite  Suite
-	reader cipher.Stream
+	suite Suite
+
 	// long is the longterm key of the Dealer
 	long          kyber.Scalar
 	pub           kyber.Point
@@ -181,8 +180,8 @@ func NewDealer(suite Suite, longterm, secret kyber.Scalar, verifiers []kyber.Poi
 			T:           uint32(d.t),
 		}
 	}
-	d.hkdfContext = context(suite, d.pub, verifiers)
-	return d, nil
+	d.hkdfContext, err = context(suite, d.pub, verifiers)
+	return d, err
 }
 
 // PlaintextDeal returns the plaintext version of the deal destined for peer i.
@@ -259,7 +258,7 @@ func (d *Dealer) ProcessResponse(r *Response) (*Justification, error) {
 		return nil, err
 	}
 	if r.Approved {
-		return nil, nil
+		return nil, nil //nolint:nilnil // Expected behavior
 	}
 
 	j := &Justification{
@@ -350,6 +349,10 @@ func NewVerifier(suite Suite, longterm kyber.Scalar, dealerKey kyber.Point,
 	if !ok {
 		return nil, errors.New("vss: public key not found in the list of verifiers")
 	}
+	hkdfContext, err := context(suite, dealerKey, verifiers)
+	if err != nil {
+		return nil, err
+	}
 	v := &Verifier{
 		suite:       suite,
 		longterm:    longterm,
@@ -357,8 +360,9 @@ func NewVerifier(suite Suite, longterm kyber.Scalar, dealerKey kyber.Point,
 		verifiers:   verifiers,
 		pub:         pub,
 		index:       index,
-		hkdfContext: context(suite, dealerKey, verifiers),
+		hkdfContext: hkdfContext,
 	}
+
 	return v, nil
 }
 
@@ -521,7 +525,14 @@ type aggregator struct {
 	badDealer bool
 }
 
-func newAggregator(suite Suite, dealer kyber.Point, verifiers, commitments []kyber.Point, t int, sid []byte) *aggregator {
+func newAggregator(
+	suite Suite,
+	dealer kyber.Point,
+	verifiers,
+	commitments []kyber.Point,
+	t int,
+	sid []byte,
+) *aggregator {
 	agg := &aggregator{
 		suite:     suite,
 		dealer:    dealer,
@@ -686,6 +697,7 @@ func (a *aggregator) UnsafeSetResponseDKG(idx uint32, approval bool) {
 		Approved:  approval,
 	}
 
+	//nolint:errcheck // Unsafe function
 	a.addResponse(r)
 }
 
@@ -721,18 +733,27 @@ func findPub(verifiers []kyber.Point, idx uint32) (kyber.Point, bool) {
 
 func sessionID(suite Suite, dealer kyber.Point, verifiers, commitments []kyber.Point, t int) ([]byte, error) {
 	h := suite.Hash()
-	_, _ = dealer.MarshalTo(h)
+	_, err := dealer.MarshalTo(h)
+	if err != nil {
+		return nil, err
+	}
 
 	for _, v := range verifiers {
-		_, _ = v.MarshalTo(h)
+		_, err = v.MarshalTo(h)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	for _, c := range commitments {
-		_, _ = c.MarshalTo(h)
+		_, err = c.MarshalTo(h)
+		if err != nil {
+			return nil, err
+		}
 	}
-	_ = binary.Write(h, binary.LittleEndian, uint32(t))
 
-	return h.Sum(nil), nil
+	err = binary.Write(h, binary.LittleEndian, uint32(t))
+	return h.Sum(nil), err
 }
 
 // Hash returns the Hash representation of the Response
