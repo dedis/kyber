@@ -17,11 +17,7 @@ type extPoint struct {
 }
 
 func (p *extPoint) initXY(x, y *big.Int, c kyber.Group) {
-	var ok bool
-	p.c, ok = c.(*ExtendedCurve)
-	if !ok {
-		panic("invalid casting to *ExtendedCurve")
-	}
+	p.c = c.(*ExtendedCurve) //nolint:errcheck // V4 may bring better error handling
 
 	p.X.Init(x, &p.c.P)
 	p.Y.Init(y, &p.c.P)
@@ -73,10 +69,7 @@ func (p *extPoint) UnmarshalFrom(r io.Reader) (int, error) {
 //		iff
 //	(X1*Z2,Y1*Z2) == (X2*Z1,Y2*Z1)
 func (p *extPoint) Equal(cp2 kyber.Point) bool {
-	p2, ok := cp2.(*extPoint)
-	if !ok {
-		panic("invalid casting to *extPoint")
-	}
+	p2 := cp2.(*extPoint) //nolint:errcheck // V4 may bring better error handling
 	var t1, t2 mod.Int
 	xeq := t1.Mul(&p.X, &p2.Z).Equal(t2.Mul(&p2.X, &p.Z))
 	yeq := t1.Mul(&p.Y, &p2.Z).Equal(t2.Mul(&p2.Y, &p.Z))
@@ -84,10 +77,7 @@ func (p *extPoint) Equal(cp2 kyber.Point) bool {
 }
 
 func (p *extPoint) Set(cp2 kyber.Point) kyber.Point {
-	p2, ok := cp2.(*extPoint)
-	if !ok {
-		panic("invalid casting to *extPoint")
-	}
+	p2 := cp2.(*extPoint) //nolint:errcheck // V4 may bring better error handling
 	p.c = p2.c
 	p.X.Set(&p2.X)
 	p.Y.Set(&p2.Y)
@@ -157,14 +147,8 @@ func (p *extPoint) Data() ([]byte, error) {
 //
 //nolint:dupl //Doesn't make sense to extract part of Add(), Sub(), double()
 func (p *extPoint) Add(cp1, cp2 kyber.Point) kyber.Point {
-	p1, ok := cp1.(*extPoint)
-	if !ok {
-		panic("invalid casting to *extPoint")
-	}
-	p2, ok := cp2.(*extPoint)
-	if !ok {
-		panic("invalid casting to *extPoint")
-	}
+	p1 := cp1.(*extPoint) //nolint:errcheck // V4 may bring better error handling
+	p2 := cp2.(*extPoint) //nolint:errcheck // V4 may bring better error handling
 	X1, Y1, Z1, T1 := &p1.X, &p1.Y, &p1.Z, &p1.T
 	X2, Y2, Z2, T2 := &p2.X, &p2.Y, &p2.Z, &p2.T
 	X3, Y3, Z3, T3 := &p.X, &p.Y, &p.Z, &p.T
@@ -189,14 +173,8 @@ func (p *extPoint) Add(cp1, cp2 kyber.Point) kyber.Point {
 //
 //nolint:dupl //Doesn't make sense to extract part of Add(), Sub(), double()
 func (p *extPoint) Sub(cp1, cp2 kyber.Point) kyber.Point {
-	p1, ok := cp1.(*extPoint)
-	if !ok {
-		panic("invalid casting to *extPoint")
-	}
-	p2, ok := cp2.(*extPoint)
-	if !ok {
-		panic("invalid casting to *extPoint")
-	}
+	p1 := cp1.(*extPoint) //nolint:errcheck // V4 may bring better error handling
+	p2 := cp2.(*extPoint) //nolint:errcheck // V4 may bring better error handling
 	X1, Y1, Z1, T1 := &p1.X, &p1.Y, &p1.Z, &p1.T
 	X2, Y2, Z2, T2 := &p2.X, &p2.Y, &p2.Z, &p2.T
 	X3, Y3, Z3, T3 := &p.X, &p.Y, &p.Z, &p.T
@@ -220,10 +198,7 @@ func (p *extPoint) Sub(cp1, cp2 kyber.Point) kyber.Point {
 // Find the negative of point A.
 // For Edwards curves, the negative of (x,y) is (-x,y).
 func (p *extPoint) Neg(ca kyber.Point) kyber.Point {
-	A, ok := ca.(*extPoint)
-	if !ok {
-		panic("invalid casting to *extPoint")
-	}
+	A := ca.(*extPoint) //nolint:errcheck // V4 may bring better error handling
 	p.c = A.c
 	p.X.Neg(&A.X)
 	p.Y.Set(&A.Y)
@@ -309,7 +284,7 @@ type ExtendedCurve struct {
 func (c *ExtendedCurve) Point() kyber.Point {
 	P := new(extPoint)
 	P.c = c
-	//P.Set(&c.null)
+
 	return P
 }
 

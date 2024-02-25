@@ -185,8 +185,8 @@ func (p *point) Data() ([]byte, error) {
 }
 
 func (p *point) Add(p1, p2 kyber.Point) kyber.Point {
-	E1 := p1.(*point)
-	E2 := p2.(*point)
+	E1 := p1.(*point) //nolint:errcheck // V4 may bring better error handling
+	E2 := p2.(*point) //nolint:errcheck // V4 may bring better error handling
 
 	var t2 cachedGroupElement
 	var r completedGroupElement
@@ -199,8 +199,8 @@ func (p *point) Add(p1, p2 kyber.Point) kyber.Point {
 }
 
 func (p *point) Sub(p1, p2 kyber.Point) kyber.Point {
-	E1 := p1.(*point)
-	E2 := p2.(*point)
+	E1 := p1.(*point) //nolint:errcheck // V4 may bring better error handling
+	E2 := p2.(*point) //nolint:errcheck // V4 may bring better error handling
 
 	var t2 cachedGroupElement
 	var r completedGroupElement

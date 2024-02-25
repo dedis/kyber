@@ -54,7 +54,7 @@ func (c *Curve) NewKeyAndSeedWithInput(buffer []byte) (kyber.Scalar, []byte, []b
 	digest[31] &= 0x7f
 	digest[31] |= 0x40
 
-	secret := c.Scalar().(*scalar)
+	secret := c.Scalar().(*scalar) //nolint:errcheck // V4 may bring better error handling
 	copy(secret.v[:], digest[:])
 	return secret, buffer, digest[32:]
 }
