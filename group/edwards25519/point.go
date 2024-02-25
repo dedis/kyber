@@ -238,6 +238,8 @@ func (p *point) Mul(s kyber.Scalar, b kyber.Point) kyber.Point {
 //
 // This is the same code as in
 // https://github.com/jedisct1/libsodium/blob/4744636721d2e420f8bbe2d563f31b1f5e682229/src/libsodium/crypto_core/ed25519/ref10/ed25519_ref10.c#L1170
+//
+//nolint:lll // Url above
 func (p *point) HasSmallOrder() bool {
 	s, err := p.MarshalBinary()
 	if err != nil {
@@ -274,6 +276,8 @@ func (p *point) HasSmallOrder() bool {
 //
 // The method accepts a buffer instead of calling `MarshalBinary` on the receiver
 // because that always returns a value modulo `prime`.
+//
+//nolint:lll // Url above
 func (p *point) IsCanonical(s []byte) bool {
 	if len(s) != 32 {
 		return false
