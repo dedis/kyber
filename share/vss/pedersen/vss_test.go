@@ -299,7 +299,6 @@ func TestVSSVerifierReceiveDeal(t *testing.T) {
 	// valid complaint
 	v.Aggregator.deal = nil
 	delete(v.Aggregator.responses, uint32(v.index))
-	//d.RndShare.V = suite.Scalar().SetBytes(randomBytes(32))
 	resp, err = v.ProcessEncryptedDeal(encD)
 	assert.NotNil(t, resp)
 	assert.Equal(t, StatusComplaint, resp.StatusApproved)
@@ -356,8 +355,6 @@ func TestVSSAggregatorVerifyResponseDuplicate(t *testing.T) {
 	dealer, verifiers := genAll()
 	v1 := verifiers[0]
 	v2 := verifiers[1]
-	//d1 := dealer.deals[0]
-	//d2 := dealer.deals[1]
 	encD1, _ := dealer.EncryptedDeal(0)
 	encD2, _ := dealer.EncryptedDeal(1)
 
@@ -390,7 +387,6 @@ func TestVSSAggregatorVerifyResponse(t *testing.T) {
 	dealer, verifiers := genAll()
 	v := verifiers[0]
 	deal := dealer.deals[0]
-	//goodSec := deal.SecShare.V
 	wrongSec, _ := genPair()
 	deal.SecShare.V = wrongSec
 	encD, _ := dealer.EncryptedDeal(0)
