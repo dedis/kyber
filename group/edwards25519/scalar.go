@@ -195,13 +195,15 @@ func newScalarInt(i *big.Int) *scalar {
 }
 
 // Input:
-//   a[0]+256*a[1]+...+256^31*a[31] = a
-//   b[0]+256*b[1]+...+256^31*b[31] = b
-//   c[0]+256*c[1]+...+256^31*c[31] = c
+//
+//	a[0]+256*a[1]+...+256^31*a[31] = a
+//	b[0]+256*b[1]+...+256^31*b[31] = b
+//	c[0]+256*c[1]+...+256^31*c[31] = c
 //
 // Output:
-//   s[0]+256*s[1]+...+256^31*s[31] = (ab+c) mod l
-//   where l = 2^252 + 27742317777372353535851937790883648493.
+//
+//	s[0]+256*s[1]+...+256^31*s[31] = (ab+c) mod l
+//	where l = 2^252 + 27742317777372353535851937790883648493.
 func scMulAdd(s, a, b, c *[32]byte) {
 	a0 := 2097151 & load3(a[:])
 	a1 := 2097151 & (load4(a[2:]) >> 5)
@@ -630,13 +632,14 @@ func scMulAdd(s, a, b, c *[32]byte) {
 // Hacky scAdd cobbled together rather sub-optimally from scMulAdd.
 //
 // Input:
-//   a[0]+256*a[1]+...+256^31*a[31] = a
-//   c[0]+256*c[1]+...+256^31*c[31] = c
+//
+//	a[0]+256*a[1]+...+256^31*a[31] = a
+//	c[0]+256*c[1]+...+256^31*c[31] = c
 //
 // Output:
-//   s[0]+256*s[1]+...+256^31*s[31] = (a+c) mod l
-//   where l = 2^252 + 27742317777372353535851937790883648493.
 //
+//	s[0]+256*s[1]+...+256^31*s[31] = (a+c) mod l
+//	where l = 2^252 + 27742317777372353535851937790883648493.
 func scAdd(s, a, c *[32]byte) {
 	a0 := 2097151 & load3(a[:])
 	a1 := 2097151 & (load4(a[2:]) >> 5)
@@ -1053,13 +1056,14 @@ func scAdd(s, a, c *[32]byte) {
 // Hacky scSub cobbled together rather sub-optimally from scMulAdd.
 //
 // Input:
-//   a[0]+256*a[1]+...+256^31*a[31] = a
-//   c[0]+256*c[1]+...+256^31*c[31] = c
+//
+//	a[0]+256*a[1]+...+256^31*a[31] = a
+//	c[0]+256*c[1]+...+256^31*c[31] = c
 //
 // Output:
-//   s[0]+256*s[1]+...+256^31*s[31] = (a-c) mod l
-//   where l = 2^252 + 27742317777372353535851937790883648493.
 //
+//	s[0]+256*s[1]+...+256^31*s[31] = (a-c) mod l
+//	where l = 2^252 + 27742317777372353535851937790883648493.
 func scSub(s, a, c *[32]byte) {
 	a0 := 2097151 & load3(a[:])
 	a1 := 2097151 & (load4(a[2:]) >> 5)
@@ -1476,12 +1480,14 @@ func scSub(s, a, c *[32]byte) {
 // Hacky scMul cobbled together rather sub-optimally from scMulAdd.
 //
 // Input:
-//   a[0]+256*a[1]+...+256^31*a[31] = a
-//   b[0]+256*b[1]+...+256^31*b[31] = b
+//
+//	a[0]+256*a[1]+...+256^31*a[31] = a
+//	b[0]+256*b[1]+...+256^31*b[31] = b
 //
 // Output:
-//   s[0]+256*s[1]+...+256^31*s[31] = (ab) mod l
-//   where l = 2^252 + 27742317777372353535851937790883648493.
+//
+//	s[0]+256*s[1]+...+256^31*s[31] = (ab) mod l
+//	where l = 2^252 + 27742317777372353535851937790883648493.
 func scMul(s, a, b *[32]byte) {
 	a0 := 2097151 & load3(a[:])
 	a1 := 2097151 & (load4(a[2:]) >> 5)
@@ -1908,11 +1914,15 @@ func scMul(s, a, b *[32]byte) {
 }
 
 // Input:
-//   s[0]+256*s[1]+...+256^63*s[63] = s
+//
+//	s[0]+256*s[1]+...+256^63*s[63] = s
 //
 // Output:
-//   s[0]+256*s[1]+...+256^31*s[31] = s mod l
-//   where l = 2^252 + 27742317777372353535851937790883648493.
+//
+//	s[0]+256*s[1]+...+256^31*s[31] = s mod l
+//	where l = 2^252 + 27742317777372353535851937790883648493.
+//
+//nolint:unused // May be used later
 func scReduce(out *[32]byte, s *[64]byte) {
 	s0 := 2097151 & load3(s[:])
 	s1 := 2097151 & (load4(s[2:]) >> 5)
@@ -2238,6 +2248,8 @@ func scReduce(out *[32]byte, s *[64]byte) {
 // for a reference.
 // The method accepts a buffer instead of calling `MarshalBinary` on the receiver since that
 // always returns values modulo `primeOrder`.
+//
+//nolint:lll // Url above
 func (s *scalar) IsCanonical(sb []byte) bool {
 	if len(sb) != 32 {
 		return false
