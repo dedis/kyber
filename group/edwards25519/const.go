@@ -44,6 +44,7 @@ var sqrtM1 = fieldElement{
 	-32595792, -7943725, 9377950, 3500415, 12389472, -272473, -25146209, -2005654, 326686, 11406482,
 }
 
+//nolint:unused // May be used later
 var paramA = fieldElement{
 	486662, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 }
@@ -55,6 +56,7 @@ var baseext = extendedGroupElement{
 	fieldElement{6966464, -2456167, 7033433, 6781840, 28785542, 12262365, -2659449, 13959020, -21013759, -5262166},
 }
 
+//nolint:unused // May be used later
 var bi = [8]preComputedGroupElement{
 	{
 		fieldElement{25967493, -14356035, 29566456, 3660896, -12694345, 4014787, 27544626, -11754271, -6079156, 2047605},
