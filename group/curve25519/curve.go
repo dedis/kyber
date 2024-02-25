@@ -81,6 +81,41 @@ func (c *curve) NewKey(stream cipher.Stream) kyber.Scalar {
 	return secret
 }
 
+func initBasePoint(c *curve, self kyber.Group, p *Param, fullGroup bool, base point) {
+	var bx, by *big.Int
+	if fullGroup {
+		bx, by = &p.FBX, &p.FBY
+		base.initXY(&p.FBX, &p.FBY, self)
+	} else {
+		bx, by = &p.PBX, &p.PBY
+	}
+
+	if by.Sign() == 0 {
+		// No standard base point was defined, so pick one.
+		// Find the lowest-numbered y-coordinate that works.
+		var x, y mod.Int
+		for y.Init64(2, &c.P); ; y.Add(&y, &c.one) {
+			if !c.solveForX(&x, &y) {
+				continue // try another y
+			}
+			if c.coordSign(&x) != 0 {
+				x.Neg(&x) // try positive x first
+			}
+			base.initXY(&x.V, &y.V, self)
+			if c.validPoint(base) {
+				break // got one
+			}
+			x.Neg(&x) // try -bx
+			if c.validPoint(base) {
+				break // got one
+			}
+		}
+
+		bx, by = &x.V, &y.V
+	}
+	base.initXY(bx, by, self)
+}
+
 // Initialize a twisted Edwards curve with given parameters.
 // Caller passes pointers to null and base point prototypes to be initialized.
 func (c *curve) init(self kyber.Group, p *Param, fullGroup bool,
@@ -118,37 +153,7 @@ func (c *curve) init(self kyber.Group, p *Param, fullGroup bool,
 	null.initXY(zero, one, self)
 
 	// Base point B
-	var bx, by *big.Int
-	if !fullGroup {
-		bx, by = &p.PBX, &p.PBY
-	} else {
-		bx, by = &p.FBX, &p.FBY
-		base.initXY(&p.FBX, &p.FBY, self)
-	}
-	if by.Sign() == 0 {
-		// No standard base point was defined, so pick one.
-		// Find the lowest-numbered y-coordinate that works.
-		var x, y mod.Int
-		for y.Init64(2, &c.P); ; y.Add(&y, &c.one) {
-			if !c.solveForX(&x, &y) {
-				continue // try another y
-			}
-			if c.coordSign(&x) != 0 {
-				x.Neg(&x) // try positive x first
-			}
-			base.initXY(&x.V, &y.V, self)
-			if c.validPoint(base) {
-				break // got one
-			}
-			x.Neg(&x) // try -bx
-			if c.validPoint(base) {
-				break // got one
-			}
-		}
-
-		bx, by = &x.V, &y.V
-	}
-	base.initXY(bx, by, self)
+	initBasePoint(c, self, p, fullGroup, base)
 
 	// Sanity checks
 	if !c.validPoint(null) {
