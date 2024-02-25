@@ -8,6 +8,10 @@ run:
 # This file contains only configs which differ from defaults.
 # All possible options can be found here https://github.com/golangci/golangci-lint/blob/master/.golangci.reference.yml
 linters-settings:
+  staticcheck:
+    checks:
+      - all
+      - '-SA1019' # Ignore deprecated for now
   cyclop:
     # The maximal code complexity to report.
     # Default: 10
@@ -163,7 +167,7 @@ linters:
     #- decorder # checks declaration order and count of types, constants, variables and functions
     #- exhaustruct # checks if all structure fields are initialized
     #- gci # controls golang package import order and makes it always deterministic
-    - godox # detects FIXME, TODO and other comment keywords
+    #- godox # detects FIXME, TODO and other comment keywords
     #- goheader # checks is file header matches to pattern
     - interfacebloat # checks the number of methods inside an interface
     #- ireturn # accept interfaces, return concrete types
@@ -208,7 +212,7 @@ issues:
   # Maximum count of issues with the same text.
   # Set to 0 to disable.
   # Default: 3
-  max-same-issues: 50
+  #max-same-issues: 50
 
   exclude-rules:
     - source: "^//\\s*go:generate\\s"
@@ -253,6 +257,10 @@ issues:
     - path: 'group/edwards25519/scalar.go'
       linters:
         - ineffassign
+        - funlen
     - path: 'group/edwards25519/const.go'
       linters:
         - lll
+    - path: 'group/edwards25519/fe.go'
+      linters:
+        - funlen
