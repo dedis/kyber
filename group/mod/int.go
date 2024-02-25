@@ -151,10 +151,7 @@ func (i *Int) Nonzero() bool {
 // Since this method copies the modulus as well,
 // it may be used as an alternative to Init().
 func (i *Int) Set(a kyber.Scalar) kyber.Scalar {
-	ai, ok := a.(*Int)
-	if !ok {
-		panic("invalid scalar casting to Int")
-	}
+	ai := a.(*Int) //nolint:errcheck // V4 may bring better error handling
 
 	i.V.Set(&ai.V)
 	i.M = ai.M
@@ -208,15 +205,8 @@ func (i *Int) Uint64() uint64 {
 
 // Add sets the target to a + b mod M, where M is a's modulus..
 func (i *Int) Add(a, b kyber.Scalar) kyber.Scalar {
-	ai, ok := a.(*Int)
-	if !ok {
-		panic("invalid scalar casting to Int")
-	}
-
-	bi, ok := b.(*Int)
-	if !ok {
-		panic("invalid scalar casting to Int")
-	}
+	ai := a.(*Int) //nolint:errcheck // V4 may bring better error handling
+	bi := b.(*Int) //nolint:errcheck // V4 may bring better error handling
 
 	i.M = ai.M
 	i.V.Add(&ai.V, &bi.V).Mod(&i.V, i.M)
@@ -226,15 +216,8 @@ func (i *Int) Add(a, b kyber.Scalar) kyber.Scalar {
 // Sub sets the target to a - b mod M.
 // Target receives a's modulus.
 func (i *Int) Sub(a, b kyber.Scalar) kyber.Scalar {
-	ai, ok := a.(*Int)
-	if !ok {
-		panic("invalid scalar casting to Int")
-	}
-
-	bi, ok := b.(*Int)
-	if !ok {
-		panic("invalid scalar casting to Int")
-	}
+	ai := a.(*Int) //nolint:errcheck // V4 may bring better error handling
+	bi := b.(*Int) //nolint:errcheck // V4 may bring better error handling
 
 	i.M = ai.M
 	i.V.Sub(&ai.V, &bi.V).Mod(&i.V, i.M)
@@ -243,10 +226,7 @@ func (i *Int) Sub(a, b kyber.Scalar) kyber.Scalar {
 
 // Neg sets the target to -a mod M.
 func (i *Int) Neg(a kyber.Scalar) kyber.Scalar {
-	ai, ok := a.(*Int)
-	if !ok {
-		panic("invalid scalar casting to Int")
-	}
+	ai := a.(*Int) //nolint:errcheck // V4 may bring better error handling
 
 	i.M = ai.M
 	if ai.V.Sign() > 0 {
@@ -260,15 +240,8 @@ func (i *Int) Neg(a kyber.Scalar) kyber.Scalar {
 // Mul sets the target to a * b mod M.
 // Target receives a's modulus.
 func (i *Int) Mul(a, b kyber.Scalar) kyber.Scalar {
-	ai, ok := a.(*Int)
-	if !ok {
-		panic("invalid scalar casting to Int")
-	}
-
-	bi, ok := b.(*Int)
-	if !ok {
-		panic("invalid scalar casting to Int")
-	}
+	ai := a.(*Int) //nolint:errcheck // V4 may bring better error handling
+	bi := b.(*Int) //nolint:errcheck // V4 may bring better error handling
 
 	i.M = ai.M
 	i.V.Mul(&ai.V, &bi.V).Mod(&i.V, i.M)
@@ -277,15 +250,8 @@ func (i *Int) Mul(a, b kyber.Scalar) kyber.Scalar {
 
 // Div sets the target to a * b^-1 mod M, where b^-1 is the modular inverse of b.
 func (i *Int) Div(a, b kyber.Scalar) kyber.Scalar {
-	ai, ok := a.(*Int)
-	if !ok {
-		panic("invalid scalar casting to Int")
-	}
-
-	bi, ok := b.(*Int)
-	if !ok {
-		panic("invalid scalar casting to Int")
-	}
+	ai := a.(*Int) //nolint:errcheck // V4 may bring better error handling
+	bi := b.(*Int) //nolint:errcheck // V4 may bring better error handling
 	var t big.Int
 	i.M = ai.M
 	i.V.Mul(&ai.V, t.ModInverse(&bi.V, i.M))
@@ -295,10 +261,7 @@ func (i *Int) Div(a, b kyber.Scalar) kyber.Scalar {
 
 // Inv sets the target to the modular inverse of a with respect to modulus M.
 func (i *Int) Inv(a kyber.Scalar) kyber.Scalar {
-	ai, ok := a.(*Int)
-	if !ok {
-		panic("invalid scalar casting to Int")
-	}
+	ai := a.(*Int) //nolint:errcheck // V4 may bring better error handling
 
 	i.M = ai.M
 	i.V.ModInverse(&a.(*Int).V, i.M)
@@ -308,10 +271,7 @@ func (i *Int) Inv(a kyber.Scalar) kyber.Scalar {
 // Exp sets the target to a^e mod M,
 // where e is an arbitrary big.Int exponent (not necessarily 0 <= e < M).
 func (i *Int) Exp(a kyber.Scalar, e *big.Int) kyber.Scalar {
-	ai, ok := a.(*Int)
-	if !ok {
-		panic("invalid scalar casting to Int")
-	}
+	ai := a.(*Int) //nolint:errcheck // V4 may bring better error handling
 
 	i.M = ai.M
 	// to protect against golang/go#22830
@@ -324,10 +284,7 @@ func (i *Int) Exp(a kyber.Scalar, e *big.Int) kyber.Scalar {
 // Jacobi computes the Jacobi symbol of (a/M), which indicates whether a is
 // zero (0), a positive square in M (1), or a non-square in M (-1).
 func (i *Int) Jacobi(as kyber.Scalar) kyber.Scalar {
-	ai, ok := as.(*Int)
-	if !ok {
-		panic("invalid scalar casting to Int")
-	}
+	ai := as.(*Int) //nolint:errcheck // V4 may bring better error handling
 
 	i.M = ai.M
 	i.V.SetInt64(int64(big.Jacobi(&ai.V, i.M)))
@@ -338,11 +295,7 @@ func (i *Int) Jacobi(as kyber.Scalar) kyber.Scalar {
 // Assumes the modulus M is an odd prime.
 // Returns true on success, false if input a is not a square.
 func (i *Int) Sqrt(as kyber.Scalar) bool {
-	ai, ok := as.(*Int)
-	if !ok {
-		panic("invalid scalar casting to Int")
-	}
-
+	ai := as.(*Int) //nolint:errcheck // V4 may bring better error handling
 	out := i.V.ModSqrt(&ai.V, ai.M)
 	i.M = ai.M
 	return out != nil

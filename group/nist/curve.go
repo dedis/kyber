@@ -23,7 +23,7 @@ func (p *curvePoint) String() string {
 }
 
 func (p *curvePoint) Equal(p2 kyber.Point) bool {
-	cp2 := p2.(*curvePoint) //nolint:errcheck // curvePoint implements kyber.Point
+	cp2 := p2.(*curvePoint) //nolint:errcheck // V4 may bring better error handling
 
 	// Make sure both coordinates are normalized.
 	// Apparently Go's elliptic curve code doesn't always ensure this.
@@ -134,17 +134,17 @@ func (p *curvePoint) Data() ([]byte, error) {
 }
 
 func (p *curvePoint) Add(a, b kyber.Point) kyber.Point {
-	ca := a.(*curvePoint) //nolint:errcheck // curvePoint implements kyber.Point
-	cb := b.(*curvePoint) //nolint:errcheck // curvePoint implements kyber.Point
+	ca := a.(*curvePoint) //nolint:errcheck // V4 may bring better error handling
+	cb := b.(*curvePoint) //nolint:errcheck // V4 may bring better error handling
 	p.x, p.y = p.c.Add(ca.x, ca.y, cb.x, cb.y)
 	return p
 }
 
 func (p *curvePoint) Sub(a, b kyber.Point) kyber.Point {
-	ca := a.(*curvePoint) //nolint:errcheck // curvePoint implements kyber.Point
-	cb := b.(*curvePoint) //nolint:errcheck // curvePoint implements kyber.Point
+	ca := a.(*curvePoint) //nolint:errcheck // V4 may bring better error handling
+	cb := b.(*curvePoint) //nolint:errcheck // V4 may bring better error handling
 
-	cbn := p.c.Point().Neg(cb).(*curvePoint)
+	cbn := p.c.Point().Neg(cb).(*curvePoint) //nolint:errcheck // V4 may bring better error handling
 	p.x, p.y = p.c.Add(ca.x, ca.y, cbn.x, cbn.y)
 	return p
 }
@@ -156,9 +156,9 @@ func (p *curvePoint) Neg(a kyber.Point) kyber.Point {
 }
 
 func (p *curvePoint) Mul(s kyber.Scalar, b kyber.Point) kyber.Point {
-	cs := s.(*mod.Int)
+	cs := s.(*mod.Int) //nolint:errcheck // V4 may bring better error handling
 	if b != nil {
-		cb := b.(*curvePoint)
+		cb := b.(*curvePoint) //nolint:errcheck // V4 may bring better error handling
 		p.x, p.y = p.c.ScalarMult(cb.x, cb.y, cs.V.Bytes())
 	} else {
 		p.x, p.y = p.c.ScalarBaseMult(cs.V.Bytes())
