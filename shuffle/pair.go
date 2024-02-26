@@ -124,6 +124,8 @@ func (ps *PairShuffle) Init(grp kyber.Group, k int) *PairShuffle {
 }
 
 // Prove returns an error if the shuffle is not correct.
+//
+//nolint:funlen
 func (ps *PairShuffle) Prove(
 	pi []int, g, h kyber.Point, beta []kyber.Scalar,
 	x, y []kyber.Point, rand cipher.Stream,

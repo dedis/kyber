@@ -367,7 +367,6 @@ func TestVSSAggregatorVerifyResponse(t *testing.T) {
 	dealer, verifiers := genAll()
 	v := verifiers[0]
 	deal := dealer.deals[0]
-	//goodSec := deal.SecShare.V
 	wrongSec, _ := genPair()
 	deal.SecShare.V = wrongSec
 	encD, _ := dealer.EncryptedDeal(0)
