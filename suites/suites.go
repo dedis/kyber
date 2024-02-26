@@ -37,7 +37,10 @@ var ErrUnknownSuite = errors.New("unknown suite")
 func Find(name string) (Suite, error) {
 	if s, ok := suites[strings.ToLower(name)]; ok {
 		if requireConstTime && strings.ToLower(s.String()) != "ed25519" {
-			return nil, errors.New("requested suite exists but is not implemented with constant time algorithms as required by suites.RequireConstantTime")
+			return nil, errors.New(
+				"requested suite exists but is not implemented " +
+					"with constant time algorithms as required by " +
+					"suites.RequireConstantTime")
 		}
 		return s, nil
 	}

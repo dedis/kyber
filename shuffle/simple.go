@@ -86,6 +86,8 @@ func (ss *SimpleShuffle) Init(grp kyber.Group, k int) *SimpleShuffle {
 // Neff, "Verifiable Mixing (Shuffling) of ElGamal Pairs", 2004.
 // The Scalar vector y must be a permutation of Scalar vector x
 // but with all elements multiplied by common Scalar gamma.
+//
+//nolint:funlen // 51 statement instead of authorized 50
 func (ss *SimpleShuffle) Prove(g kyber.Point, gamma kyber.Scalar,
 	x, y []kyber.Scalar, _ cipher.Stream,
 	ctx proof.ProverContext) error {
@@ -99,14 +101,6 @@ func (ss *SimpleShuffle) Prove(g kyber.Point, gamma kyber.Scalar,
 	if k != len(y) {
 		panic("mismatched vector lengths")
 	}
-
-	//	// Dump input vectors to show their correspondences
-	//	for i := 0; i < k; i++ {
-	//		println("x",grp.Scalar().Mul(gamma,x[i]).String())
-	//	}
-	//	for i := 0; i < k; i++ {
-	//		println("y",y[i].String())
-	//	}
 
 	// Step 0: inputs
 	for i := 0; i < k; i++ { // (4)

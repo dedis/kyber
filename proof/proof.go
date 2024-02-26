@@ -484,7 +484,8 @@ func (op *orPred) commit(prf *proof, w kyber.Scalar, pv []kyber.Scalar) error {
 	prf.pp[op] = pp
 
 	// Choose pre-challenges for our subs.
-	if w == nil {
+	switch {
+	case w == nil:
 		// We're on a proof-obligated branch;
 		// choose random pre-challenges for only non-obligated subs.
 		choice, ok := prf.choice[op]
@@ -501,7 +502,7 @@ func (op *orPred) commit(prf *proof, w kyber.Scalar, pv []kyber.Scalar) error {
 				}
 			} // else wi[i] == nil for proof-obligated sub
 		}
-	} else {
+	default:
 		// Since w != nil, we're in a non-obligated branch,
 		// so choose random pre-challenges for all subs
 		// such that they add up to the master pre-challenge w.
@@ -515,14 +516,19 @@ func (op *orPred) commit(prf *proof, w kyber.Scalar, pv []kyber.Scalar) error {
 			}
 			wl.Sub(wl, wi[i])
 		}
+
 		wi[last] = wl
 	}
 
+	return commitmentProducer(prf, wi, sub)
+}
+
+func commitmentProducer(prf *proof, wi []kyber.Scalar, sub []Predicate) error {
 	// Now recursively choose commitments within each sub
 	for i := 0; i < len(sub); i++ {
 		// Fresh variable-blinding secrets for each pre-commitment
-		if e := sub[i].commit(prf, wi[i], nil); e != nil {
-			return e
+		if err := sub[i].commit(prf, wi[i], nil); err != nil {
+			return err
 		}
 	}
 
