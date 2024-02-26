@@ -375,7 +375,7 @@ func (d *DistKeyGenerator) Certified() bool {
 // the distributed public key with SecretCommits() and ProcessSecretCommits().
 func (d *DistKeyGenerator) QUAL() []int {
 	var good []int
-	d.qualIter(func(i uint32, v *vss.Verifier) bool {
+	d.qualIter(func(i uint32, _ *vss.Verifier) bool {
 		good = append(good, int(i))
 		return true
 	})
@@ -384,7 +384,7 @@ func (d *DistKeyGenerator) QUAL() []int {
 
 func (d *DistKeyGenerator) isInQUAL(idx uint32) bool {
 	var found bool
-	d.qualIter(func(i uint32, v *vss.Verifier) bool {
+	d.qualIter(func(i uint32, _ *vss.Verifier) bool {
 		if i == idx {
 			found = true
 			return false
@@ -603,7 +603,7 @@ func (d *DistKeyGenerator) ProcessReconstructCommits(rs *ReconstructCommits) err
 func (d *DistKeyGenerator) Finished() bool {
 	var ret = true
 	var nb = 0
-	d.qualIter(func(idx uint32, v *vss.Verifier) bool {
+	d.qualIter(func(idx uint32, _ *vss.Verifier) bool {
 		nb++
 		// ALL QUAL members should have their commitments by now either given or
 		// reconstructed.
