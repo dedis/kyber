@@ -131,40 +131,15 @@ func testScalarClone(t *testing.T, g kyber.Group, rand cipher.Stream) {
 	}
 }
 
-// Apply a generic set of validation tests to a cryptographic Group,
-// using a given source of [pseudo-]randomness.
-//
-// Returns a log of the pseudorandom Points produced in the test,
-// for comparison across alternative implementations
-// that are supposed to be equivalent.
-func testGroup(t *testing.T, g kyber.Group, rand cipher.Stream) []kyber.Point {
-	t.Logf("\nTesting group '%s': %d-byte Point, %d-byte Scalar\n",
-		g.String(), g.PointLen(), g.ScalarLen())
-
-	points := make([]kyber.Point, 0)
-	ptmp := g.Point()
-	stmp := g.Scalar()
-	pzero := g.Point().Null()
-	szero := g.Scalar().Zero()
-	sone := g.Scalar().One()
-
-	// Do a simple Diffie-Hellman test
-	s1 := g.Scalar().Pick(rand)
-	s2 := g.Scalar().Pick(rand)
-	if s1.Equal(szero) {
-		t.Errorf("first secret is scalar zero %v", s1)
-	}
-	if s2.Equal(szero) {
-		t.Errorf("second secret is scalar zero %v", s2)
-	}
-	if s1.Equal(s2) {
-		t.Errorf("not getting unique secrets: picked %s twice", s1)
-	}
-
-	gen := g.Point().Base()
-	points = append(points, gen)
-
+func testSanityCheck(
+	t *testing.T,
+	points []kyber.Point,
+	g kyber.Group,
+	stmp, s1, s2 kyber.Scalar,
+	gen, ptmp kyber.Point,
+) ([]kyber.Point, kyber.Point, kyber.Point, kyber.Point, bool) {
 	// Sanity-check relationship between addition and multiplication
+	pzero := g.Point().Null()
 	p1 := g.Point().Add(gen, gen)
 	p2 := g.Point().Mul(stmp.SetInt64(2), nil)
 	if !p1.Equal(p2) {
@@ -222,22 +197,15 @@ func testGroup(t *testing.T, g kyber.Group, rand cipher.Stream) []kyber.Point {
 	points = append(points, dh1)
 	t.Logf("shared secret = %v", dh1)
 
-	// Test secret inverse to get from dh1 back to p1
-	if primeOrder {
-		ptmp.Mul(g.Scalar().Inv(s2), dh1)
-		if !ptmp.Equal(p1) {
-			t.Errorf("Scalar inverse didn't work: %v != (-)%v (x) %v == %v", p1, s2, dh1, ptmp)
-		}
-	}
+	return points, dh1, p1, p2, primeOrder
+}
 
-	// Zero and One identity secrets
-	if !ptmp.Mul(szero, dh1).Equal(pzero) {
-		t.Errorf("Encryption with secret=0 didn't work: %v (x) %v == %v != %v", szero, dh1, ptmp, pzero)
-	}
-	if !ptmp.Mul(sone, dh1).Equal(dh1) {
-		t.Errorf("Encryption with secret=1 didn't work: %v (x) %v == %v != %[2]v", sone, dh1, ptmp)
-	}
-
+func testHomomorphicIdentities(
+	t *testing.T,
+	primeOrder bool,
+	g kyber.Group,
+	gen, ptmp, p1, p2, dh1 kyber.Point,
+	stmp, s1, s2 kyber.Scalar) {
 	// Additive homomorphic identities
 	ptmp.Add(p1, p2)
 	stmp.Add(s1, s2)
@@ -284,8 +252,18 @@ func testGroup(t *testing.T, g kyber.Group, rand cipher.Stream) []kyber.Point {
 				stmp, s2, st2, s1)
 		}
 	}
+}
 
-	// Test randomly picked points
+func testRandomlyPickedPoint(
+	t *testing.T,
+	primeOrder bool,
+	points []kyber.Point,
+	g kyber.Group,
+	gen, ptmp kyber.Point,
+	stmp kyber.Scalar,
+	rand cipher.Stream,
+) []kyber.Point {
+	pzero := g.Point().Null()
 	last := gen
 	for i := 0; i < 5; i++ {
 		rgen := g.Point().Pick(rand)
@@ -310,13 +288,10 @@ func testGroup(t *testing.T, g kyber.Group, rand cipher.Stream) []kyber.Point {
 		points = append(points, rgen)
 	}
 
-	// Test embedding data
-	testEmbed(t, g, rand, &points, "Hi!")
-	testEmbed(t, g, rand, &points, "The quick brown fox jumps over the lazy dog")
+	return points
+}
 
-	// Test verifiable secret sharing
-
-	// Test encoding and decoding
+func testEncodingDecoding(t *testing.T, g kyber.Group, ptmp kyber.Point, stmp kyber.Scalar, rand cipher.Stream) {
 	buf := new(bytes.Buffer)
 	for i := 0; i < 5; i++ {
 		buf.Reset()
@@ -343,6 +318,73 @@ func testGroup(t *testing.T, g kyber.Group, rand cipher.Stream) []kyber.Point {
 			t.Errorf("decoding produces different point than encoded")
 		}
 	}
+}
+
+// Apply a generic set of validation tests to a cryptographic Group,
+// using a given source of [pseudo-]randomness.
+//
+// Returns a log of the pseudorandom Points produced in the test,
+// for comparison across alternative implementations
+// that are supposed to be equivalent.
+func testGroup(t *testing.T, g kyber.Group, rand cipher.Stream) []kyber.Point {
+	t.Logf("\nTesting group '%s': %d-byte Point, %d-byte Scalar\n",
+		g.String(), g.PointLen(), g.ScalarLen())
+
+	points := make([]kyber.Point, 0)
+	ptmp := g.Point()
+	stmp := g.Scalar()
+	pzero := g.Point().Null()
+	szero := g.Scalar().Zero()
+	sone := g.Scalar().One()
+
+	// Do a simple Diffie-Hellman test
+	s1 := g.Scalar().Pick(rand)
+	s2 := g.Scalar().Pick(rand)
+	if s1.Equal(szero) {
+		t.Errorf("first secret is scalar zero %v", s1)
+	}
+	if s2.Equal(szero) {
+		t.Errorf("second secret is scalar zero %v", s2)
+	}
+	if s1.Equal(s2) {
+		t.Errorf("not getting unique secrets: picked %s twice", s1)
+	}
+
+	gen := g.Point().Base()
+	points = append(points, gen)
+
+	// Sanity-check relationship between addition and multiplication
+	points, dh1, p1, p2, primeOrder := testSanityCheck(t, points, g, stmp, s1, s2, gen, ptmp)
+
+	// Test secret inverse to get from dh1 back to p1
+	if primeOrder {
+		ptmp.Mul(g.Scalar().Inv(s2), dh1)
+		if !ptmp.Equal(p1) {
+			t.Errorf("Scalar inverse didn't work: %v != (-)%v (x) %v == %v", p1, s2, dh1, ptmp)
+		}
+	}
+
+	// Zero and One identity secrets
+	if !ptmp.Mul(szero, dh1).Equal(pzero) {
+		t.Errorf("Encryption with secret=0 didn't work: %v (x) %v == %v != %v", szero, dh1, ptmp, pzero)
+	}
+	if !ptmp.Mul(sone, dh1).Equal(dh1) {
+		t.Errorf("Encryption with secret=1 didn't work: %v (x) %v == %v != %[2]v", sone, dh1, ptmp)
+	}
+
+	// homomorphic identities
+	testHomomorphicIdentities(t, primeOrder, g, gen, ptmp, p1, p2, dh1, stmp, s1, s2)
+
+	// Test randomly picked points
+	points = testRandomlyPickedPoint(t, primeOrder, points, g, gen, ptmp, stmp, rand)
+
+	// Test embedding data
+	testEmbed(t, g, rand, &points, "Hi!")
+	testEmbed(t, g, rand, &points, "The quick brown fox jumps over the lazy dog")
+
+	// Test verifiable secret sharing
+	// Test encoding and decoding
+	testEncodingDecoding(t, g, ptmp, stmp, rand)
 
 	// Test that we can marshal/ unmarshal null point
 	pzero = g.Point().Null()
