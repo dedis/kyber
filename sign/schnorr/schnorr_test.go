@@ -128,13 +128,13 @@ func TestSchnorrMalleability(t *testing.T) {
 }
 
 func FuzzSchnorr(f *testing.F) {
+	suite := edwards25519.NewBlakeSHA256Ed25519()
+	kp := key.NewKeyPair(suite)
+
 	f.Fuzz(func(t *testing.T, msg []byte) {
 		if (len(msg) < 1) || (len(msg) > 1000) {
 			t.Skip("msg must have byte length between 1 and 1000")
 		}
-		suite := edwards25519.NewBlakeSHA256Ed25519()
-		kp := key.NewKeyPair(suite)
-
 		s, err := Sign(suite, kp.Private, msg)
 		require.NoError(t, err, "Couldn't sign msg: %s: %v", msg, err)
 

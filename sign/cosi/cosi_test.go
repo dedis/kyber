@@ -30,7 +30,6 @@ var testSuite = &cosiSuite{edwards25519.NewBlakeSHA256Ed25519(), blake2xb.New(ni
 func TestCoSi(t *testing.T) {
 	message := []byte("Hello World Cosi")
 	testCoSi(t, 2, 0, message)
-	testCoSi(t, 2, 0, message)
 	testCoSi(t, 5, 0, message)
 	testCoSi(t, 5, 2, message)
 	testCoSi(t, 5, 4, message)
