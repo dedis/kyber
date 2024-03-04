@@ -12,6 +12,19 @@ import (
 
 func TestBLS(t *testing.T) {
 	msg := []byte("Hello Boneh-Lynn-Shacham")
+	BLSRoutine(t, msg)
+}
+
+func FuzzBLS(f *testing.F) {
+	f.Fuzz(func(t *testing.T, msg []byte) {
+		if len(msg) < 1 || len(msg) > 1000 {
+			t.Skip("msg must have byte length between 1 and 1000")
+		}
+		BLSRoutine(t, msg)
+	})
+}
+
+func BLSRoutine(t *testing.T, msg []byte) {
 	suite := bn256.NewSuite()
 	private, public := NewKeyPair(suite, random.New())
 	sig, err := Sign(suite, private, msg)
