@@ -19,6 +19,16 @@ and you need to constrain Kyber to offering only constant time implementations,
 you should use the [suites.RequireConstantTime()](https://godoc.org/go.dedis.ch/kyber/suites#RequireConstantTime)
 function in the `init()` function of your `main` package.
 
+Target Audience
+---------------
+
+This library is intended to be used by developers who are at least moderately knowledgeable about cryptography. 
+If you want a crypto library that makes it easy to implement "basic crypto" functionality correctly - i.e., plain public-key encryption and signing - then [NaCl secretbox](https://godoc.org/golang.org/x/crypto/nacl/secretbox) may be a better choice.
+Or use Google's [Tink](https://developers.google.com/tink)
+
+This toolkit's purpose is to make it possible - and preferably easy - to do slightly more interesting things that most current crypto libraries don't support effectively.
+The one existing crypto library that this toolkit is probably most comparable to is the [Charm](https://charm-crypto.com/category/charm) rapid prototyping library for Python.
+
 Versioning - Development
 ------------------------
 
