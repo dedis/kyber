@@ -25,7 +25,7 @@ type Suite interface {
 /*
 A Predicate is a composable logic expression in a knowledge proof system,
 representing a "knowledge specification set" in Camenisch/Stadler terminology.
-Atomic predicates in this system are statements of the form P=x1*B1+...+xn+Bn,
+Atomic predicates in this system are statements of the form P=x1*B1+...+xn*Bn,
 indicating the prover knows secrets x1,...,xn that make the statement true,
 where P and B1,...,Bn are public points known to the verifier.
 These atomic Rep (representation) predicates may be combined
