@@ -68,16 +68,17 @@ func BenchmarkECIES(b *testing.B) {
 		private := suite.Scalar().Pick(rand)
 		public := suite.Point().Mul(private, nil)
 
-		for i := 0; i < b.N; i++ {
-			var ct []byte
-			b.Run("Encrypt/"+suite.String(), func(b *testing.B) {
+		var ct []byte
+		b.Run("Encrypt/"+suite.String(), func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
 				ct, _ = Encrypt(suite, public, message, nil)
+			}
+		})
 
-			})
-
-			b.Run("Decrypt/"+suite.String(), func(b *testing.B) {
+		b.Run("Decrypt/"+suite.String(), func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
 				_, _ = Decrypt(suite, private, ct, nil)
-			})
-		}
+			}
+		})
 	}
 }

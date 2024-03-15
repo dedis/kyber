@@ -289,22 +289,26 @@ func BenchmarkProof(b *testing.B) {
 		var pred Predicate
 
 		b.Run(suite.String()+"/ProofBuild", func(b *testing.B) {
-			pred = Rep("P", predicateBuilder...)
-			// Prove P = x0*B + x1*B + ... + xN*B
-			prover := pred.Prover(suite, sval, pval, nil)
-			proof, err = HashProve(suite, "TEST", prover)
-			if err != nil {
-				b.Log(err.Error())
-				b.Fail()
+			for i := 0; i < b.N; i++ {
+				pred = Rep("P", predicateBuilder...)
+				// Prove P = x0*B + x1*B + ... + xN*B
+				prover := pred.Prover(suite, sval, pval, nil)
+				proof, err = HashProve(suite, "TEST", prover)
+				if err != nil {
+					b.Log(err.Error())
+					b.Fail()
+				}
 			}
 		})
 
 		b.Run(suite.String()+"/ProofVerify", func(b *testing.B) {
-			verifier := pred.Verifier(suite, pval)
-			err = HashVerify(suite, "TEST", verifier, proof)
-			if err != nil {
-				b.Log(err.Error())
-				b.Fail()
+			for i := 0; i < b.N; i++ {
+				verifier := pred.Verifier(suite, pval)
+				err = HashVerify(suite, "TEST", verifier, proof)
+				if err != nil {
+					b.Log(err.Error())
+					b.Fail()
+				}
 			}
 		})
 	}
