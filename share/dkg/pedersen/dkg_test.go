@@ -96,7 +96,7 @@ func TestDKGProcessDeal(t *testing.T) {
 	rec := dkgs[1]
 	deal := deals[1]
 	require.Equal(t, int(deal.Index), 0)
-	require.Equal(t, 1, rec.nidx)
+	require.Equal(t, int64(1), rec.nidx)
 
 	// verifier don't find itself
 	goodP := rec.c.NewNodes
@@ -326,7 +326,7 @@ func TestDKGResharingThreshold(t *testing.T) {
 	for i, localDeals := range deals {
 		for j, d := range localDeals {
 			for _, dkg := range selectedDkgs {
-				if dkg.newPresent && dkg.nidx == j {
+				if dkg.newPresent && dkg.nidx == int64(j) {
 					resp, err := dkg.ProcessDeal(d)
 					require.Nil(t, err)
 					require.Equal(t, vss.StatusApproval, resp.Response.Status)
@@ -374,7 +374,7 @@ func TestDKGResharingThreshold(t *testing.T) {
 			if !dkg.newPresent {
 				continue
 			}
-			require.Contains(t, qualShares, dkg2.nidx)
+			require.Contains(t, qualShares, int(dkg2.nidx))
 		}
 	}
 
@@ -500,7 +500,7 @@ func TestDKGThreshold(t *testing.T) {
 		require.False(t, dkg.Certified())
 		qualShares := dkg.QualifiedShares()
 		for _, dkg2 := range thrDKGs {
-			require.Contains(t, qualShares, dkg2.nidx)
+			require.Contains(t, qualShares, int(dkg2.nidx))
 		}
 		_, err := dkg.DistKeyShare()
 		require.NoError(t, err)
@@ -776,7 +776,7 @@ func TestDKGResharingNewNodesThreshold(t *testing.T) {
 		require.True(t, oldDkgs[i].canIssue)
 		require.True(t, oldDkgs[i].isResharing)
 		require.False(t, oldDkgs[i].newPresent)
-		require.Equal(t, oldDkgs[i].oidx, i)
+		require.Equal(t, oldDkgs[i].oidx, int64(i))
 	}
 
 	for i := 0; i < newN; i++ {
@@ -795,7 +795,7 @@ func TestDKGResharingNewNodesThreshold(t *testing.T) {
 		require.False(t, newDkgs[i].canIssue)
 		require.True(t, newDkgs[i].isResharing)
 		require.True(t, newDkgs[i].newPresent)
-		require.Equal(t, newDkgs[i].nidx, i)
+		require.Equal(t, newDkgs[i].nidx, int64(i))
 	}
 
 	// alive := oldT - 1
@@ -956,8 +956,8 @@ func TestDKGResharingNewNodes(t *testing.T) {
 			require.True(t, oldDkgs[i].canIssue)
 			require.True(t, oldDkgs[i].isResharing)
 			require.True(t, oldDkgs[i].newPresent)
-			require.Equal(t, oldDkgs[i].oidx, i)
-			require.Equal(t, oldN-i-1, oldDkgs[i].nidx)
+			require.Equal(t, oldDkgs[i].oidx, int64(i))
+			require.Equal(t, int64(oldN-i-1), oldDkgs[i].nidx)
 			continue
 		}
 
@@ -965,8 +965,8 @@ func TestDKGResharingNewNodes(t *testing.T) {
 		require.True(t, oldDkgs[i].canIssue)
 		require.True(t, oldDkgs[i].isResharing)
 		require.False(t, oldDkgs[i].newPresent)
-		require.Equal(t, 0, oldDkgs[i].nidx) // default for nidx
-		require.Equal(t, oldDkgs[i].oidx, i)
+		require.Equal(t, int64(0), oldDkgs[i].nidx) // default for nidx
+		require.Equal(t, oldDkgs[i].oidx, int64(i))
 	}
 
 	// creating the new dkg
@@ -994,7 +994,7 @@ func TestDKGResharingNewNodes(t *testing.T) {
 		require.False(t, newDkgs[i].canIssue)
 		require.True(t, newDkgs[i].isResharing)
 		require.True(t, newDkgs[i].newPresent)
-		require.Equal(t, newDkgs[i].nidx, i)
+		require.Equal(t, newDkgs[i].nidx, int64(i))
 		// each old dkg act as a verifier
 		require.Len(t, newDkgs[i].Verifiers(), oldN)
 	}
@@ -1159,15 +1159,15 @@ func TestDKGResharingPartialNewNodes(t *testing.T) {
 			require.True(t, totalDkgs[i].canIssue)
 			require.True(t, totalDkgs[i].isResharing)
 			require.True(t, totalDkgs[i].newPresent)
-			require.Equal(t, totalDkgs[i].oidx, i)
-			require.Equal(t, i-1, totalDkgs[i].nidx)
+			require.Equal(t, totalDkgs[i].oidx, int64(i))
+			require.Equal(t, int64(i)-1, totalDkgs[i].nidx)
 			continue
 		}
 		require.False(t, totalDkgs[i].canReceive)
 		require.True(t, totalDkgs[i].canIssue)
 		require.True(t, totalDkgs[i].isResharing)
 		require.False(t, totalDkgs[i].newPresent)
-		require.Equal(t, totalDkgs[i].oidx, i)
+		require.Equal(t, totalDkgs[i].oidx, int64(i))
 	}
 
 	// the first one is the last old one
@@ -1188,7 +1188,7 @@ func TestDKGResharingPartialNewNodes(t *testing.T) {
 		require.False(t, totalDkgs[i].canIssue)
 		require.True(t, totalDkgs[i].isResharing)
 		require.True(t, totalDkgs[i].newPresent)
-		require.Equal(t, totalDkgs[i].nidx, newIdx)
+		require.Equal(t, totalDkgs[i].nidx, int64(newIdx))
 	}
 	newDkgs := totalDkgs[1:]
 	oldDkgs := totalDkgs[:oldN]

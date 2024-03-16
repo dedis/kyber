@@ -14,7 +14,7 @@ import (
 // the Sigma-protocol proofs of any or all of the other participants.
 // Different participants may produce different proofs of varying sizes,
 // and may even consist of different numbers of steps.
-func DeniableProver(suite Suite, self int, prover Prover,
+func DeniableProver(suite Suite, self int64, prover Prover,
 	verifiers []Verifier) Protocol {
 
 	return Protocol(func(ctx Context) []error {
@@ -25,7 +25,7 @@ func DeniableProver(suite Suite, self int, prover Prover,
 
 type deniableProver struct {
 	suite Suite   // Agreed-on ciphersuite for protocol
-	self  int     // Our own node number
+	self  int64   // Our own node number
 	sc    Context // Clique protocol context
 
 	// verifiers for other nodes' proofs
@@ -43,14 +43,14 @@ type deniableProver struct {
 	err []error
 }
 
-func (dp *deniableProver) run(suite Suite, self int, prv Prover,
+func (dp *deniableProver) run(suite Suite, self int64, prv Prover,
 	vrf []Verifier, sc Context) []error {
 	dp.suite = suite
 	dp.self = self
 	dp.sc = sc
 	dp.prirand = sc.Random()
 
-	nnodes := len(vrf)
+	nnodes := int64(len(vrf))
 	if self < 0 || self >= nnodes {
 		return []error{errors.New("out-of-range self node")}
 	}
@@ -60,7 +60,7 @@ func (dp *deniableProver) run(suite Suite, self int, prv Prover,
 	verr := errors.New("prover or verifier not run")
 	dp.err = make([]error, nnodes)
 	for i := range dp.err {
-		if i != self {
+		if int64(i) != self {
 			dp.err[i] = verr
 		}
 	}
@@ -187,7 +187,7 @@ func (dp *deniableProver) challengeStep() error {
 			mix[j] ^= key[j]
 		}
 	}
-	if len(keys) <= dp.self || !bytes.Equal(keys[dp.self], dp.key) {
+	if int64(len(keys)) <= dp.self || !bytes.Equal(keys[dp.self], dp.key) {
 		return errors.New("our own message was corrupted")
 	}
 

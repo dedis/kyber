@@ -313,9 +313,9 @@ func (i *Int) MarshalSize() int {
 // MarshalBinary encodes the value of this Int into a byte-slice exactly Len() bytes long.
 // It uses i's ByteOrder to determine which byte order to output.
 func (i *Int) MarshalBinary() ([]byte, error) {
-	l := i.MarshalSize()
+	l := int64(i.MarshalSize())
 	b := i.V.Bytes() // may be shorter than l
-	offset := l - len(b)
+	offset := l - int64(len(b))
 
 	if i.BO == LittleEndian {
 		return i.LittleEndian(l, l), nil
@@ -365,9 +365,9 @@ func (i *Int) UnmarshalFrom(r io.Reader) (int, error) {
 // BigEndian encodes the value of this Int into a big-endian byte-slice
 // at least min bytes but no more than max bytes long.
 // Panics if max != 0 and the Int cannot be represented in max bytes.
-func (i *Int) BigEndian(min, max int) []byte {
-	act := i.MarshalSize()
-	pad, ofs := act, 0
+func (i *Int) BigEndian(min, max int64) []byte {
+	act := int64(i.MarshalSize())
+	pad, ofs := act, int64(0)
 	if pad < min {
 		pad, ofs = min, min-act
 	}
@@ -394,10 +394,10 @@ func (i *Int) SetBytes(a []byte) kyber.Scalar {
 // LittleEndian encodes the value of this Int into a little-endian byte-slice
 // at least min bytes but no more than max bytes long.
 // Panics if max != 0 and the Int cannot be represented in max bytes.
-func (i *Int) LittleEndian(min, max int) []byte {
-	act := i.MarshalSize()
+func (i *Int) LittleEndian(min, max int64) []byte {
+	act := int64(i.MarshalSize())
 	vBytes := i.V.Bytes()
-	vSize := len(vBytes)
+	vSize := int64(len(vBytes))
 	if vSize < act {
 		act = vSize
 	}

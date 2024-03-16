@@ -29,11 +29,12 @@ func TestSecretRecovery(test *testing.T) {
 // tests the recovery of a secret when one of the share has an index
 // higher than the given `n`. This is a valid scenario that can happen during
 // a DKG-resharing:
-// 1. we add a new node n6 to an already-established group of 5 nodes.
-// 2. DKG runs without the first node in the group, i.e. without n1
-// 3. The list of qualified shares are [n2 ... n6] so the new resulting group
-//    has 5 members (no need to keep the 1st node around).
-// 4. When n6 wants to reconstruct, it will give its index given during the
+//  1. we add a new node n6 to an already-established group of 5 nodes.
+//  2. DKG runs without the first node in the group, i.e. without n1
+//  3. The list of qualified shares are [n2 ... n6] so the new resulting group
+//     has 5 members (no need to keep the 1st node around).
+//  4. When n6 wants to reconstruct, it will give its index given during the
+//
 // resharing, i.e. 6 (or 5 in 0-based indexing) whereas n = 5.
 // See TestPublicRecoveryOutIndex for testing with the commitment.
 func TestSecretRecoveryOutIndex(test *testing.T) {
@@ -368,8 +369,8 @@ func TestRecoverPriPoly(test *testing.T) {
 	assert.Nil(test, err)
 
 	for i := 0; i < t; i++ {
-		assert.Equal(test, recovered.Eval(i).V.String(), a.Eval(i).V.String())
-		assert.Equal(test, reverseRecovered.Eval(i).V.String(), a.Eval(i).V.String())
+		assert.Equal(test, recovered.Eval(int64(i)).V.String(), a.Eval(int64(i)).V.String())
+		assert.Equal(test, reverseRecovered.Eval(int64(i)).V.String(), a.Eval(int64(i)).V.String())
 	}
 }
 
@@ -421,7 +422,7 @@ func TestRefreshDKG(test *testing.T) {
 		for j := 0; j < n; j++ { // assuming all participants are in the qualified set
 			acc = g.Scalar().Add(acc, priShares[j][i].V)
 		}
-		dkgShares[i] = &PriShare{i, acc}
+		dkgShares[i] = &PriShare{int64(i), acc}
 	}
 
 	// Create public DKG commitments (= verification vector)
@@ -464,12 +465,12 @@ func TestRefreshDKG(test *testing.T) {
 		for j := 0; j < n; j++ {
 			// Check 1: Verify that the received individual private subshares s_ji
 			// is correct by evaluating the public commitment vector
-			tmpPriShares[j] = &PriShare{I: j, V: subPriShares[j][i].V} // Shares that participant i gets from j
-			require.True(test, g.Point().Mul(tmpPriShares[j].V, nil).Equal(subPubPolys[j].Eval(i).V))
+			tmpPriShares[j] = &PriShare{I: int64(j), V: subPriShares[j][i].V} // Shares that participant i gets from j
+			require.True(test, g.Point().Mul(tmpPriShares[j].V, nil).Equal(subPubPolys[j].Eval(int64(i)).V))
 
 			// Check 2: Verify that the received sub public shares are
 			// commitments to the original secret
-			tmpPubShares[j] = dkgPubPoly.Eval(j)
+			tmpPubShares[j] = dkgPubPoly.Eval(int64(j))
 			require.True(test, tmpPubShares[j].V.Equal(subPubPolys[j].Commit()))
 		}
 		// Check 3: Verify that the received public shares interpolate to the
@@ -481,7 +482,7 @@ func TestRefreshDKG(test *testing.T) {
 		// Compute the refreshed private DKG share of node i
 		s, err := RecoverSecret(g, tmpPriShares, t, n)
 		require.NoError(test, err)
-		newDKGShares[i] = &PriShare{I: i, V: s}
+		newDKGShares[i] = &PriShare{I: int64(i), V: s}
 	}
 
 	// Refresh the DKG commitments (= verification vector)
@@ -490,7 +491,7 @@ func TestRefreshDKG(test *testing.T) {
 		pubShares := make([]*PubShare, n)
 		for j := 0; j < n; j++ {
 			_, c := subPubPolys[j].Info()
-			pubShares[j] = &PubShare{I: j, V: c[i]}
+			pubShares[j] = &PubShare{I: int64(j), V: c[i]}
 		}
 		com, err := RecoverCommit(g, pubShares, t, n)
 		require.NoError(test, err)

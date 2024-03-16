@@ -133,7 +133,7 @@ type Justification struct {
 // does not have to be trusted by other Verifiers. The security parameter t is
 // the number of shares required to reconstruct the secret. MinimumT() provides
 // a middle ground between robustness and secrecy. Increasing t will increase
-// the secrecy at the cost of the decreased robustness and vice versa. It 
+// the secrecy at the cost of the decreased robustness and vice versa. It
 // returns an error if the t is inferior or equal to 2.
 func NewDealer(suite Suite, longterm, secret kyber.Scalar, verifiers []kyber.Point, t int) (*Dealer, error) {
 	d := &Dealer{
@@ -172,8 +172,8 @@ func NewDealer(suite Suite, longterm, secret kyber.Scalar, verifiers []kyber.Poi
 	// C = F + G
 	d.deals = make([]*Deal, len(d.verifiers))
 	for i := range d.verifiers {
-		fi := f.Eval(i)
-		gi := g.Eval(i)
+		fi := f.Eval(int64(i))
+		gi := g.Eval(int64(i))
 		d.deals[i] = &Deal{
 			SessionID:   d.sessionID,
 			SecShare:    fi,
@@ -322,7 +322,7 @@ type Verifier struct {
 	longterm    kyber.Scalar
 	pub         kyber.Point
 	dealer      kyber.Point
-	index       int
+	index       int64
 	verifiers   []kyber.Point
 	hkdfContext []byte
 	*aggregator
@@ -341,11 +341,11 @@ func NewVerifier(suite Suite, longterm kyber.Scalar, dealerKey kyber.Point,
 
 	pub := suite.Point().Mul(longterm, nil)
 	var ok bool
-	var index int
+	var index int64
 	for i, v := range verifiers {
 		if v.Equal(pub) {
 			ok = true
-			index = i
+			index = int64(i)
 			break
 		}
 	}
@@ -474,7 +474,7 @@ func (v *Verifier) Key() (kyber.Scalar, kyber.Point) {
 
 // Index returns the index of the verifier in the list of participants used
 // during this run of the protocol.
-func (v *Verifier) Index() int {
+func (v *Verifier) Index() int64 {
 	return v.index
 }
 
@@ -564,7 +564,7 @@ func (a *aggregator) VerifyDeal(d *Deal, inclusion bool) error {
 	if fi.I != gi.I {
 		return errors.New("vss: not the same index for f and g share in Deal")
 	}
-	if fi.I < 0 || fi.I >= len(a.verifiers) {
+	if fi.I < 0 || fi.I >= int64(len(a.verifiers)) {
 		return errors.New("vss: index out of bounds in Deal")
 	}
 	// compute fi * G + gi * H

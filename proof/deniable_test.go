@@ -13,7 +13,7 @@ import (
 var testSuite = edwards25519.NewBlakeSHA256Ed25519()
 
 type node struct {
-	i    int
+	i    int64
 	done bool
 
 	x kyber.Scalar
@@ -54,7 +54,7 @@ func runNode(n *node) {
 }
 
 func TestDeniable(t *testing.T) {
-	nnodes := 5
+	nnodes := int64(5)
 
 	suite := testSuite
 	rand := random.New()
@@ -62,7 +62,7 @@ func TestDeniable(t *testing.T) {
 
 	// Make some keypairs
 	nodes := make([]*node, nnodes)
-	for i := 0; i < nnodes; i++ {
+	for i := int64(0); i < nnodes; i++ {
 		n := &node{}
 		nodes[i] = n
 		n.i = i
@@ -72,7 +72,7 @@ func TestDeniable(t *testing.T) {
 	}
 
 	// Make some provers and verifiers
-	for i := 0; i < nnodes; i++ {
+	for i := int64(0); i < nnodes; i++ {
 		n := nodes[i]
 		pred := Rep("X", "x", "B")
 		sval := map[string]kyber.Scalar{"x": n.x}

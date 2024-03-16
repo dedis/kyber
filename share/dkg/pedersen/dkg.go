@@ -109,13 +109,13 @@ type DistKeyGenerator struct {
 	// performs the part of the response verification for old nodes
 	oldAggregators map[uint32]*vss.Aggregator
 	// index in the old list of nodes
-	oidx int
+	oidx int64
 	// index in the new list of nodes
-	nidx int
+	nidx int64
 	// old threshold used in the previous DKG
-	oldT int
+	oldT int64
 	// new threshold to use in this round
-	newT int
+	newT int64
 	// indicates whether we are in the re-sharing protocol or basic DKG
 	isResharing bool
 	// indicates whether we are able to issue shares or not
@@ -227,11 +227,11 @@ func NewDistKeyHandler(c *Config) (*DistKeyGenerator, error) {
 		canIssue:       canIssue,
 		isResharing:    isResharing,
 		dpub:           dpub,
-		oidx:           oidx,
-		nidx:           nidx,
+		oidx:           int64(oidx),
+		nidx:           int64(nidx),
 		c:              c,
-		oldT:           oldThreshold,
-		newT:           newThreshold,
+		oldT:           int64(oldThreshold),
+		newT:           int64(newThreshold),
 		newPresent:     newPresent,
 		oldPresent:     oldPresent,
 	}
@@ -378,7 +378,7 @@ func (d *DistKeyGenerator) ProcessDeal(dd *Deal) (*Response, error) {
 		dealCommits := ver.Commits()
 		// Check that the received committed share is equal to the one we
 		// generate from the known public polynomial
-		expectedPubShare := d.dpub.Eval(int(dd.Index))
+		expectedPubShare := d.dpub.Eval(int64(dd.Index))
 		if !expectedPubShare.V.Equal(dealCommits[0]) {
 			return reject()
 		}
@@ -454,7 +454,7 @@ func (d *DistKeyGenerator) processResharingResponse(resp *Response) (*Justificat
 	}
 
 	err := agg.ProcessResponse(resp.Response)
-	if int(resp.Index) != d.oidx {
+	if int64(resp.Index) != d.oidx {
 		return nil, err
 	}
 
@@ -718,7 +718,7 @@ func (d *DistKeyGenerator) dkgKey() (*DistKeyShare, error) {
 	return &DistKeyShare{
 		Commits: commits,
 		Share: &share.PriShare{
-			I: int(d.nidx),
+			I: int64(d.nidx),
 			V: sh,
 		},
 		PrivatePoly: d.dealer.PrivatePoly().Coefficients(),
@@ -734,19 +734,19 @@ func (d *DistKeyGenerator) resharingKey() (*DistKeyShare, error) {
 		deal := v.Deal()
 		coeffs[int(i)] = deal.Commitments
 		// share of dist. secret. Invertion of rows/column
-		deal.SecShare.I = int(i)
+		deal.SecShare.I = int64(i)
 		shares[int(i)] = deal.SecShare
 		return true
 	})
 
 	// the private polynomial is generated from the old nodes, thus inheriting
 	// the old threshold condition
-	priPoly, err := share.RecoverPriPoly(d.suite, shares, d.oldT, len(d.c.OldNodes))
+	priPoly, err := share.RecoverPriPoly(d.suite, shares, int(d.oldT), len(d.c.OldNodes))
 	if err != nil {
 		return nil, err
 	}
 	privateShare := &share.PriShare{
-		I: int(d.nidx),
+		I: int64(d.nidx),
 		V: priPoly.Secret(),
 	}
 
@@ -755,20 +755,20 @@ func (d *DistKeyGenerator) resharingKey() (*DistKeyShare, error) {
 	// the new public polynomial must however have "newT" coefficients since it
 	// will be held by the new nodes.
 	finalCoeffs := make([]kyber.Point, d.newT)
-	for i := 0; i < d.newT; i++ {
+	for i := int64(0); i < d.newT; i++ {
 		tmpCoeffs := make([]*share.PubShare, len(coeffs))
 		// take all i-th coefficients
 		for j := range coeffs {
 			if coeffs[j] == nil {
 				continue
 			}
-			tmpCoeffs[j] = &share.PubShare{I: j, V: coeffs[j][i]}
+			tmpCoeffs[j] = &share.PubShare{I: int64(j), V: coeffs[j][i]}
 		}
 
 		// using the old threshold / length because there are at most
 		// len(d.c.OldNodes) i-th coefficients since they are the one generating one
 		// each, thus using the old threshold.
-		coeff, err := share.RecoverCommit(d.suite, tmpCoeffs, d.oldT, len(d.c.OldNodes))
+		coeff, err := share.RecoverCommit(d.suite, tmpCoeffs, int(d.oldT), len(d.c.OldNodes))
 		if err != nil {
 			return nil, err
 		}

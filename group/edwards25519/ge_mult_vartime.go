@@ -14,7 +14,7 @@ func geScalarMultVartime(h *extendedGroupElement, a *[32]byte,
 	var t completedGroupElement
 	var u, A2 extendedGroupElement
 	var r projectiveGroupElement
-	var i int
+	var i int32
 
 	// Slide through the scalar exponent clumping sequences of bits,
 	// resulting in only zero or odd multipliers between -15 and 15.

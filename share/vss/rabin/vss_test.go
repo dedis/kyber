@@ -90,7 +90,7 @@ func TestVSSDealerNew(t *testing.T) {
 }
 
 func TestVSSVerifierNew(t *testing.T) {
-	randIdx := rand.Int() % len(verifiersPub)
+	randIdx := int64(rand.Int() % len(verifiersPub))
 	v, err := NewVerifier(suite, verifiersSec[randIdx], dealerPub, verifiersPub)
 	assert.NoError(t, err)
 	assert.Equal(t, randIdx, v.index)
@@ -230,7 +230,7 @@ func TestVSSVerifierReceiveDeal(t *testing.T) {
 	require.NotNil(t, resp)
 	assert.Equal(t, true, resp.Approved)
 	assert.Nil(t, err)
-	assert.Equal(t, v.index, int(resp.Index))
+	assert.Equal(t, v.index, int64(resp.Index))
 	assert.Equal(t, dealer.sid, resp.SessionID)
 	assert.Nil(t, schnorr.Verify(suite, v.pub, resp.Hash(suite), resp.Signature))
 	assert.Equal(t, v.responses[uint32(v.index)], resp)
@@ -245,7 +245,7 @@ func TestVSSVerifierReceiveDeal(t *testing.T) {
 
 	// wrong index
 	goodIdx := d.SecShare.I
-	d.SecShare.I = (goodIdx - 1) % nbVerifiers
+	d.SecShare.I = (goodIdx - 1) % int64(nbVerifiers)
 	encD, _ = dealer.EncryptedDeal(0)
 	resp, err = v.ProcessEncryptedDeal(encD)
 	assert.Error(t, err)
@@ -445,7 +445,7 @@ func TestVSSAggregatorVerifyDeal(t *testing.T) {
 	// index not in bounds
 	deal.SecShare.I = -1
 	assert.Error(t, aggr.VerifyDeal(deal, false))
-	deal.SecShare.I = len(verifiersPub)
+	deal.SecShare.I = int64(len(verifiersPub))
 	assert.Error(t, aggr.VerifyDeal(deal, false))
 
 	// shares invalid in respect to the commitments

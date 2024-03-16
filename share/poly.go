@@ -27,7 +27,7 @@ var errorCoeffs = errors.New("different number of coefficients")
 
 // PriShare represents a private share.
 type PriShare struct {
-	I int          // Index of the private share
+	I int64        // Index of the private share
 	V kyber.Scalar // Value of the private share
 }
 
@@ -81,7 +81,7 @@ func (p *PriPoly) Secret() kyber.Scalar {
 }
 
 // Eval computes the private share v = p(i).
-func (p *PriPoly) Eval(i int) *PriShare {
+func (p *PriPoly) Eval(i int64) *PriShare {
 	xi := p.g.Scalar().SetInt64(1 + int64(i))
 	v := p.g.Scalar().Zero()
 	for j := p.Threshold() - 1; j >= 0; j-- {
@@ -95,7 +95,7 @@ func (p *PriPoly) Eval(i int) *PriShare {
 func (p *PriPoly) Shares(n int) []*PriShare {
 	shares := make([]*PriShare, n)
 	for i := range shares {
-		shares[i] = p.Eval(i)
+		shares[i] = p.Eval(int64(i))
 	}
 	return shares
 }
@@ -214,7 +214,7 @@ func (s byIndexScalar) Less(i, j int) bool { return s[i].I < s[j].I }
 // xyScalar returns the list of (x_i, y_i) pairs indexed. The first map returned
 // is the list of x_i and the second map is the list of y_i, both indexed in
 // their respective map at index i.
-func xyScalar(g kyber.Group, shares []*PriShare, t, n int) (map[int]kyber.Scalar, map[int]kyber.Scalar) {
+func xyScalar(g kyber.Group, shares []*PriShare, t, n int) (map[int64]kyber.Scalar, map[int64]kyber.Scalar) {
 	// we are sorting first the shares since the shares may be unrelated for
 	// some applications. In this case, all participants needs to interpolate on
 	// the exact same order shares.
@@ -226,8 +226,8 @@ func xyScalar(g kyber.Group, shares []*PriShare, t, n int) (map[int]kyber.Scalar
 	}
 	sort.Sort(byIndexScalar(sorted))
 
-	x := make(map[int]kyber.Scalar)
-	y := make(map[int]kyber.Scalar)
+	x := make(map[int64]kyber.Scalar)
+	y := make(map[int64]kyber.Scalar)
 	for _, s := range sorted {
 		if s == nil || s.V == nil || s.I < 0 {
 			continue
@@ -296,7 +296,7 @@ func (p *PriPoly) String() string {
 
 // PubShare represents a public share.
 type PubShare struct {
-	I int         // Index of the public share
+	I int64       // Index of the public share
 	V kyber.Point // Value of the public share
 }
 
@@ -336,7 +336,7 @@ func (p *PubPoly) Commit() kyber.Point {
 }
 
 // Eval computes the public share v = p(i).
-func (p *PubPoly) Eval(i int) *PubShare {
+func (p *PubPoly) Eval(i int64) *PubShare {
 	xi := p.g.Scalar().SetInt64(1 + int64(i)) // x-coordinate of this share
 	v := p.g.Point().Null()
 	for j := p.Threshold() - 1; j >= 0; j-- {
@@ -350,7 +350,7 @@ func (p *PubPoly) Eval(i int) *PubShare {
 func (p *PubPoly) Shares(n int) []*PubShare {
 	shares := make([]*PubShare, n)
 	for i := range shares {
-		shares[i] = p.Eval(i)
+		shares[i] = p.Eval(int64(i))
 	}
 	return shares
 }
@@ -409,7 +409,7 @@ func (s byIndexPub) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 func (s byIndexPub) Less(i, j int) bool { return s[i].I < s[j].I }
 
 // xyCommits is the public version of xScalars.
-func xyCommit(g kyber.Group, shares []*PubShare, t, n int) (map[int]kyber.Scalar, map[int]kyber.Point) {
+func xyCommit(g kyber.Group, shares []*PubShare, t, n int) (map[int64]kyber.Scalar, map[int64]kyber.Point) {
 	// we are sorting first the shares since the shares may be unrelated for
 	// some applications. In this case, all participants needs to interpolate on
 	// the exact same order shares.
@@ -421,8 +421,8 @@ func xyCommit(g kyber.Group, shares []*PubShare, t, n int) (map[int]kyber.Scalar
 	}
 	sort.Sort(byIndexPub(sorted))
 
-	x := make(map[int]kyber.Scalar)
-	y := make(map[int]kyber.Point)
+	x := make(map[int64]kyber.Scalar)
+	y := make(map[int64]kyber.Point)
 
 	for _, s := range sorted {
 		if s == nil || s.V == nil || s.I < 0 {
@@ -504,7 +504,7 @@ func RecoverPubPoly(g kyber.Group, shares []*PubShare, t, n int) (*PubPoly, erro
 // lagrangeBasis returns a PriPoly containing the Lagrange coefficients for the
 // i-th position. xs is a mapping between the indices and the values that the
 // interpolation is using, computed with xyScalar().
-func lagrangeBasis(g kyber.Group, i int, xs map[int]kyber.Scalar) *PriPoly {
+func lagrangeBasis(g kyber.Group, i int64, xs map[int64]kyber.Scalar) *PriPoly {
 	var basis = &PriPoly{
 		g:      g,
 		coeffs: []kyber.Scalar{g.Scalar().One()},

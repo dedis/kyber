@@ -153,7 +153,7 @@ func Test_Example_DKG(t *testing.T) {
 		S := suite.Point().Mul(node.secretShare.V, K)
 		partials[i] = suite.Point().Sub(C, S)
 		pubShares[i] = &share.PubShare{
-			I: i, V: partials[i],
+			I: int64(i), V: partials[i],
 		}
 	}
 
@@ -220,7 +220,7 @@ func Test_Example_DKG(t *testing.T) {
 		)
 		partials[i] = v
 		pubShares[i] = &share.PubShare{
-			I: i, V: partials[i],
+			I: int64(i), V: partials[i],
 		}
 	}
 
