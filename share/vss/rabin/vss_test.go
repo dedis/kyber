@@ -113,7 +113,7 @@ func TestVSSShare(t *testing.T) {
 
 	aggr := ver.aggregator
 
-	for i := 1; i < aggr.t-1; i++ {
+	for i := int64(1); i < aggr.t-1; i++ {
 		aggr.responses[uint32(i)] = &Response{Approved: true}
 	}
 
@@ -135,7 +135,7 @@ func TestVSSAggregatorEnoughApprovals(t *testing.T) {
 	dealer := genDealer()
 	aggr := dealer.aggregator
 	// just below
-	for i := 0; i < aggr.t-1; i++ {
+	for i := int64(0); i < aggr.t-1; i++ {
 		aggr.responses[uint32(i)] = &Response{Approved: true}
 	}
 
@@ -147,7 +147,7 @@ func TestVSSAggregatorEnoughApprovals(t *testing.T) {
 	aggr.responses[uint32(aggr.t)] = &Response{Approved: true}
 	assert.True(t, aggr.EnoughApprovals())
 
-	for i := aggr.t + 1; i < nbVerifiers; i++ {
+	for i := aggr.t + 1; i < int64(nbVerifiers); i++ {
 		aggr.responses[uint32(i)] = &Response{Approved: true}
 	}
 	assert.True(t, aggr.EnoughApprovals())
@@ -158,7 +158,7 @@ func TestVSSAggregatorDealCertified(t *testing.T) {
 	dealer := genDealer()
 	aggr := dealer.aggregator
 
-	for i := 0; i < aggr.t; i++ {
+	for i := int64(0); i < aggr.t; i++ {
 		aggr.responses[uint32(i)] = &Response{Approved: true}
 	}
 
@@ -172,7 +172,7 @@ func TestVSSAggregatorDealCertified(t *testing.T) {
 	assert.Nil(t, dealer.SecretCommit())
 	// inconsistent state on purpose
 	// too much complaints
-	for i := 0; i < aggr.t; i++ {
+	for i := int64(0); i < aggr.t; i++ {
 		aggr.responses[uint32(i)] = &Response{Approved: false}
 	}
 	assert.False(t, aggr.DealCertified())
@@ -477,7 +477,7 @@ func TestVSSAggregatorCleanVerifiers(t *testing.T) {
 	dealer := genDealer()
 	aggr := dealer.aggregator
 
-	for i := 0; i < aggr.t; i++ {
+	for i := int64(0); i < aggr.t; i++ {
 		aggr.responses[uint32(i)] = &Response{Approved: true}
 	}
 
@@ -493,7 +493,7 @@ func TestVSSDealerSetTimeout(t *testing.T) {
 	dealer := genDealer()
 	aggr := dealer.aggregator
 
-	for i := 0; i < aggr.t; i++ {
+	for i := int64(0); i < aggr.t; i++ {
 		aggr.responses[uint32(i)] = &Response{Approved: true}
 	}
 
@@ -520,7 +520,7 @@ func TestVSSVerifierSetTimeout(t *testing.T) {
 
 	aggr := ver.aggregator
 
-	for i := 0; i < aggr.t; i++ {
+	for i := int64(0); i < aggr.t; i++ {
 		aggr.responses[uint32(i)] = &Response{Approved: true}
 	}
 
@@ -535,16 +535,16 @@ func TestVSSVerifierSetTimeout(t *testing.T) {
 func TestVSSSessionID(t *testing.T) {
 	dealer, _ := NewDealer(suite, dealerSec, secret, verifiersPub, vssThreshold)
 	commitments := dealer.deals[0].Commitments
-	sid, err := sessionID(suite, dealerPub, verifiersPub, commitments, dealer.t)
+	sid, err := sessionID(suite, dealerPub, verifiersPub, commitments, int(dealer.t))
 	assert.NoError(t, err)
 
-	sid2, err2 := sessionID(suite, dealerPub, verifiersPub, commitments, dealer.t)
+	sid2, err2 := sessionID(suite, dealerPub, verifiersPub, commitments, int(dealer.t))
 	assert.NoError(t, err2)
 	assert.Equal(t, sid, sid2)
 
 	wrongDealerPub := suite.Point().Add(dealerPub, dealerPub)
 
-	sid3, err3 := sessionID(suite, wrongDealerPub, verifiersPub, commitments, dealer.t)
+	sid3, err3 := sessionID(suite, wrongDealerPub, verifiersPub, commitments, int(dealer.t))
 	assert.NoError(t, err3)
 	assert.NotEqual(t, sid3, sid2)
 }

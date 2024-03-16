@@ -39,7 +39,8 @@ func Test_Example_DKG(t *testing.T) {
 		// default number of node for this test
 		nStr = "7"
 	}
-	n, err := strconv.Atoi(nStr)
+	nUnszd, err := strconv.Atoi(nStr)
+	n := uint32(nUnszd)
 	require.NoError(t, err)
 
 	type node struct {
@@ -55,7 +56,7 @@ func Test_Example_DKG(t *testing.T) {
 	pubKeys := make([]kyber.Point, n)
 
 	// 1. Init the nodes
-	for i := 0; i < n; i++ {
+	for i := uint32(0); i < n; i++ {
 		privKey := suite.Scalar().Pick(suite.RandomStream())
 		pubKey := suite.Point().Mul(privKey, nil)
 		pubKeys[i] = pubKey
@@ -69,7 +70,7 @@ func Test_Example_DKG(t *testing.T) {
 
 	// 2. Create the DKGs on each node
 	for i, node := range nodes {
-		dkg, err := dkg.NewDistKeyGenerator(suite, nodes[i].privKey, pubKeys, n)
+		dkg, err := dkg.NewDistKeyGenerator(suite, nodes[i].privKey, pubKeys, uint32(n))
 		require.NoError(t, err)
 		node.dkg = dkg
 	}
@@ -153,7 +154,7 @@ func Test_Example_DKG(t *testing.T) {
 		S := suite.Point().Mul(node.secretShare.V, K)
 		partials[i] = suite.Point().Sub(C, S)
 		pubShares[i] = &share.PubShare{
-			I: int64(i), V: partials[i],
+			I: int32(i), V: partials[i],
 		}
 	}
 
@@ -220,7 +221,7 @@ func Test_Example_DKG(t *testing.T) {
 		)
 		partials[i] = v
 		pubShares[i] = &share.PubShare{
-			I: int64(i), V: partials[i],
+			I: int32(i), V: partials[i],
 		}
 	}
 
@@ -251,8 +252,8 @@ func Test_Example_DKG(t *testing.T) {
 			OldNodes:     pubKeys,
 			NewNodes:     pubKeys,
 			Share:        share,
-			Threshold:    n,
-			OldThreshold: n,
+			Threshold:    uint32(n),
+			OldThreshold: uint32(n),
 		}
 		newDkg, err := dkg.NewDistKeyHandler(c)
 		require.NoError(t, err)

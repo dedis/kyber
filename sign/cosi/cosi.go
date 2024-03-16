@@ -411,18 +411,18 @@ func (p CompletePolicy) Check(m ParticipationMask) bool {
 //
 // Deprecated: the policy has moved to the package kyber/sign
 type ThresholdPolicy struct {
-	thold int
+	thold int64
 }
 
 // NewThresholdPolicy returns a new ThresholdPolicy with the given threshold.
 //
 // Deprecated: the policy has moved to the package kyber/sign
 func NewThresholdPolicy(thold int) *ThresholdPolicy {
-	return &ThresholdPolicy{thold: thold}
+	return &ThresholdPolicy{thold: int64(thold)}
 }
 
 // Check verifies that at least a threshold number of participants have
 // contributed to a collective signature.
 func (p ThresholdPolicy) Check(m ParticipationMask) bool {
-	return m.CountEnabled() >= p.thold
+	return int64(m.CountEnabled()) >= p.thold
 }

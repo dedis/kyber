@@ -75,7 +75,6 @@ func Example_hashProve1() {
 // This example implementation is less space-efficient, however,
 // because it uses the generic HashProver for Fiat-Shamir noninteractivity
 // instead of Liu/Wei/Wong's customized hash-ring structure.
-//
 func Example_hashProve2() {
 
 	// Crypto setup
@@ -90,7 +89,7 @@ func Example_hashProve2() {
 	}
 
 	// Make just one of them an actual public/private keypair (X[mine],x)
-	mine := 2                                      // only the signer knows this
+	mine := int64(2)                               // only the signer knows this
 	x := suite.Scalar().Pick(suite.RandomStream()) // create a private key x
 	X[mine] = suite.Point().Mul(x, nil)            // corresponding public key X
 
@@ -117,7 +116,7 @@ func Example_hashProve2() {
 	fmt.Printf("Linkable Ring Signature Predicate:\n%s\n", pred.String())
 
 	// The prover needs to know which Or branch (mine) is actually true.
-	choice := make(map[Predicate]int)
+	choice := make(map[Predicate]int64)
 	choice[pred] = mine
 
 	// Generate the signature

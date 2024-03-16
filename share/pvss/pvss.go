@@ -46,7 +46,7 @@ type PubVerShare struct {
 // the given secret and the list of public keys X using the sharing threshold
 // t and the base point H. The function returns the list of shares and the
 // public commitment polynomial.
-func EncShares(suite Suite, H kyber.Point, X []kyber.Point, secret kyber.Scalar, t int) (shares []*PubVerShare, commit *share.PubPoly, err error) {
+func EncShares(suite Suite, H kyber.Point, X []kyber.Point, secret kyber.Scalar, t uint32) (shares []*PubVerShare, commit *share.PubPoly, err error) {
 	n := len(X)
 	encShares := make([]*PubVerShare, n)
 
@@ -60,7 +60,7 @@ func EncShares(suite Suite, H kyber.Point, X []kyber.Point, secret kyber.Scalar,
 	pubPoly := priPoly.Commit(H)
 
 	// Prepare data for encryption consistency proofs ...
-	indices := make([]int64, n)
+	indices := make([]int32, n)
 	values := make([]kyber.Scalar, n)
 	HS := make([]kyber.Point, n)
 	for i := 0; i < n; i++ {
@@ -174,12 +174,12 @@ func VerifyDecShareBatch(suite Suite, G kyber.Point, X []kyber.Point, encShares 
 
 // RecoverSecret first verifies the given decrypted shares against their
 // decryption consistency proofs and then tries to recover the shared secret.
-func RecoverSecret(suite Suite, G kyber.Point, X []kyber.Point, encShares []*PubVerShare, decShares []*PubVerShare, t int, n int) (kyber.Point, error) {
+func RecoverSecret(suite Suite, G kyber.Point, X []kyber.Point, encShares []*PubVerShare, decShares []*PubVerShare, t, n uint32) (kyber.Point, error) {
 	D, err := VerifyDecShareBatch(suite, G, X, encShares, decShares)
 	if err != nil {
 		return nil, err
 	}
-	if len(D) < t {
+	if uint32(len(D)) < t {
 		return nil, errorTooFewShares
 	}
 	var shares []*share.PubShare

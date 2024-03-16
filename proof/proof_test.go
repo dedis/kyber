@@ -21,7 +21,7 @@ func TestRep(t *testing.T) {
 	Y := suite.Point().Mul(y, X)
 	R := suite.Point().Add(X, Y)
 
-	choice := make(map[Predicate]int)
+	choice := make(map[Predicate]int64)
 
 	// Simple single-secret predicate: prove X=x*B
 	log := Rep("X", "x", "B")
@@ -140,7 +140,6 @@ func Example_rep2() {
 // If the prover does know the relationship between B1 and B2, however,
 // then X does not serve as a useful commitment:
 // the prover can trivially compute the x1 corresponding to an arbitrary x2.
-//
 func Example_rep3() {
 	pred := Rep("X", "x1", "B1", "x2", "B2")
 	fmt.Println(pred.String())
@@ -210,7 +209,7 @@ func Example_or2() {
 	// We'll need to tell the prover which Or clause is actually true.
 	// In this case clause 0, the first sub-predicate, is true:
 	// i.e., we know a secret x such that X=x*B.
-	choice := make(map[Predicate]int)
+	choice := make(map[Predicate]int64)
 	choice[pred] = 0
 
 	// Generate a proof that we know the discrete logarithm of X or Y.

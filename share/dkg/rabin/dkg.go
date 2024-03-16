@@ -159,7 +159,7 @@ type DistKeyGenerator struct {
 
 	participants []kyber.Point
 
-	t int
+	t uint32
 
 	dealer    *vss.Dealer
 	verifiers map[uint32]*vss.Verifier
@@ -179,7 +179,7 @@ type DistKeyGenerator struct {
 // the longterm secret key, the list of participants, and the
 // threshold t parameter. It returns an error if the secret key's
 // commitment can't be found in the list of participants.
-func NewDistKeyGenerator(suite Suite, longterm kyber.Scalar, participants []kyber.Point, t int) (*DistKeyGenerator, error) {
+func NewDistKeyGenerator(suite Suite, longterm kyber.Scalar, participants []kyber.Point, t uint32) (*DistKeyGenerator, error) {
 	pub := suite.Point().Mul(longterm, nil)
 	// find our index
 	var found bool
@@ -358,7 +358,7 @@ func (d *DistKeyGenerator) SetTimeout() {
 // vss.Verifier.DealCertified()). If the distribution is certified, the protocol
 // can continue using d.SecretCommits().
 func (d *DistKeyGenerator) Certified() bool {
-	return len(d.QUAL()) >= d.t
+	return uint32(len(d.QUAL())) >= d.t
 }
 
 // QUAL returns the index in the list of participants that forms the QUALIFIED
@@ -572,14 +572,14 @@ func (d *DistKeyGenerator) ProcessReconstructCommits(rs *ReconstructCommits) err
 	arr = append(arr, rs)
 	d.pendingReconstruct[rs.DealerIndex] = arr
 	// check if we can reconstruct commitments
-	if len(arr) >= d.t {
+	if uint32(len(arr)) >= d.t {
 		var shares = make([]*share.PriShare, len(arr))
 		for i, r := range arr {
 			shares[i] = r.Share
 		}
 		// error only happens when you have less than t shares, but we ensure
 		// there are more just before
-		pri, _ := share.RecoverPriPoly(d.suite, shares, d.t, len(d.participants))
+		pri, _ := share.RecoverPriPoly(d.suite, shares, d.t, uint32(len(d.participants)))
 		d.commitments[rs.DealerIndex] = pri.Commit(d.suite.Point().Base())
 		// note it has been reconstructed.
 		d.reconstructed[rs.DealerIndex] = true
@@ -593,7 +593,7 @@ func (d *DistKeyGenerator) ProcessReconstructCommits(rs *ReconstructCommits) err
 // returns false otherwise.
 func (d *DistKeyGenerator) Finished() bool {
 	var ret = true
-	var nb = 0
+	var nb = uint32(0)
 	d.qualIter(func(idx uint32, v *vss.Verifier) bool {
 		nb++
 		// ALL QUAL members should have their commitments by now either given or
@@ -650,7 +650,7 @@ func (d *DistKeyGenerator) DistKeyShare() (*DistKeyShare, error) {
 	return &DistKeyShare{
 		Commits: commits,
 		Share: &share.PriShare{
-			I: int64(d.index),
+			I: d.index,
 			V: sh,
 		},
 	}, nil
