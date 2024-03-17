@@ -30,6 +30,11 @@ func TestShuffleSequence(t *testing.T) {
 	sequenceShuffleTest(s, k, NQ, N)
 }
 
+func TestInvalidShuffleSequence(t *testing.T) {
+	s := edwards25519.NewBlakeSHA256Ed25519WithRand(blake2xb.New(nil))
+	sequenceInvalidShuffleTest(t, s, k, NQ)
+}
+
 func setShuffleKeyPairs(rand cipher.Stream, suite Suite, k int) (kyber.Scalar, kyber.Point, []kyber.Scalar, []kyber.Point) {
 	// Create a "server" private/public keypair
 	h0 := suite.Scalar().Pick(rand)
@@ -175,4 +180,62 @@ func sequenceShuffleTest(suite Suite, k, NQ, N int) {
 			panic("failed to hashVerify: " + err.Error())
 		}
 	}
+}
+
+func sequenceInvalidShuffleTest(t *testing.T, suite Suite, k, NQ int) {
+	rand := suite.RandomStream()
+	_, h1, _, c1 := setShuffleKeyPairs(rand, suite, k)
+
+	X := make([][]kyber.Point, NQ)
+	Y := make([][]kyber.Point, NQ)
+
+	// generate random sequences
+	for i := 0; i < NQ; i++ {
+		xs := make([]kyber.Point, k)
+		ys := make([]kyber.Point, k)
+
+		for j := 0; j < k; j++ {
+			xs[j] = suite.Point().Mul(suite.Scalar().Pick(suite.RandomStream()), nil)
+			ys[j] = suite.Point().Mul(suite.Scalar().Pick(suite.RandomStream()), nil)
+		}
+
+		X[i] = xs
+		Y[i] = ys
+	}
+
+	// ElGamal-encrypt all these keypairs with the "server" key
+	r := suite.Scalar() // temporary
+	for j := 0; j < NQ; j++ {
+		for i := 0; i < k; i++ {
+			r.Pick(rand)
+			X[j][i] = suite.Point().Mul(r, nil)
+			Y[j][i] = suite.Point().Mul(r, h1) // ElGamal blinding factor
+			Y[j][i].Add(Y[j][i], c1[i])        // Encrypted client public key
+		}
+	}
+
+	// Do a key-shuffle
+	XX, YY, getProver := SequencesShuffle(suite, nil, h1, X, Y, rand)
+
+	// Corrupt original inputs
+	X[0][0], Y[0][0] = X[0][1], Y[0][1]
+
+	e := make([]kyber.Scalar, NQ)
+	for j := 0; j < NQ; j++ {
+		e[j] = suite.Scalar().Pick(suite.RandomStream())
+	}
+
+	prover, err := getProver(e)
+	assert.Nil(t, err)
+
+	prf, err := proof.HashProve(suite, "PairShuffle", prover)
+	assert.Nil(t, err)
+
+	XXUp, YYUp, XXDown, YYDown := GetSequenceVerifiable(suite, X, Y, XX, YY, e)
+
+	// Check it
+	verifier := Verifier(suite, nil, h1, XXUp, YYUp, XXDown, YYDown)
+
+	err = proof.HashVerify(suite, "PairShuffle", verifier, prf)
+	assert.Error(t, err)
 }
