@@ -4,6 +4,7 @@ import (
 	"crypto/cipher"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"go.dedis.ch/kyber/v3"
 	"go.dedis.ch/kyber/v3/group/edwards25519"
 	"go.dedis.ch/kyber/v3/proof"
@@ -17,6 +18,11 @@ var N = 1
 func TestShufflePair(t *testing.T) {
 	s := edwards25519.NewBlakeSHA256Ed25519WithRand(blake2xb.New(nil))
 	pairShuffleTest(s, k, N)
+}
+
+func TestShuffleInvalidPair(t *testing.T) {
+	s := edwards25519.NewBlakeSHA256Ed25519WithRand(blake2xb.New(nil))
+	pairInvalidShuffleTest(t, s, k)
 }
 
 func TestShuffleSequence(t *testing.T) {
@@ -74,6 +80,36 @@ func pairShuffleTest(suite Suite, k, n int) {
 			panic("Shuffle verify failed: " + err.Error())
 		}
 	}
+}
+
+func pairInvalidShuffleTest(t *testing.T, suite Suite, k int) {
+	rand := suite.RandomStream()
+	_, h1, _, c1 := setShuffleKeyPairs(rand, suite, k)
+
+	// ElGamal-encrypt all these keypairs with the "server" key
+	x := make([]kyber.Point, k)
+	y := make([]kyber.Point, k)
+	r := suite.Scalar() // temporary
+	for i := 0; i < k; i++ {
+		r.Pick(rand)
+		x[i] = suite.Point().Mul(r, nil)
+		y[i] = suite.Point().Mul(r, h1) // ElGamal blinding factor
+		y[i].Add(y[i], c1[i])           // Encrypted client public key
+	}
+
+	// Do a key-shuffle
+	Xbar, Ybar, prover := Shuffle(suite, nil, h1, x, y, rand)
+
+	// Corrupt the shuffle
+	Xbar[1], Xbar[0] = Xbar[0], Xbar[1]
+
+	prf, err := proof.HashProve(suite, "PairShuffle", prover)
+	assert.Nil(t, err)
+
+	// Check it
+	verifier := Verifier(suite, nil, h1, x, y, Xbar, Ybar)
+	err = proof.HashVerify(suite, "PairShuffle", verifier, prf)
+	assert.Error(t, err)
 }
 
 func sequenceShuffleTest(suite Suite, k, NQ, N int) {
