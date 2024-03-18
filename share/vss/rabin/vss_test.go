@@ -303,6 +303,7 @@ func TestVSSAggregatorVerifyJustification(t *testing.T) {
 	d.SecShare.V = goodV
 
 	j, err := dealer.ProcessResponse(resp)
+	assert.NoError(t, err)
 
 	// invalid deal justified
 	goodV = j.Deal.SecShare.V
@@ -388,6 +389,7 @@ func TestVSSAggregatorVerifyResponse(t *testing.T) {
 	// wrong index
 	resp.Index = uint32(len(verifiersPub))
 	sig, err := schnorr.Sign(suite, v.longterm, resp.Hash(suite))
+	assert.NoError(t, err)
 	resp.Signature = sig
 	assert.Error(t, aggr.verifyResponse(resp))
 	resp.Index = 0

@@ -341,7 +341,10 @@ func (d *DistKeyGenerator) ProcessDeal(dd *Deal) (*Response, error) {
 		return nil, err
 	}
 
-	ver, _ := d.verifiers[dd.Index]
+	ver, ok := d.verifiers[dd.Index]
+	if !ok {
+		return nil, fmt.Errorf("missing verifiers")
+	}
 
 	resp, err := ver.ProcessEncryptedDeal(dd.Deal)
 	if err != nil {

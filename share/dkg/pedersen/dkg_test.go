@@ -202,6 +202,7 @@ func TestDKGProcessResponse(t *testing.T) {
 	require.Nil(t, err)
 
 	resp12, err := rec.ProcessDeal(deals2[idxRec])
+	require.NoError(t, err)
 	require.NotNil(t, resp)
 	require.Equal(t, vss.StatusComplaint, resp12.Response.Status)
 	require.Equal(t, deals2[idxRec].Index, uint32(dkg2.nidx))
@@ -797,7 +798,7 @@ func TestDKGResharingNewNodesThreshold(t *testing.T) {
 		require.Equal(t, newDkgs[i].nidx, i)
 	}
 
-	//alive := oldT - 1
+	// alive := oldT - 1
 	alive := oldT
 	oldSelected := make([]*DistKeyGenerator, 0, alive)
 	selected := make(map[string]bool)
@@ -1130,12 +1131,8 @@ func TestDKGResharingPartialNewNodes(t *testing.T) {
 
 	newPrivs := make([]kyber.Scalar, 0, newN)
 	newPubs := make([]kyber.Point, 0, newN)
-	for _, priv := range oldPrivs[1:] {
-		newPrivs = append(newPrivs, priv)
-	}
-	for _, pub := range oldPubs[1:] {
-		newPubs = append(newPubs, pub)
-	}
+	newPrivs = append(newPrivs, oldPrivs[1:]...)
+	newPubs = append(newPubs, oldPubs[1:]...)
 	// add two new nodes
 	priv1, pub1 := genPair()
 	priv2, pub2 := genPair()
