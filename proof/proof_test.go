@@ -251,6 +251,7 @@ func Example_or2() {
 
 func BenchmarkProof(b *testing.B) {
 	rand := blake2xb.New([]byte("random"))
+	predicateSize := 100
 	suites := []struct {
 		Suite
 	}{
@@ -268,7 +269,7 @@ func BenchmarkProof(b *testing.B) {
 		pval := map[string]kyber.Point{}
 		predicateBuilder := make([]string, 0)
 
-		for i := 0; i < b.N; i++ {
+		for i := 0; i < predicateSize; i++ {
 			s := suite.Scalar().Pick(rand)
 			index := strconv.Itoa(i)
 
