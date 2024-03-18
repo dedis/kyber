@@ -15,7 +15,7 @@ require (
 )
 
 require (
-	github.com/bits-and-blooms/bitset v1.7.0 // indirect
+	github.com/bits-and-blooms/bitset v1.13.0 // indirect
 	github.com/consensys/bavard v0.1.13 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/kilic/bls12-381 v0.1.0 // indirect
