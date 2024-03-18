@@ -406,3 +406,43 @@ func TestNegPairAll(t *testing.T) {
 	require.True(t, pair2.Equal(pair3))
 	require.True(t, pair3.Equal(pair4))
 }
+
+func BenchmarkBn256(b *testing.B) {
+	suite := NewSuite()
+	c := suite.G1().Scalar().Pick(random.New())
+	d := suite.G1().Scalar().Pick(random.New())
+	e := suite.G2().Scalar()
+
+	p1 := newPointG1()
+	p2 := newPointG2()
+
+	b.Run("Add", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			e.Add(c, d)
+		}
+	})
+
+	b.Run("Sub", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			e.Sub(c, d)
+		}
+	})
+
+	b.Run("Mul", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			e.Mul(c, d)
+		}
+	})
+
+	b.Run("Div", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			e.Div(c, d)
+		}
+	})
+
+	b.Run("Pairing", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			suite.Pair(p1, p2)
+		}
+	})
+}
