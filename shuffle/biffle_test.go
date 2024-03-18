@@ -35,7 +35,7 @@ func biffleTest(suite Suite, N int) {
 		Y[i].Add(Y[i], c1[i])           // Encrypted client public key
 	}
 
-	// Repeat only the actual shuffle portion for test purposes.
+	// Repeat only the actual shuffle portion for benchmark purposes.
 	for i := 0; i < N; i++ {
 
 		// Do a key-shuffle
