@@ -1,4 +1,4 @@
-package pairing
+package kilic
 
 import (
 	"testing"
@@ -7,8 +7,8 @@ import (
 	"go.dedis.ch/kyber/v3/util/key"
 )
 
-func TestAdapter_SuiteBn256(t *testing.T) {
-	suite := NewSuiteBn256()
+func TestAdapter_SuiteBLS12381(t *testing.T) {
+	suite := NewSuiteBLS12381()
 
 	pair := key.NewKeyPair(suite)
 	pubkey, err := pair.Public.MarshalBinary()
@@ -24,5 +24,5 @@ func TestAdapter_SuiteBn256(t *testing.T) {
 	err = privhex.UnmarshalBinary(privkey)
 	require.Nil(t, err)
 
-	require.Equal(t, "bn256.adapter", suite.String())
+	require.Equal(t, "kilic.adapter", suite.String())
 }

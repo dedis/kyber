@@ -62,21 +62,58 @@ func (p *pointG1) Clone() kyber.Point {
 }
 
 func (p *pointG1) EmbedLen() int {
-	panic("bn256.G1: unsupported operation")
+	// 2^255 is ~size of the curve P
+	// minus one byte for randomness
+	// minus one byte for len(data)
+	return (255 - 8 - 8) / 8
 }
 
 func (p *pointG1) Embed(data []byte, rand cipher.Stream) kyber.Point {
-	// XXX: An approach to implement this is:
-	// - Encode data as the x-coordinate of a point on y²=x³+3 where len(data)
-	//   is stored in the least significant byte of x and the rest is being
-	//   filled with random values, i.e., x = rand || data || len(data).
-	// - Use the Tonelli-Shanks algorithm to compute the y-coordinate.
-	// - Convert the new point to Jacobian coordinates and set it as p.
-	panic("bn256.G1: unsupported operation")
+	// How many bytes to embed?
+	dl := p.EmbedLen()
+	if dl > len(data) {
+		dl = len(data)
+	}
+
+	for {
+		// Pick a random point, with optional embedded data
+		var b [32]byte
+		rand.XORKeyStream(b[:], b[:])
+		if data != nil {
+			b[0] = byte(dl)       // Encode length in low 8 bits
+			copy(b[1:1+dl], data) // Copy in data to embed
+		}
+		x := new(big.Int).SetBytes(b[:])
+
+		y := deriveY(x)
+		if y != nil {
+			p.g.x = *newGFpFromBigInt(x)
+			p.g.y = *newGFpFromBigInt(y)
+			p.g.z = *newGFp(1)
+			if p.g.IsOnCurve() {
+				return p
+			}
+		}
+	}
 }
 
 func (p *pointG1) Data() ([]byte, error) {
-	panic("bn256.G1: unsupported operation")
+	var b [32]byte
+
+	pgtemp := *p.g
+	pgtemp.MakeAffine()
+	if pgtemp.IsInfinity() {
+		return b[:], nil
+	}
+	tmp := &gfP{}
+	montDecode(tmp, &pgtemp.x)
+	tmp.Marshal(b[:])
+
+	dl := int(b[0]) // extract length byte
+	if dl > p.EmbedLen() {
+		return nil, errors.New("invalid embedded data length")
+	}
+	return b[1 : 1+dl], nil
 }
 
 func (p *pointG1) Add(a, b kyber.Point) kyber.Point {
@@ -224,33 +261,29 @@ func (p *pointG1) Hash(m []byte) kyber.Point {
 // hashes a byte slice into two points on a curve represented by big.Int
 // ideally we want to do this using gfP, but gfP doesn't have a ModSqrt function
 func hashToPoint(m []byte) (*big.Int, *big.Int) {
-	// we need to convert curveB into a bigInt for our computation
-	intCurveB := new(big.Int)
-	{
-		decodedCurveB := new(gfP)
-		montDecode(decodedCurveB, curveB)
-		bufCurveB := make([]byte, 32)
-		decodedCurveB.Marshal(bufCurveB)
-		intCurveB.SetBytes(bufCurveB)
-	}
-
 	h := sha256.Sum256(m)
 	x := new(big.Int).SetBytes(h[:])
 	x.Mod(x, p)
 
 	for {
-		xxx := new(big.Int).Mul(x, x)
-		xxx.Mul(xxx, x)
-		xxx.Mod(xxx, p)
-
-		t := new(big.Int).Add(xxx, intCurveB)
-		y := new(big.Int).ModSqrt(t, p)
+		y := deriveY(x)
 		if y != nil {
 			return x, y
 		}
 
 		x.Add(x, big.NewInt(1))
 	}
+}
+
+func deriveY(x *big.Int) *big.Int {
+	intCurveB := curveB.BigInt()
+	xxx := new(big.Int).Mul(x, x)
+	xxx.Mul(xxx, x)
+	xxx.Mod(xxx, p)
+
+	t := new(big.Int).Add(xxx, intCurveB)
+	y := new(big.Int).ModSqrt(t, p)
+	return y
 }
 
 type pointG2 struct {

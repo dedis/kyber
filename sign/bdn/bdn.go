@@ -70,13 +70,13 @@ func hashPointToR(pubs []kyber.Point) ([]kyber.Scalar, error) {
 // NewKeyPair creates a new BLS signing key pair. The private key x is a scalar
 // and the public key X is a point on curve G2.
 func NewKeyPair(suite pairing.Suite, random cipher.Stream) (kyber.Scalar, kyber.Point) {
-	return bls.NewKeyPair(suite, random)
+	return bls.NewSchemeOnG1(suite).NewKeyPair(random)
 }
 
 // Sign creates a BLS signature S = x * H(m) on a message m using the private
 // key x. The signature S is a point on curve G1.
 func Sign(suite pairing.Suite, x kyber.Scalar, msg []byte) ([]byte, error) {
-	return bls.Sign(suite, x, msg)
+	return bls.NewSchemeOnG1(suite).Sign(x, msg)
 }
 
 // Verify checks the given BLS signature S on the message m using the public
@@ -84,7 +84,7 @@ func Sign(suite pairing.Suite, x kyber.Scalar, msg []byte) ([]byte, error) {
 // e(x*H(m), B2) == e(S, B2) holds where e is the pairing operation and B2 is
 // the base point from curve G2.
 func Verify(suite pairing.Suite, x kyber.Point, msg, sig []byte) error {
-	return bls.Verify(suite, x, msg, sig)
+	return bls.NewSchemeOnG1(suite).Verify(x, msg, sig)
 }
 
 // AggregateSignatures aggregates the signatures using a coefficient for each

@@ -258,9 +258,9 @@ func NewDistKeyGenerator(suite Suite, longterm kyber.Scalar, participants []kybe
 // and is ommitted from the returned map. To know which participant a deal
 // belongs to, loop over the keys as indices in the list of new participants:
 //
-//   for i,dd := range distDeals {
-//      sendTo(participants[i],dd)
-//   }
+//	for i,dd := range distDeals {
+//	   sendTo(participants[i],dd)
+//	}
 //
 // If this method cannot process its own Deal, that indicates a
 // severe problem with the configuration or implementation and
@@ -292,7 +292,10 @@ func (d *DistKeyGenerator) Deals() (map[int]*Deal, error) {
 			return nil, err
 		}
 
-		if i == int(d.nidx) && d.newPresent {
+		// if there is a resharing in progress, nodes that stay must send their
+		// deals to the old nodes, otherwise old nodes won't get responses from
+		// staying nodes and won't be certified.
+		if i == int(d.nidx) && d.newPresent && !d.isResharing {
 			if d.processed {
 				continue
 			}
@@ -338,7 +341,10 @@ func (d *DistKeyGenerator) ProcessDeal(dd *Deal) (*Response, error) {
 		return nil, err
 	}
 
-	ver, _ := d.verifiers[dd.Index]
+	ver, ok := d.verifiers[dd.Index]
+	if !ok {
+		return nil, fmt.Errorf("missing verifiers")
+	}
 
 	resp, err := ver.ProcessEncryptedDeal(dd.Deal)
 	if err != nil {
@@ -378,11 +384,14 @@ func (d *DistKeyGenerator) ProcessDeal(dd *Deal) (*Response, error) {
 		}
 	}
 
-	// if the dealer in the old list is also present in the new list, then set
+	// If the dealer in the old list is also present in the new list, then set
 	// his response to approval since he won't issue his own response for his
-	// own deal
+	// own deal.
+	// In the case of resharing the dealer will issue his own response in order
+	// for the old comities to get responses and be certified, which is why we
+	// don't add it manually there.
 	newIdx, found := findPub(d.c.NewNodes, pub)
-	if found {
+	if found && !d.isResharing {
 		d.verifiers[dd.Index].UnsafeSetResponseDKG(uint32(newIdx), vss.StatusApproval)
 	}
 
@@ -807,7 +816,7 @@ func (d *DistKeyGenerator) initVerifiers(c *Config) error {
 	return nil
 }
 
-//Renew adds the new distributed key share g (with secret 0) to the distributed key share d.
+// Renew adds the new distributed key share g (with secret 0) to the distributed key share d.
 func (d *DistKeyShare) Renew(suite Suite, g *DistKeyShare) (*DistKeyShare, error) {
 	// Check G(0) = 0*G.
 	if !g.Public().Equal(suite.Point().Base().Mul(suite.Scalar().Zero(), nil)) {

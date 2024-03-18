@@ -11,9 +11,21 @@ func BenchmarkBiffleP256(b *testing.B) {
 }
 
 func Benchmark2PairShuffleP256(b *testing.B) {
-	shuffleTest(nist.NewBlakeSHA256P256(), 2, b.N)
+	pairShuffleTest(nist.NewBlakeSHA256P256(), 2, b.N)
 }
 
 func Benchmark10PairShuffleP256(b *testing.B) {
-	shuffleTest(nist.NewBlakeSHA256P256(), 10, b.N)
+	pairShuffleTest(nist.NewBlakeSHA256P256(), 10, b.N)
+}
+
+func Benchmark2Pair2SeqShuffleP256(b *testing.B) {
+	sequenceShuffleTest(nist.NewBlakeSHA256P256(), 2, 2, b.N)
+}
+
+func Benchmark2Pair10SeqShuffleP256(b *testing.B) {
+	sequenceShuffleTest(nist.NewBlakeSHA256P256(), 2, 10, b.N)
+}
+
+func Benchmark10Pair10SeqShuffleP256(b *testing.B) {
+	sequenceShuffleTest(nist.NewBlakeSHA256P256(), 10, 10, b.N)
 }
