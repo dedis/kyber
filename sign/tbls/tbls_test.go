@@ -1,12 +1,15 @@
 package tbls
 
 import (
+	"bytes"
+	"crypto/rand"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 	"go.dedis.ch/kyber/v3/pairing/bn256"
 	"go.dedis.ch/kyber/v3/share"
 	"go.dedis.ch/kyber/v3/sign/bls"
+	"go.dedis.ch/kyber/v3/util/random"
 )
 
 func TestTBLS(test *testing.T) {
@@ -29,8 +32,11 @@ func BLSRoutine(test *testing.T, msg []byte, n int) {
 	suite := bn256.NewSuite()
 	th := n/2 + 1
 
-	secret := suite.G1().Scalar().Pick(suite.RandomStream())
-	priPoly := share.NewPriPoly(suite.G2(), th, secret, suite.RandomStream())
+	r := bytes.NewReader(msg)
+	stream := random.New(r, rand.Reader)
+
+	secret := suite.G1().Scalar().Pick(stream)
+	priPoly := share.NewPriPoly(suite.G2(), th, secret, stream)
 	pubPoly := priPoly.Commit(suite.G2().Point().Base())
 	sigShares := make([][]byte, 0)
 
