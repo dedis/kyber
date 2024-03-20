@@ -1,22 +1,20 @@
 package tbls
 
 import (
-	"bytes"
-	"crypto/rand"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 	"go.dedis.ch/kyber/v3/pairing/bn256"
 	"go.dedis.ch/kyber/v3/share"
 	"go.dedis.ch/kyber/v3/sign/bls"
-	"go.dedis.ch/kyber/v3/util/random"
+	"go.dedis.ch/kyber/v3/xof/blake2xb"
 )
 
 func TestTBLS(test *testing.T) {
-	BLSRoutine(test, []byte("Hello threshold Boneh-Lynn-Shacham"), 10)
+	TBLSRoutine(test, []byte("Hello threshold Boneh-Lynn-Shacham"), 10)
 }
 
-func FuzzBLS(f *testing.F) {
+func FuzzTBLS(f *testing.F) {
 	f.Fuzz(func(t *testing.T, msg []byte, n int) {
 		if (n < 1) || (n > 100) {
 			t.Skip("n must be between 1 and 100")
@@ -24,17 +22,16 @@ func FuzzBLS(f *testing.F) {
 		if (len(msg) < 1) || (len(msg) > 1000) {
 			t.Skip("msg must have byte length between 1 and 1000")
 		}
-		BLSRoutine(t, msg, n)
+		TBLSRoutine(t, msg, n)
 	})
 }
 
-func BLSRoutine(test *testing.T, msg []byte, n int) {
+func TBLSRoutine(test *testing.T, msg []byte, n int) {
 	suite := bn256.NewSuite()
 	th := n/2 + 1
 
-	r := bytes.NewReader(msg)
-	stream := random.New(r, rand.Reader)
-
+	// Use a deterministic seed for the random stream
+	stream := blake2xb.New(msg)
 	secret := suite.G1().Scalar().Pick(stream)
 	priPoly := share.NewPriPoly(suite.G2(), th, secret, stream)
 	pubPoly := priPoly.Commit(suite.G2().Point().Base())

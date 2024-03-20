@@ -23,7 +23,7 @@ func TestInvalidBiffle(t *testing.T) {
 
 func biffleTest(suite Suite, N int) {
 	rand := suite.RandomStream()
-	_, h1, _, c1 := setShuffleKeyPairs(rand, suite, 2)
+	h, c := setShuffleKeyPairs(rand, suite, 2)
 
 	// ElGamal-encrypt all these keypairs with the "server" key
 	var X, Y [2]kyber.Point
@@ -31,15 +31,15 @@ func biffleTest(suite Suite, N int) {
 	for i := 0; i < 2; i++ {
 		r.Pick(rand)
 		X[i] = suite.Point().Mul(r, nil)
-		Y[i] = suite.Point().Mul(r, h1) // ElGamal blinding factor
-		Y[i].Add(Y[i], c1[i])           // Encrypted client public key
+		Y[i] = suite.Point().Mul(r, h) // ElGamal blinding factor
+		Y[i].Add(Y[i], c[i])           // Encrypted client public key
 	}
 
 	// Repeat only the actual shuffle portion for benchmark purposes.
 	for i := 0; i < N; i++ {
 
 		// Do a key-shuffle
-		Xbar, Ybar, prover := Biffle(suite, nil, h1, X, Y, rand)
+		Xbar, Ybar, prover := Biffle(suite, nil, h, X, Y, rand)
 		prf, err := proof.HashProve(suite, "Biffle", prover)
 		if err != nil {
 			panic("Biffle proof failed: " + err.Error())
@@ -47,7 +47,7 @@ func biffleTest(suite Suite, N int) {
 		//fmt.Printf("proof:\n%s\n",hex.Dump(prf))
 
 		// Check it
-		verifier := BiffleVerifier(suite, nil, h1, X, Y, Xbar, Ybar)
+		verifier := BiffleVerifier(suite, nil, h, X, Y, Xbar, Ybar)
 		err = proof.HashVerify(suite, "Biffle", verifier, prf)
 		if err != nil {
 			panic("Biffle verify failed: " + err.Error())
@@ -57,7 +57,7 @@ func biffleTest(suite Suite, N int) {
 
 func biffleInvalidTest(suite Suite) {
 	rand := suite.RandomStream()
-	_, h1, _, c1 := setShuffleKeyPairs(rand, suite, 2)
+	h, c := setShuffleKeyPairs(rand, suite, 2)
 
 	// ElGamal-encrypt all these keypairs with the "server" key
 	var X, Y [2]kyber.Point
@@ -65,12 +65,12 @@ func biffleInvalidTest(suite Suite) {
 	for i := 0; i < 2; i++ {
 		r.Pick(rand)
 		X[i] = suite.Point().Mul(r, nil)
-		Y[i] = suite.Point().Mul(r, h1) // ElGamal blinding factor
-		Y[i].Add(Y[i], c1[i])           // Encrypted client public key
+		Y[i] = suite.Point().Mul(r, h) // ElGamal blinding factor
+		Y[i].Add(Y[i], c[i])           // Encrypted client public key
 	}
 
 	// Do a key-shuffle
-	Xbar, Ybar, prover := Biffle(suite, nil, h1, X, Y, rand)
+	Xbar, Ybar, prover := Biffle(suite, nil, h, X, Y, rand)
 	prf, err := proof.HashProve(suite, "Biffle", prover)
 	if err != nil {
 		panic("Biffle proof failed: " + err.Error())
@@ -80,7 +80,7 @@ func biffleInvalidTest(suite Suite) {
 	X[0], Y[0] = X[1], Y[1]
 
 	// Check it
-	verifier := BiffleVerifier(suite, nil, h1, X, Y, Xbar, Ybar)
+	verifier := BiffleVerifier(suite, nil, h, X, Y, Xbar, Ybar)
 	err = proof.HashVerify(suite, "Biffle", verifier, prf)
 	if err == nil {
 		panic("Biffle verify should have failed")

@@ -8,25 +8,27 @@ import (
 	"go.dedis.ch/kyber/v3"
 	"go.dedis.ch/kyber/v3/pairing/bn256"
 	"go.dedis.ch/kyber/v3/util/random"
+	"go.dedis.ch/kyber/v3/xof/blake2xb"
 )
 
 func TestBLS(t *testing.T) {
+	suite := bn256.NewSuite()
 	msg := []byte("Hello Boneh-Lynn-Shacham")
-	BLSRoutine(t, msg)
+	BLSRoutine(t, msg, suite)
 }
 
 func FuzzBLS(f *testing.F) {
+	suite := bn256.NewSuite()
 	f.Fuzz(func(t *testing.T, msg []byte) {
 		if len(msg) < 1 || len(msg) > 1000 {
 			t.Skip("msg must have byte length between 1 and 1000")
 		}
-		BLSRoutine(t, msg)
+		BLSRoutine(t, msg, suite)
 	})
 }
 
-func BLSRoutine(t *testing.T, msg []byte) {
-	suite := bn256.NewSuite()
-	private, public := NewKeyPair(suite, random.New())
+func BLSRoutine(t *testing.T, msg []byte, suite *bn256.Suite) {
+	private, public := NewKeyPair(suite, blake2xb.New(msg))
 	sig, err := Sign(suite, private, msg)
 	require.Nil(t, err)
 	err = Verify(suite, public, msg, sig)
