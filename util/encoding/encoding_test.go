@@ -73,7 +73,7 @@ type MockEmptyReader struct {
 func (m *MockFailingReader) Read(p []byte) (n int, err error) {
 	return copy(p, m.data), io.EOF
 }
-func (m *MockEmptyReader) Read(p []byte) (n int, err error) {
+func (m *MockEmptyReader) Read(_ []byte) (n int, err error) {
 	return 0, nil
 }
 
