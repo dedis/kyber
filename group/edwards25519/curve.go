@@ -49,12 +49,12 @@ func (c *Curve) Point() kyber.Point {
 // requiring it to be a multiple of 8). It also returns the input and the digest used
 // to generate the key.
 func (c *Curve) NewKeyAndSeedWithInput(buffer []byte) (kyber.Scalar, []byte, []byte) {
-	digest := sha512.Sum512(buffer[:])
+	digest := sha512.Sum512(buffer)
 	digest[0] &= 0xf8
 	digest[31] &= 0x7f
 	digest[31] |= 0x40
 
-	secret := c.Scalar().(*scalar)
+	secret := c.Scalar().(*scalar) //nolint:errcheck // V4 may bring better error handling
 	copy(secret.v[:], digest[:])
 	return secret, buffer, digest[32:]
 }

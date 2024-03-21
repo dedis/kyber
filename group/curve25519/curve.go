@@ -81,6 +81,41 @@ func (c *curve) NewKey(stream cipher.Stream) kyber.Scalar {
 	return secret
 }
 
+func (c *curve) initBasePoint(self kyber.Group, p *Param, fullGroup bool, base point) {
+	var bx, by *big.Int
+	if fullGroup {
+		bx, by = &p.FBX, &p.FBY
+		base.initXY(&p.FBX, &p.FBY, self)
+	} else {
+		bx, by = &p.PBX, &p.PBY
+	}
+
+	if by.Sign() == 0 {
+		// No standard base point was defined, so pick one.
+		// Find the lowest-numbered y-coordinate that works.
+		var x, y mod.Int
+		for y.Init64(2, &c.P); ; y.Add(&y, &c.one) {
+			if !c.solveForX(&x, &y) {
+				continue // try another y
+			}
+			if c.coordSign(&x) != 0 {
+				x.Neg(&x) // try positive x first
+			}
+			base.initXY(&x.V, &y.V, self)
+			if c.validPoint(base) {
+				break // got one
+			}
+			x.Neg(&x) // try -bx
+			if c.validPoint(base) {
+				break // got one
+			}
+		}
+
+		bx, by = &x.V, &y.V
+	}
+	base.initXY(bx, by, self)
+}
+
 // Initialize a twisted Edwards curve with given parameters.
 // Caller passes pointers to null and base point prototypes to be initialized.
 func (c *curve) init(self kyber.Group, p *Param, fullGroup bool,
@@ -101,10 +136,10 @@ func (c *curve) init(self kyber.Group, p *Param, fullGroup bool,
 	// Note that we do NOT initialize c.order with Init(),
 	// as that would normalize to the modulus, resulting in zero.
 	// Just to be sure it's never used, we leave c.order.M set to nil.
-	// We want it to be in a ModInt so we can pass it to P.Mul(),
+	// We want it to be in a ModInt, so we can pass it to P.Mul(),
 	// but the scalar's modulus isn't needed for point multiplication.
 	if fullGroup {
-		// Scalar modulus is prime-order times the ccofactor
+		// Scalar modulus is prime-order times the cofactor
 		c.order.V.SetInt64(int64(p.R)).Mul(&c.order.V, &p.Q)
 	} else {
 		c.order.V.Set(&p.Q) // Prime-order subgroup
@@ -118,39 +153,7 @@ func (c *curve) init(self kyber.Group, p *Param, fullGroup bool,
 	null.initXY(zero, one, self)
 
 	// Base point B
-	var bx, by *big.Int
-	if !fullGroup {
-		bx, by = &p.PBX, &p.PBY
-	} else {
-		bx, by = &p.FBX, &p.FBY
-		base.initXY(&p.FBX, &p.FBY, self)
-	}
-	if by.Sign() == 0 {
-		// No standard base point was defined, so pick one.
-		// Find the lowest-numbered y-coordinate that works.
-		//println("Picking base point:")
-		var x, y mod.Int
-		for y.Init64(2, &c.P); ; y.Add(&y, &c.one) {
-			if !c.solveForX(&x, &y) {
-				continue // try another y
-			}
-			if c.coordSign(&x) != 0 {
-				x.Neg(&x) // try positive x first
-			}
-			base.initXY(&x.V, &y.V, self)
-			if c.validPoint(base) {
-				break // got one
-			}
-			x.Neg(&x) // try -bx
-			if c.validPoint(base) {
-				break // got one
-			}
-		}
-		//println("BX: "+x.V.String())
-		//println("BY: "+y.V.String())
-		bx, by = &x.V, &y.V
-	}
-	base.initXY(bx, by, self)
+	c.initBasePoint(self, p, fullGroup, base)
 
 	// Sanity checks
 	if !c.validPoint(null) {
@@ -209,7 +212,6 @@ func (c *curve) encodePoint(x, y *mod.Int) []byte {
 func (c *curve) decodePoint(bb []byte, x, y *mod.Int) error {
 
 	// Convert from little-endian
-	//fmt.Printf("decoding:\n%s\n", hex.Dump(bb))
 	b := make([]byte, len(bb))
 	reverse(b, bb)
 
@@ -239,7 +241,6 @@ func (c *curve) decodePoint(bb []byte, x, y *mod.Int) error {
 //
 // Returns true on success,
 // false if there is no x-coordinate corresponding to the chosen y-coordinate.
-//
 func (c *curve) solveForX(x, y *mod.Int) bool {
 	var yy, t1, t2 mod.Int
 
@@ -254,7 +255,6 @@ func (c *curve) solveForX(x, y *mod.Int) bool {
 // by checking the characteristic equation for Edwards curves:
 //
 //	a*x^2 + y^2 = 1 + d*x^2*y^2
-//
 func (c *curve) onCurve(x, y *mod.Int) bool {
 	var xx, yy, l, r mod.Int
 
@@ -269,22 +269,19 @@ func (c *curve) onCurve(x, y *mod.Int) bool {
 
 // Sanity-check a point to ensure that it is on the curve
 // and within the appropriate subgroup.
-func (c *curve) validPoint(P point) bool {
+func (c *curve) validPoint(p point) bool {
 
 	// Check on-curve
-	x, y := P.getXY()
+	x, y := p.getXY()
 	if !c.onCurve(x, y) {
 		return false
 	}
 
 	// Check in-subgroup by multiplying by subgroup order
 	Q := c.self.Point()
-	Q.Mul(&c.order, P)
-	if !Q.Equal(c.null) {
-		return false
-	}
+	Q.Mul(&c.order, p)
 
-	return true
+	return Q.Equal(c.null)
 }
 
 // Return number of bytes that can be embedded into points on this curve.
@@ -297,7 +294,7 @@ func (c *curve) embedLen() int {
 
 // Pick a [pseudo-]random curve point with optional embedded data,
 // filling in the point's x,y coordinates
-func (c *curve) embed(P point, data []byte, rand cipher.Stream) {
+func (c *curve) embed(p point, data []byte, rand cipher.Stream) {
 
 	// How much data to embed?
 	dl := c.embedLen()
@@ -336,7 +333,7 @@ func (c *curve) embed(P point, data []byte, rand cipher.Stream) {
 		}
 
 		// Initialize the point
-		P.initXY(&x.V, &y.V, c.self)
+		p.initXY(&x.V, &y.V, c.self)
 		if c.full {
 			// If we're using the full group,
 			// we just need any point on the curve, so we're done.
@@ -349,8 +346,8 @@ func (c *curve) embed(P point, data []byte, rand cipher.Stream) {
 		// we can convert our point into one in the subgroup
 		// simply by multiplying it by the cofactor.
 		if data == nil {
-			P.Mul(&c.cofact, P) // multiply by cofactor
-			if P.Equal(c.null) {
+			p.Mul(&c.cofact, p) // multiply by cofactor
+			if p.Equal(c.null) {
 				continue // unlucky; try again
 			}
 			return
@@ -362,7 +359,7 @@ func (c *curve) embed(P point, data []byte, rand cipher.Stream) {
 		if Q == nil {
 			Q = c.self.Point()
 		}
-		Q.Mul(&c.order, P)
+		Q.Mul(&c.order, p)
 		if Q.Equal(c.null) {
 			return
 		}
@@ -385,12 +382,11 @@ func (c *curve) data(x, y *mod.Int) ([]byte, error) {
 // reverse copies src into dst in byte-reversed order and returns dst,
 // such that src[0] goes into dst[len-1] and vice versa.
 // dst and src may be the same slice but otherwise must not overlap.
-func reverse(dst, src []byte) []byte {
+func reverse(dst, src []byte) {
 	l := len(dst)
 	for i, j := 0, l-1; i < (l+1)/2; {
 		dst[i], dst[j] = src[j], src[i]
 		i++
 		j--
 	}
-	return dst
 }

@@ -30,11 +30,11 @@ func (s *SuiteCurve25519) XOF(seed []byte) kyber.XOF {
 }
 
 func (s *SuiteCurve25519) Read(r io.Reader, objs ...interface{}) error {
-	return fixbuf.Read(r, s, objs)
+	return fixbuf.Read(r, s, objs...)
 }
 
 func (s *SuiteCurve25519) Write(w io.Writer, objs ...interface{}) error {
-	return fixbuf.Write(w, objs)
+	return fixbuf.Write(w, objs...)
 }
 
 // New implements the kyber.encoding interface

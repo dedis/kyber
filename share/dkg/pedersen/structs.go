@@ -53,9 +53,13 @@ type Deal struct {
 // message  signed in a dkg deal.
 func (d *Deal) MarshalBinary() ([]byte, error) {
 	var b bytes.Buffer
-	binary.Write(&b, binary.LittleEndian, d.Index)
-	b.Write(d.Deal.Cipher)
-	return b.Bytes(), nil
+	err := binary.Write(&b, binary.LittleEndian, d.Index)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = b.Write(d.Deal.Cipher)
+	return b.Bytes(), err
 }
 
 // Response holds the Response from another participant as well as the index of

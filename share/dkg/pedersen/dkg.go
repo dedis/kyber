@@ -14,11 +14,10 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
+	"go.dedis.ch/kyber/v3/util/random"
 	"io"
 
 	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/kyber/v3/util/random"
-
 	"go.dedis.ch/kyber/v3/share"
 	vss "go.dedis.ch/kyber/v3/share/vss/pedersen"
 	"go.dedis.ch/kyber/v3/sign/schnorr"
@@ -128,63 +127,61 @@ type DistKeyGenerator struct {
 	oldPresent bool
 	// already processed our own deal
 	processed bool
-	// did the timeout / period / already occured or not
+	// did the timeout / period / already occurred or not
 	timeout bool
 }
 
-// NewDistKeyHandler takes a Config and returns a DistKeyGenerator that is able
-// to drive the DKG or resharing protocol.
-func NewDistKeyHandler(c *Config) (*DistKeyGenerator, error) {
+// Helper for NewDistKeyHandler
+func checkInitConditionsNewDistKeyHandler(c *Config) (bool, error) {
 	if len(c.NewNodes) == 0 && len(c.OldNodes) == 0 {
-		return nil, errors.New("dkg: can't run with empty node list")
+		return false, errors.New("dkg: can't run with empty node list")
 	}
 
-	var isResharing bool
-	if c.Share != nil || c.PublicCoeffs != nil {
-		isResharing = true
-	}
+	isResharing := c.Share != nil || c.PublicCoeffs != nil
 	if isResharing {
 		if len(c.OldNodes) == 0 {
-			return nil, errors.New("dkg: resharing config needs old nodes list")
+			return false, errors.New("dkg: resharing config needs old nodes list")
 		}
 		if c.OldThreshold == 0 {
-			return nil, errors.New("dkg: resharing case needs old threshold field")
+			return false, errors.New("dkg: resharing case needs old threshold field")
 		}
 	}
-	// canReceive is true by default since in the default DKG mode everyone
-	// participates
-	var canReceive = true
-	pub := c.Suite.Point().Mul(c.Longterm, nil)
-	oidx, oldPresent := findPub(c.OldNodes, pub)
-	nidx, newPresent := findPub(c.NewNodes, pub)
-	if !oldPresent && !newPresent {
-		return nil, errors.New("dkg: public key not found in old list or new list")
-	}
 
-	var newThreshold int
-	if c.Threshold != 0 {
-		newThreshold = c.Threshold
-	} else {
-		newThreshold = vss.MinimumT(len(c.NewNodes))
-	}
+	return isResharing, nil
+}
 
+// Helper for NewDistKeyHandler
+func buildDealer(
+	c *Config,
+	newPresent bool,
+	isResharing bool,
+	newThreshold int,
+	oidx int,
+	oldPresent bool,
+	pub kyber.Point,
+) (*vss.Dealer, bool, int, bool, error) {
 	var dealer *vss.Dealer
-	var err error
 	var canIssue bool
-	if c.Share != nil {
+	var err error
+
+	switch {
+	case c.Share != nil:
 		// resharing case
 		secretCoeff := c.Share.Share.V
 		dealer, err = vss.NewDealer(c.Suite, c.Longterm, secretCoeff, c.NewNodes, newThreshold)
 		canIssue = true
-	} else if !isResharing && newPresent {
+	case !isResharing && newPresent:
 		// fresh DKG case
 		randomStream := random.New()
 		// if the user provided a reader, use it alone or combined with crypto/rand
-		if c.Reader != nil && !c.UserReaderOnly {
-			randomStream = random.New(c.Reader, rand.Reader)
-		} else if c.Reader != nil && c.UserReaderOnly {
-			randomStream = random.New(c.Reader)
+		if c.Reader != nil {
+			if c.UserReaderOnly {
+				randomStream = random.New(c.Reader)
+			} else {
+				randomStream = random.New(c.Reader, rand.Reader)
+			}
 		}
+
 		secretCoeff := c.Suite.Scalar().Pick(randomStream)
 		dealer, err = vss.NewDealer(c.Suite, c.Longterm, secretCoeff, c.NewNodes, newThreshold)
 		canIssue = true
@@ -192,38 +189,59 @@ func NewDistKeyHandler(c *Config) (*DistKeyGenerator, error) {
 		oidx, oldPresent = findPub(c.OldNodes, pub)
 	}
 
+	return dealer, canIssue, oidx, oldPresent, err
+}
+
+// NewDistKeyHandler takes a Config and returns a DistKeyGenerator that is able
+// to drive the DKG or re-sharing protocol.
+func NewDistKeyHandler(c *Config) (*DistKeyGenerator, error) {
+	isResharing, err := checkInitConditionsNewDistKeyHandler(c)
+	if err != nil {
+		return nil, err
+	}
+
+	pub := c.Suite.Point().Mul(c.Longterm, nil)
+	oidx, oldPresent := findPub(c.OldNodes, pub)
+	nidx, newPresent := findPub(c.NewNodes, pub)
+	if !oldPresent && !newPresent {
+		return nil, errors.New("dkg: public key not found in old list or new list")
+	}
+
+	var newThreshold, oldThreshold int
+	if c.Threshold > 0 {
+		newThreshold = c.Threshold
+	} else {
+		newThreshold = vss.MinimumT(len(c.NewNodes))
+	}
+
+	dealer, canIssue, oidx, oldPresent, err := buildDealer(c, newPresent, isResharing, newThreshold, oidx, oldPresent, pub)
 	if err != nil {
 		return nil, err
 	}
 
 	var dpub *share.PubPoly
-	var oldThreshold int
-	if !newPresent {
-		// if we are not in the new list of nodes, then we definitely can't
-		// receive anything
-		canReceive = false
-	} else if isResharing && newPresent {
-		if c.PublicCoeffs == nil && c.Share == nil {
-			return nil, errors.New("dkg: can't receive new shares without the public polynomial")
-		} else if c.PublicCoeffs != nil {
-			dpub = share.NewPubPoly(c.Suite, c.Suite.Point().Base(), c.PublicCoeffs)
-		} else if c.Share != nil {
+	if newPresent && isResharing {
+		if c.PublicCoeffs == nil {
+			if c.Share == nil {
+				return nil, errors.New("dkg: can't receive new shares without the public polynomial")
+			}
 			// take the commits of the share, no need to duplicate information
 			c.PublicCoeffs = c.Share.Commits
-			dpub = share.NewPubPoly(c.Suite, c.Suite.Point().Base(), c.PublicCoeffs)
 		}
+
+		dpub = share.NewPubPoly(c.Suite, c.Suite.Point().Base(), c.PublicCoeffs)
 		// oldThreshold is only useful in the context of a new share holder, to
 		// make sure there are enough correct deals from the old nodes.
-		canReceive = true
 		oldThreshold = len(c.PublicCoeffs)
 	}
+
 	dkg := &DistKeyGenerator{
 		dealer:         dealer,
 		oldAggregators: make(map[uint32]*vss.Aggregator),
 		suite:          c.Suite,
 		long:           c.Longterm,
 		pub:            pub,
-		canReceive:     canReceive,
+		canReceive:     newPresent,
 		canIssue:       canIssue,
 		isResharing:    isResharing,
 		dpub:           dpub,
@@ -243,7 +261,11 @@ func NewDistKeyHandler(c *Config) (*DistKeyGenerator, error) {
 
 // NewDistKeyGenerator returns a dist key generator ready to create a fresh
 // distributed key with the regular DKG protocol.
-func NewDistKeyGenerator(suite Suite, longterm kyber.Scalar, participants []kyber.Point, t int) (*DistKeyGenerator, error) {
+func NewDistKeyGenerator(
+	suite Suite,
+	longterm kyber.Scalar,
+	participants []kyber.Point,
+	t int) (*DistKeyGenerator, error) {
 	c := &Config{
 		Suite:     suite,
 		Longterm:  longterm,
@@ -267,7 +289,7 @@ func NewDistKeyGenerator(suite Suite, longterm kyber.Scalar, participants []kybe
 // results in a panic.
 func (d *DistKeyGenerator) Deals() (map[int]*Deal, error) {
 	if !d.canIssue {
-		// We do not hold a share, so we cannot make a deal, so
+		//nolint:nilnil // We do not hold a share, so we cannot make a deal, so
 		// return an empty map and no error. This makes callers not
 		// need to care if they are in a resharing context or not.
 		return nil, nil
@@ -302,7 +324,7 @@ func (d *DistKeyGenerator) Deals() (map[int]*Deal, error) {
 			d.processed = true
 			if resp, err := d.ProcessDeal(distd); err != nil {
 				panic("dkg: cannot process own deal: " + err.Error())
-			} else if resp.Response.Status != vss.StatusApproval {
+			} else if resp.Response.StatusApproved != vss.StatusApproval {
 				panic("dkg: own deal gave a complaint")
 			}
 			continue
@@ -361,7 +383,7 @@ func (d *DistKeyGenerator) ProcessDeal(dd *Deal) (*Response, error) {
 		// indicate to VSS that this dkg's new status is complaint for this
 		// deal
 		d.verifiers[uint32(dd.Index)].UnsafeSetResponseDKG(uint32(d.nidx), vss.StatusComplaint)
-		resp.Status = vss.StatusComplaint
+		resp.StatusApproved = vss.StatusComplaint
 		s, err := schnorr.Sign(d.suite, d.long, resp.Hash(d.suite))
 		if err != nil {
 			return nil, err
@@ -421,7 +443,7 @@ func (d *DistKeyGenerator) ProcessResponse(resp *Response) (*Justification, erro
 
 	myIdx := uint32(d.oidx)
 	if !d.canIssue || resp.Index != myIdx {
-		// no justification if we dont issue deals or the deal's not from us
+		//nolint:nilnil // no justification if we dont issue deals or the deal's not from us
 		return nil, nil
 	}
 
@@ -430,6 +452,7 @@ func (d *DistKeyGenerator) ProcessResponse(resp *Response) (*Justification, erro
 		return nil, err
 	}
 	if j == nil {
+		//nolint:nilnil // nothing to do
 		return nil, nil
 	}
 	if err := v.ProcessJustification(j); err != nil {
@@ -458,7 +481,8 @@ func (d *DistKeyGenerator) processResharingResponse(resp *Response) (*Justificat
 		return nil, err
 	}
 
-	if resp.Response.Status == vss.StatusApproval {
+	if resp.Response.StatusApproved == vss.StatusApproval {
+		//nolint:nilnil // status approved, no justification needed
 		return nil, nil
 	}
 
@@ -569,7 +593,7 @@ func (d *DistKeyGenerator) QualifiedShares() []int {
 		}
 		for holderIndex := range d.c.NewNodes {
 			resp, ok := responses[uint32(holderIndex)]
-			if ok && resp.Status == vss.StatusComplaint {
+			if ok && resp.StatusApproved == vss.StatusComplaint {
 				// 1. rule
 				invalidDeals[int(dealerIndex)] = true
 				break
@@ -623,13 +647,13 @@ func (d *DistKeyGenerator) ExpectedDeals() int {
 func (d *DistKeyGenerator) QUAL() []int {
 	var good []int
 	if d.isResharing && d.canIssue && !d.newPresent {
-		d.oldQualIter(func(i uint32, v *vss.Aggregator) bool {
+		d.oldQualIter(func(i uint32, _ *vss.Aggregator) bool {
 			good = append(good, int(i))
 			return true
 		})
 		return good
 	}
-	d.qualIter(func(i uint32, v *vss.Verifier) bool {
+	d.qualIter(func(i uint32, _ *vss.Verifier) bool {
 		good = append(good, int(i))
 		return true
 	})
@@ -638,7 +662,7 @@ func (d *DistKeyGenerator) QUAL() []int {
 
 func (d *DistKeyGenerator) isInQUAL(idx uint32) bool {
 	var found bool
-	d.qualIter(func(i uint32, v *vss.Verifier) bool {
+	d.qualIter(func(i uint32, _ *vss.Verifier) bool {
 		if i == idx {
 			found = true
 			return false
@@ -694,7 +718,7 @@ func (d *DistKeyGenerator) dkgKey() (*DistKeyShare, error) {
 	sh := d.suite.Scalar().Zero()
 	var pub *share.PubPoly
 	var err error
-	d.qualIter(func(i uint32, v *vss.Verifier) bool {
+	d.qualIter(func(_ uint32, v *vss.Verifier) bool {
 		// share of dist. secret = sum of all share received.
 		deal := v.Deal()
 		s := deal.SecShare.V
@@ -856,8 +880,4 @@ func findPub(list []kyber.Point, toFind kyber.Point) (int, bool) {
 		}
 	}
 	return 0, false
-}
-
-func checksDealCertified(i uint32, v *vss.Verifier) bool {
-	return v.DealCertified()
 }

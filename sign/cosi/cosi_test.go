@@ -38,12 +38,10 @@ func testCoSi(t *testing.T, n, f int) {
 	message := []byte("Hello World Cosi")
 
 	// Generate key pairs
-	var kps []*key.Pair
 	var privates []kyber.Scalar
 	var publics []kyber.Point
 	for i := 0; i < n; i++ {
 		kp := key.NewKeyPair(testSuite)
-		kps = append(kps, kp)
 		privates = append(privates, kp.Private)
 		publics = append(publics, kp.Public)
 	}
@@ -135,13 +133,9 @@ func TestMask(t *testing.T) {
 	n := 17
 
 	// Generate key pairs
-	var kps []*key.Pair
-	var privates []kyber.Scalar
 	var publics []kyber.Point
 	for i := 0; i < n; i++ {
 		kp := key.NewKeyPair(testSuite)
-		kps = append(kps, kp)
-		privates = append(privates, kp.Private)
 		publics = append(publics, kp.Public)
 	}
 

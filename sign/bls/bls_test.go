@@ -162,7 +162,8 @@ func BenchmarkBLSSign(b *testing.B) {
 	msg := []byte("Hello many times Boneh-Lynn-Shacham")
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		Sign(suite, private, msg)
+		_, err := Sign(suite, private, msg)
+		require.Nil(b, err)
 	}
 }
 
@@ -178,7 +179,8 @@ func BenchmarkBLSAggregateSigs(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		AggregateSignatures(suite, sig1, sig2)
+		_, err := AggregateSignatures(suite, sig1, sig2)
+		require.Nil(b, err)
 	}
 }
 
@@ -192,10 +194,12 @@ func BenchmarkBLSVerifyAggregate(b *testing.B) {
 	sig2, err := Sign(suite, private2, msg)
 	require.Nil(b, err)
 	sig, err := AggregateSignatures(suite, sig1, sig2)
+	require.Nil(b, err)
 	key := AggregatePublicKeys(suite, public1, public2)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		Verify(suite, key, msg, sig)
+		err := Verify(suite, key, msg, sig)
+		require.Nil(b, err)
 	}
 }
 
@@ -211,8 +215,9 @@ func BenchmarkBLSVerifyBatchVerify(b *testing.B) {
 		private, public := NewKeyPair(suite, random.New())
 		privates[i] = private
 		publics[i] = public
-		msg := make([]byte, 64, 64)
-		rand.Read(msg)
+		msg := make([]byte, 64)
+		_, err := rand.Read(msg)
+		require.Nil(b, err)
 		msgs[i] = msg
 		sig, err := Sign(suite, private, msg)
 		require.Nil(b, err)
@@ -222,7 +227,8 @@ func BenchmarkBLSVerifyBatchVerify(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		aggregateSig, _ := AggregateSignatures(suite, sigs...)
-		BatchVerify(suite, publics, msgs, aggregateSig)
+		err := BatchVerify(suite, publics, msgs, aggregateSig)
+		require.Nil(b, err)
 	}
 }
 

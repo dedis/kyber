@@ -2,7 +2,6 @@ package dkg
 
 import (
 	"crypto/rand"
-	"fmt"
 	mathRand "math/rand"
 	"strings"
 	"testing"
@@ -39,7 +38,7 @@ func generate(n, t int) (partPubs []kyber.Point, partSec []kyber.Scalar, dkgs []
 		}
 		dkgs[i] = dkg
 	}
-	return
+	return partPubs, partSec, dkgs
 }
 
 func TestDKGNewDistKeyGenerator(t *testing.T) {
@@ -109,7 +108,7 @@ func TestDKGProcessDeal(t *testing.T) {
 	// good deal
 	resp, err = rec.ProcessDeal(deal)
 	require.NotNil(t, resp)
-	require.Equal(t, vss.StatusApproval, resp.Response.Status)
+	require.Equal(t, vss.StatusApproval, resp.Response.StatusApproved)
 	require.Nil(t, err)
 	_, ok := rec.verifiers[deal.Index]
 	require.True(t, ok)
@@ -159,10 +158,8 @@ func TestDKGProcessResponse(t *testing.T) {
 	resp, err := rec.ProcessDeal(encD)
 	require.Nil(t, err)
 	require.NotNil(t, resp)
-	require.Equal(t, vss.StatusComplaint, resp.Response.Status)
+	require.Equal(t, vss.StatusComplaint, resp.Response.StatusApproved)
 	deal.SecShare.V = goodSecret
-	dd, _ = dkg.Deals()
-	encD = dd[idxRec]
 
 	// no verifier tied to Response
 	v, ok := dkg.verifiers[0]
@@ -204,10 +201,10 @@ func TestDKGProcessResponse(t *testing.T) {
 	resp12, err := rec.ProcessDeal(deals2[idxRec])
 	require.NoError(t, err)
 	require.NotNil(t, resp)
-	require.Equal(t, vss.StatusComplaint, resp12.Response.Status)
+	require.Equal(t, vss.StatusComplaint, resp12.Response.StatusApproved)
 	require.Equal(t, deals2[idxRec].Index, uint32(dkg2.nidx))
 	require.Equal(t, resp12.Index, uint32(dkg2.nidx))
-	require.Equal(t, vss.StatusComplaint, rec.verifiers[uint32(dkg2.oidx)].Responses()[uint32(rec.nidx)].Status)
+	require.Equal(t, vss.StatusComplaint, rec.verifiers[uint32(dkg2.oidx)].Responses()[uint32(rec.nidx)].StatusApproved)
 
 	deal21.SecShare.V = goodRnd21
 	deals2, err = dkg2.Deals()
@@ -232,7 +229,7 @@ func TestDKGProcessResponse(t *testing.T) {
 
 	// hack because all is local, and resp has been modified locally by dkg2's
 	// dealer, the status has became "justified"
-	resp12.Response.Status = vss.StatusComplaint
+	resp12.Response.StatusApproved = vss.StatusComplaint
 	err = dkg.ProcessJustification(j)
 	require.Nil(t, err)
 
@@ -329,7 +326,7 @@ func TestDKGResharingThreshold(t *testing.T) {
 				if dkg.newPresent && dkg.nidx == j {
 					resp, err := dkg.ProcessDeal(d)
 					require.Nil(t, err)
-					require.Equal(t, vss.StatusApproval, resp.Response.Status)
+					require.Equal(t, vss.StatusApproval, resp.Response.StatusApproved)
 					resps[i] = append(resps[i], resp)
 				}
 			}
@@ -345,7 +342,7 @@ func TestDKGResharingThreshold(t *testing.T) {
 				}
 				j, err := dkg.ProcessResponse(resp)
 				if err != nil {
-					fmt.Printf("old dkg at (oidx %d, nidx %d) has received response from idx %d for dealer idx %d\n", dkg.oidx, dkg.nidx, resp.Response.Index, resp.Index)
+					t.Logf("old dkg at (oidx %d, nidx %d) has received response from idx %d for dealer idx %d\n", dkg.oidx, dkg.nidx, resp.Response.Index, resp.Index)
 				}
 				require.Nil(t, err)
 				require.Nil(t, j)
@@ -450,7 +447,7 @@ func TestDKGThreshold(t *testing.T) {
 			}
 			resp, err := recipient.ProcessDeal(d)
 			require.Nil(t, err)
-			require.Equal(t, vss.StatusApproval, resp.Response.Status)
+			require.Equal(t, vss.StatusApproval, resp.Response.StatusApproved)
 			resps = append(resps, resp)
 		}
 	}
@@ -481,7 +478,7 @@ func TestDKGThreshold(t *testing.T) {
 		for i, v := range dkg.verifiers {
 			var app int
 			for _, r := range v.Responses() {
-				if r.Status == vss.StatusApproval {
+				if r.StatusApproved == vss.StatusApproval {
 					app++
 				}
 			}
@@ -561,9 +558,10 @@ func genPair() (kyber.Scalar, kyber.Point) {
 
 func randomBytes(n int) []byte {
 	var buff = make([]byte, n)
-	_, _ = rand.Read(buff[:])
+	_, _ = rand.Read(buff)
 	return buff
 }
+
 func checkDks(dks1, dks2 *DistKeyShare) bool {
 	if len(dks1.Commits) != len(dks2.Commits) {
 		return false
@@ -587,7 +585,7 @@ func fullExchange(t *testing.T, dkgs []*DistKeyGenerator, checkQUAL bool) {
 		for i, d := range deals {
 			resp, err := dkgs[i].ProcessDeal(d)
 			require.Nil(t, err)
-			require.Equal(t, vss.StatusApproval, resp.Response.Status)
+			require.Equal(t, vss.StatusApproval, resp.Response.StatusApproved)
 			resps = append(resps, resp)
 		}
 	}
@@ -826,7 +824,7 @@ func TestDKGResharingNewNodesThreshold(t *testing.T) {
 			dkg := newDkgs[j]
 			resp, err := dkg.ProcessDeal(d)
 			require.Nil(t, err)
-			require.Equal(t, vss.StatusApproval, resp.Response.Status)
+			require.Equal(t, vss.StatusApproval, resp.Response.StatusApproved)
 			resps[i] = append(resps[i], resp)
 		}
 	}
@@ -841,9 +839,8 @@ func TestDKGResharingNewNodesThreshold(t *testing.T) {
 					continue
 				}
 				j, err := dkg.ProcessResponse(resp)
-				//fmt.Printf("old dkg %d process responses from new dkg %d about deal %d\n", dkg.oidx, dkg.nidx, resp.Index)
 				if err != nil {
-					fmt.Printf("old dkg at (oidx %d, nidx %d) has received response from idx %d for dealer idx %d\n", dkg.oidx, dkg.nidx, resp.Response.Index, resp.Index)
+					t.Logf("old dkg at (oidx %d, nidx %d) has received response from idx %d for dealer idx %d\n", dkg.oidx, dkg.nidx, resp.Response.Index, resp.Index)
 				}
 				require.Nil(t, err)
 				require.Nil(t, j)
@@ -855,9 +852,8 @@ func TestDKGResharingNewNodesThreshold(t *testing.T) {
 					continue
 				}
 				j, err := dkg.ProcessResponse(resp)
-				//fmt.Printf("new dkg %d process responses from new dkg %d about deal %d\n", dkg.nidx, dkg.nidx, resp.Index)
 				if err != nil {
-					fmt.Printf("new dkg at nidx %d has received response from idx %d for deal %d\n", dkg.nidx, resp.Response.Index, resp.Index)
+					t.Logf("new dkg at nidx %d has received response from idx %d for deal %d\n", dkg.nidx, resp.Response.Index, resp.Index)
 				}
 				require.Nil(t, err)
 				require.Nil(t, j)
@@ -1034,7 +1030,7 @@ func TestDKGResharingNewNodes(t *testing.T) {
 			dkg := newDkgs[dest]
 			resp, err := dkg.ProcessDeal(d)
 			require.NoError(t, err)
-			require.Equal(t, vss.StatusApproval, resp.Response.Status)
+			require.Equal(t, vss.StatusApproval, resp.Response.StatusApproved)
 			resps[i] = append(resps[i], resp)
 		}
 	}
@@ -1221,11 +1217,8 @@ func TestDKGResharingPartialNewNodes(t *testing.T) {
 			dkg := newDkgs[j]
 			resp, err := dkg.ProcessDeal(d)
 			require.Nil(t, err)
-			require.Equal(t, vss.StatusApproval, resp.Response.Status)
+			require.Equal(t, vss.StatusApproval, resp.Response.StatusApproved)
 			resps[i] = append(resps[i], resp)
-			if i == 0 {
-				//fmt.Printf("dealer (oidx %d, nidx %d) processing deal to %d from %d\n", newDkgs[i].oidx, newDkgs[i].nidx, i, d.Index)
-			}
 		}
 	}
 
@@ -1244,9 +1237,8 @@ func TestDKGResharingPartialNewNodes(t *testing.T) {
 					continue
 				}
 				j, err := dkg.ProcessResponse(resp)
-				//fmt.Printf("old dkg %d process responses from new dkg %d about deal %d\n", dkg.oidx, dkg.nidx, resp.Index)
 				if err != nil {
-					fmt.Printf("old dkg at (oidx %d, nidx %d) has received response from idx %d for dealer idx %d\n", dkg.oidx, dkg.nidx, resp.Response.Index, resp.Index)
+					t.Logf("old dkg at (oidx %d, nidx %d) has received response from idx %d for dealer idx %d\n", dkg.oidx, dkg.nidx, resp.Response.Index, resp.Index)
 				}
 				require.Nil(t, err)
 				require.Nil(t, j)

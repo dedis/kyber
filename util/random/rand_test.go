@@ -32,7 +32,7 @@ func TestMixedEntropy(t *testing.T) {
 }
 
 func TestEmptyReader(t *testing.T) {
-	//expecting a panic
+	// expecting a panic
 	defer func() {
 		if r := recover(); r == nil {
 			t.Fatal("code did not panicked but should have")
@@ -75,7 +75,7 @@ func TestUserOnly(t *testing.T) {
 }
 
 func TestIncorrectSize(t *testing.T) {
-	//expecting a panic
+	// expecting a panic
 	defer func() {
 		if r := recover(); r == nil {
 			t.Fatal("code did not panicked but should have")

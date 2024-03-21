@@ -17,3 +17,4 @@ exit_tunnel
 *.cov
 profile.tmp
 Coding/
+.idea/

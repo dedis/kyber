@@ -74,7 +74,7 @@ type PartialSig struct {
 // threshold. It returns an error if the public key of the secret can't be found
 // in the list of participants.
 func NewDSS(suite Suite, secret kyber.Scalar, participants []kyber.Point,
-	long, random DistKeyShare, msg []byte, T int) (*DSS, error) {
+	long, random DistKeyShare, msg []byte, t int) (*DSS, error) {
 	public := suite.Point().Mul(secret, nil)
 	var i int
 	var found bool
@@ -99,7 +99,7 @@ func NewDSS(suite Suite, secret kyber.Scalar, participants []kyber.Point,
 		random:       random,
 		randomPoly:   share.NewPubPoly(suite, suite.Point().Base(), random.Commitments()),
 		msg:          msg,
-		T:            T,
+		T:            t,
 		partialsIdx:  make(map[int]bool),
 		sessionID:    sessionID(suite, long, random),
 	}, nil

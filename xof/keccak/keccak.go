@@ -17,7 +17,11 @@ type xof struct {
 // New creates a new XOF using the Shake256 hash.
 func New(seed []byte) kyber.XOF {
 	sh := sha3.NewShake256()
-	sh.Write(seed)
+	_, err := sh.Write(seed)
+	if err != nil {
+		panic("initiate XOF failed: " + err.Error())
+	}
+
 	return &xof{sh: sh}
 }
 
@@ -31,9 +35,15 @@ func (x *xof) Reseed() {
 	} else {
 		x.key = x.key[0:128]
 	}
-	x.Read(x.key)
+	_, err := x.Read(x.key)
+	if err != nil {
+		panic("xof error getting key: " + err.Error())
+	}
 	x.sh = sha3.NewShake256()
-	x.sh.Write(x.key)
+	_, err = x.sh.Write(x.key)
+	if err != nil {
+		panic("xof error writing key: " + err.Error())
+	}
 }
 
 func (x *xof) Read(dst []byte) (int, error) {

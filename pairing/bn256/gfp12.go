@@ -166,7 +166,7 @@ func (e *gfP12) Mul(a, b *gfP12) *gfP12 {
 	return e
 }
 
-func (e *gfP12) MulScalar(a *gfP12, b *gfP6) *gfP12 {
+func (e *gfP12) MulScalar(b *gfP6) *gfP12 {
 	e.x.Mul(&e.x, b)
 	e.y.Mul(&e.y, b)
 	return e
@@ -217,7 +217,7 @@ func (e *gfP12) Invert(a *gfP12) *gfP12 {
 
 	e.x.Neg(&a.x)
 	e.y.Set(&a.y)
-	e.MulScalar(e, t2)
+	e.MulScalar(t2)
 	return e
 }
 

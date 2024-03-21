@@ -55,7 +55,7 @@ import (
 // Commit returns a random scalar v, generated from the given suite,
 // and a corresponding commitment V = [v]G. If the given cipher stream is nil,
 // a random stream is used.
-func Commit(suite Suite) (v kyber.Scalar, V kyber.Point) {
+func Commit(suite Suite) (v kyber.Scalar, vp kyber.Point) {
 	random := suite.Scalar().Pick(suite.RandomStream())
 	commitment := suite.Point().Mul(random, nil)
 	return random, commitment
@@ -63,7 +63,11 @@ func Commit(suite Suite) (v kyber.Scalar, V kyber.Point) {
 
 // AggregateCommitments returns the sum of the given commitments and the
 // bitwise OR of the corresponding masks.
-func AggregateCommitments(suite Suite, commitments []kyber.Point, masks [][]byte) (sum kyber.Point, commits []byte, err error) {
+func AggregateCommitments(
+	suite Suite,
+	commitments []kyber.Point,
+	masks [][]byte,
+) (sum kyber.Point, commits []byte, err error) {
 	if len(commitments) != len(masks) {
 		return nil, nil, errors.New("mismatching lengths of commitment and mask slices")
 	}
@@ -153,7 +157,7 @@ func Sign(suite Suite, commitment kyber.Point, response kyber.Scalar, mask *Mask
 		return nil, errors.New("marshalling of signature failed")
 	}
 	sig := make([]byte, lenSig+mask.Len())
-	copy(sig[:], VB)
+	copy(sig, VB)
 	copy(sig[lenV:lenSig], RB)
 	copy(sig[lenSig:], mask.mask)
 	return sig, nil
@@ -198,7 +202,10 @@ func Verify(suite Suite, publics []kyber.Point, message, sig []byte, policy Poli
 	if err != nil {
 		return err
 	}
-	mask.SetMask(sig[lenRes:])
+	err = mask.SetMask(sig[lenRes:])
+	if err != nil {
+		return err
+	}
 	A := mask.AggregatePublic
 	ABuff, err := A.MarshalBinary()
 	if err != nil {
@@ -261,7 +268,10 @@ func NewMask(suite Suite, publics []kyber.Point, myKey kyber.Point) (*Mask, erro
 		found := false
 		for i, key := range publics {
 			if key.Equal(myKey) {
-				m.SetBit(i, true)
+				err := m.SetBit(i, true)
+				if err != nil {
+					return nil, err
+				}
 				found = true
 				break
 			}
@@ -276,7 +286,7 @@ func NewMask(suite Suite, publics []kyber.Point, myKey kyber.Point) (*Mask, erro
 // Mask returns a copy of the participation bitmask.
 func (m *Mask) Mask() []byte {
 	clone := make([]byte, len(m.mask))
-	copy(clone[:], m.mask)
+	copy(clone, m.mask)
 	return clone
 }
 
