@@ -15,7 +15,7 @@ var k = 5
 var NQ = 6
 var N = 1
 
-func TestShufflePair(t *testing.T) {
+func TestShufflePair(_ *testing.T) {
 	s := edwards25519.NewBlakeSHA256Ed25519WithRand(blake2xb.New(nil))
 	pairShuffleTest(s, k, N)
 }
@@ -25,7 +25,7 @@ func TestShuffleInvalidPair(t *testing.T) {
 	pairInvalidShuffleTest(t, s, k)
 }
 
-func TestShuffleSequence(t *testing.T) {
+func TestShuffleSequence(_ *testing.T) {
 	s := edwards25519.NewBlakeSHA256Ed25519WithRand(blake2xb.New(nil))
 	sequenceShuffleTest(s, k, NQ, N)
 }
@@ -151,19 +151,19 @@ func generateAndEncryptRandomSequences(
 	return X, Y
 }
 
-func sequenceShuffleTest(suite Suite, k, NQ, N int) {
+func sequenceShuffleTest(suite Suite, k, nq, n int) {
 	rand := suite.RandomStream()
 	h, c := setShuffleKeyPairs(rand, suite, k)
 	X, Y := generateAndEncryptRandomSequences(rand, suite, h, c, k)
 
 	// Repeat only the actual shuffle portion for benchmark purposes.
-	for i := 0; i < N; i++ {
+	for i := 0; i < n; i++ {
 
 		// Do a key-shuffle
 		XX, YY, getProver := SequencesShuffle(suite, nil, h, X, Y, rand)
 
-		e := make([]kyber.Scalar, NQ)
-		for j := 0; j < NQ; j++ {
+		e := make([]kyber.Scalar, nq)
+		for j := 0; j < nq; j++ {
 			e[j] = suite.Scalar().Pick(suite.RandomStream())
 		}
 
@@ -189,7 +189,7 @@ func sequenceShuffleTest(suite Suite, k, NQ, N int) {
 	}
 }
 
-func sequenceInvalidShuffleTest(t *testing.T, suite Suite, k, NQ int) {
+func sequenceInvalidShuffleTest(t *testing.T, suite Suite, k, nq int) {
 	rand := suite.RandomStream()
 	h, c := setShuffleKeyPairs(rand, suite, k)
 	X, Y := generateAndEncryptRandomSequences(rand, suite, h, c, k)
@@ -200,8 +200,8 @@ func sequenceInvalidShuffleTest(t *testing.T, suite Suite, k, NQ int) {
 	// Corrupt original inputs
 	X[0][0], Y[0][0] = X[0][1], Y[0][1]
 
-	e := make([]kyber.Scalar, NQ)
-	for j := 0; j < NQ; j++ {
+	e := make([]kyber.Scalar, nq)
+	for j := 0; j < nq; j++ {
 		e[j] = suite.Scalar().Pick(suite.RandomStream())
 	}
 
