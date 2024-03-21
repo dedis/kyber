@@ -81,7 +81,7 @@ func (c *curve) NewKey(stream cipher.Stream) kyber.Scalar {
 	return secret
 }
 
-func initBasePoint(c *curve, self kyber.Group, p *Param, fullGroup bool, base point) {
+func (c *curve) initBasePoint(self kyber.Group, p *Param, fullGroup bool, base point) {
 	var bx, by *big.Int
 	if fullGroup {
 		bx, by = &p.FBX, &p.FBY
@@ -153,7 +153,7 @@ func (c *curve) init(self kyber.Group, p *Param, fullGroup bool,
 	null.initXY(zero, one, self)
 
 	// Base point B
-	initBasePoint(c, self, p, fullGroup, base)
+	c.initBasePoint(self, p, fullGroup, base)
 
 	// Sanity checks
 	if !c.validPoint(null) {
