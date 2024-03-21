@@ -9,13 +9,13 @@ import (
 	"go.dedis.ch/kyber/v4/xof/blake2xb"
 )
 
-func TestBiffle(t *testing.T) {
+func TestBiffle(_ *testing.T) {
 	rand := blake2xb.New(nil)
 	s := edwards25519.NewBlakeSHA256Ed25519WithRand(rand)
 	biffleTest(s, N)
 }
 
-func TestInvalidBiffle(t *testing.T) {
+func TestInvalidBiffle(_ *testing.T) {
 	rand := blake2xb.New(nil)
 	s := edwards25519.NewBlakeSHA256Ed25519WithRand(rand)
 	biffleInvalidTest(s)
@@ -44,7 +44,6 @@ func biffleTest(suite Suite, n int) {
 		if err != nil {
 			panic("Biffle proof failed: " + err.Error())
 		}
-		//fmt.Printf("proof:\n%s\n",hex.Dump(prf))
 
 		// Check it
 		verifier := BiffleVerifier(suite, nil, h, X, Y, Xbar, Ybar)
