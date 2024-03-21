@@ -58,7 +58,7 @@ group. It returns a `true/false` indicating wether the Points are equal or not.
 | Output     | - `Point` : Caller Point with value equal to the neutral identity element |
 
 This function sets the receiver object to a neutral identity element, depending
-upon the suite taken into consideration. 
+upon the suite taken into consideration.
 
 ### Base()
 

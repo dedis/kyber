@@ -5,6 +5,7 @@
 *~
 moc_*
 ext/
+.idea/
 dissent
 docs/html
 test.log
