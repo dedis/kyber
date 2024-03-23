@@ -39,7 +39,8 @@ func Test_Example_DKG(t *testing.T) {
 		// default number of node for this test
 		nStr = "7"
 	}
-	n, err := strconv.Atoi(nStr)
+	nUnsz, err := strconv.Atoi(nStr)
+	n := uint32(nUnsz)
 	require.NoError(t, err)
 
 	type node struct {
@@ -55,7 +56,7 @@ func Test_Example_DKG(t *testing.T) {
 	pubKeys := make([]kyber.Point, n)
 
 	// 1. Init the nodes
-	for i := 0; i < n; i++ {
+	for i := uint32(0); i < n; i++ {
 		privKey := suite.Scalar().Pick(suite.RandomStream())
 		pubKey := suite.Point().Mul(privKey, nil)
 		pubKeys[i] = pubKey
@@ -111,8 +112,8 @@ func Test_Example_DKG(t *testing.T) {
 	// 6. Check and print the qualified shares
 	for _, node := range nodes {
 		require.True(t, node.dkg.Certified())
-		require.Equal(t, n, len(node.dkg.QualifiedShares()))
-		require.Equal(t, n, len(node.dkg.QUAL()))
+		require.Equal(t, n, uint32(len(node.dkg.QualifiedShares())))
+		require.Equal(t, n, uint32(len(node.dkg.QUAL())))
 		t.Log("qualified shares:", node.dkg.QualifiedShares())
 		t.Log("QUAL", node.dkg.QUAL())
 	}
@@ -153,7 +154,7 @@ func Test_Example_DKG(t *testing.T) {
 		S := suite.Point().Mul(node.secretShare.V, K)
 		partials[i] = suite.Point().Sub(C, S)
 		pubShares[i] = &share.PubShare{
-			I: i, V: partials[i],
+			I: uint32(i), V: partials[i],
 		}
 	}
 
@@ -220,7 +221,7 @@ func Test_Example_DKG(t *testing.T) {
 		)
 		partials[i] = v
 		pubShares[i] = &share.PubShare{
-			I: i, V: partials[i],
+			I: uint32(i), V: partials[i],
 		}
 	}
 

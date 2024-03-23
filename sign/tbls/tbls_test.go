@@ -13,7 +13,7 @@ func TestTBLS(test *testing.T) {
 	var err error
 	msg := []byte("Hello threshold Boneh-Lynn-Shacham")
 	suite := bn256.NewSuite()
-	n := 10
+	n := uint32(10)
 	t := n/2 + 1
 	secret := suite.G1().Scalar().Pick(suite.RandomStream())
 	priPoly := share.NewPriPoly(suite.G2(), t, secret, suite.RandomStream())

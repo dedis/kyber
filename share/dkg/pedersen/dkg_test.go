@@ -19,20 +19,20 @@ import (
 
 var suite = edwards25519.NewBlakeSHA256Ed25519()
 
-const defaultN = 5
+const defaultN = uint32(5)
 
 var defaultT = vss.MinimumT(defaultN)
 
-func generate(n, t int) (partPubs []kyber.Point, partSec []kyber.Scalar, dkgs []*DistKeyGenerator) {
+func generate(n, t uint32) (partPubs []kyber.Point, partSec []kyber.Scalar, dkgs []*DistKeyGenerator) {
 	partPubs = make([]kyber.Point, n)
 	partSec = make([]kyber.Scalar, n)
-	for i := 0; i < n; i++ {
+	for i := uint32(0); i < n; i++ {
 		sec, pub := genPair()
 		partPubs[i] = pub
 		partSec[i] = sec
 	}
 	dkgs = make([]*DistKeyGenerator, n)
-	for i := 0; i < n; i++ {
+	for i := uint32(0); i < n; i++ {
 		dkg, err := NewDistKeyGenerator(suite, partSec[i], partPubs, t)
 		if err != nil {
 			panic(err)
@@ -75,7 +75,7 @@ func TestDKGDeal(t *testing.T) {
 
 	deals, err := dkg.Deals()
 	require.Nil(t, err)
-	require.Len(t, deals, defaultN-1)
+	require.Len(t, deals, int(defaultN-1))
 
 	for i := range deals {
 		require.NotNil(t, deals[i])
@@ -95,8 +95,8 @@ func TestDKGProcessDeal(t *testing.T) {
 
 	rec := dkgs[1]
 	deal := deals[1]
-	require.Equal(t, int(deal.Index), 0)
-	require.Equal(t, 1, rec.nidx)
+	require.Equal(t, deal.Index, uint32(0))
+	require.Equal(t, uint32(1), rec.nidx)
 
 	// verifier don't find itself
 	goodP := rec.c.NewNodes
@@ -248,12 +248,12 @@ func TestDKGProcessResponse(t *testing.T) {
 // Test Resharing to a group with one mode node BUT only a threshold of dealers
 // are present during the resharing.
 func TestDKGResharingThreshold(t *testing.T) {
-	n := 7
+	n := uint32(7)
 	oldT := vss.MinimumT(n)
 	publics, _, dkgs := generate(n, oldT)
 	fullExchange(t, dkgs, true)
 
-	newN := len(dkgs) + 1
+	newN := uint32(len(dkgs)) + 1
 	newT := vss.MinimumT(newN)
 	shares := make([]*DistKeyShare, len(dkgs))
 	sshares := make([]*share.PriShare, len(dkgs))
@@ -302,7 +302,7 @@ func TestDKGResharingThreshold(t *testing.T) {
 	selectedDkgs = append(selectedDkgs, newDkgs[len(dkgs)])
 	selected[selectedDkgs[0].long.String()] = true
 	// select a subset of the new group
-	for len(selected) < newT+1 {
+	for uint32(len(selected)) < newT+1 {
 		idx := mathRand.Intn(len(newDkgs))
 		str := newDkgs[idx].long.String()
 		if selected[str] {
@@ -326,7 +326,7 @@ func TestDKGResharingThreshold(t *testing.T) {
 	for i, localDeals := range deals {
 		for j, d := range localDeals {
 			for _, dkg := range selectedDkgs {
-				if dkg.newPresent && dkg.nidx == j {
+				if dkg.newPresent && dkg.nidx == uint32(j) {
 					resp, err := dkg.ProcessDeal(d)
 					require.Nil(t, err)
 					require.Equal(t, vss.StatusApproval, resp.Response.Status)
@@ -401,20 +401,20 @@ func TestDKGResharingThreshold(t *testing.T) {
 // TestDKGThreshold tests the "threshold dkg" where only a subset of nodes succeed
 // at the DKG
 func TestDKGThreshold(t *testing.T) {
-	n := 7
+	n := uint32(7)
 	// should succeed with only this number of nodes
 	newTotal := vss.MinimumT(n)
 
 	dkgs := make([]*DistKeyGenerator, n)
 	privates := make([]kyber.Scalar, n)
 	publics := make([]kyber.Point, n)
-	for i := 0; i < n; i++ {
+	for i := uint32(0); i < n; i++ {
 		priv, pub := genPair()
 		privates[i] = priv
 		publics[i] = pub
 	}
 
-	for i := 0; i < n; i++ {
+	for i := uint32(0); i < n; i++ {
 		dkg, err := NewDistKeyGenerator(suite, privates[i], publics, newTotal)
 		if err != nil {
 			panic(err)
@@ -425,8 +425,8 @@ func TestDKGThreshold(t *testing.T) {
 	// only take a threshold of them
 	thrDKGs := make(map[uint32]*DistKeyGenerator)
 	alreadyTaken := make(map[int]bool)
-	for len(thrDKGs) < newTotal {
-		idx := mathRand.Intn(defaultN)
+	for uint32(len(thrDKGs)) < newTotal {
+		idx := mathRand.Intn(int(defaultN))
 		if alreadyTaken[idx] {
 			continue
 		}
@@ -495,7 +495,7 @@ func TestDKGThreshold(t *testing.T) {
 	}
 
 	for _, dkg := range thrDKGs {
-		require.Equal(t, newTotal, len(dkg.QUAL()))
+		require.Equal(t, newTotal, uint32(len(dkg.QUAL())))
 		require.True(t, dkg.ThresholdCertified())
 		require.False(t, dkg.Certified())
 		qualShares := dkg.QualifiedShares()
@@ -676,7 +676,7 @@ func TestDKGResharingRemoveNode(t *testing.T) {
 	publics, secrets, dkgs := generate(defaultN, oldT)
 	fullExchange(t, dkgs, true)
 
-	newN := len(publics) - 1
+	newN := uint32(len(publics) - 1)
 	shares := make([]*DistKeyShare, len(dkgs))
 	sshares := make([]*share.PriShare, len(dkgs))
 	for i, dkg := range dkgs {
@@ -719,7 +719,7 @@ func TestDKGResharingRemoveNode(t *testing.T) {
 	// key/
 
 	// 1.
-	for i := 0; i < newN; i++ {
+	for i := uint32(0); i < newN; i++ {
 		require.False(t, shares[i].Share.V.Equal(newShares[i].Share.V))
 	}
 	thr := vss.MinimumT(defaultN)
@@ -752,7 +752,7 @@ func TestDKGResharingNewNodesThreshold(t *testing.T) {
 	newT := oldT + 2
 	newPrivs := make([]kyber.Scalar, newN)
 	newPubs := make([]kyber.Point, newN)
-	for i := 0; i < newN; i++ {
+	for i := uint32(0); i < newN; i++ {
 		newPrivs[i], newPubs[i] = genPair()
 	}
 
@@ -760,7 +760,7 @@ func TestDKGResharingNewNodesThreshold(t *testing.T) {
 	oldDkgs := make([]*DistKeyGenerator, oldN)
 	newDkgs := make([]*DistKeyGenerator, newN)
 	var err error
-	for i := 0; i < oldN; i++ {
+	for i := uint32(0); i < oldN; i++ {
 		c := &Config{
 			Suite:        suite,
 			Longterm:     oldPrivs[i],
@@ -779,7 +779,7 @@ func TestDKGResharingNewNodesThreshold(t *testing.T) {
 		require.Equal(t, oldDkgs[i].oidx, i)
 	}
 
-	for i := 0; i < newN; i++ {
+	for i := uint32(0); i < newN; i++ {
 		c := &Config{
 			Suite:        suite,
 			Longterm:     newPrivs[i],
@@ -802,7 +802,7 @@ func TestDKGResharingNewNodesThreshold(t *testing.T) {
 	alive := oldT
 	oldSelected := make([]*DistKeyGenerator, 0, alive)
 	selected := make(map[string]bool)
-	for len(selected) < alive {
+	for uint32(len(selected)) < alive {
 		i := mathRand.Intn(len(oldDkgs))
 		str := oldDkgs[i].pub.String()
 		if _, exists := selected[str]; exists {
@@ -875,7 +875,7 @@ func TestDKGResharingNewNodesThreshold(t *testing.T) {
 
 	// 3. make sure everyone has the same QUAL set
 	for _, dkg := range newDkgs {
-		require.Equal(t, alive, len(dkg.QUAL()))
+		require.Equal(t, alive, uint32(len(dkg.QUAL())))
 		for _, dkg2 := range oldSelected {
 			require.True(t, dkg.isInQUAL(uint32(dkg2.oidx)), "new dkg %d has not in qual old dkg %d (qual = %v)", dkg.nidx, dkg2.oidx, dkg.QUAL())
 		}
@@ -916,7 +916,7 @@ func TestDKGResharingNewNodes(t *testing.T) {
 	// start resharing to a different group
 
 	oldN := defaultN
-	oldT := len(shares[0].Commits)
+	oldT := uint32(len(shares[0].Commits))
 	newN := oldN + 1
 	newT := oldT + 1
 	newPrivs := make([]kyber.Scalar, newN)
@@ -928,7 +928,7 @@ func TestDKGResharingNewNodes(t *testing.T) {
 	newPrivs[1] = oldPrivs[oldN-2]
 	newPubs[1] = oldPubs[oldN-2]
 
-	for i := 2; i < newN; i++ {
+	for i := uint32(2); i < newN; i++ {
 		newPrivs[i], newPubs[i] = genPair()
 	}
 
@@ -936,7 +936,7 @@ func TestDKGResharingNewNodes(t *testing.T) {
 
 	oldDkgs := make([]*DistKeyGenerator, oldN)
 	var err error
-	for i := 0; i < oldN; i++ {
+	for i := uint32(0); i < oldN; i++ {
 		c := &Config{
 			Suite:        suite,
 			Longterm:     oldPrivs[i],
@@ -965,7 +965,7 @@ func TestDKGResharingNewNodes(t *testing.T) {
 		require.True(t, oldDkgs[i].canIssue)
 		require.True(t, oldDkgs[i].isResharing)
 		require.False(t, oldDkgs[i].newPresent)
-		require.Equal(t, 0, oldDkgs[i].nidx) // default for nidx
+		require.Equal(t, uint32(0), oldDkgs[i].nidx) // default for nidx
 		require.Equal(t, oldDkgs[i].oidx, i)
 	}
 
@@ -976,7 +976,7 @@ func TestDKGResharingNewNodes(t *testing.T) {
 	newDkgs[0] = oldDkgs[oldN-1] // the first one is the last old one
 	newDkgs[1] = oldDkgs[oldN-2] // the second one is the before-last old one
 
-	for i := 2; i < newN; i++ {
+	for i := uint32(2); i < newN; i++ {
 		c := &Config{
 			Suite:        suite,
 			Longterm:     newPrivs[i],
@@ -996,7 +996,7 @@ func TestDKGResharingNewNodes(t *testing.T) {
 		require.True(t, newDkgs[i].newPresent)
 		require.Equal(t, newDkgs[i].nidx, i)
 		// each old dkg act as a verifier
-		require.Len(t, newDkgs[i].Verifiers(), oldN)
+		require.Len(t, newDkgs[i].Verifiers(), int(oldN))
 	}
 
 	// full secret sharing exchange
@@ -1010,7 +1010,7 @@ func TestDKGResharingNewNodes(t *testing.T) {
 
 		// each old DKG will sent a deal to each other dkg, including
 		// themselves.
-		require.Len(t, localDeals, newN)
+		require.Len(t, localDeals, int(newN))
 
 		deals[i] = localDeals
 
@@ -1042,7 +1042,7 @@ func TestDKGResharingNewNodes(t *testing.T) {
 	// all new dkgs should have the same length of verifiers map
 	for _, dkg := range newDkgs {
 		// one deal per old participants
-		require.Len(t, dkg.verifiers, oldN, "dkg nidx %d failing", dkg.nidx)
+		require.Len(t, dkg.verifiers, int(oldN), "dkg nidx %d failing", dkg.nidx)
 	}
 
 	// 2. Broadcast responses
@@ -1070,7 +1070,7 @@ func TestDKGResharingNewNodes(t *testing.T) {
 	}
 
 	for _, dkg := range newDkgs {
-		for i := 0; i < oldN; i++ {
+		for i := uint32(0); i < oldN; i++ {
 			require.True(t, dkg.verifiers[uint32(i)].DealCertified(), "new dkg %d has not certified deal %d => %v", dkg.nidx, i, dkg.verifiers[uint32(i)].Responses())
 		}
 	}
@@ -1123,7 +1123,7 @@ func TestDKGResharingPartialNewNodes(t *testing.T) {
 	}
 	// start resharing to a different group
 	oldN := defaultN
-	oldT := len(shares[0].Commits)
+	oldT := uint32(len(shares[0].Commits))
 	newN := oldN + 1
 	newT := oldT + 1
 	total := oldN + 2
@@ -1142,7 +1142,7 @@ func TestDKGResharingPartialNewNodes(t *testing.T) {
 	// creating all dkgs
 	totalDkgs := make([]*DistKeyGenerator, total)
 	var err error
-	for i := 0; i < oldN; i++ {
+	for i := uint32(0); i < oldN; i++ {
 		c := &Config{
 			Suite:        suite,
 			Longterm:     oldPrivs[i],
@@ -1192,8 +1192,8 @@ func TestDKGResharingPartialNewNodes(t *testing.T) {
 	}
 	newDkgs := totalDkgs[1:]
 	oldDkgs := totalDkgs[:oldN]
-	require.Equal(t, oldN, len(oldDkgs))
-	require.Equal(t, newN, len(newDkgs))
+	require.Equal(t, oldN, uint32(len(oldDkgs)))
+	require.Equal(t, newN, uint32(len(newDkgs)))
 
 	// full secret sharing exchange
 	// 1. broadcast deals
@@ -1232,7 +1232,7 @@ func TestDKGResharingPartialNewNodes(t *testing.T) {
 	// all new dkgs should have the same length of verifiers map
 	for _, dkg := range newDkgs {
 		// one deal per old participants
-		require.Equal(t, oldN, len(dkg.verifiers), "dkg nidx %d failing", dkg.nidx)
+		require.Equal(t, oldN, uint32(len(dkg.verifiers)), "dkg nidx %d failing", dkg.nidx)
 	}
 
 	// 2. Broadcast responses
@@ -1254,15 +1254,15 @@ func TestDKGResharingPartialNewNodes(t *testing.T) {
 		}
 	}
 	for _, dkg := range newDkgs {
-		for i := 0; i < oldN; i++ {
-			require.True(t, dkg.verifiers[uint32(i)].DealCertified(), "new dkg %d has not certified deal %d => %v", dkg.nidx, i, dkg.verifiers[uint32(i)].Responses())
+		for i := uint32(0); i < oldN; i++ {
+			require.True(t, dkg.verifiers[i].DealCertified(), "new dkg %d has not certified deal %d => %v", dkg.nidx, i, dkg.verifiers[i].Responses())
 		}
 	}
 
 	// 3. make sure everyone has the same QUAL set
 	for _, dkg := range newDkgs {
 		for _, dkg2 := range oldDkgs {
-			require.True(t, dkg.isInQUAL(uint32(dkg2.oidx)), "new dkg %d has not in qual old dkg %d (qual = %v)", dkg.nidx, dkg2.oidx, dkg.QUAL())
+			require.True(t, dkg.isInQUAL(dkg2.oidx), "new dkg %d has not in qual old dkg %d (qual = %v)", dkg.nidx, dkg2.oidx, dkg.QUAL())
 		}
 	}
 

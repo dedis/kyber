@@ -46,16 +46,16 @@ type DSS struct {
 	suite        Suite
 	secret       kyber.Scalar
 	public       kyber.Point
-	index        int
+	index        uint32
 	participants []kyber.Point
-	T            int
+	T            uint32
 	long         DistKeyShare
 	random       DistKeyShare
 	longPoly     *share.PubPoly
 	randomPoly   *share.PubPoly
 	msg          []byte
 	partials     []*share.PriShare
-	partialsIdx  map[int]bool
+	partialsIdx  map[uint32]bool
 	signed       bool
 	sessionID    []byte
 }
@@ -74,14 +74,14 @@ type PartialSig struct {
 // threshold. It returns an error if the public key of the secret can't be found
 // in the list of participants.
 func NewDSS(suite Suite, secret kyber.Scalar, participants []kyber.Point,
-	long, random DistKeyShare, msg []byte, T int) (*DSS, error) {
+	long, random DistKeyShare, msg []byte, T uint32) (*DSS, error) {
 	public := suite.Point().Mul(secret, nil)
-	var i int
+	var i uint32
 	var found bool
 	for j, p := range participants {
 		if p.Equal(public) {
 			found = true
-			i = j
+			i = uint32(j)
 			break
 		}
 	}
@@ -100,7 +100,7 @@ func NewDSS(suite Suite, secret kyber.Scalar, participants []kyber.Point,
 		randomPoly:   share.NewPubPoly(suite, suite.Point().Base(), random.Commitments()),
 		msg:          msg,
 		T:            T,
-		partialsIdx:  make(map[int]bool),
+		partialsIdx:  make(map[uint32]bool),
 		sessionID:    sessionID(suite, long, random),
 	}, nil
 }
@@ -175,7 +175,7 @@ func (d *DSS) ProcessPartialSig(ps *PartialSig) error {
 // the distributed signature. It returns false otherwise. If there are enough
 // partial signatures, one can issue the signature with `Signature()`.
 func (d *DSS) EnoughPartialSig() bool {
-	return len(d.partials) >= d.T
+	return uint32(len(d.partials)) >= d.T
 }
 
 // Signature computes the distributed signature from the list of partial
@@ -186,7 +186,7 @@ func (d *DSS) Signature() ([]byte, error) {
 	if !d.EnoughPartialSig() {
 		return nil, errors.New("dkg: not enough partial signatures to sign")
 	}
-	gamma, err := share.RecoverSecret(d.suite, d.partials, d.T, len(d.participants))
+	gamma, err := share.RecoverSecret(d.suite, d.partials, d.T, uint32(len(d.participants)))
 	if err != nil {
 		return nil, err
 	}
@@ -224,8 +224,8 @@ func (ps *PartialSig) Hash(s Suite) []byte {
 	return h.Sum(nil)
 }
 
-func findPub(list []kyber.Point, i int) (kyber.Point, bool) {
-	if i >= len(list) {
+func findPub(list []kyber.Point, i uint32) (kyber.Point, bool) {
+	if i >= uint32(len(list)) {
 		return nil, false
 	}
 	return list[i], true
