@@ -12,11 +12,11 @@ func TestPVSS(test *testing.T) {
 	suite := edwards25519.NewBlakeSHA256Ed25519()
 	G := suite.Point().Base()
 	H := suite.Point().Pick(suite.XOF([]byte("H")))
-	n := 10
+	n := uint32(10)
 	t := 2*n/3 + 1
 	x := make([]kyber.Scalar, n) // trustee private keys
 	X := make([]kyber.Point, n)  // trustee public keys
-	for i := 0; i < n; i++ {
+	for i := uint32(0); i < n; i++ {
 		x[i] = suite.Scalar().Pick(suite.RandomStream())
 		X[i] = suite.Point().Mul(x[i], nil)
 	}
@@ -30,7 +30,7 @@ func TestPVSS(test *testing.T) {
 
 	// (2) Share decryption (trustees)
 	sH := make([]kyber.Point, n)
-	for i := 0; i < n; i++ {
+	for i := uint32(0); i < n; i++ {
 		sH[i] = pubPoly.Eval(encShares[i].S.I).V
 	}
 
@@ -38,7 +38,7 @@ func TestPVSS(test *testing.T) {
 	var E []*PubVerShare // good encrypted shares
 	var D []*PubVerShare // good decrypted shares
 
-	for i := 0; i < n; i++ {
+	for i := uint32(0); i < n; i++ {
 		if ds, err := DecShare(suite, H, X[i], sH[i], x[i], encShares[i]); err == nil {
 			K = append(K, X[i])
 			E = append(E, encShares[i])
@@ -56,11 +56,11 @@ func TestPVSSDelete(test *testing.T) {
 	suite := edwards25519.NewBlakeSHA256Ed25519()
 	G := suite.Point().Base()
 	H := suite.Point().Pick(suite.XOF([]byte("H")))
-	n := 10
+	n := uint32(10)
 	t := 2*n/3 + 1
 	x := make([]kyber.Scalar, n) // trustee private keys
 	X := make([]kyber.Point, n)  // trustee public keys
-	for i := 0; i < n; i++ {
+	for i := uint32(0); i < n; i++ {
 		x[i] = suite.Scalar().Pick(suite.RandomStream())
 		X[i] = suite.Point().Mul(x[i], nil)
 	}
@@ -78,7 +78,7 @@ func TestPVSSDelete(test *testing.T) {
 
 	// (2) Share decryption (trustees)
 	sH := make([]kyber.Point, n)
-	for i := 0; i < n; i++ {
+	for i := uint32(0); i < n; i++ {
 		sH[i] = pubPoly.Eval(encShares[i].S.I).V
 	}
 
@@ -86,7 +86,7 @@ func TestPVSSDelete(test *testing.T) {
 	var E []*PubVerShare // good encrypted shares
 	var D []*PubVerShare // good decrypted shares
 
-	for i := 0; i < n; i++ {
+	for i := uint32(0); i < n; i++ {
 		if ds, err := DecShare(suite, H, X[i], sH[i], x[i], encShares[i]); err == nil {
 			K = append(K, X[i])
 			E = append(E, encShares[i])
@@ -107,11 +107,11 @@ func TestPVSSDeleteFail(test *testing.T) {
 	suite := edwards25519.NewBlakeSHA256Ed25519()
 	G := suite.Point().Base()
 	H := suite.Point().Pick(suite.XOF([]byte("H")))
-	n := 10
+	n := uint32(10)
 	t := 2*n/3 + 1
 	x := make([]kyber.Scalar, n) // trustee private keys
 	X := make([]kyber.Point, n)  // trustee public keys
-	for i := 0; i < n; i++ {
+	for i := uint32(0); i < n; i++ {
 		x[i] = suite.Scalar().Pick(suite.RandomStream())
 		X[i] = suite.Point().Mul(x[i], nil)
 	}
@@ -129,7 +129,7 @@ func TestPVSSDeleteFail(test *testing.T) {
 
 	// (2) Share decryption (trustees)
 	sH := make([]kyber.Point, n)
-	for i := 0; i < n; i++ {
+	for i := uint32(0); i < n; i++ {
 		sH[i] = pubPoly.Eval(encShares[i].S.I).V
 	}
 
@@ -137,7 +137,7 @@ func TestPVSSDeleteFail(test *testing.T) {
 	var E []*PubVerShare // good encrypted shares
 	var D []*PubVerShare // good decrypted shares
 
-	for i := 0; i < n; i++ {
+	for i := uint32(0); i < n; i++ {
 		if ds, err := DecShare(suite, H, X[i], sH[i], x[i], encShares[i]); err == nil {
 			K = append(K, X[i])
 			E = append(E, encShares[i])
@@ -158,11 +158,11 @@ func TestPVSSBatch(test *testing.T) {
 	suite := edwards25519.NewBlakeSHA256Ed25519()
 	G := suite.Point().Base()
 	H := suite.Point().Pick(suite.XOF([]byte("H")))
-	n := 5
+	n := uint32(5)
 	t := 2*n/3 + 1
 	x := make([]kyber.Scalar, n) // trustee private keys
 	X := make([]kyber.Point, n)  // trustee public keys
-	for i := 0; i < n; i++ {
+	for i := uint32(0); i < n; i++ {
 		x[i] = suite.Scalar().Pick(suite.RandomStream())
 		X[i] = suite.Point().Mul(x[i], nil)
 	}
@@ -183,7 +183,7 @@ func TestPVSSBatch(test *testing.T) {
 	sH0 := make([]kyber.Point, n)
 	sH1 := make([]kyber.Point, n)
 	sH2 := make([]kyber.Point, n)
-	for i := 0; i < n; i++ {
+	for i := uint32(0); i < n; i++ {
 		sH0[i] = p0.Eval(e0[i].S.I).V
 		sH1[i] = p1.Eval(e1[i].S.I).V
 		sH2[i] = p2.Eval(e2[i].S.I).V

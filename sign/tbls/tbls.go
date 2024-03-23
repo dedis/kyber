@@ -25,14 +25,14 @@ import (
 type SigShare []byte
 
 // Index returns the index i of the TBLS share Si.
-func (s SigShare) Index() (int, error) {
+func (s SigShare) Index() (uint32, error) {
 	var index uint16
 	buf := bytes.NewReader(s)
 	err := binary.Read(buf, binary.BigEndian, &index)
 	if err != nil {
-		return -1, err
+		return 0, err
 	}
-	return int(index), nil
+	return uint32(index), nil
 }
 
 // Value returns the value v of the TBLS share Si.
@@ -75,7 +75,7 @@ func Verify(suite pairing.Suite, public *share.PubPoly, msg, sig []byte) error {
 // can be verified through the regular BLS verification routine using the
 // shared public key X. The shared public key can be computed by evaluating the
 // public sharing polynomial at index 0.
-func Recover(suite pairing.Suite, public *share.PubPoly, msg []byte, sigs [][]byte, t, n int) ([]byte, error) {
+func Recover(suite pairing.Suite, public *share.PubPoly, msg []byte, sigs [][]byte, t, n uint32) ([]byte, error) {
 	pubShares := make([]*share.PubShare, 0)
 	for _, sig := range sigs {
 		s := SigShare(sig)
@@ -91,7 +91,7 @@ func Recover(suite pairing.Suite, public *share.PubPoly, msg []byte, sigs [][]by
 			return nil, err
 		}
 		pubShares = append(pubShares, &share.PubShare{I: i, V: point})
-		if len(pubShares) >= t {
+		if uint32(len(pubShares)) >= t {
 			break
 		}
 	}

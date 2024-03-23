@@ -114,7 +114,7 @@ func testCoSi(t *testing.T, n, f int) {
 		if f == 0 {
 			p = nil
 		} else {
-			p = NewThresholdPolicy(n - f)
+			p = NewThresholdPolicy(uint32(n - f))
 		}
 		// send a short sig in, expect an error
 		if err := Verify(testSuite, publics, message, sig[0:10], p); err == nil {
@@ -170,7 +170,7 @@ func TestMask(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if masks[0].CountEnabled() != n {
+	if masks[0].CountEnabled() != uint32(n) {
 		t.Fatal(errors.New("unexpected number of active indices"))
 	}
 

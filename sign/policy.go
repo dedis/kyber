@@ -4,9 +4,9 @@ package sign
 // and the number of participants.
 type ParticipationMask interface {
 	// CountEnabled returns the number of participants
-	CountEnabled() int
+	CountEnabled() uint32
 	// CountTotal returns the number of candidates
-	CountTotal() int
+	CountTotal() uint32
 }
 
 // Policy represents a fully customizable cosigning policy deciding what
@@ -35,11 +35,11 @@ func (p CompletePolicy) Check(m ParticipationMask) bool {
 // least the given threshold number of participants t have cosigned to make a
 // collective signature valid.
 type ThresholdPolicy struct {
-	thold int
+	thold uint32
 }
 
 // NewThresholdPolicy returns a new ThresholdPolicy with the given threshold.
-func NewThresholdPolicy(thold int) *ThresholdPolicy {
+func NewThresholdPolicy(thold uint32) *ThresholdPolicy {
 	return &ThresholdPolicy{thold: thold}
 }
 

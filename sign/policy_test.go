@@ -7,15 +7,15 @@ import (
 )
 
 type testMask struct {
-	numCandidates   int
-	numParticipants int
+	numCandidates   uint32
+	numParticipants uint32
 }
 
-func (m testMask) CountTotal() int {
+func (m testMask) CountTotal() uint32 {
 	return m.numCandidates
 }
 
-func (m testMask) CountEnabled() int {
+func (m testMask) CountEnabled() uint32 {
 	return m.numParticipants
 }
 

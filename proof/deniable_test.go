@@ -85,7 +85,7 @@ func TestDeniable(t *testing.T) {
 		vpval := map[string]kyber.Point{"B": B, "X": nodes[vi].X}
 		vrfs[vi] = vpred.Verifier(suite, vpval)
 
-		n.proto = DeniableProver(suite, i, prover, vrfs)
+		n.proto = DeniableProver(suite, uint32(i), prover, vrfs)
 		n.outbox = make(chan []byte)
 		n.inbox = make(chan [][]byte)
 
