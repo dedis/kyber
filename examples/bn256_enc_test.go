@@ -5,6 +5,7 @@ import (
 
 	"go.dedis.ch/kyber/v3"
 	"go.dedis.ch/kyber/v3/pairing"
+	"go.dedis.ch/kyber/v3/pairing/bn256"
 	"go.dedis.ch/kyber/v3/util/random"
 )
 
@@ -60,7 +61,7 @@ see for example anon.Encrypt, which encrypts a message for
 one of several possible receivers forming an explicit anonymity set.
 */
 func Example_elGamalEncryption_bn256() {
-	suite := pairing.NewSuiteBn256()
+	suite := bn256.NewSuiteBn256()
 
 	// Create a public/private keypair
 	a := suite.G1().Scalar().Pick(suite.RandomStream()) // Alice's private key

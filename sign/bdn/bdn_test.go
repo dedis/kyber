@@ -6,14 +6,13 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/kyber/v3/pairing"
 	"go.dedis.ch/kyber/v3/pairing/bn256"
 	"go.dedis.ch/kyber/v3/sign"
 	"go.dedis.ch/kyber/v3/sign/bls"
 	"go.dedis.ch/kyber/v3/util/random"
 )
 
-var suite = pairing.NewSuiteBn256()
+var suite = bn256.NewSuiteBn256()
 var two = suite.Scalar().Add(suite.Scalar().One(), suite.Scalar().One())
 var three = suite.Scalar().Add(two, suite.Scalar().One())
 
@@ -124,8 +123,8 @@ func TestBDN_RogueAttack(t *testing.T) {
 	require.NoError(t, err)
 
 	// Old scheme not resistant to the attack
-	agg := bls.AggregatePublicKeys(suite, pubs...)
-	require.NoError(t, bls.Verify(suite, agg, msg, sig))
+	agg := bls.NewSchemeOnG1(suite).AggregatePublicKeys(pubs...)
+	require.NoError(t, bls.NewSchemeOnG1(suite).Verify(agg, msg, sig))
 
 	// New scheme that should detect
 	mask, _ := sign.NewMask(suite, pubs, nil)
