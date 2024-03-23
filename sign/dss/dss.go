@@ -46,7 +46,7 @@ type DSS struct {
 	suite        Suite
 	secret       kyber.Scalar
 	public       kyber.Point
-	index        int32
+	index        uint32
 	participants []kyber.Point
 	T            uint32
 	long         DistKeyShare
@@ -55,7 +55,7 @@ type DSS struct {
 	randomPoly   *share.PubPoly
 	msg          []byte
 	partials     []*share.PriShare
-	partialsIdx  map[int32]bool
+	partialsIdx  map[uint32]bool
 	signed       bool
 	sessionID    []byte
 }
@@ -76,12 +76,12 @@ type PartialSig struct {
 func NewDSS(suite Suite, secret kyber.Scalar, participants []kyber.Point,
 	long, random DistKeyShare, msg []byte, T uint32) (*DSS, error) {
 	public := suite.Point().Mul(secret, nil)
-	var i int32
+	var i uint32
 	var found bool
 	for j, p := range participants {
 		if p.Equal(public) {
 			found = true
-			i = int32(j)
+			i = uint32(j)
 			break
 		}
 	}
@@ -100,7 +100,7 @@ func NewDSS(suite Suite, secret kyber.Scalar, participants []kyber.Point,
 		randomPoly:   share.NewPubPoly(suite, suite.Point().Base(), random.Commitments()),
 		msg:          msg,
 		T:            T,
-		partialsIdx:  make(map[int32]bool),
+		partialsIdx:  make(map[uint32]bool),
 		sessionID:    sessionID(suite, long, random),
 	}, nil
 }
@@ -224,8 +224,8 @@ func (ps *PartialSig) Hash(s Suite) []byte {
 	return h.Sum(nil)
 }
 
-func findPub(list []kyber.Point, i int32) (kyber.Point, bool) {
-	if i >= int32(len(list)) {
+func findPub(list []kyber.Point, i uint32) (kyber.Point, bool) {
+	if i >= uint32(len(list)) {
 		return nil, false
 	}
 	return list[i], true

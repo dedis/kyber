@@ -434,6 +434,7 @@ func geScalarMult(h *extendedGroupElement, a *[32]byte,
 	var u extendedGroupElement
 	var r projectiveGroupElement
 	var c cachedGroupElement
+	var i int
 
 	// Break the exponent into 4-bit nybbles.
 	var e [64]int8
@@ -466,7 +467,7 @@ func geScalarMult(h *extendedGroupElement, a *[32]byte,
 	selectCached(&c, &Ai, int32(e[63]))
 	t.Add(&u, &c)
 
-	for i := 62; i >= 0; i-- {
+	for i = 62; i >= 0; i-- {
 
 		// t <<= 4
 		t.ToProjective(&r)

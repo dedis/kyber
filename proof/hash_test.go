@@ -89,7 +89,7 @@ func Example_hashProve2() {
 	}
 
 	// Make just one of them an actual public/private keypair (X[mine],x)
-	mine := int64(2)                               // only the signer knows this
+	mine := int32(2)                               // only the signer knows this
 	x := suite.Scalar().Pick(suite.RandomStream()) // create a private key x
 	X[mine] = suite.Point().Mul(x, nil)            // corresponding public key X
 
@@ -116,7 +116,7 @@ func Example_hashProve2() {
 	fmt.Printf("Linkable Ring Signature Predicate:\n%s\n", pred.String())
 
 	// The prover needs to know which Or branch (mine) is actually true.
-	choice := make(map[Predicate]int64)
+	choice := make(map[Predicate]int32)
 	choice[pred] = mine
 
 	// Generate the signature

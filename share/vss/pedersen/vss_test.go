@@ -17,9 +17,9 @@ var rng = blake2xb.New(nil)
 
 var suite = edwards25519.NewBlakeSHA256Ed25519WithRand(rng)
 
-var nbVerifiers = 7
+var nbVerifiers = uint32(7)
 
-var vssThreshold int
+var vssThreshold uint32
 
 var verifiersPub []kyber.Point
 var verifiersSec []kyber.Scalar
@@ -92,7 +92,7 @@ func TestVSSDealerNew(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, dealer.secretPoly)
 
-	for _, badT := range []int{0, 1, -4} {
+	for _, badT := range []uint32{0, 1} {
 		_, err = NewDealer(suite, dealerSec, secret, verifiersPub, badT)
 		assert.Error(t, err)
 	}
@@ -100,7 +100,7 @@ func TestVSSDealerNew(t *testing.T) {
 }
 
 func TestVSSVerifierNew(t *testing.T) {
-	randIdx := int64(rand.Int() % len(verifiersPub))
+	randIdx := uint32(rand.Int() % len(verifiersPub))
 	v, err := NewVerifier(suite, verifiersSec[randIdx], dealerPub, verifiersPub)
 	assert.NoError(t, err)
 	assert.Equal(t, randIdx, v.index)
@@ -123,13 +123,13 @@ func TestVSSShare(t *testing.T) {
 
 	aggr := ver.Aggregator
 
-	for i := int64(1); i < aggr.t-1; i++ {
-		aggr.responses[uint32(i)] = &Response{Status: StatusApproval}
+	for i := uint32(1); i < aggr.t-1; i++ {
+		aggr.responses[i] = &Response{Status: StatusApproval}
 	}
 	// not enough approvals
 	assert.Nil(t, ver.Deal())
 
-	aggr.responses[uint32(aggr.t)] = &Response{Status: StatusApproval}
+	aggr.responses[aggr.t] = &Response{Status: StatusApproval}
 
 	// Timeout all other (i>t) verifiers
 	ver.SetTimeout()
@@ -147,8 +147,8 @@ func TestVSSAggregatorDealCertified(t *testing.T) {
 	dealer := genDealer()
 	aggr := dealer.Aggregator
 
-	for i := int64(0); i < aggr.t; i++ {
-		aggr.responses[uint32(i)] = &Response{Status: StatusApproval}
+	for i := uint32(0); i < aggr.t; i++ {
+		aggr.responses[i] = &Response{Status: StatusApproval}
 	}
 
 	// Mark remaining verifiers as timed-out
@@ -166,8 +166,8 @@ func TestVSSAggregatorDealCertified(t *testing.T) {
 
 	// inconsistent state on purpose
 	// too much complaints
-	for i := int64(0); i < aggr.t; i++ {
-		aggr.responses[uint32(i)] = &Response{Status: StatusComplaint}
+	for i := uint32(0); i < aggr.t; i++ {
+		aggr.responses[i] = &Response{Status: StatusComplaint}
 	}
 	assert.False(t, aggr.DealCertified())
 }
@@ -225,10 +225,10 @@ func TestVSSVerifierReceiveDeal(t *testing.T) {
 	require.NotNil(t, resp)
 	assert.Equal(t, StatusApproval, resp.Status)
 	assert.Nil(t, err)
-	assert.Equal(t, v.index, int64(resp.Index))
+	assert.Equal(t, v.index, resp.Index)
 	assert.Equal(t, dealer.sid, resp.SessionID)
 	assert.Nil(t, schnorr.Verify(suite, v.pub, resp.Hash(suite), resp.Signature))
-	assert.Equal(t, v.responses[uint32(v.index)], resp)
+	assert.Equal(t, v.responses[v.index], resp)
 
 	// wrong encryption
 	goodSig := encD.Signature
@@ -240,7 +240,7 @@ func TestVSSVerifierReceiveDeal(t *testing.T) {
 
 	// wrong index
 	goodIdx := d.SecShare.I
-	d.SecShare.I = (goodIdx - 1) % int64(nbVerifiers)
+	d.SecShare.I = (goodIdx - 1) % nbVerifiers
 	encD, _ = dealer.EncryptedDeal(0)
 	resp, err = v.ProcessEncryptedDeal(encD)
 	assert.Error(t, err)
@@ -406,13 +406,13 @@ func TestVSSAggregatorAllResponses(t *testing.T) {
 	dealer := genDealer()
 	aggr := dealer.Aggregator
 
-	for i := int64(0); i < aggr.t; i++ {
-		aggr.responses[uint32(i)] = &Response{Status: StatusApproval}
+	for i := uint32(0); i < aggr.t; i++ {
+		aggr.responses[i] = &Response{Status: StatusApproval}
 	}
 	assert.False(t, aggr.DealCertified())
 
-	for i := aggr.t; i < int64(nbVerifiers); i++ {
-		aggr.responses[uint32(i)] = &Response{Status: StatusApproval}
+	for i := aggr.t; i < nbVerifiers; i++ {
+		aggr.responses[i] = &Response{Status: StatusApproval}
 	}
 
 	assert.True(t, aggr.DealCertified())
@@ -423,8 +423,8 @@ func TestVSSDealerTimeout(t *testing.T) {
 	dealer := genDealer()
 	aggr := dealer.Aggregator
 
-	for i := int64(0); i < aggr.t; i++ {
-		aggr.responses[uint32(i)] = &Response{Status: StatusApproval}
+	for i := uint32(0); i < aggr.t; i++ {
+		aggr.responses[i] = &Response{Status: StatusApproval}
 	}
 	require.False(t, aggr.DealCertified())
 
@@ -452,8 +452,8 @@ func TestVSSVerifierTimeout(t *testing.T) {
 	aggr := v.Aggregator
 
 	// Add t responses
-	for i := int64(0); i < aggr.t; i++ {
-		aggr.responses[uint32(i)] = &Response{Status: StatusApproval}
+	for i := uint32(0); i < aggr.t; i++ {
+		aggr.responses[i] = &Response{Status: StatusApproval}
 	}
 	assert.False(t, aggr.DealCertified())
 
@@ -501,9 +501,7 @@ func TestVSSAggregatorVerifyDeal(t *testing.T) {
 	deal.SecShare.I = goodI
 
 	// index not in bounds
-	deal.SecShare.I = -1
-	assert.Error(t, aggr.VerifyDeal(deal, false))
-	deal.SecShare.I = int64(len(verifiersPub))
+	deal.SecShare.I = uint32(len(verifiersPub))
 	assert.Error(t, aggr.VerifyDeal(deal, false))
 
 	// shares invalid in respect to the commitments
@@ -534,16 +532,16 @@ func TestVSSAggregatorAddComplaint(t *testing.T) {
 func TestVSSSessionID(t *testing.T) {
 	dealer, _ := NewDealer(suite, dealerSec, secret, verifiersPub, vssThreshold)
 	commitments := dealer.deals[0].Commitments
-	sid, err := sessionID(suite, dealerPub, verifiersPub, commitments, int(dealer.t))
+	sid, err := sessionID(suite, dealerPub, verifiersPub, commitments, dealer.t)
 	assert.NoError(t, err)
 
-	sid2, err2 := sessionID(suite, dealerPub, verifiersPub, commitments, int(dealer.t))
+	sid2, err2 := sessionID(suite, dealerPub, verifiersPub, commitments, dealer.t)
 	assert.NoError(t, err2)
 	assert.Equal(t, sid, sid2)
 
 	wrongDealerPub := suite.Point().Add(dealerPub, dealerPub)
 
-	sid3, err3 := sessionID(suite, wrongDealerPub, verifiersPub, commitments, int(dealer.t))
+	sid3, err3 := sessionID(suite, wrongDealerPub, verifiersPub, commitments, dealer.t)
 	assert.NoError(t, err3)
 	assert.NotEqual(t, sid3, sid2)
 }
@@ -576,10 +574,10 @@ func genPair() (kyber.Scalar, kyber.Point) {
 	return secret, public
 }
 
-func genCommits(n int) ([]kyber.Scalar, []kyber.Point) {
+func genCommits(n uint32) ([]kyber.Scalar, []kyber.Point) {
 	var secrets = make([]kyber.Scalar, n)
 	var publics = make([]kyber.Point, n)
-	for i := 0; i < n; i++ {
+	for i := uint32(0); i < n; i++ {
 		secrets[i], publics[i] = genPair()
 	}
 	return secrets, publics
@@ -593,7 +591,7 @@ func genDealer() *Dealer {
 func genAll() (*Dealer, []*Verifier) {
 	dealer := genDealer()
 	var verifiers = make([]*Verifier, nbVerifiers)
-	for i := 0; i < nbVerifiers; i++ {
+	for i := uint32(0); i < nbVerifiers; i++ {
 		v, _ := NewVerifier(suite, verifiersSec[i], dealerPub, verifiersPub)
 		verifiers[i] = v
 	}

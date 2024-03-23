@@ -47,7 +47,7 @@ type PubVerShare struct {
 // t and the base point H. The function returns the list of shares and the
 // public commitment polynomial.
 func EncShares(suite Suite, H kyber.Point, X []kyber.Point, secret kyber.Scalar, t uint32) (shares []*PubVerShare, commit *share.PubPoly, err error) {
-	n := len(X)
+	n := uint32(len(X))
 	encShares := make([]*PubVerShare, n)
 
 	// Create secret sharing polynomial
@@ -60,10 +60,10 @@ func EncShares(suite Suite, H kyber.Point, X []kyber.Point, secret kyber.Scalar,
 	pubPoly := priPoly.Commit(H)
 
 	// Prepare data for encryption consistency proofs ...
-	indices := make([]int32, n)
+	indices := make([]uint32, n)
 	values := make([]kyber.Scalar, n)
 	HS := make([]kyber.Point, n)
-	for i := 0; i < n; i++ {
+	for i := uint32(0); i < n; i++ {
 		indices[i] = priShares[i].I
 		values[i] = priShares[i].V
 		HS[i] = H
@@ -75,7 +75,7 @@ func EncShares(suite Suite, H kyber.Point, X []kyber.Point, secret kyber.Scalar,
 		return nil, nil, err
 	}
 
-	for i := 0; i < n; i++ {
+	for i := uint32(0); i < n; i++ {
 		ps := &share.PubShare{I: indices[i], V: sX[i]}
 		encShares[i] = &PubVerShare{*ps, *proofs[i]}
 	}

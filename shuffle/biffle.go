@@ -53,7 +53,7 @@ func Biffle(suite Suite, G, H kyber.Point,
 	// Pick the single-bit permutation.
 	var buf [1]byte
 	random.Bytes(buf[:], rand)
-	bit := int64(buf[0] & 1)
+	bit := int32(buf[0] & 1)
 
 	// Pick a fresh ElGamal blinding factor for each pair
 	var beta [2]kyber.Scalar
@@ -62,7 +62,7 @@ func Biffle(suite Suite, G, H kyber.Point,
 	}
 
 	// Create the output pair vectors
-	for i := int64(0); i < 2; i++ {
+	for i := int32(0); i < 2; i++ {
 		piI := i ^ bit
 		Xbar[i] = suite.Point().Mul(beta[piI], G)
 		Xbar[i].Add(Xbar[i], X[piI])
@@ -75,7 +75,7 @@ func Biffle(suite Suite, G, H kyber.Point,
 		"beta0": beta[0],
 		"beta1": beta[1]}
 	points := bifflePoints(suite, G, H, X, Y, Xbar, Ybar)
-	choice := map[proof.Predicate]int64{or: bit}
+	choice := map[proof.Predicate]int32{or: bit}
 	prover = or.Prover(suite, secrets, points, choice)
 	return
 }

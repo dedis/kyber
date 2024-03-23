@@ -556,22 +556,22 @@ func (d *DistKeyGenerator) Certified() bool {
 // invalid
 // 2. if there are no response from a share holder, the share holder is
 // removed from the list.
-func (d *DistKeyGenerator) QualifiedShares() []int {
-	var invalidSh = make(map[int]bool)
-	var invalidDeals = make(map[int]bool)
+func (d *DistKeyGenerator) QualifiedShares() []uint32 {
+	var invalidSh = make(map[uint32]bool)
+	var invalidDeals = make(map[uint32]bool)
 	// compute list of invalid deals according to 1.
 	for dealerIndex, verifier := range d.verifiers {
 		responses := verifier.Responses()
 		if len(responses) == 0 {
 			// don't analyzes "empty" deals - i.e. dealers that never sent
 			// their deal in the first place.
-			invalidDeals[int(dealerIndex)] = true
+			invalidDeals[dealerIndex] = true
 		}
 		for holderIndex := range d.c.NewNodes {
 			resp, ok := responses[uint32(holderIndex)]
 			if ok && resp.Status == vss.StatusComplaint {
 				// 1. rule
-				invalidDeals[int(dealerIndex)] = true
+				invalidDeals[dealerIndex] = true
 				break
 			}
 		}
@@ -580,7 +580,7 @@ func (d *DistKeyGenerator) QualifiedShares() []int {
 	// compute list of invalid share holders for valid deals
 	for dealerIndex, verifier := range d.verifiers {
 		// skip analyze of invalid deals
-		if _, present := invalidDeals[int(dealerIndex)]; present {
+		if _, present := invalidDeals[dealerIndex]; present {
 			continue
 		}
 		responses := verifier.Responses()
@@ -588,17 +588,17 @@ func (d *DistKeyGenerator) QualifiedShares() []int {
 			_, ok := responses[uint32(holderIndex)]
 			if !ok {
 				// 2. rule - absent response
-				invalidSh[holderIndex] = true
+				invalidSh[uint32(holderIndex)] = true
 			}
 		}
 	}
 
-	var validHolders []int
+	var validHolders []uint32
 	for i := range d.c.NewNodes {
-		if _, included := invalidSh[i]; included {
+		if _, included := invalidSh[uint32(i)]; included {
 			continue
 		}
-		validHolders = append(validHolders, i)
+		validHolders = append(validHolders, uint32(i))
 	}
 	return validHolders
 }
@@ -734,7 +734,7 @@ func (d *DistKeyGenerator) resharingKey() (*DistKeyShare, error) {
 		deal := v.Deal()
 		coeffs[i] = deal.Commitments
 		// share of dist. secret. Invertion of rows/column
-		deal.SecShare.I = uint32(i)
+		deal.SecShare.I = i
 		shares[i] = deal.SecShare
 		return true
 	})
@@ -768,7 +768,7 @@ func (d *DistKeyGenerator) resharingKey() (*DistKeyShare, error) {
 		// using the old threshold / length because there are at most
 		// len(d.c.OldNodes) i-th coefficients since they are the one generating one
 		// each, thus using the old threshold.
-		coeff, err := share.RecoverCommit(d.suite, tmpCoeffs, int(d.oldT), len(d.c.OldNodes))
+		coeff, err := share.RecoverCommit(d.suite, tmpCoeffs, d.oldT, uint32(len(d.c.OldNodes)))
 		if err != nil {
 			return nil, err
 		}

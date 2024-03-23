@@ -88,7 +88,7 @@ type ega6 struct {
 // and compute the correctness proof.
 type PairShuffle struct {
 	grp kyber.Group
-	k   int64
+	k   int
 	p1  ega1
 	v2  ega2
 	p3  ega3
@@ -108,7 +108,7 @@ func (ps *PairShuffle) Init(grp kyber.Group, k int) *PairShuffle {
 
 	// Create a well-formed PairShuffleProof with arrays correctly sized.
 	ps.grp = grp
-	ps.k = int64(k)
+	ps.k = k
 	ps.p1.A = make([]kyber.Point, k)
 	ps.p1.C = make([]kyber.Point, k)
 	ps.p1.U = make([]kyber.Point, k)
@@ -129,13 +129,13 @@ func (ps *PairShuffle) Prove(
 
 	grp := ps.grp
 	k := ps.k
-	if k != int64(len(pi)) || k != int64(len(beta)) {
+	if k != len(pi) || k != len(beta) {
 		panic("mismatched vector lengths")
 	}
 
 	// Compute pi^-1 inverse permutation
-	piinv := make([]int64, k)
-	for i := int64(0); i < k; i++ {
+	piinv := make([]int, k)
+	for i := 0; i < k; i++ {
 		piinv[pi[i]] = i
 	}
 
@@ -158,7 +158,7 @@ func (ps *PairShuffle) Prove(
 	p1.Lambda2 = grp.Point().Null()
 	XY := grp.Point()  // scratch
 	wu := grp.Scalar() // scratch
-	for i := int64(0); i < k; i++ {
+	for i := 0; i < k; i++ {
 		p1.A[i] = grp.Point().Mul(a[i], g)
 		p1.C[i] = grp.Point().Mul(z.Mul(gamma, a[pi[i]]), g)
 		p1.U[i] = grp.Point().Mul(u[i], g)
@@ -179,7 +179,7 @@ func (ps *PairShuffle) Prove(
 		return err
 	}
 	B := make([]kyber.Point, k)
-	for i := int64(0); i < k; i++ {
+	for i := 0; i < k; i++ {
 		P := grp.Point().Mul(v2.Zrho[i], g)
 		B[i] = P.Sub(P, p1.U[i])
 	}
@@ -187,11 +187,11 @@ func (ps *PairShuffle) Prove(
 	// P step 3
 	p3 := &ps.p3
 	b := make([]kyber.Scalar, k)
-	for i := int64(0); i < k; i++ {
+	for i := 0; i < k; i++ {
 		b[i] = grp.Scalar().Sub(v2.Zrho[i], u[i])
 	}
 	d := make([]kyber.Scalar, k)
-	for i := int64(0); i < k; i++ {
+	for i := 0; i < k; i++ {
 		d[i] = grp.Scalar().Mul(gamma, b[pi[i]])
 		p3.D[i] = grp.Point().Mul(d[i], g)
 	}
@@ -208,15 +208,15 @@ func (ps *PairShuffle) Prove(
 	// P step 5
 	p5 := &ps.p5
 	r := make([]kyber.Scalar, k)
-	for i := int64(0); i < k; i++ {
+	for i := 0; i < k; i++ {
 		r[i] = grp.Scalar().Add(a[i], z.Mul(v4.Zlambda, b[i]))
 	}
 	s := make([]kyber.Scalar, k)
-	for i := int64(0); i < k; i++ {
+	for i := 0; i < k; i++ {
 		s[i] = grp.Scalar().Mul(gamma, r[pi[i]])
 	}
 	p5.Ztau = grp.Scalar().Neg(tau0)
-	for i := int64(0); i < k; i++ {
+	for i := 0; i < k; i++ {
 		p5.Zsigma[i] = grp.Scalar().Add(w[i], b[pi[i]])
 		p5.Ztau.Add(p5.Ztau, z.Mul(b[i], beta[i]))
 	}
@@ -235,7 +235,7 @@ func (ps *PairShuffle) Verify(
 
 	// Validate all vector lengths
 	grp := ps.grp
-	k := int(ps.k)
+	k := ps.k
 	if len(X) != k || len(Y) != k || len(Xbar) != k || len(Ybar) != k {
 		panic("mismatched vector lengths")
 	}

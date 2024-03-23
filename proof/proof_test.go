@@ -24,7 +24,7 @@ func TestRep(t *testing.T) {
 	Y := suite.Point().Mul(y, X)
 	R := suite.Point().Add(X, Y)
 
-	choice := make(map[Predicate]int64)
+	choice := make(map[Predicate]int32)
 
 	// Simple single-secret predicate: prove X=x*B
 	log := Rep("X", "x", "B")
@@ -212,7 +212,7 @@ func Example_or2() {
 	// We'll need to tell the prover which Or clause is actually true.
 	// In this case clause 0, the first sub-predicate, is true:
 	// i.e., we know a secret x such that X=x*B.
-	choice := make(map[Predicate]int64)
+	choice := make(map[Predicate]int32)
 	choice[pred] = 0
 
 	// Generate a proof that we know the discrete logarithm of X or Y.

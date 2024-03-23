@@ -129,7 +129,7 @@ func NewDealer(suite Suite, longterm, secret kyber.Scalar, verifiers []kyber.Poi
 	}
 	d.t = t
 
-	f := share.NewPriPoly(d.suite, t, d.secret, suite.RandomStream())
+	f := share.NewPriPoly(d.suite, d.t, d.secret, suite.RandomStream())
 	d.pub = d.suite.Point().Mul(d.long, nil)
 
 	// Compute public polynomial coefficients
@@ -137,16 +137,16 @@ func NewDealer(suite Suite, longterm, secret kyber.Scalar, verifiers []kyber.Poi
 	_, d.secretCommits = F.Info()
 
 	var err error
-	d.sessionID, err = sessionID(d.suite, d.pub, d.verifiers, d.secretCommits, t)
+	d.sessionID, err = sessionID(d.suite, d.pub, d.verifiers, d.secretCommits, d.t)
 	if err != nil {
 		return nil, err
 	}
 
-	d.Aggregator = newAggregator(d.suite, d.pub, d.verifiers, d.secretCommits, t, d.sessionID)
+	d.Aggregator = newAggregator(d.suite, d.pub, d.verifiers, d.secretCommits, d.t, d.sessionID)
 	// C = F + G
 	d.deals = make([]*Deal, len(d.verifiers))
 	for i := range d.verifiers {
-		fi := f.Eval(int32(i))
+		fi := f.Eval(uint32(i))
 		d.deals[i] = &Deal{
 			SessionID:   d.sessionID,
 			SecShare:    fi,
@@ -301,7 +301,7 @@ type Verifier struct {
 	longterm    kyber.Scalar
 	pub         kyber.Point
 	dealer      kyber.Point
-	index       int32
+	index       uint32
 	verifiers   []kyber.Point
 	hkdfContext []byte
 	*Aggregator
@@ -320,11 +320,11 @@ func NewVerifier(suite Suite, longterm kyber.Scalar, dealerKey kyber.Point,
 
 	pub := suite.Point().Mul(longterm, nil)
 	var ok bool
-	var index int32
+	var index uint32
 	for i, v := range verifiers {
 		if v.Equal(pub) {
 			ok = true
-			index = int32(i)
+			index = uint32(i)
 			break
 		}
 	}
@@ -465,7 +465,7 @@ func (v *Verifier) Key() (kyber.Scalar, kyber.Point) {
 
 // Index returns the index of the verifier in the list of participants used
 // during this run of the protocol.
-func (v *Verifier) Index() int32 {
+func (v *Verifier) Index() uint32 {
 	return v.index
 }
 
@@ -580,7 +580,7 @@ func (a *Aggregator) VerifyDeal(d *Deal, inclusion bool) error {
 	}
 
 	fi := d.SecShare
-	if fi.I < 0 || fi.I >= int32(len(a.verifiers)) {
+	if fi.I < 0 || fi.I >= uint32(len(a.verifiers)) {
 		return errors.New("vss: index out of bounds in Deal")
 	}
 	// compute fi * G
@@ -695,7 +695,7 @@ func (a *Aggregator) DealCertified() bool {
 		}
 	}
 	enoughApprovals := approvals >= a.t
-	tooMuchAbsents := absentVerifiers > uint32(len(a.verifiers))-a.t
+	tooMuchAbsents := a.t > uint32(len(a.verifiers)) || absentVerifiers > uint32(len(a.verifiers))-a.t
 	baseCondition := !a.badDealer && enoughApprovals && !isComplaint
 	if a.timeout {
 		return baseCondition && !tooMuchAbsents
@@ -724,7 +724,7 @@ func MinimumT(n uint32) uint32 {
 }
 
 func validT(t uint32, verifiers []kyber.Point) bool {
-	return t >= 2 && t <= uint32(len(verifiers)) && uint32(t) == t
+	return t >= 2 && t <= uint32(len(verifiers))
 }
 
 func deriveH(suite Suite, verifiers []kyber.Point) kyber.Point {

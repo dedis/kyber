@@ -135,29 +135,27 @@ func feFromBytes(dst *fieldElement, src []byte) {
 
 // feToBytes marshals h to s.
 // Preconditions:
-//
-//	|h| bounded by 1.1*2^25,1.1*2^24,1.1*2^25,1.1*2^24,etc.
+//   |h| bounded by 1.1*2^25,1.1*2^24,1.1*2^25,1.1*2^24,etc.
 //
 // Write p=2^255-19; q=floor(h/p).
 // Basic claim: q = floor(2^(-255)(h + 19 2^(-25)h9 + 2^(-1))).
 //
 // Proof:
+//   Have |h|<=p so |q|<=1 so |19^2 2^(-255) q|<1/4.
+//   Also have |h-2^230 h9|<2^230 so |19 2^(-255)(h-2^230 h9)|<1/4.
 //
-//	Have |h|<=p so |q|<=1 so |19^2 2^(-255) q|<1/4.
-//	Also have |h-2^230 h9|<2^230 so |19 2^(-255)(h-2^230 h9)|<1/4.
+//   Write y=2^(-1)-19^2 2^(-255)q-19 2^(-255)(h-2^230 h9).
+//   Then 0<y<1.
 //
-//	Write y=2^(-1)-19^2 2^(-255)q-19 2^(-255)(h-2^230 h9).
-//	Then 0<y<1.
+//   Write r=h-pq.
+//   Have 0<=r<=p-1=2^255-20.
+//   Thus 0<=r+19(2^-255)r<r+19(2^-255)2^255<=2^255-1.
 //
-//	Write r=h-pq.
-//	Have 0<=r<=p-1=2^255-20.
-//	Thus 0<=r+19(2^-255)r<r+19(2^-255)2^255<=2^255-1.
+//   Write x=r+19(2^-255)r+y.
+//   Then 0<x<2^255 so floor(2^(-255)x) = 0 so floor(q+2^(-255)x) = q.
 //
-//	Write x=r+19(2^-255)r+y.
-//	Then 0<x<2^255 so floor(2^(-255)x) = 0 so floor(q+2^(-255)x) = q.
-//
-//	Have q+2^(-255)x = 2^(-255)(h + 19 2^(-25) h9 + 2^(-1))
-//	so floor(2^(-255)(h + 19 2^(-25) h9 + 2^(-1))) = q.
+//   Have q+2^(-255)x = 2^(-255)(h + 19 2^(-25) h9 + 2^(-1))
+//   so floor(2^(-255)(h + 19 2^(-25) h9 + 2^(-1))) = q.
 func feToBytes(s *[32]byte, h *fieldElement) {
 	var carry [10]int32
 
@@ -269,12 +267,10 @@ func feIsNonZero(f *fieldElement) int32 {
 // feNeg sets h = -f
 //
 // Preconditions:
-//
-//	|f| bounded by 1.1*2^25,1.1*2^24,1.1*2^25,1.1*2^24,etc.
+//    |f| bounded by 1.1*2^25,1.1*2^24,1.1*2^25,1.1*2^24,etc.
 //
 // Postconditions:
-//
-//	|h| bounded by 1.1*2^25,1.1*2^24,1.1*2^25,1.1*2^24,etc.
+//    |h| bounded by 1.1*2^25,1.1*2^24,1.1*2^25,1.1*2^24,etc.
 func feNeg(h, f *fieldElement) {
 	for i := range h {
 		h[i] = -f[i]
@@ -285,13 +281,11 @@ func feNeg(h, f *fieldElement) {
 // Can overlap h with f or g.
 //
 // Preconditions:
-//
-//	|f| bounded by 1.1*2^26,1.1*2^25,1.1*2^26,1.1*2^25,etc.
-//	|g| bounded by 1.1*2^26,1.1*2^25,1.1*2^26,1.1*2^25,etc.
+//    |f| bounded by 1.1*2^26,1.1*2^25,1.1*2^26,1.1*2^25,etc.
+//    |g| bounded by 1.1*2^26,1.1*2^25,1.1*2^26,1.1*2^25,etc.
 //
 // Postconditions:
-//
-//	|h| bounded by 1.1*2^25,1.1*2^24,1.1*2^25,1.1*2^24,etc.
+//    |h| bounded by 1.1*2^25,1.1*2^24,1.1*2^25,1.1*2^24,etc.
 //
 // Notes on implementation strategy:
 //
@@ -546,12 +540,10 @@ func feMul(h, f, g *fieldElement) {
 // feSquare calculates h = f*f. Can overlap h with f.
 //
 // Preconditions:
-//
-//	|f| bounded by 1.1*2^26,1.1*2^25,1.1*2^26,1.1*2^25,etc.
+//    |f| bounded by 1.1*2^26,1.1*2^25,1.1*2^26,1.1*2^25,etc.
 //
 // Postconditions:
-//
-//	|h| bounded by 1.1*2^25,1.1*2^24,1.1*2^25,1.1*2^24,etc.
+//    |h| bounded by 1.1*2^25,1.1*2^24,1.1*2^25,1.1*2^24,etc.
 func feSquare(h, f *fieldElement) {
 	f0 := f[0]
 	f1 := f[1]
@@ -703,13 +695,10 @@ func feSquare(h, f *fieldElement) {
 // Can overlap h with f.
 //
 // Preconditions:
-//
-//	|f| bounded by 1.65*2^26,1.65*2^25,1.65*2^26,1.65*2^25,etc.
+//    |f| bounded by 1.65*2^26,1.65*2^25,1.65*2^26,1.65*2^25,etc.
 //
 // Postconditions:
-//
-//	|h| bounded by 1.01*2^25,1.01*2^24,1.01*2^25,1.01*2^24,etc.
-//
+//    |h| bounded by 1.01*2^25,1.01*2^24,1.01*2^25,1.01*2^24,etc.
 // See fe_mul.c for discussion of implementation strategy.
 func feSquare2(h, f *fieldElement) {
 	f0 := f[0]
@@ -870,11 +859,13 @@ func feSquare2(h, f *fieldElement) {
 
 func feInvert(out, z *fieldElement) {
 	var t0, t1, t2, t3 fieldElement
-	var i int32
+	var i int
 
 	feSquare(&t0, z)        // 2^1
 	feSquare(&t1, &t0)      // 2^2
-	feSquare(&t1, &t1)      // 2^3
+	for i = 1; i < 2; i++ { // 2^3
+		feSquare(&t1, &t1)
+	}
 	feMul(&t1, z, &t1)      // 2^3 + 2^0
 	feMul(&t0, &t0, &t1)    // 2^3 + 2^1 + 2^0
 	feSquare(&t2, &t0)      // 2^4 + 2^2 + 2^1
@@ -923,17 +914,24 @@ func feInvert(out, z *fieldElement) {
 
 func fePow22523(out, z *fieldElement) {
 	var t0, t1, t2 fieldElement
-	var i int32
+	var i int
 
 	feSquare(&t0, z)
+	for i = 1; i < 1; i++ {
+		feSquare(&t0, &t0)
+	}
 	feSquare(&t1, &t0)
-	feSquare(&t1, &t1)
+	for i = 1; i < 2; i++ {
+		feSquare(&t1, &t1)
+	}
 	feMul(&t1, z, &t1)
 	feMul(&t0, &t0, &t1)
 	feSquare(&t0, &t0)
+	for i = 1; i < 1; i++ {
+		feSquare(&t0, &t0)
+	}
 	feMul(&t0, &t1, &t0)
 	feSquare(&t1, &t0)
-
 	for i = 1; i < 5; i++ {
 		feSquare(&t1, &t1)
 	}
@@ -969,7 +967,9 @@ func fePow22523(out, z *fieldElement) {
 	}
 	feMul(&t0, &t1, &t0)
 	feSquare(&t0, &t0)
-	feSquare(&t0, &t0)
+	for i = 1; i < 2; i++ {
+		feSquare(&t0, &t0)
+	}
 	feMul(out, &t0, z)
 }
 

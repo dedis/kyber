@@ -63,7 +63,7 @@ type Predicate interface {
 
 	// Create a Prover proving the statement this Predicate represents.
 	Prover(suite Suite, secrets map[string]kyber.Scalar,
-		points map[string]kyber.Point, choice map[Predicate]int64) Prover
+		points map[string]kyber.Point, choice map[Predicate]int32) Prover
 
 	// Create a Verifier for the statement this Predicate represents.
 	Verifier(suite Suite, points map[string]kyber.Point) Verifier
@@ -103,17 +103,17 @@ const (
 type proof struct {
 	s Suite
 
-	nsvars     int64            // number of Scalar variables
-	npvars     int64            // number of Point variables
-	svar, pvar []string         // Scalar and Point variable names
-	sidx, pidx map[string]int64 // Maps from strings to variable indexes
+	nsvars     uint32            // number of Scalar variables
+	npvars     uint32            // number of Point variables
+	svar, pvar []string          // Scalar and Point variable names
+	sidx, pidx map[string]uint32 // Maps from strings to variable indexes
 
 	pval map[string]kyber.Point // values of public Point variables
 
 	// prover-specific state
 	pc     ProverContext
 	sval   map[string]kyber.Scalar   // values of private Scalar variables
-	choice map[Predicate]int64       // OR branch choices set by caller
+	choice map[Predicate]int32       // OR branch choices set by caller
 	pp     map[Predicate]*proverPred // per-predicate prover state
 
 	// verifier-specific state
@@ -317,7 +317,7 @@ func (rp *repPred) verify(prf *proof, c kyber.Scalar, pr []kyber.Scalar) error {
 
 func (rp *repPred) Prover(suite Suite, secrets map[string]kyber.Scalar,
 	points map[string]kyber.Point,
-	choice map[Predicate]int64) Prover {
+	choice map[Predicate]int32) Prover {
 	return proof{}.init(suite, rp).prover(rp, secrets, points, choice)
 }
 
@@ -427,7 +427,7 @@ func (ap *andPred) verify(prf *proof, c kyber.Scalar, pr []kyber.Scalar) error {
 
 func (ap *andPred) Prover(suite Suite, secrets map[string]kyber.Scalar,
 	points map[string]kyber.Point,
-	choice map[Predicate]int64) Prover {
+	choice map[Predicate]int32) Prover {
 	return proof{}.init(suite, ap).prover(ap, secrets, points, choice)
 }
 
@@ -488,13 +488,12 @@ func (op *orPred) commit(prf *proof, w kyber.Scalar, pv []kyber.Scalar) error {
 		// We're on a proof-obligated branch;
 		// choose random pre-challenges for only non-obligated subs.
 		choice, ok := prf.choice[op]
-		len := int64(len(sub))
-		if !ok || choice < 0 || choice >= len {
+		if !ok || choice < 0 || choice >= int32(len(sub)) {
 			return errors.New("no choice of proof branch for OR-predicate " +
 				op.String())
 		}
-		for i := int64(0); i < len; i++ {
-			if i != choice {
+		for i := 0; i < len(sub); i++ {
+			if int32(i) != choice {
 				wi[i] = prf.s.Scalar()
 				prf.pc.PriRand(wi[i])
 			} // else wi[i] == nil for proof-obligated sub
@@ -537,7 +536,7 @@ func (op *orPred) respond(prf *proof, c kyber.Scalar, pr []kyber.Scalar) error {
 		cs := prf.s.Scalar().Set(c)
 		choice := prf.choice[op]
 		for i := 0; i < len(sub); i++ {
-			if int64(i) != choice {
+			if int32(i) != choice {
 				cs.Sub(cs, ci[i])
 			}
 		}
@@ -611,7 +610,7 @@ func (op *orPred) verify(prf *proof, c kyber.Scalar, pr []kyber.Scalar) error {
 
 func (op *orPred) Prover(suite Suite, secrets map[string]kyber.Scalar,
 	points map[string]kyber.Point,
-	choice map[Predicate]int64) Prover {
+	choice map[Predicate]int32) Prover {
 	return proof{}.init(suite, op).prover(op, secrets, points, choice)
 }
 
@@ -642,25 +641,25 @@ func (prf proof) init(suite Suite, pred Predicate) *proof {
 	// Reserve variable index 0 for convenience.
 	prf.svar = []string{""}
 	prf.pvar = []string{""}
-	prf.sidx = make(map[string]int64)
-	prf.pidx = make(map[string]int64)
+	prf.sidx = make(map[string]uint32)
+	prf.pidx = make(map[string]uint32)
 	pred.enumVars(&prf)
-	prf.nsvars = int64(len(prf.svar))
-	prf.npvars = int64(len(prf.pvar))
+	prf.nsvars = uint32(len(prf.svar))
+	prf.npvars = uint32(len(prf.pvar))
 
 	return &prf
 }
 
 func (prf *proof) enumScalarVar(name string) {
 	if prf.sidx[name] == 0 {
-		prf.sidx[name] = int64(len(prf.svar))
+		prf.sidx[name] = uint32(len(prf.svar))
 		prf.svar = append(prf.svar, name)
 	}
 }
 
 func (prf *proof) enumPointVar(name string) {
 	if prf.pidx[name] == 0 {
-		prf.pidx[name] = int64(len(prf.pvar))
+		prf.pidx[name] = uint32(len(prf.pvar))
 		prf.pvar = append(prf.pvar, name)
 	}
 }
@@ -706,7 +705,7 @@ func (prf *proof) getResponses(pr []kyber.Scalar, r []kyber.Scalar) error {
 
 func (prf *proof) prove(p Predicate, sval map[string]kyber.Scalar,
 	pval map[string]kyber.Point,
-	choice map[Predicate]int64, pc ProverContext) error {
+	choice map[Predicate]int32, pc ProverContext) error {
 	prf.pc = pc
 	prf.sval = sval
 	prf.pval = pval
@@ -753,7 +752,7 @@ func (prf *proof) verify(p Predicate, pval map[string]kyber.Point,
 // Produce a higher-order Prover embodying a given proof predicate.
 func (prf *proof) prover(p Predicate, sval map[string]kyber.Scalar,
 	pval map[string]kyber.Point,
-	choice map[Predicate]int64) Prover {
+	choice map[Predicate]int32) Prover {
 
 	return Prover(func(ctx ProverContext) error {
 		return prf.prove(p, sval, pval, choice, ctx)

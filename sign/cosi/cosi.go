@@ -235,9 +235,9 @@ func Verify(suite Suite, publics []kyber.Point, message, sig []byte, policy Poli
 // and the number of participants.
 type ParticipationMask interface {
 	// CountEnabled returns the number of participants
-	CountEnabled() int
+	CountEnabled() uint32
 	// CountTotal returns the number of candidates
-	CountTotal() int
+	CountTotal() uint32
 }
 
 // Mask represents a cosigning participation bitmask.
@@ -349,9 +349,9 @@ func (m *Mask) KeyEnabled(public kyber.Point) (bool, error) {
 
 // CountEnabled returns the number of enabled nodes in the CoSi participation
 // mask.
-func (m *Mask) CountEnabled() int {
+func (m *Mask) CountEnabled() uint32 {
 	// hw is hamming weight
-	hw := 0
+	hw := uint32(0)
 	for i := range m.publics {
 		byt := i >> 3
 		msk := byte(1) << uint(i&7)
@@ -363,8 +363,8 @@ func (m *Mask) CountEnabled() int {
 }
 
 // CountTotal returns the total number of nodes this CoSi instance knows.
-func (m *Mask) CountTotal() int {
-	return len(m.publics)
+func (m *Mask) CountTotal() uint32 {
+	return uint32(len(m.publics))
 }
 
 // AggregateMasks computes the bitwise OR of the two given participation masks.
@@ -411,18 +411,18 @@ func (p CompletePolicy) Check(m ParticipationMask) bool {
 //
 // Deprecated: the policy has moved to the package kyber/sign
 type ThresholdPolicy struct {
-	thold int64
+	thold uint32
 }
 
 // NewThresholdPolicy returns a new ThresholdPolicy with the given threshold.
 //
 // Deprecated: the policy has moved to the package kyber/sign
-func NewThresholdPolicy(thold int) *ThresholdPolicy {
-	return &ThresholdPolicy{thold: int64(thold)}
+func NewThresholdPolicy(thold uint32) *ThresholdPolicy {
+	return &ThresholdPolicy{thold: thold}
 }
 
 // Check verifies that at least a threshold number of participants have
 // contributed to a collective signature.
 func (p ThresholdPolicy) Check(m ParticipationMask) bool {
-	return int64(m.CountEnabled()) >= p.thold
+	return m.CountEnabled() >= p.thold
 }
