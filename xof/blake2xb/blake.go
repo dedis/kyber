@@ -9,6 +9,7 @@ import (
 
 type xof struct {
 	impl blake2b.XOF
+	seed []byte
 	// key is here to not make excess garbage during repeated calls
 	// to XORKeyStream.
 	key []byte
@@ -33,7 +34,11 @@ func New(seed []byte) kyber.XOF {
 			panic("blake2b.XOF.Write should not return error: " + err.Error())
 		}
 	}
-	return &xof{impl: b}
+	seedCopy := make([]byte, len(seed))
+	copy(seedCopy, seed)
+	x := xof{impl: b, seed: seedCopy}
+
+	return &x
 }
 
 func (x *xof) Clone() kyber.XOF {
@@ -58,6 +63,11 @@ func (x *xof) Reseed() {
 	x.Read(x.key)
 	y := New(x.key)
 	// Steal the XOF implementation, and put it inside of x.
+	x.impl = y.(*xof).impl
+}
+
+func (x *xof) Reset() {
+	y := New(x.seed)
 	x.impl = y.(*xof).impl
 }
 
