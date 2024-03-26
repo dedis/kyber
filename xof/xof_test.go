@@ -214,6 +214,30 @@ func testReseed(t *testing.T, s kyber.XOFFactory) {
 	}
 }
 
+func TestReset(t *testing.T) {
+	for _, s := range impls {
+		testReset(t, s)
+	}
+}
+
+func testReset(t *testing.T, s kyber.XOFFactory) {
+	t.Logf("implementation %T", s)
+	seed := []byte("seed")
+	nbrBytes := 1024
+	x := s.XOF(seed)
+
+	beforeResetBytes := make([]byte, nbrBytes)
+	afterResetBytes := make([]byte, nbrBytes)
+	x.Read(beforeResetBytes)
+
+	x.Reset()
+	x.Read(afterResetBytes)
+
+	if !bytes.Equal(beforeResetBytes, afterResetBytes) {
+		t.Fatal("reset doesn't restore initial states")
+	}
+}
+
 func TestEncDecMismatch(t *testing.T) {
 	for _, i := range impls {
 		testEncDecMismatch(t, i)
