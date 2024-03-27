@@ -3,8 +3,9 @@ package bn256
 import (
 	"bytes"
 	"encoding/hex"
-	"go.dedis.ch/kyber/v3/util/random"
 	"testing"
+
+	"go.dedis.ch/kyber/v3/util/random"
 )
 
 func TestPointG1_HashToPoint(t *testing.T) {
@@ -14,7 +15,7 @@ func TestPointG1_HashToPoint(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	refBuf, err := hex.DecodeString("2ac314dc445e47f096d15425fc294601c1a7d8d27561c4fe9bb452f593f77f4705230e9663123b93c06ce0cd49a893619a92019566f326829a39d6f5ce10579d")
+	refBuf, err := hex.DecodeString("4f8b42c22dd3729b519ba6f68d2da7cc5b2d606d05daed5ad5128cc03e6c63586df6ecb71b8440bca3393571259d21f7a051e271cf9caf5814f16b032466d601")
 	if err != nil {
 		t.Error(err)
 	}
