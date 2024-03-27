@@ -263,7 +263,10 @@ func (p *pointG1) Hash(m []byte) kyber.Point {
 func hashToPoint(m []byte) (*big.Int, *big.Int) {
 	h := sha256.Sum256(m)
 	x := new(big.Int).SetBytes(h[:])
-	x.Mod(x, p)
+	for x.Cmp(p) >= 0 {
+		h := sha256.Sum256(x.Bytes())
+		x = new(big.Int).SetBytes(h[:])
+	}
 
 	for {
 		y := deriveY(x)
