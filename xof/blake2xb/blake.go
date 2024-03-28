@@ -66,8 +66,10 @@ func (x *xof) Reseed() {
 }
 
 func (x *xof) Reset() {
-	y := New(x.seed)
-	x.impl = y.(*xof).impl
+	x.impl.Reset()
+	if len(x.seed) > blake2b.Size {
+		x.impl.Write(x.seed[blake2b.Size:])
+	}
 }
 
 func (x *xof) XORKeyStream(dst, src []byte) {
