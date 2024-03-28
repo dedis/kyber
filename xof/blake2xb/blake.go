@@ -34,11 +34,10 @@ func New(seed []byte) kyber.XOF {
 			panic("blake2b.XOF.Write should not return error: " + err.Error())
 		}
 	}
+
 	seedCopy := make([]byte, len(seed))
 	copy(seedCopy, seed)
-	x := xof{impl: b, seed: seedCopy}
-
-	return &x
+	return &xof{impl: b, seed: seedCopy}
 }
 
 func (x *xof) Clone() kyber.XOF {
