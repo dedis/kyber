@@ -2,6 +2,7 @@ package xof
 
 import (
 	"bytes"
+	"crypto/sha512"
 	"math"
 	"testing"
 
@@ -214,17 +215,30 @@ func testReseed(t *testing.T, s kyber.XOFFactory) {
 	}
 }
 
-func TestReset(t *testing.T) {
-	for _, s := range impls {
-		testReset(t, s)
+func TestResetNoSeed(t *testing.T) {
+	for _, impl := range impls {
+		testReset(t, impl, nil)
 	}
 }
 
-func testReset(t *testing.T, s kyber.XOFFactory) {
-	t.Logf("implementation %T", s)
-	seed := []byte("seed")
+func TestResetShortSeed(t *testing.T) {
+	shortSeed := []byte("short")
+	for _, impl := range impls {
+		testReset(t, impl, shortSeed)
+	}
+}
+
+func TestResetLongSeed(t *testing.T) {
+	longSeed := sha512.New().Sum([]byte("long"))
+	for _, impl := range impls {
+		testReset(t, impl, longSeed)
+	}
+}
+
+func testReset(t *testing.T, impl kyber.XOFFactory, seed []byte) {
+	t.Logf("implementation %T", impl)
 	nbrBytes := 1024
-	x := s.XOF(seed)
+	x := impl.XOF(seed)
 
 	beforeResetBytes := make([]byte, nbrBytes)
 	afterResetBytes := make([]byte, nbrBytes)
