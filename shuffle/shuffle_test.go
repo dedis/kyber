@@ -1,8 +1,10 @@
 package shuffle
 
 import (
+	"crypto/cipher"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"go.dedis.ch/kyber/v3"
 	"go.dedis.ch/kyber/v3/group/edwards25519"
 	"go.dedis.ch/kyber/v3/proof"
@@ -11,11 +13,16 @@ import (
 
 var k = 5
 var NQ = 6
-var N = 10
+var N = 1
 
 func TestShufflePair(t *testing.T) {
 	s := edwards25519.NewBlakeSHA256Ed25519WithRand(blake2xb.New(nil))
 	pairShuffleTest(s, k, N)
+}
+
+func TestShuffleInvalidPair(t *testing.T) {
+	s := edwards25519.NewBlakeSHA256Ed25519WithRand(blake2xb.New(nil))
+	pairInvalidShuffleTest(t, s, k)
 }
 
 func TestShuffleSequence(t *testing.T) {
@@ -23,47 +30,63 @@ func TestShuffleSequence(t *testing.T) {
 	sequenceShuffleTest(s, k, NQ, N)
 }
 
-func pairShuffleTest(suite Suite, k, N int) {
-	rand := suite.RandomStream()
+func TestInvalidShuffleSequence(t *testing.T) {
+	s := edwards25519.NewBlakeSHA256Ed25519WithRand(blake2xb.New(nil))
+	sequenceInvalidShuffleTest(t, s, k, NQ)
+}
 
+func setShuffleKeyPairs(rand cipher.Stream, suite Suite, k int) (kyber.Point, []kyber.Point) {
 	// Create a "server" private/public keypair
-	h := suite.Scalar().Pick(rand)
-	H := suite.Point().Mul(h, nil)
+	h0 := suite.Scalar().Pick(rand)
+	h1 := suite.Point().Mul(h0, nil)
 
 	// Create a set of ephemeral "client" keypairs to shuffle
-	c := make([]kyber.Scalar, k)
-	C := make([]kyber.Point, k)
-	//	fmt.Println("\nclient keys:")
+	c1 := make([]kyber.Point, k)
+
 	for i := 0; i < k; i++ {
-		c[i] = suite.Scalar().Pick(rand)
-		C[i] = suite.Point().Mul(c[i], nil)
-		//		fmt.Println(" "+C[i].String())
+		c0 := suite.Scalar().Pick(rand)
+		c1[i] = suite.Point().Mul(c0, nil)
 	}
 
+	return h1, c1
+}
+
+func elGamalEncryptPair(
+	rand cipher.Stream,
+	suite Suite,
+	c []kyber.Point,
+	h kyber.Point, k int) ([]kyber.Point, []kyber.Point) {
+
 	// ElGamal-encrypt all these keypairs with the "server" key
-	X := make([]kyber.Point, k)
-	Y := make([]kyber.Point, k)
+	x := make([]kyber.Point, k)
+	y := make([]kyber.Point, k)
 	r := suite.Scalar() // temporary
 	for i := 0; i < k; i++ {
 		r.Pick(rand)
-		X[i] = suite.Point().Mul(r, nil)
-		Y[i] = suite.Point().Mul(r, H) // ElGamal blinding factor
-		Y[i].Add(Y[i], C[i])           // Encrypted client public key
+		x[i] = suite.Point().Mul(r, nil)
+		y[i] = suite.Point().Mul(r, h) // ElGamal blinding factor
+		y[i].Add(y[i], c[i])           // Encrypted client public key
 	}
 
-	// Repeat only the actual shuffle portion for test purposes.
-	for i := 0; i < N; i++ {
+	return x, y
+}
 
+func pairShuffleTest(suite Suite, k, n int) {
+	rand := suite.RandomStream()
+	h, c := setShuffleKeyPairs(rand, suite, k)
+	x, y := elGamalEncryptPair(rand, suite, c, h, k)
+
+	// Repeat only the actual shuffle portion for benchmark purposes.
+	for i := 0; i < n; i++ {
 		// Do a key-shuffle
-		Xbar, Ybar, prover := Shuffle(suite, nil, H, X, Y, rand)
+		Xbar, Ybar, prover := Shuffle(suite, nil, h, x, y, rand)
 		prf, err := proof.HashProve(suite, "PairShuffle", prover)
 		if err != nil {
 			panic("Shuffle proof failed: " + err.Error())
 		}
-		//fmt.Printf("proof:\n%s\n",hex.Dump(prf))
 
 		// Check it
-		verifier := Verifier(suite, nil, H, X, Y, Xbar, Ybar)
+		verifier := Verifier(suite, nil, h, x, y, Xbar, Ybar)
 		err = proof.HashVerify(suite, "PairShuffle", verifier, prf)
 		if err != nil {
 			panic("Shuffle verify failed: " + err.Error())
@@ -71,22 +94,32 @@ func pairShuffleTest(suite Suite, k, N int) {
 	}
 }
 
-func sequenceShuffleTest(suite Suite, k, NQ, N int) {
+func pairInvalidShuffleTest(t *testing.T, suite Suite, k int) {
 	rand := suite.RandomStream()
+	h, c := setShuffleKeyPairs(rand, suite, k)
+	x, y := elGamalEncryptPair(rand, suite, c, h, k)
 
-	// Create a "server" private/public keypair
-	h := suite.Scalar().Pick(rand)
-	H := suite.Point().Mul(h, nil)
+	// Do a key-shuffle
+	Xbar, Ybar, prover := Shuffle(suite, nil, h, x, y, rand)
 
-	// Create a set of ephemeral "client" keypairs to shuffle
-	c := make([]kyber.Scalar, k)
-	C := make([]kyber.Point, k)
+	// Corrupt the shuffle
+	Xbar[1], Xbar[0] = Xbar[0], Xbar[1]
 
-	for i := 0; i < k; i++ {
-		c[i] = suite.Scalar().Pick(rand)
-		C[i] = suite.Point().Mul(c[i], nil)
-	}
+	prf, err := proof.HashProve(suite, "PairShuffle", prover)
+	assert.Nil(t, err)
 
+	// Check it
+	verifier := Verifier(suite, nil, h, x, y, Xbar, Ybar)
+	err = proof.HashVerify(suite, "PairShuffle", verifier, prf)
+	assert.Error(t, err)
+}
+
+func generateAndEncryptRandomSequences(
+	rand cipher.Stream,
+	suite Suite,
+	h kyber.Point,
+	c []kyber.Point,
+	k int) ([][]kyber.Point, [][]kyber.Point) {
 	X := make([][]kyber.Point, NQ)
 	Y := make([][]kyber.Point, NQ)
 
@@ -110,16 +143,24 @@ func sequenceShuffleTest(suite Suite, k, NQ, N int) {
 		for i := 0; i < k; i++ {
 			r.Pick(rand)
 			X[j][i] = suite.Point().Mul(r, nil)
-			Y[j][i] = suite.Point().Mul(r, H) // ElGamal blinding factor
-			Y[j][i].Add(Y[j][i], C[i])        // Encrypted client public key
+			Y[j][i] = suite.Point().Mul(r, h) // ElGamal blinding factor
+			Y[j][i].Add(Y[j][i], c[i])        // Encrypted client public key
 		}
 	}
 
-	// Repeat only the actual shuffle portion for test purposes.
+	return X, Y
+}
+
+func sequenceShuffleTest(suite Suite, k, NQ, N int) {
+	rand := suite.RandomStream()
+	h, c := setShuffleKeyPairs(rand, suite, k)
+	X, Y := generateAndEncryptRandomSequences(rand, suite, h, c, k)
+
+	// Repeat only the actual shuffle portion for benchmark purposes.
 	for i := 0; i < N; i++ {
 
 		// Do a key-shuffle
-		XX, YY, getProver := SequencesShuffle(suite, nil, H, X, Y, rand)
+		XX, YY, getProver := SequencesShuffle(suite, nil, h, X, Y, rand)
 
 		e := make([]kyber.Scalar, NQ)
 		for j := 0; j < NQ; j++ {
@@ -139,11 +180,42 @@ func sequenceShuffleTest(suite Suite, k, NQ, N int) {
 		XXUp, YYUp, XXDown, YYDown := GetSequenceVerifiable(suite, X, Y, XX, YY, e)
 
 		// Check it
-		verifier := Verifier(suite, nil, H, XXUp, YYUp, XXDown, YYDown)
+		verifier := Verifier(suite, nil, h, XXUp, YYUp, XXDown, YYDown)
 
 		err = proof.HashVerify(suite, "PairShuffle", verifier, prf)
 		if err != nil {
 			panic("failed to hashVerify: " + err.Error())
 		}
 	}
+}
+
+func sequenceInvalidShuffleTest(t *testing.T, suite Suite, k, NQ int) {
+	rand := suite.RandomStream()
+	h, c := setShuffleKeyPairs(rand, suite, k)
+	X, Y := generateAndEncryptRandomSequences(rand, suite, h, c, k)
+
+	// Do a key-shuffle
+	XX, YY, getProver := SequencesShuffle(suite, nil, h, X, Y, rand)
+
+	// Corrupt original inputs
+	X[0][0], Y[0][0] = X[0][1], Y[0][1]
+
+	e := make([]kyber.Scalar, NQ)
+	for j := 0; j < NQ; j++ {
+		e[j] = suite.Scalar().Pick(suite.RandomStream())
+	}
+
+	prover, err := getProver(e)
+	assert.Nil(t, err)
+
+	prf, err := proof.HashProve(suite, "PairShuffle", prover)
+	assert.Nil(t, err)
+
+	XXUp, YYUp, XXDown, YYDown := GetSequenceVerifiable(suite, X, Y, XX, YY, e)
+
+	// Check it
+	verifier := Verifier(suite, nil, h, XXUp, YYUp, XXDown, YYDown)
+
+	err = proof.HashVerify(suite, "PairShuffle", verifier, prf)
+	assert.Error(t, err)
 }
