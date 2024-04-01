@@ -43,7 +43,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/drand/kyber"
+	"go.dedis.ch/kyber/v3"
 )
 
 // Commit returns a random scalar v, generated from the given suite,

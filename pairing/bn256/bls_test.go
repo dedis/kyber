@@ -3,10 +3,10 @@ package bn256
 import (
 	"testing"
 
-	"github.com/drand/kyber/sign/bls"
-	"github.com/drand/kyber/sign/test"
-	"github.com/drand/kyber/util/random"
 	"github.com/stretchr/testify/require"
+	"go.dedis.ch/kyber/v3/sign/bls"
+	"go.dedis.ch/kyber/v3/sign/test"
+	"go.dedis.ch/kyber/v3/util/random"
 )
 
 func TestBLSSchemeBN256G1(t *testing.T) {

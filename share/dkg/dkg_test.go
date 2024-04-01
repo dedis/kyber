@@ -6,15 +6,15 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/drand/kyber"
-	"github.com/drand/kyber/group/edwards25519"
-	"github.com/drand/kyber/pairing/bn256"
-	"github.com/drand/kyber/share"
-	"github.com/drand/kyber/sign/schnorr"
-	"github.com/drand/kyber/sign/tbls"
-	"github.com/drand/kyber/util/random"
 	clock "github.com/jonboulle/clockwork"
 	"github.com/stretchr/testify/require"
+	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/group/edwards25519"
+	"go.dedis.ch/kyber/v3/pairing/bn256"
+	"go.dedis.ch/kyber/v3/share"
+	"go.dedis.ch/kyber/v3/sign/schnorr"
+	"go.dedis.ch/kyber/v3/sign/tbls"
+	"go.dedis.ch/kyber/v3/util/random"
 )
 
 type TestNode struct {

@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/drand/kyber"
-	"github.com/drand/kyber/group/edwards25519"
+	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/group/edwards25519"
 )
 
 func TestPVSS(test *testing.T) {

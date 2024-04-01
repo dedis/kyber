@@ -1,7 +1,7 @@
 package bn256
 
 import (
-	"github.com/drand/kyber"
+	"go.dedis.ch/kyber/v3"
 )
 
 // SuiteBn256 is an adapter that implements the suites.Suite interface so that

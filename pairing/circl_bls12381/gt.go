@@ -5,7 +5,7 @@ import (
 	"io"
 
 	circl "github.com/cloudflare/circl/ecc/bls12381"
-	"github.com/drand/kyber"
+	"go.dedis.ch/kyber/v3"
 )
 
 var gtBase *circl.Gt

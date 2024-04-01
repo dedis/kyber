@@ -5,9 +5,9 @@ import (
 	"crypto/cipher"
 	"testing"
 
-	"github.com/drand/kyber"
-	"github.com/drand/kyber/util/key"
-	"github.com/drand/kyber/util/random"
+	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/util/key"
+	"go.dedis.ch/kyber/v3/util/random"
 )
 
 // Suite represents the functionalities that this package can test
@@ -138,7 +138,6 @@ func testScalarClone(t *testing.T, g kyber.Group, rand cipher.Stream) {
 // Returns a log of the pseudorandom Points produced in the test,
 // for comparison across alternative implementations
 // that are supposed to be equivalent.
-//
 func testGroup(t *testing.T, g kyber.Group, rand cipher.Stream) []kyber.Point {
 	t.Logf("\nTesting group '%s': %d-byte Point, %d-byte Scalar\n",
 		g.String(), g.PointLen(), g.ScalarLen())

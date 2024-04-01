@@ -6,10 +6,11 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"github.com/drand/kyber"
-	"github.com/drand/kyber/group/mod"
-	"github.com/drand/kyber/pairing"
-	"github.com/drand/kyber/util/random"
+
+	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/group/mod"
+	"go.dedis.ch/kyber/v3/pairing"
+	"go.dedis.ch/kyber/v3/util/random"
 )
 
 type Ciphertext struct {
@@ -339,13 +340,15 @@ type CiphertextCPA struct {
 // H1: {0,1}^n -> G1
 // H2: GT -> {0,1}^n
 // ID: Qid = H1(ID) = xP \in G2
-// 	secret did = s*Qid \in G2
+//
+//	secret did = s*Qid \in G2
+//
 // Encrypt:
-// - random r scalar
-// - Gid = e(Ppub, r*Qid) == e(P, P)^(x*s*r) \in GT
-// 		 = GidT
-// - U = rP \in G1,
-// - V = M XOR H2(Gid)) = M XOR H2(GidT)  \in {0,1}^n
+//   - random r scalar
+//   - Gid = e(Ppub, r*Qid) == e(P, P)^(x*s*r) \in GT
+//     = GidT
+//   - U = rP \in G1,
+//   - V = M XOR H2(Gid)) = M XOR H2(GidT)  \in {0,1}^n
 func EncryptCPAonG1(s pairing.Suite, basePoint, public kyber.Point, ID, msg []byte) (*CiphertextCPA, error) {
 	if len(msg)>>16 > 0 {
 		// we're using blake2 as XOF which only outputs 2^16-1 length
@@ -382,9 +385,9 @@ func EncryptCPAonG1(s pairing.Suite, basePoint, public kyber.Point, ID, msg []by
 // SigGroup = G2 (large secret identities)
 // KeyGroup = G1 (short master public keys)
 // Decrypt:
-// - V XOR H2(e(U, did)) = V XOR H2(e(rP, s*Qid))
-//   = V XOR H2(e(P, P)^(r*s*x))
-//   = V XOR H2(GidT) = M
+//   - V XOR H2(e(U, did)) = V XOR H2(e(rP, s*Qid))
+//     = V XOR H2(e(P, P)^(r*s*x))
+//     = V XOR H2(GidT) = M
 func DecryptCPAonG1(s pairing.Suite, private kyber.Point, c *CiphertextCPA) ([]byte, error) {
 	GidT := s.Pair(c.RP, private)
 	hGidT, err := gtToHash(s, GidT, len(c.C))

@@ -15,11 +15,11 @@ import (
 	"encoding/binary"
 	"errors"
 
-	"github.com/drand/kyber"
-	"github.com/drand/kyber/pairing"
-	"github.com/drand/kyber/share"
-	"github.com/drand/kyber/sign"
-	"github.com/drand/kyber/sign/bls"
+	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/pairing"
+	"go.dedis.ch/kyber/v3/share"
+	"go.dedis.ch/kyber/v3/sign"
+	"go.dedis.ch/kyber/v3/sign/bls"
 )
 
 // SigShare encodes a threshold BLS signature share Si = i || v where the 2-byte

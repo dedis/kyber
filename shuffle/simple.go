@@ -4,8 +4,8 @@ import (
 	"crypto/cipher"
 	"errors"
 
-	"github.com/drand/kyber"
-	"github.com/drand/kyber/proof"
+	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/proof"
 )
 
 // XX the Zs in front of some field names are a kludge to make them

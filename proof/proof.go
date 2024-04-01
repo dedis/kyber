@@ -8,7 +8,7 @@ package proof
 import (
 	"errors"
 
-	"github.com/drand/kyber"
+	"go.dedis.ch/kyber/v3"
 )
 
 // Suite defines the functionalities needed for this package to operate
@@ -157,7 +157,6 @@ type repPred struct {
 // A Rep statement of the form Rep(P,x1,B1,...,xn,Bn)
 // indicates that the prover knows secrets x1,...,xn
 // such that point P is the sum x1*B1+...+xn*Bn.
-//
 func Rep(P string, SB ...string) Predicate {
 	if len(SB)&1 != 0 {
 		panic("mismatched Scalar")

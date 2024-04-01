@@ -6,13 +6,13 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/drand/kyber"
-	this "github.com/drand/kyber/pairing/circl_bls12381"
-	"github.com/drand/kyber/sign/bls"
-	"github.com/drand/kyber/sign/tbls"
-	"github.com/drand/kyber/sign/test"
-	"github.com/drand/kyber/util/random"
 	"github.com/stretchr/testify/require"
+	"go.dedis.ch/kyber/v3"
+	this "go.dedis.ch/kyber/v3/pairing/circl_bls12381"
+	"go.dedis.ch/kyber/v3/sign/bls"
+	"go.dedis.ch/kyber/v3/sign/tbls"
+	"go.dedis.ch/kyber/v3/sign/test"
+	"go.dedis.ch/kyber/v3/util/random"
 )
 
 // Code extracted from kyber/utils/test

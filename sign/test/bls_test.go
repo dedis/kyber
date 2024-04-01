@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	bls "github.com/drand/kyber-bls12381"
-	sign "github.com/drand/kyber/sign/bls"
+	sign "go.dedis.ch/kyber/v3/sign/bls"
 )
 
 func TestBLS12381(t *testing.T) {

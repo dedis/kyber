@@ -4,8 +4,8 @@ import (
 	"crypto/subtle"
 	"errors"
 
-	"github.com/drand/kyber"
-	"github.com/drand/kyber/util/key"
+	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/util/key"
 )
 
 func header(suite Suite, X kyber.Point, x kyber.Scalar,
@@ -156,7 +156,6 @@ func Encrypt(suite Suite, message []byte,
 // As a side-effect, this verification also ensures plaintext-awareness:
 // that is, it is infeasible for a sender to construct any ciphertext
 // that will be accepted by the receiver without knowing the plaintext.
-//
 func Decrypt(suite Suite, ciphertext []byte, anonymitySet Set, mine int, privateKey kyber.Scalar) ([]byte, error) {
 	// Decrypt and check the encrypted key-header.
 	xb, hdrlen, err := decryptKey(suite, ciphertext, anonymitySet,

@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/drand/kyber/util/test"
+	"go.dedis.ch/kyber/v3/util/test"
 )
 
 var tSuite = NewBlakeSHA256Ed25519()

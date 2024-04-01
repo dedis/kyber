@@ -3,8 +3,8 @@ package bn256
 import (
 	"testing"
 
-	"github.com/drand/kyber/util/key"
 	"github.com/stretchr/testify/require"
+	"go.dedis.ch/kyber/v3/util/key"
 )
 
 func TestAdapter_SuiteBn256(t *testing.T) {

@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/drand/kyber"
-	"github.com/drand/kyber/group/edwards25519"
-	"github.com/drand/kyber/xof/blake2xb"
+	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/group/edwards25519"
+	"go.dedis.ch/kyber/v3/xof/blake2xb"
 )
 
 func TestRep(t *testing.T) {
@@ -140,7 +140,6 @@ func Example_rep2() {
 // If the prover does know the relationship between B1 and B2, however,
 // then X does not serve as a useful commitment:
 // the prover can trivially compute the x1 corresponding to an arbitrary x2.
-//
 func Example_rep3() {
 	pred := Rep("X", "x1", "B1", "x2", "B2")
 	fmt.Println(pred.String())
