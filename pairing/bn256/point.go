@@ -258,7 +258,7 @@ func (p *pointG1) Hash(m []byte) kyber.Point {
 	return p
 }
 
-// hashes a byte slice into two points on a curve represented by big.Int
+// hashes a byte slice into a point on a curve represented by two big.Int
 // ideally we want to do this using gfP, but gfP doesn't have a ModSqrt function
 func hashToPoint(m []byte) (*big.Int, *big.Int) {
 	h := sha256.Sum256(m)
