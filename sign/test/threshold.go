@@ -3,11 +3,11 @@ package test
 import (
 	"testing"
 
-	"github.com/drand/kyber"
-	"github.com/drand/kyber/share"
-	"github.com/drand/kyber/sign"
-	"github.com/drand/kyber/util/random"
 	"github.com/stretchr/testify/require"
+	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/share"
+	"go.dedis.ch/kyber/v3/sign"
+	"go.dedis.ch/kyber/v3/util/random"
 )
 
 // ThresholdTest performs a simple check on a threshold scheme implementation

@@ -3,8 +3,8 @@ package sign
 import (
 	"crypto/cipher"
 
-	"github.com/drand/kyber"
-	"github.com/drand/kyber/share"
+	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/share"
 )
 
 // Scheme is the minimal interface for a signature scheme.

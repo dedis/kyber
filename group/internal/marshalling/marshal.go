@@ -1,5 +1,4 @@
 // Package marshalling provides a common implementation of (un)marshalling method using Writer and Reader.
-//
 package marshalling
 
 import (
@@ -7,7 +6,7 @@ import (
 	"io"
 	"reflect"
 
-	"github.com/drand/kyber"
+	"go.dedis.ch/kyber/v3"
 )
 
 // PointMarshalTo provides a generic implementation of Point.EncodeTo

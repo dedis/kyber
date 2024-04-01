@@ -6,9 +6,9 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/drand/kyber"
-	"github.com/drand/kyber/group/edwards25519"
-	"github.com/drand/kyber/xof/blake2xb"
+	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/group/edwards25519"
+	"go.dedis.ch/kyber/v3/xof/blake2xb"
 )
 
 func TestRep(t *testing.T) {

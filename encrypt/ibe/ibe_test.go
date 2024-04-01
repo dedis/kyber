@@ -5,11 +5,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/drand/kyber"
 	bls "github.com/drand/kyber-bls12381"
-	"github.com/drand/kyber/pairing"
-	"github.com/drand/kyber/util/random"
 	"github.com/stretchr/testify/require"
+	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/pairing"
+	"go.dedis.ch/kyber/v3/util/random"
 )
 
 func newSetting(i uint) (

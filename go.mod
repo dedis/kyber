@@ -1,4 +1,4 @@
-module github.com/drand/kyber
+module go.dedis.ch/kyber/v3
 
 go 1.18
 

@@ -8,11 +8,11 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/drand/kyber"
-	"github.com/drand/kyber/encrypt/ecies"
-	"github.com/drand/kyber/share"
-	"github.com/drand/kyber/sign"
-	"github.com/drand/kyber/util/random"
+	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/encrypt/ecies"
+	"go.dedis.ch/kyber/v3/share"
+	"go.dedis.ch/kyber/v3/sign"
+	"go.dedis.ch/kyber/v3/util/random"
 )
 
 type Suite interface {

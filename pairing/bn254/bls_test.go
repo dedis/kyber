@@ -3,8 +3,8 @@ package bn254
 import (
 	"testing"
 
-	"github.com/drand/kyber/sign/bls"
-	"github.com/drand/kyber/sign/test"
+	"go.dedis.ch/kyber/v3/sign/bls"
+	"go.dedis.ch/kyber/v3/sign/test"
 )
 
 func TestBLSSchemeBN254G1(t *testing.T) {

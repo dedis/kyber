@@ -8,7 +8,7 @@ package proof
 import (
 	"errors"
 
-	"github.com/drand/kyber"
+	"go.dedis.ch/kyber/v3"
 )
 
 // Suite defines the functionalities needed for this package to operate

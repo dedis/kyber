@@ -8,7 +8,7 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/drand/kyber"
+	"go.dedis.ch/kyber/v3"
 )
 
 // Suite is the sum of all suites mix-ins in Kyber.
@@ -25,7 +25,6 @@ var suites = map[string]Suite{}
 var requireConstTime = false
 
 // register is called by suites to make themselves known to Kyber.
-//
 func register(s Suite) {
 	suites[strings.ToLower(s.String())] = s
 }

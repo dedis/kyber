@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/drand/kyber/group/edwards25519"
-	"github.com/drand/kyber/util/random"
+	"go.dedis.ch/kyber/v3/group/edwards25519"
+	"go.dedis.ch/kyber/v3/util/random"
 )
 
 func TestECIES(t *testing.T) {

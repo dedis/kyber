@@ -3,19 +3,12 @@ package tbls
 import (
 	"testing"
 
-	"github.com/drand/kyber/pairing/bn256"
-	"github.com/drand/kyber/pairing/circl_bls12381"
-	"github.com/drand/kyber/sign/test"
+	"go.dedis.ch/kyber/v3/pairing/bn256"
+	"go.dedis.ch/kyber/v3/sign/test"
 )
 
 func TestBN256(t *testing.T) {
 	suite := bn256.NewSuite()
-	scheme := NewThresholdSchemeOnG1(suite)
-	test.ThresholdTest(t, suite.G2(), scheme)
-}
-
-func TestBLS12381(t *testing.T) {
-	suite := circl_bls12381.NewSuite()
 	scheme := NewThresholdSchemeOnG1(suite)
 	test.ThresholdTest(t, suite.G2(), scheme)
 }

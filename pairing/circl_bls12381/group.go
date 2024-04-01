@@ -2,7 +2,7 @@ package circl_bls12381
 
 import (
 	circl "github.com/cloudflare/circl/ecc/bls12381"
-	"github.com/drand/kyber"
+	"go.dedis.ch/kyber/v3"
 )
 
 var (

@@ -5,10 +5,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/drand/kyber"
-	"github.com/drand/kyber/group/edwards25519"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/group/edwards25519"
 )
 
 func TestSecretRecovery(test *testing.T) {
@@ -34,11 +34,12 @@ func TestSecretRecovery(test *testing.T) {
 // tests the recovery of a secret when one of the share has an index
 // higher than the given `n`. This is a valid scenario that can happen during
 // a DKG-resharing:
-// 1. we add a new node n6 to an already-established group of 5 nodes.
-// 2. DKG runs without the first node in the group, i.e. without n1
-// 3. The list of qualified shares are [n2 ... n6] so the new resulting group
-//    has 5 members (no need to keep the 1st node around).
-// 4. When n6 wants to reconstruct, it will give its index given during the
+//  1. we add a new node n6 to an already-established group of 5 nodes.
+//  2. DKG runs without the first node in the group, i.e. without n1
+//  3. The list of qualified shares are [n2 ... n6] so the new resulting group
+//     has 5 members (no need to keep the 1st node around).
+//  4. When n6 wants to reconstruct, it will give its index given during the
+//
 // resharing, i.e. 6 (or 5 in 0-based indexing) whereas n = 5.
 // See TestPublicRecoveryOutIndex for testing with the commitment.
 func TestSecretRecoveryOutIndex(test *testing.T) {

@@ -3,7 +3,7 @@
 package keccak
 
 import (
-	"github.com/drand/kyber"
+	"go.dedis.ch/kyber/v3"
 	"golang.org/x/crypto/sha3"
 )
 

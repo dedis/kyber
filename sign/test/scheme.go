@@ -3,9 +3,9 @@ package test
 import (
 	"testing"
 
-	"github.com/drand/kyber/sign"
-	"github.com/drand/kyber/util/random"
 	"github.com/stretchr/testify/require"
+	"go.dedis.ch/kyber/v3/sign"
+	"go.dedis.ch/kyber/v3/util/random"
 )
 
 // SchemeTesting tests a scheme with simple checks

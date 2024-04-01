@@ -9,10 +9,10 @@ import (
 	"reflect"
 
 	"go.dedis.ch/fixbuf"
-	"github.com/drand/kyber"
-	"github.com/drand/kyber/group/internal/marshalling"
-	"github.com/drand/kyber/util/random"
-	"github.com/drand/kyber/xof/blake2xb"
+	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/group/internal/marshalling"
+	"go.dedis.ch/kyber/v3/util/random"
+	"go.dedis.ch/kyber/v3/xof/blake2xb"
 )
 
 // QrSuite is a quadratic residue suite
