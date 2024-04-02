@@ -29,18 +29,15 @@ func New(seed []byte) kyber.XOF {
 		panic("blake2s.NewXOF should not return error: " + err.Error())
 	}
 
-	if seed2 != nil {
-		_, err := b.Write(seed2)
-		if err != nil {
-			panic("blake2s.XOF.Write should not return error: " + err.Error())
-		}
-
-		seedCopy := make([]byte, len(seed2))
-		copy(seedCopy, seed2)
-		seed2 = seedCopy
+	_, err = b.Write(seed2)
+	if err != nil {
+		panic("blake2s.XOF.Write should not return error: " + err.Error())
 	}
 
-	return &xof{impl: b, seed: seed2}
+	seedCopy := make([]byte, len(seed2))
+	copy(seedCopy, seed2)
+
+	return &xof{impl: b, seed: seedCopy}
 }
 
 func (x *xof) Clone() kyber.XOF {
