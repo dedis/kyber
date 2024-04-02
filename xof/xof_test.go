@@ -9,18 +9,23 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.dedis.ch/kyber/v3"
 	"go.dedis.ch/kyber/v3/xof/blake2xb"
+	"go.dedis.ch/kyber/v3/xof/blake2xs"
 	"go.dedis.ch/kyber/v3/xof/keccak"
 )
 
-type blakeF struct{}
+type blake2xbF struct{}
 
-func (b *blakeF) XOF(seed []byte) kyber.XOF { return blake2xb.New(seed) }
+func (b *blake2xbF) XOF(seed []byte) kyber.XOF { return blake2xb.New(seed) }
+
+type blake2xsF struct{}
+
+func (b *blake2xsF) XOF(seed []byte) kyber.XOF { return blake2xs.New(seed) }
 
 type keccakF struct{}
 
 func (b *keccakF) XOF(seed []byte) kyber.XOF { return keccak.New(seed) }
 
-var impls = []kyber.XOFFactory{&blakeF{}, &keccakF{}}
+var impls = []kyber.XOFFactory{&blake2xbF{}, &blake2xsF{}, &keccakF{}}
 
 func TestEncDec(t *testing.T) {
 	lengths := []int{0, 1, 16, 1024, 8192}
