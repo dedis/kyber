@@ -5,7 +5,6 @@ go 1.18
 require (
 	github.com/cloudflare/circl v1.3.7
 	github.com/consensys/gnark-crypto v0.12.1
-	github.com/drand/kyber-bls12381 v0.3.1
 	github.com/jonboulle/clockwork v0.4.0
 	github.com/stretchr/testify v1.9.0
 	go.dedis.ch/fixbuf v1.0.3
@@ -18,8 +17,6 @@ require (
 	github.com/bits-and-blooms/bitset v1.13.0 // indirect
 	github.com/consensys/bavard v0.1.13 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/drand/kyber v1.2.0 // indirect
-	github.com/kilic/bls12-381 v0.1.0 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/mmcloughlin/addchain v0.4.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
