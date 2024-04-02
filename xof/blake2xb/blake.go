@@ -23,6 +23,7 @@ func New(seed []byte) kyber.XOF {
 		seed1 = seed[0:blake2b.Size]
 		seed2 = seed[blake2b.Size:]
 	}
+
 	b, err := blake2b.NewXOF(blake2b.OutputLengthUnknown, seed1)
 	if err != nil {
 		panic("blake2b.NewXOF should not return error: " + err.Error())
@@ -33,11 +34,13 @@ func New(seed []byte) kyber.XOF {
 		if err != nil {
 			panic("blake2b.XOF.Write should not return error: " + err.Error())
 		}
+
+		seedCopy := make([]byte, len(seed2))
+		copy(seedCopy, seed2)
+		seed2 = seedCopy
 	}
 
-	seedCopy := make([]byte, len(seed))
-	copy(seedCopy, seed)
-	return &xof{impl: b, seed: seedCopy}
+	return &xof{impl: b, seed: seed2}
 }
 
 func (x *xof) Clone() kyber.XOF {
@@ -67,9 +70,7 @@ func (x *xof) Reseed() {
 
 func (x *xof) Reset() {
 	x.impl.Reset()
-	if len(x.seed) > blake2b.Size {
-		x.impl.Write(x.seed[blake2b.Size:])
-	}
+	x.impl.Write(x.seed)
 }
 
 func (x *xof) XORKeyStream(dst, src []byte) {
