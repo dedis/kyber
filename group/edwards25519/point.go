@@ -19,6 +19,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"io"
+	"math"
 
 	"go.dedis.ch/kyber/v3"
 	"go.dedis.ch/kyber/v3/group/internal/marshalling"
@@ -289,4 +290,44 @@ func (P *point) IsCanonical(s []byte) bool {
 	d := byte((0xed - 1 - uint16(s[0])) >> 8)
 
 	return 1-(c&d&1) == 1
+}
+
+func (p *point) Hash(m []byte) kyber.Point {
+	u := hashToField(m, 2)
+	q0 := mapToCurve(u[0])
+	q1 := mapToCurve(u[1])
+	r := q0.Add(q0, q1)
+
+	return clearCofactor(r)
+}
+
+func hashToField(m []byte, count int) []fieldElement {
+	l := 48 // L param in RFC9380
+	byteLen := count * l
+	// TODO: Set proper DST
+	uniformBytes := expandMessage(m, "AAAAAAAAA", byteLen)
+
+	u := make([]fieldElement, count)
+	for i := 0; i < count; i++ {
+		elmOffset := l * i
+		tv := uniformBytes[elmOffset : elmOffset+l]
+		fe := fieldElement{}
+		feFromBytes(&fe, tv)
+		u[i] = fe
+	}
+
+	return u
+}
+
+func expandMessage(m []byte, domainSeparator string, byteLen int) []byte {
+
+	return nil
+}
+
+func mapToCurve(ui fieldElement) kyber.Point {
+	panic("not yet")
+}
+
+func clearCofactor(q kyber.Point) kyber.Point {
+	panic("not yet")
 }
