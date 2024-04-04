@@ -27,11 +27,11 @@ func FuzzTBLS(f *testing.F) {
 }
 
 func TBLSRoutine(test *testing.T, msg []byte, n int) {
-	suite := bn256.NewSuite()
-	th := n/2 + 1
-
 	// Use a deterministic seed for the random stream
 	stream := blake2xb.New(msg)
+	suite := bn256.NewSuiteRand(stream)
+	th := n/2 + 1
+
 	secret := suite.G1().Scalar().Pick(stream)
 	priPoly := share.NewPriPoly(suite.G2(), th, secret, stream)
 	pubPoly := priPoly.Commit(suite.G2().Point().Base())
