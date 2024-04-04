@@ -107,6 +107,17 @@ func VerifyWithChecks(g kyber.Group, pub, msg, sig []byte) error {
 	if err := R.UnmarshalBinary(sig[:pointSize]); err != nil {
 		return err
 	}
+	if p, ok := R.(pointCanCheckCanonicalAndSmallOrder); ok {
+		if !p.IsCanonical(sig[:pointSize]) {
+			return fmt.Errorf("R is not canonical")
+		}
+		if p.HasSmallOrder() {
+			return fmt.Errorf("R has small order")
+		}
+	}
+	if s, ok := g.Scalar().(scalarCanCheckCanonical); ok && !s.IsCanonical(sig[pointSize:]) {
+		return fmt.Errorf("signature is not canonical")
+	}
 	if sub, ok := R.(kyber.SubGroupElement); ok && !sub.IsInCorrectGroup() {
 		return fmt.Errorf("schnorr: point not in correct group")
 	}

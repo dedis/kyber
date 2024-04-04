@@ -2,10 +2,26 @@ tidy:
 	#go install honnef.co/go/tools/cmd/staticcheck@latest
 	go mod tidy
 
-Coding/bin/Makefile.base:
-	git clone https://github.com/dedis/Coding
-include Coding/bin/Makefile.base
+generate: tidy
+	go generate ./...
 
-.PHONY: fetch-dependencies
-fetch-dependencies:
-	go get -v -t -d ./...
+# Coding style static check.
+lint: tidy
+	@echo "Please setup a linter!"
+	#golangci-lint run
+	#staticcheck go list ./...
+
+
+vet: tidy
+	go vet ./...
+
+test: tidy
+	go test ./...
+
+coverage: tidy
+	go test -json -covermode=count -coverprofile=profile.cov ./... > report.json
+
+# target to run all the possible checks; it's a good habit to run it before
+# pushing code
+check: lint vet test
+	echo "check done"
