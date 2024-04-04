@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.dedis.ch/kyber/v3"
 	"go.dedis.ch/kyber/v3/xof/blake2xb"
+	"go.dedis.ch/kyber/v3/xof/blake2xs"
 	"go.dedis.ch/kyber/v3/xof/keccak"
 )
 

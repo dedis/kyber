@@ -7,7 +7,9 @@ import (
 	"testing"
 
 	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/group/curve25519"
 	"go.dedis.ch/kyber/v3/group/edwards25519"
+	"go.dedis.ch/kyber/v3/group/nist"
 	"go.dedis.ch/kyber/v3/xof/blake2xb"
 )
 

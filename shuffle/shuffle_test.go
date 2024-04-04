@@ -4,6 +4,7 @@ import (
 	"crypto/cipher"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"go.dedis.ch/kyber/v3"
 	"go.dedis.ch/kyber/v3/group/edwards25519"
 	"go.dedis.ch/kyber/v3/proof"
