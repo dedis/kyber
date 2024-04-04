@@ -3,10 +3,13 @@ package proof
 import (
 	"encoding/hex"
 	"fmt"
+	"strconv"
 	"testing"
 
 	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/group/curve25519"
 	"go.dedis.ch/kyber/v3/group/edwards25519"
+	"go.dedis.ch/kyber/v3/group/nist"
 	"go.dedis.ch/kyber/v3/xof/blake2xb"
 )
 
@@ -140,7 +143,6 @@ func Example_rep2() {
 // If the prover does know the relationship between B1 and B2, however,
 // then X does not serve as a useful commitment:
 // the prover can trivially compute the x1 corresponding to an arbitrary x2.
-//
 func Example_rep3() {
 	pred := Rep("X", "x1", "B1", "x2", "B2")
 	fmt.Println(pred.String())
@@ -245,4 +247,70 @@ func Example_or2() {
 	// 000000a0  2b e0 be 8d 56 55 1a d1  6e 11 21 fc 20 3e 0f 5f  |+...VU..n.!. >._|
 	// 000000b0  4d 97 a9 bf 1a 28 27 6d  3b 71 04 e1 c0 86 96 08  |M....('m;q......|
 	// Proof verified.
+}
+
+func BenchmarkProof(b *testing.B) {
+	rand := blake2xb.New([]byte("random"))
+	predicateSize := 100
+	suites := []struct {
+		Suite
+	}{
+		{edwards25519.NewBlakeSHA256Ed25519()},
+		{curve25519.NewBlakeSHA256Curve25519(false)},
+		{curve25519.NewBlakeSHA256Curve25519(true)},
+		{nist.NewBlakeSHA256P256()},
+		{nist.NewBlakeSHA256QR512()},
+	}
+
+	for _, suite := range suites {
+		P := suite.Point().Null()
+
+		sval := map[string]kyber.Scalar{}
+		pval := map[string]kyber.Point{}
+		predicateBuilder := make([]string, 0)
+
+		for i := 0; i < predicateSize; i++ {
+			s := suite.Scalar().Pick(rand)
+			index := strconv.Itoa(i)
+
+			publicPoint := suite.Point().Mul(s, nil)
+
+			sval["x"+index] = s
+			predicateBuilder = append(predicateBuilder, "x"+index)
+			predicateBuilder = append(predicateBuilder, "B"+index)
+			pval["B"+index] = suite.Point().Base()
+
+			P = suite.Point().Add(P, publicPoint)
+		}
+
+		pval["P"] = P
+
+		var proof []byte
+		var err error
+		var pred Predicate
+
+		b.Run(suite.String()+"/ProofBuild", func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				pred = Rep("P", predicateBuilder...)
+				// Prove P = x0*B + x1*B + ... + xN*B
+				prover := pred.Prover(suite, sval, pval, nil)
+				proof, err = HashProve(suite, "TEST", prover)
+				if err != nil {
+					b.Log(err.Error())
+					b.Fail()
+				}
+			}
+		})
+
+		b.Run(suite.String()+"/ProofVerify", func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				verifier := pred.Verifier(suite, pval)
+				err = HashVerify(suite, "TEST", verifier, proof)
+				if err != nil {
+					b.Log(err.Error())
+					b.Fail()
+				}
+			}
+		})
+	}
 }

@@ -2,24 +2,30 @@ package xof
 
 import (
 	"bytes"
+	"crypto/sha512"
 	"math"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 	"go.dedis.ch/kyber/v3"
 	"go.dedis.ch/kyber/v3/xof/blake2xb"
+	"go.dedis.ch/kyber/v3/xof/blake2xs"
 	"go.dedis.ch/kyber/v3/xof/keccak"
 )
 
-type blakeF struct{}
+type blake2xbF struct{}
 
-func (b *blakeF) XOF(seed []byte) kyber.XOF { return blake2xb.New(seed) }
+func (b *blake2xbF) XOF(seed []byte) kyber.XOF { return blake2xb.New(seed) }
+
+type blake2xsF struct{}
+
+func (b *blake2xsF) XOF(seed []byte) kyber.XOF { return blake2xs.New(seed) }
 
 type keccakF struct{}
 
 func (b *keccakF) XOF(seed []byte) kyber.XOF { return keccak.New(seed) }
 
-var impls = []kyber.XOFFactory{&blakeF{}, &keccakF{}}
+var impls = []kyber.XOFFactory{&blake2xbF{}, &blake2xsF{}, &keccakF{}}
 
 func TestEncDec(t *testing.T) {
 	lengths := []int{0, 1, 16, 1024, 8192}
@@ -211,6 +217,43 @@ func testReseed(t *testing.T, s kyber.XOFFactory) {
 	d := bitDiff(dst1, dst2)
 	if math.Abs(d-0.50) > 0.1 {
 		t.Fatalf("reseed bitDiff %v", d)
+	}
+}
+
+func TestResetNoSeed(t *testing.T) {
+	for _, impl := range impls {
+		testReset(t, impl, nil)
+	}
+}
+
+func TestResetShortSeed(t *testing.T) {
+	shortSeed := []byte("short")
+	for _, impl := range impls {
+		testReset(t, impl, shortSeed)
+	}
+}
+
+func TestResetLongSeed(t *testing.T) {
+	longSeed := sha512.New().Sum([]byte("long"))
+	for _, impl := range impls {
+		testReset(t, impl, longSeed)
+	}
+}
+
+func testReset(t *testing.T, impl kyber.XOFFactory, seed []byte) {
+	t.Logf("implementation %T", impl)
+	nbrBytes := 1024
+	x := impl.XOF(seed)
+
+	beforeResetBytes := make([]byte, nbrBytes)
+	afterResetBytes := make([]byte, nbrBytes)
+	x.Read(beforeResetBytes)
+
+	x.Reset()
+	x.Read(afterResetBytes)
+
+	if !bytes.Equal(beforeResetBytes, afterResetBytes) {
+		t.Fatal("reset doesn't restore initial states")
 	}
 }
 
