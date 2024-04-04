@@ -16,13 +16,16 @@ package edwards25519
 
 import (
 	"crypto/cipher"
+	"crypto/sha256"
 	"encoding/hex"
-	"errors"
 	"io"
 	"math"
+	"math/big"
+	"strings"
 
 	"go.dedis.ch/kyber/v4"
 	"go.dedis.ch/kyber/v4/group/internal/marshalling"
+	"golang.org/x/xerrors"
 )
 
 var marshalPointID = [8]byte{'e', 'd', '.', 'p', 'o', 'i', 'n', 't'}
@@ -55,7 +58,7 @@ func (P *point) MarshalID() [8]byte {
 
 func (P *point) UnmarshalBinary(b []byte) error {
 	if !P.ge.FromBytes(b) {
-		return errors.New("invalid Ed25519 curve point")
+		return xerrors.New("invalid Ed25519 curve point")
 	}
 	return nil
 }
@@ -173,7 +176,7 @@ func (P *point) Data() ([]byte, error) {
 	P.ge.ToBytes(&b)
 	dl := int(b[0]) // extract length byte
 	if dl > P.EmbedLen() {
-		return nil, errors.New("invalid embedded data length")
+		return nil, xerrors.New("invalid embedded data length")
 	}
 	return b[1 : 1+dl], nil
 }
