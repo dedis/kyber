@@ -18,10 +18,10 @@ import (
 	"crypto/cipher"
 	"crypto/sha256"
 	"encoding/hex"
+	"hash"
 	"io"
 	"math"
 	"math/big"
-	"strings"
 
 	"go.dedis.ch/kyber/v3"
 	"go.dedis.ch/kyber/v3/group/internal/marshalling"
@@ -308,7 +308,7 @@ func hashToField(m []byte, count int) []fieldElement {
 	l := 48 // L param in RFC9380
 	byteLen := count * l
 	// TODO: Set proper DST
-	uniformBytes := expandMessage(m, "AAAAAAAAA", byteLen)
+	uniformBytes, _ := expandMessageXMD(sha256.New(), m, "AAAAAAAAA", byteLen)
 
 	u := make([]fieldElement, count)
 	for i := 0; i < count; i++ {
@@ -322,9 +322,87 @@ func hashToField(m []byte, count int) []fieldElement {
 	return u
 }
 
-func expandMessage(m []byte, domainSeparator string, byteLen int) []byte {
+func expandMessageXMD(h hash.Hash, m []byte, domainSeparator string, byteLen int) ([]byte, error) {
+	r := float64(byteLen) / float64(h.Size()>>3)
+	ell := int(math.Ceil(r))
+	if ell > 255 || ell < 0 || byteLen > 65535 || len(domainSeparator) > 255 {
+		return nil, xerrors.New("invalid parameters")
+	}
 
-	return nil
+	padDom, err := i2OSP(len(domainSeparator), 1)
+	if err != nil {
+		return nil, err
+	}
+
+	dstPrime := append([]byte(domainSeparator), padDom...)
+	byteLenStr, _ := i2OSP(byteLen, 2)
+	zeroPad, _ := i2OSP(0, 1)
+	zPad, _ := i2OSP(0, h.BlockSize())
+
+	// mPrime = Z_pad || msg || l_i_b_str || I2OSP(0, 1) || DST_prim
+	mPrime := make([]byte, 0, len(zPad)+len(m)+len(byteLenStr)+len(zeroPad)+len(dstPrime))
+	mPrime = append(mPrime, zPad...)
+	mPrime = append(mPrime, m...)
+	mPrime = append(mPrime, byteLenStr...)
+	mPrime = append(mPrime, zeroPad...)
+	mPrime = append(mPrime, dstPrime...)
+
+	// b0 = H(msg_prime)
+	h.Reset()
+	h.Write([]byte(mPrime))
+	b0 := h.Sum(nil)
+
+	// b_1 = H(b_0 || I2OSP(1, 1) || DST_prime
+	h.Reset()
+	h.Write(b0)
+	onePad, _ := i2OSP(1, 1)
+	h.Write([]byte(onePad))
+	h.Write([]byte(dstPrime))
+	b1 := h.Sum(nil)
+
+	bFinal := make([]byte, 0, len(b1)*(ell+1))
+	bFinal = append(bFinal, b1...)
+	bPred := b1
+	for i := 2; i <= ell; i++ {
+		x, err := byteXor(bPred, b0, bPred)
+		if err != nil {
+			return nil, err
+		}
+		ithPad, _ := i2OSP(i, 1)
+
+		h.Reset()
+		h.Write(x)
+		h.Write(ithPad)
+		h.Write(dstPrime)
+
+		bPred = h.Sum(nil)
+		bFinal = append(bFinal, bPred...)
+	}
+
+	return bFinal[:byteLen], nil
+}
+
+func i2OSP(x int, xLen int) ([]byte, error) {
+	b := big.NewInt(int64(x))
+	s := b.Bytes()
+	if len(s) > xLen {
+		return nil, xerrors.Errorf("input %d superior to max length %d", len(s), xLen)
+	}
+
+	pad := make([]byte, (xLen - len(s)))
+	return append(pad, s...), nil
+}
+
+func byteXor(dst, b1, b2 []byte) ([]byte, error) {
+	if !(len(dst) == len(b1) && len(b2) == len(b1)) {
+		return nil, xerrors.New("incompatible lenghs")
+	}
+
+	for i := 0; i < len(dst); i++ {
+		dst[i] = b1[i] ^ b2[i]
+	}
+
+	return dst, nil
 }
 
 func mapToCurve(ui fieldElement) kyber.Point {
