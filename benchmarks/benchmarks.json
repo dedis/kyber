@@ -1,0 +1,1026 @@
+{
+  "groups": {
+    "Ed25519": {
+      "benchmarks": {
+        "point": {
+          "add": {
+            "N": 2705484,
+            "T": 1211313200,
+            "Bytes": 0,
+            "MemAllocs": 0,
+            "MemBytes": 0,
+            "Extra": {}
+          },
+          "baseMul": {
+            "N": 28318,
+            "T": 1191345500,
+            "Bytes": 0,
+            "MemAllocs": 0,
+            "MemBytes": 0,
+            "Extra": {}
+          },
+          "decode": {
+            "N": 145190,
+            "T": 1183292700,
+            "Bytes": 0,
+            "MemAllocs": 0,
+            "MemBytes": 0,
+            "Extra": {}
+          },
+          "encode": {
+            "N": 154362,
+            "T": 1202828000,
+            "Bytes": 0,
+            "MemAllocs": 154361,
+            "MemBytes": 4939552,
+            "Extra": {}
+          },
+          "mul": {
+            "N": 9496,
+            "T": 1228991700,
+            "Bytes": 0,
+            "MemAllocs": 0,
+            "MemBytes": 0,
+            "Extra": {}
+          },
+          "neg": {
+            "N": 66261001,
+            "T": 1212309800,
+            "Bytes": 0,
+            "MemAllocs": 0,
+            "MemBytes": 0,
+            "Extra": {}
+          },
+          "pick": {
+            "N": 7708,
+            "T": 1261906900,
+            "Bytes": 0,
+            "MemAllocs": 136590,
+            "MemBytes": 14243520,
+            "Extra": {}
+          },
+          "sub": {
+            "N": 2714414,
+            "T": 1188292500,
+            "Bytes": 0,
+            "MemAllocs": 0,
+            "MemBytes": 0,
+            "Extra": {}
+          }
+        },
+        "scalar": {
+          "add": {
+            "N": 24210094,
+            "T": 1178817600,
+            "Bytes": 0,
+            "MemAllocs": 0,
+            "MemBytes": 0,
+            "Extra": {}
+          },
+          "decode": {
+            "N": 389330526,
+            "T": 1189969300,
+            "Bytes": 0,
+            "MemAllocs": 0,
+            "MemBytes": 0,
+            "Extra": {}
+          },
+          "div": {
+            "N": 37516,
+            "T": 1196708300,
+            "Bytes": 0,
+            "MemAllocs": 0,
+            "MemBytes": 0,
+            "Extra": {}
+          },
+          "encode": {
+            "N": 4334944,
+            "T": 1197904200,
+            "Bytes": 0,
+            "MemAllocs": 26009674,
+            "MemBytes": 1040387856,
+            "Extra": {}
+          },
+          "inv": {
+            "N": 37948,
+            "T": 1210186300,
+            "Bytes": 0,
+            "MemAllocs": 0,
+            "MemBytes": 0,
+            "Extra": {}
+          },
+          "mul": {
+            "N": 12599364,
+            "T": 1205049000,
+            "Bytes": 0,
+            "MemAllocs": 0,
+            "MemBytes": 0,
+            "Extra": {}
+          },
+          "neg": {
+            "N": 24846777,
+            "T": 1204032400,
+            "Bytes": 0,
+            "MemAllocs": 0,
+            "MemBytes": 0,
+            "Extra": {}
+          },
+          "pick": {
+            "N": 499866,
+            "T": 1161792600,
+            "Bytes": 0,
+            "MemAllocs": 11507322,
+            "MemBytes": 1052914464,
+            "Extra": {}
+          },
+          "sub": {
+            "N": 24083328,
+            "T": 1180389800,
+            "Bytes": 0,
+            "MemAllocs": 0,
+            "MemBytes": 0,
+            "Extra": {}
+          }
+        }
+      },
+      "description": "Description",
+      "group": "Ed25519"
+    },
+    "P256": {
+      "benchmarks": {
+        "point": {
+          "add": {
+            "N": 275818,
+            "T": 1149245900,
+            "Bytes": 0,
+            "MemAllocs": 2482353,
+            "MemBytes": 172109808,
+            "Extra": {}
+          },
+          "baseMul": {
+            "N": 104349,
+            "T": 1195851600,
+            "Bytes": 0,
+            "MemAllocs": 730436,
+            "MemBytes": 41739200,
+            "Extra": {}
+          },
+          "decode": {
+            "N": 1865628,
+            "T": 1198752000,
+            "Bytes": 0,
+            "MemAllocs": 14925028,
+            "MemBytes": 1014902152,
+            "Extra": {}
+          },
+          "encode": {
+            "N": 3832158,
+            "T": 1205656800,
+            "Bytes": 0,
+            "MemAllocs": 11496480,
+            "MemBytes": 981033056,
+            "Extra": {}
+          },
+          "mul": {
+            "N": 26079,
+            "T": 1205459400,
+            "Bytes": 0,
+            "MemAllocs": 208624,
+            "MemBytes": 12517440,
+            "Extra": {}
+          },
+          "neg": {
+            "N": 26058,
+            "T": 1196025200,
+            "Bytes": 0,
+            "MemAllocs": 286627,
+            "MemBytes": 15634240,
+            "Extra": {}
+          },
+          "pick": {
+            "N": 10000,
+            "T": 1072778400,
+            "Bytes": 0,
+            "MemAllocs": 2375236,
+            "MemBytes": 309452800,
+            "Extra": {}
+          },
+          "sub": {
+            "N": 24044,
+            "T": 1207668300,
+            "Bytes": 0,
+            "MemAllocs": 480860,
+            "MemBytes": 29428656,
+            "Extra": {}
+          }
+        },
+        "scalar": {
+          "add": {
+            "N": 8079904,
+            "T": 1197188800,
+            "Bytes": 0,
+            "MemAllocs": 5518103,
+            "MemBytes": 265022400,
+            "Extra": {}
+          },
+          "decode": {
+            "N": 89047855,
+            "T": 1204564400,
+            "Bytes": 0,
+            "MemAllocs": 1,
+            "MemBytes": 8,
+            "Extra": {}
+          },
+          "div": {
+            "N": 372123,
+            "T": 1194980500,
+            "Bytes": 0,
+            "MemAllocs": 6326809,
+            "MemBytes": 309822536,
+            "Extra": {}
+          },
+          "encode": {
+            "N": 24250801,
+            "T": 1207327500,
+            "Bytes": 0,
+            "MemAllocs": 24250803,
+            "MemBytes": 776025888,
+            "Extra": {}
+          },
+          "inv": {
+            "N": 404946,
+            "T": 1133942700,
+            "Bytes": 0,
+            "MemAllocs": 5669232,
+            "MemBytes": 239728016,
+            "Extra": {}
+          },
+          "mul": {
+            "N": 3518056,
+            "T": 1199317200,
+            "Bytes": 0,
+            "MemAllocs": 7037441,
+            "MemBytes": 619600208,
+            "Extra": {}
+          },
+          "neg": {
+            "N": 88150383,
+            "T": 1180331600,
+            "Bytes": 0,
+            "MemAllocs": 0,
+            "MemBytes": 0,
+            "Extra": {}
+          },
+          "pick": {
+            "N": 1000000,
+            "T": 1118551000,
+            "Bytes": 0,
+            "MemAllocs": 12000002,
+            "MemBytes": 1056000200,
+            "Extra": {}
+          },
+          "sub": {
+            "N": 37282479,
+            "T": 1207430000,
+            "Bytes": 0,
+            "MemAllocs": 0,
+            "MemBytes": 0,
+            "Extra": {}
+          }
+        }
+      },
+      "description": "Description",
+      "group": "P256"
+    },
+    "Residue512": {
+      "benchmarks": {
+        "point": {
+          "add": {
+            "N": 2195670,
+            "T": 1201469100,
+            "Bytes": 0,
+            "MemAllocs": 4392727,
+            "MemBytes": 597644784,
+            "Extra": {}
+          },
+          "baseMul": {
+            "N": 12951,
+            "T": 1197174900,
+            "Bytes": 0,
+            "MemAllocs": 297936,
+            "MemBytes": 44165288,
+            "Extra": {}
+          },
+          "decode": {
+            "N": 13041,
+            "T": 1192596800,
+            "Bytes": 0,
+            "MemAllocs": 286985,
+            "MemBytes": 43636848,
+            "Extra": {}
+          },
+          "encode": {
+            "N": 15555607,
+            "T": 1212929500,
+            "Bytes": 0,
+            "MemAllocs": 15555621,
+            "MemBytes": 995560224,
+            "Extra": {}
+          },
+          "mul": {
+            "N": 12909,
+            "T": 1198589900,
+            "Bytes": 0,
+            "MemAllocs": 284072,
+            "MemBytes": 43194840,
+            "Extra": {}
+          },
+          "neg": {
+            "N": 206394,
+            "T": 1198868200,
+            "Bytes": 0,
+            "MemAllocs": 3302291,
+            "MemBytes": 201440080,
+            "Extra": {}
+          },
+          "pick": {
+            "N": 6622,
+            "T": 1281170700,
+            "Bytes": 0,
+            "MemAllocs": 446858,
+            "MemBytes": 62126128,
+            "Extra": {}
+          },
+          "sub": {
+            "N": 188269,
+            "T": 1201088700,
+            "Bytes": 0,
+            "MemAllocs": 3577754,
+            "MemBytes": 253217248,
+            "Extra": {}
+          }
+        },
+        "scalar": {
+          "add": {
+            "N": 16265959,
+            "T": 1202791900,
+            "Bytes": 0,
+            "MemAllocs": 4794849,
+            "MemBytes": 38386760,
+            "Extra": {}
+          },
+          "decode": {
+            "N": 71762179,
+            "T": 1219881000,
+            "Bytes": 0,
+            "MemAllocs": 1,
+            "MemBytes": 8,
+            "Extra": {}
+          },
+          "div": {
+            "N": 194413,
+            "T": 1204689900,
+            "Bytes": 0,
+            "MemAllocs": 3694463,
+            "MemBytes": 261475880,
+            "Extra": {}
+          },
+          "encode": {
+            "N": 15269234,
+            "T": 1185405000,
+            "Bytes": 0,
+            "MemAllocs": 15269244,
+            "MemBytes": 977231968,
+            "Extra": {}
+          },
+          "inv": {
+            "N": 213908,
+            "T": 1213324800,
+            "Bytes": 0,
+            "MemAllocs": 3422516,
+            "MemBytes": 208773840,
+            "Extra": {}
+          },
+          "mul": {
+            "N": 2200470,
+            "T": 1200330500,
+            "Bytes": 0,
+            "MemAllocs": 4402285,
+            "MemBytes": 598947392,
+            "Extra": {}
+          },
+          "neg": {
+            "N": 79507056,
+            "T": 1197961300,
+            "Bytes": 0,
+            "MemAllocs": 0,
+            "MemBytes": 0,
+            "Extra": {}
+          },
+          "pick": {
+            "N": 799062,
+            "T": 1191747600,
+            "Bytes": 0,
+            "MemAllocs": 11599343,
+            "MemBytes": 1167822912,
+            "Extra": {}
+          },
+          "sub": {
+            "N": 37927873,
+            "T": 1176839300,
+            "Bytes": 0,
+            "MemAllocs": 0,
+            "MemBytes": 0,
+            "Extra": {}
+          }
+        }
+      },
+      "description": "Description",
+      "group": "Residue512"
+    },
+    "bn256.G1": {
+      "benchmarks": {
+        "point": {
+          "add": {
+            "N": 3105987,
+            "T": 1212912100,
+            "Bytes": 0,
+            "MemAllocs": 0,
+            "MemBytes": 0,
+            "Extra": {}
+          },
+          "baseMul": {
+            "N": 12030,
+            "T": 1200202500,
+            "Bytes": 0,
+            "MemAllocs": 12029,
+            "MemBytes": 384928,
+            "Extra": {}
+          },
+          "decode": {
+            "N": 3642728,
+            "T": 1209487300,
+            "Bytes": 0,
+            "MemAllocs": 10928182,
+            "MemBytes": 349701888,
+            "Extra": {}
+          },
+          "encode": {
+            "N": 134330,
+            "T": 1186819600,
+            "Bytes": 0,
+            "MemAllocs": 805977,
+            "MemBytes": 42985568,
+            "Extra": {}
+          },
+          "mul": {
+            "N": 10000,
+            "T": 1002053700,
+            "Bytes": 0,
+            "MemAllocs": 9999,
+            "MemBytes": 319968,
+            "Extra": {}
+          },
+          "neg": {
+            "N": 156357373,
+            "T": 1196110000,
+            "Bytes": 0,
+            "MemAllocs": 0,
+            "MemBytes": 0,
+            "Extra": {}
+          },
+          "pick": {
+            "N": 10000,
+            "T": 1044821600,
+            "Bytes": 0,
+            "MemAllocs": 202082,
+            "MemBytes": 18659888,
+            "Extra": {}
+          },
+          "sub": {
+            "N": 2734627,
+            "T": 1205373500,
+            "Bytes": 0,
+            "MemAllocs": 2734630,
+            "MemBytes": 350032512,
+            "Extra": {}
+          }
+        },
+        "scalar": {
+          "add": {
+            "N": 8675346,
+            "T": 1140507700,
+            "Bytes": 0,
+            "MemAllocs": 6342027,
+            "MemBytes": 50771112,
+            "Extra": {}
+          },
+          "decode": {
+            "N": 92035125,
+            "T": 1234759400,
+            "Bytes": 0,
+            "MemAllocs": 0,
+            "MemBytes": 0,
+            "Extra": {}
+          },
+          "div": {
+            "N": 383424,
+            "T": 1183590900,
+            "Bytes": 0,
+            "MemAllocs": 6518963,
+            "MemBytes": 319233096,
+            "Extra": {}
+          },
+          "encode": {
+            "N": 24330800,
+            "T": 1219443400,
+            "Bytes": 0,
+            "MemAllocs": 24330802,
+            "MemBytes": 778585856,
+            "Extra": {}
+          },
+          "inv": {
+            "N": 403947,
+            "T": 1195857800,
+            "Bytes": 0,
+            "MemAllocs": 5655252,
+            "MemBytes": 239137120,
+            "Extra": {}
+          },
+          "mul": {
+            "N": 3487038,
+            "T": 1206864500,
+            "Bytes": 0,
+            "MemAllocs": 6975476,
+            "MemBytes": 614148512,
+            "Extra": {}
+          },
+          "neg": {
+            "N": 91087124,
+            "T": 1221499900,
+            "Bytes": 0,
+            "MemAllocs": 0,
+            "MemBytes": 0,
+            "Extra": {}
+          },
+          "pick": {
+            "N": 645188,
+            "T": 1239076900,
+            "Bytes": 0,
+            "MemAllocs": 11777481,
+            "MemBytes": 1145370736,
+            "Extra": {}
+          },
+          "sub": {
+            "N": 34872468,
+            "T": 1174684100,
+            "Bytes": 0,
+            "MemAllocs": 0,
+            "MemBytes": 0,
+            "Extra": {}
+          }
+        }
+      },
+      "description": "Description",
+      "group": "bn256.G1"
+    },
+    "bn256.G2": {
+      "benchmarks": {
+        "point": {
+          "add": {
+            "N": 820585,
+            "T": 1199936700,
+            "Bytes": 0,
+            "MemAllocs": 0,
+            "MemBytes": 0,
+            "Extra": {}
+          },
+          "baseMul": {
+            "N": 3502,
+            "T": 1228503600,
+            "Bytes": 0,
+            "MemAllocs": 0,
+            "MemBytes": 0,
+            "Extra": {}
+          },
+          "decode": {
+            "N": 1916179,
+            "T": 1193503100,
+            "Bytes": 0,
+            "MemAllocs": 5748535,
+            "MemBytes": 183953184,
+            "Extra": {}
+          },
+          "encode": {
+            "N": 126946,
+            "T": 1207104500,
+            "Bytes": 0,
+            "MemAllocs": 1015563,
+            "MemBytes": 98509608,
+            "Extra": {}
+          },
+          "mul": {
+            "N": 3546,
+            "T": 1241353600,
+            "Bytes": 0,
+            "MemAllocs": 0,
+            "MemBytes": 0,
+            "Extra": {}
+          },
+          "neg": {
+            "N": 82550820,
+            "T": 1258000900,
+            "Bytes": 0,
+            "MemAllocs": 0,
+            "MemBytes": 0,
+            "Extra": {}
+          },
+          "pick": {
+            "N": 3504,
+            "T": 1215792600,
+            "Bytes": 0,
+            "MemAllocs": 67131,
+            "MemBytes": 6406440,
+            "Extra": {}
+          },
+          "sub": {
+            "N": 787923,
+            "T": 1220371600,
+            "Bytes": 0,
+            "MemAllocs": 787922,
+            "MemBytes": 201708032,
+            "Extra": {}
+          }
+        },
+        "scalar": {
+          "add": {
+            "N": 7663455,
+            "T": 1197697800,
+            "Bytes": 0,
+            "MemAllocs": 6775906,
+            "MemBytes": 85766056,
+            "Extra": {}
+          },
+          "decode": {
+            "N": 88458391,
+            "T": 1189647000,
+            "Bytes": 0,
+            "MemAllocs": 0,
+            "MemBytes": 0,
+            "Extra": {}
+          },
+          "div": {
+            "N": 390882,
+            "T": 1218709300,
+            "Bytes": 0,
+            "MemAllocs": 6645807,
+            "MemBytes": 325447112,
+            "Extra": {}
+          },
+          "encode": {
+            "N": 23552132,
+            "T": 1183101200,
+            "Bytes": 0,
+            "MemAllocs": 23552138,
+            "MemBytes": 753668864,
+            "Extra": {}
+          },
+          "inv": {
+            "N": 434283,
+            "T": 1204096900,
+            "Bytes": 0,
+            "MemAllocs": 6079952,
+            "MemBytes": 257095600,
+            "Extra": {}
+          },
+          "mul": {
+            "N": 3456444,
+            "T": 1200693700,
+            "Bytes": 0,
+            "MemAllocs": 6914353,
+            "MemBytes": 608769248,
+            "Extra": {}
+          },
+          "neg": {
+            "N": 88563499,
+            "T": 1184813500,
+            "Bytes": 0,
+            "MemAllocs": 0,
+            "MemBytes": 0,
+            "Extra": {}
+          },
+          "pick": {
+            "N": 595630,
+            "T": 1142539000,
+            "Bytes": 0,
+            "MemAllocs": 10868674,
+            "MemBytes": 1056913448,
+            "Extra": {}
+          },
+          "sub": {
+            "N": 32681340,
+            "T": 1150670500,
+            "Bytes": 0,
+            "MemAllocs": 0,
+            "MemBytes": 0,
+            "Extra": {}
+          }
+        }
+      },
+      "description": "Description",
+      "group": "bn256.G2"
+    },
+    "bn256.GT": {
+      "benchmarks": {
+        "point": {
+          "add": {
+            "N": 385898,
+            "T": 1209784800,
+            "Bytes": 0,
+            "MemAllocs": 0,
+            "MemBytes": 0,
+            "Extra": {}
+          },
+          "baseMul": {
+            "N": 1478,
+            "T": 1215650800,
+            "Bytes": 0,
+            "MemAllocs": 1477,
+            "MemBytes": 47264,
+            "Extra": {}
+          },
+          "decode": {
+            "N": 1562206,
+            "T": 1198627000,
+            "Bytes": 0,
+            "MemAllocs": 0,
+            "MemBytes": 0,
+            "Extra": {}
+          },
+          "encode": {
+            "N": 1414140,
+            "T": 1197521500,
+            "Bytes": 0,
+            "MemAllocs": 1414144,
+            "MemBytes": 543029856,
+            "Extra": {}
+          },
+          "mul": {
+            "N": 1440,
+            "T": 1197392600,
+            "Bytes": 0,
+            "MemAllocs": 1439,
+            "MemBytes": 46048,
+            "Extra": {}
+          },
+          "neg": {
+            "N": 40421732,
+            "T": 1226533900,
+            "Bytes": 0,
+            "MemAllocs": 0,
+            "MemBytes": 0,
+            "Extra": {}
+          },
+          "pick": {
+            "N": 1444,
+            "T": 1224980200,
+            "Bytes": 0,
+            "MemAllocs": 29058,
+            "MemBytes": 2680776,
+            "Extra": {}
+          },
+          "sub": {
+            "N": 360122,
+            "T": 1177298400,
+            "Bytes": 0,
+            "MemAllocs": 360122,
+            "MemBytes": 138286560,
+            "Extra": {}
+          }
+        },
+        "scalar": {
+          "add": {
+            "N": 14988345,
+            "T": 1209412800,
+            "Bytes": 0,
+            "MemAllocs": 5712302,
+            "MemBytes": 45732184,
+            "Extra": {}
+          },
+          "decode": {
+            "N": 88480567,
+            "T": 1193661400,
+            "Bytes": 0,
+            "MemAllocs": 0,
+            "MemBytes": 0,
+            "Extra": {}
+          },
+          "div": {
+            "N": 380437,
+            "T": 1217245200,
+            "Bytes": 0,
+            "MemAllocs": 6468251,
+            "MemBytes": 316755368,
+            "Extra": {}
+          },
+          "encode": {
+            "N": 24194571,
+            "T": 1215580200,
+            "Bytes": 0,
+            "MemAllocs": 24194577,
+            "MemBytes": 774226912,
+            "Extra": {}
+          },
+          "inv": {
+            "N": 424335,
+            "T": 1201228800,
+            "Bytes": 0,
+            "MemAllocs": 5940677,
+            "MemBytes": 251206160,
+            "Extra": {}
+          },
+          "mul": {
+            "N": 3460716,
+            "T": 1199011000,
+            "Bytes": 0,
+            "MemAllocs": 6922916,
+            "MemBytes": 609524160,
+            "Extra": {}
+          },
+          "neg": {
+            "N": 81899522,
+            "T": 1125102600,
+            "Bytes": 0,
+            "MemAllocs": 0,
+            "MemBytes": 0,
+            "Extra": {}
+          },
+          "pick": {
+            "N": 616988,
+            "T": 1184277600,
+            "Bytes": 0,
+            "MemAllocs": 11257151,
+            "MemBytes": 1094668216,
+            "Extra": {}
+          },
+          "sub": {
+            "N": 41116588,
+            "T": 1204064200,
+            "Bytes": 0,
+            "MemAllocs": 0,
+            "MemBytes": 0,
+            "Extra": {}
+          }
+        }
+      },
+      "description": "Description",
+      "group": "bn256.GT"
+    },
+    "bn256.adapter": {
+      "benchmarks": {
+        "point": {
+          "add": {
+            "N": 825808,
+            "T": 1199523600,
+            "Bytes": 0,
+            "MemAllocs": 0,
+            "MemBytes": 0,
+            "Extra": {}
+          },
+          "baseMul": {
+            "N": 3297,
+            "T": 1214576800,
+            "Bytes": 0,
+            "MemAllocs": 0,
+            "MemBytes": 0,
+            "Extra": {}
+          },
+          "decode": {
+            "N": 1939981,
+            "T": 1202369700,
+            "Bytes": 0,
+            "MemAllocs": 5819940,
+            "MemBytes": 186238080,
+            "Extra": {}
+          },
+          "encode": {
+            "N": 125149,
+            "T": 1179767900,
+            "Bytes": 0,
+            "MemAllocs": 1001184,
+            "MemBytes": 97114848,
+            "Extra": {}
+          },
+          "mul": {
+            "N": 3186,
+            "T": 1168676400,
+            "Bytes": 0,
+            "MemAllocs": 0,
+            "MemBytes": 0,
+            "Extra": {}
+          },
+          "neg": {
+            "N": 77027755,
+            "T": 1165277500,
+            "Bytes": 0,
+            "MemAllocs": 0,
+            "MemBytes": 0,
+            "Extra": {}
+          },
+          "pick": {
+            "N": 3567,
+            "T": 1222213400,
+            "Bytes": 0,
+            "MemAllocs": 67974,
+            "MemBytes": 6479760,
+            "Extra": {}
+          },
+          "sub": {
+            "N": 742813,
+            "T": 1152346500,
+            "Bytes": 0,
+            "MemAllocs": 742814,
+            "MemBytes": 190160064,
+            "Extra": {}
+          }
+        },
+        "scalar": {
+          "add": {
+            "N": 8884676,
+            "T": 1189671500,
+            "Bytes": 0,
+            "MemAllocs": 6614657,
+            "MemBytes": 52955432,
+            "Extra": {}
+          },
+          "decode": {
+            "N": 85869463,
+            "T": 1153864200,
+            "Bytes": 0,
+            "MemAllocs": 0,
+            "MemBytes": 0,
+            "Extra": {}
+          },
+          "div": {
+            "N": 379862,
+            "T": 1198326100,
+            "Bytes": 0,
+            "MemAllocs": 6458464,
+            "MemBytes": 316276144,
+            "Extra": {}
+          },
+          "encode": {
+            "N": 24066615,
+            "T": 1205169600,
+            "Bytes": 0,
+            "MemAllocs": 24066621,
+            "MemBytes": 770132320,
+            "Extra": {}
+          },
+          "inv": {
+            "N": 431181,
+            "T": 1201176800,
+            "Bytes": 0,
+            "MemAllocs": 6036523,
+            "MemBytes": 255259200,
+            "Extra": {}
+          },
+          "mul": {
+            "N": 3454204,
+            "T": 1201010800,
+            "Bytes": 0,
+            "MemAllocs": 6909899,
+            "MemBytes": 608380640,
+            "Extra": {}
+          },
+          "neg": {
+            "N": 91789434,
+            "T": 1234321400,
+            "Bytes": 0,
+            "MemAllocs": 0,
+            "MemBytes": 0,
+            "Extra": {}
+          },
+          "pick": {
+            "N": 621554,
+            "T": 1209073100,
+            "Bytes": 0,
+            "MemAllocs": 11339784,
+            "MemBytes": 1102691608,
+            "Extra": {}
+          },
+          "sub": {
+            "N": 35683168,
+            "T": 1214403100,
+            "Bytes": 0,
+            "MemAllocs": 0,
+            "MemBytes": 0,
+            "Extra": {}
+          }
+        }
+      },
+      "description": "Description",
+      "group": "bn256.adapter"
+    }
+  }
+}
