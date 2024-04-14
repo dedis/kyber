@@ -1,16 +1,14 @@
 package test
 
-/*
 import (
 	"testing"
 
-	bls "github.com/drand/kyber-bls12381"
+	bls "go.dedis.ch/kyber/v3/pairing/circl_bls12381"
 	sign "go.dedis.ch/kyber/v3/sign/bls"
 )
 
 func TestBLS12381(t *testing.T) {
-	suite := bls.NewBLS12381Suite()
+	suite := bls.NewSuiteBLS12381()
 	scheme := sign.NewSchemeOnG1(suite)
 	SchemeTesting(t, scheme)
 }
-*/
