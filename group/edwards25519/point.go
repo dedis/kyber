@@ -295,8 +295,8 @@ func (P *point) IsCanonical(s []byte) bool {
 	return 1-(c&d&1) == 1
 }
 
-func (P *point) Hash(m []byte) kyber.Point {
-	u := hashToField(m, 2)
+func (P *point) Hash(m []byte, dst string) kyber.Point {
+	u := hashToField(m, dst, 2)
 	q0 := mapToCurveElligator2Ed25519(u[0])
 	q1 := mapToCurveElligator2Ed25519(u[1])
 	P.Add(q0, q1)
@@ -308,11 +308,11 @@ func (P *point) Hash(m []byte) kyber.Point {
 	return P
 }
 
-func hashToField(m []byte, count int) []fieldElement {
+func hashToField(m []byte, dst string, count int) []fieldElement {
 	l := 48 // L param in RFC9380
 	byteLen := count * l
 	// TODO: Set proper DST
-	uniformBytes, _ := expandMessageXMD(sha256.New(), m, "AAAAAAAAA", byteLen)
+	uniformBytes, _ := expandMessageXMD(sha256.New(), m, dst, byteLen)
 
 	u := make([]fieldElement, count)
 	for i := 0; i < count; i++ {
