@@ -16,7 +16,7 @@ package edwards25519
 
 import (
 	"crypto/cipher"
-	"crypto/sha256"
+	"crypto/sha512"
 	"encoding/hex"
 	"hash"
 	"io"
@@ -311,8 +311,7 @@ func (P *point) Hash(m []byte, dst string) kyber.Point {
 func hashToField(m []byte, dst string, count int) []fieldElement {
 	l := 48 // L param in RFC9380
 	byteLen := count * l
-	// TODO: Set proper DST
-	uniformBytes, _ := expandMessageXMD(sha256.New(), m, dst, byteLen)
+	uniformBytes, _ := expandMessageXMD(sha512.New(), m, dst, byteLen)
 
 	u := make([]fieldElement, count)
 	for i := 0; i < count; i++ {
