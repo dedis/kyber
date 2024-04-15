@@ -295,13 +295,17 @@ func (P *point) IsCanonical(s []byte) bool {
 	return 1-(c&d&1) == 1
 }
 
-func (p *point) Hash(m []byte) kyber.Point {
+func (P *point) Hash(m []byte) kyber.Point {
 	u := hashToField(m, 2)
-	q0 := mapToCurve(u[0])
-	q1 := mapToCurve(u[1])
-	r := q0.Add(q0, q1)
+	q0 := mapToCurveElligator2Ed25519(u[0])
+	q1 := mapToCurveElligator2Ed25519(u[1])
+	P.Add(q0, q1)
 
-	return clearCofactor(r)
+	// Clear cofactor
+	h := newScalarInt(big.NewInt(8))
+	P.Mul(h, P)
+
+	return P
 }
 
 func hashToField(m []byte, count int) []fieldElement {
@@ -405,10 +409,6 @@ func byteXor(dst, b1, b2 []byte) ([]byte, error) {
 	return dst, nil
 }
 
-func mapToCurve(ui fieldElement) kyber.Point {
-	panic("not yet")
-}
-
 func curve25519Elligator2(u fieldElement) (xn, xd, yn, yd fieldElement) {
 	// Some const needed
 	var one fieldElement
@@ -502,7 +502,8 @@ func curve25519Elligator2(u fieldElement) (xn, xd, yn, yd fieldElement) {
 	return xn, xd, y, one
 }
 
-func mapToCurveElligator2Ed25519(u fieldElement) (xn, xd, yn, yd fieldElement) {
+func mapToCurveElligator2Ed25519(u fieldElement) kyber.Point {
+	var xn, xd, yn, yd fieldElement
 	var c, zero, one, tv1 fieldElement
 	var e int32
 
@@ -530,9 +531,15 @@ func mapToCurveElligator2Ed25519(u fieldElement) (xn, xd, yn, yd fieldElement) {
 	feCMove(&yn, &one, e)
 	feCMove(&yd, &one, e)
 
-	return xn, xd, yn, yd
-}
+	p := completedGroupElement{
+		X: xn,
+		Y: yn,
+		Z: xd,
+		T: yd,
+	}
 
-func clearCofactor(q kyber.Point) kyber.Point {
-	panic("not yet")
+	q := new(point)
+	p.ToExtended(&q.ge)
+
+	return q
 }
