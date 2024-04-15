@@ -11,6 +11,27 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var (
+	inputsTestVectRFC9380 = []string{
+		"",
+		"abc",
+		"abcdef0123456789",
+		"q128_qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq" +
+			"qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq" +
+			"qqqqqqqqqqqqqqqqqqqqqqqqq",
+		"a512_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" +
+			"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" +
+			"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" +
+			"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" +
+			"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" +
+			"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" +
+			"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" +
+			"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" +
+			"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" +
+			"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+	}
+)
+
 func TestPoint_Marshal(t *testing.T) {
 	p := point{}
 	require.Equal(t, "ed.point", fmt.Sprintf("%s", p.MarshalID()))
@@ -69,25 +90,6 @@ func Test_PointIsCanonical(t *testing.T) {
 // Test vectors from: https://datatracker.ietf.org/doc/rfc9380
 func Test_ExpandMessageXMDSHA256(t *testing.T) {
 	dst := "QUUX-V01-CS02-with-expander-SHA256-128"
-	inputs := []string{
-		"",
-		"abc",
-		"abcdef0123456789",
-		"q128_qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq" +
-			"qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq" +
-			"qqqqqqqqqqqqqqqqqqqqqqqqq",
-		"a512_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" +
-			"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" +
-			"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" +
-			"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" +
-			"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" +
-			"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" +
-			"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" +
-			"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" +
-			"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" +
-			"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-	}
-
 	outputLength := []int{32, 128}
 
 	expectedHex32byte := []string{
@@ -109,8 +111,8 @@ func Test_ExpandMessageXMDSHA256(t *testing.T) {
 	h := sha256.New()
 
 	// Short
-	for i := 0; i < len(inputs); i++ {
-		res, err := expandMessageXMD(h, []byte(inputs[i]), dst, outputLength[0])
+	for i := 0; i < len(inputsTestVectRFC9380); i++ {
+		res, err := expandMessageXMD(h, []byte(inputsTestVectRFC9380[i]), dst, outputLength[0])
 		resHex := hex.EncodeToString(res)
 
 		assert.NoError(t, err)
@@ -118,8 +120,8 @@ func Test_ExpandMessageXMDSHA256(t *testing.T) {
 	}
 
 	// Long
-	for i := 0; i < len(inputs); i++ {
-		res, err := expandMessageXMD(h, []byte(inputs[i]), dst, outputLength[1])
+	for i := 0; i < len(inputsTestVectRFC9380); i++ {
+		res, err := expandMessageXMD(h, []byte(inputsTestVectRFC9380[i]), dst, outputLength[1])
 		resHex := hex.EncodeToString(res)
 
 		assert.NoError(t, err)
@@ -131,24 +133,6 @@ func Test_ExpandMessageXMDSHA256(t *testing.T) {
 func Test_ExpandMessageXMDSHA512(t *testing.T) {
 	dst := "QUUX-V01-CS02-with-expander-SHA512-256"
 	h := sha512.New()
-	inputs := []string{
-		"",
-		"abc",
-		"abcdef0123456789",
-		"q128_qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq" +
-			"qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq" +
-			"qqqqqqqqqqqqqqqqqqqqqqqqq",
-		"a512_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" +
-			"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" +
-			"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" +
-			"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" +
-			"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" +
-			"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" +
-			"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" +
-			"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" +
-			"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" +
-			"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-	}
 
 	outputLength := []int{32, 128}
 
@@ -169,8 +153,8 @@ func Test_ExpandMessageXMDSHA512(t *testing.T) {
 	}
 
 	// Short
-	for i := 0; i < len(inputs); i++ {
-		res, err := expandMessageXMD(h, []byte(inputs[i]), dst, outputLength[0])
+	for i := 0; i < len(inputsTestVectRFC9380); i++ {
+		res, err := expandMessageXMD(h, []byte(inputsTestVectRFC9380[i]), dst, outputLength[0])
 		resHex := hex.EncodeToString(res)
 
 		assert.NoError(t, err)
