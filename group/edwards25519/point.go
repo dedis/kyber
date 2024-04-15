@@ -502,6 +502,37 @@ func curve25519Elligator2(u fieldElement) (xn, xd, yn, yd fieldElement) {
 	return xn, xd, y, one
 }
 
+func mapToCurveElligator2Ed25519(u fieldElement) (xn, xd, yn, yd fieldElement) {
+	var c, zero, one, tv1 fieldElement
+	var e int32
+
+	feOne(&one)
+
+	// c = sqrt(-486664)
+	// computed using sagemath
+	cBig, _ := new(big.Int).SetString("6853475219497561581579357271197624642482790079785650197046958215289687604742", 10)
+	feFromBytes(&c, cBig.Bytes())
+
+	xMn, xMd, yMn, yMd := curve25519Elligator2(u)
+
+	feMul(&xn, &xMn, &yMd)
+	feMul(&xn, &xn, &c)
+	feMul(&xd, &xMd, &yMn)
+	feSub(&yn, &xMn, &xMd)
+	feAdd(&yd, &xMn, &xMd)
+	feMul(&tv1, &xd, &yd)
+	if tv1 == zero {
+		e = 1
+	}
+
+	feCMove(&xn, &zero, e)
+	feCMove(&xd, &one, e)
+	feCMove(&yn, &one, e)
+	feCMove(&yd, &one, e)
+
+	return xn, xd, yn, yd
+}
+
 func clearCofactor(q kyber.Point) kyber.Point {
 	panic("not yet")
 }
