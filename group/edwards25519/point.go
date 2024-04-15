@@ -409,6 +409,99 @@ func mapToCurve(ui fieldElement) kyber.Point {
 	panic("not yet")
 }
 
+func curve25519Elligator2(u fieldElement) (xn, xd, yn, yd fieldElement) {
+	// Some const needed
+	var one fieldElement
+	feOne(&one)
+
+	// c1 = (q + 3) / 8
+	// c2 = 2^c1
+	// c3 = sqrt(-1)
+	// c4 = (q - 5) / 8
+	// computed with sagemath
+	var c1, c2, c3, c4 fieldElement
+	c1Big, _ := new(big.Int).SetString("7237005577332262213973186563042994240829374041602535252466099000494570602494", 10)
+	c2Big, _ := new(big.Int).SetString("19681161376707505956807079304988542015446066515923890162744021073123829784753", 10)
+	c3Big, _ := new(big.Int).SetString("19681161376707505956807079304988542015446066515923890162744021073123829784752", 10)
+	c4Big, _ := new(big.Int).SetString("7237005577332262213973186563042994240829374041602535252466099000494570602493", 10)
+
+	feFromBytes(&c1, c1Big.Bytes())
+	feFromBytes(&c2, c2Big.Bytes())
+	feFromBytes(&c3, c3Big.Bytes())
+	feFromBytes(&c4, c4Big.Bytes())
+
+	var j fieldElement
+	feFromBytes(&j, big.NewInt(486662).Bytes())
+
+	// Temporary variables
+	var tv1, tv2, tv3, x1n, gxd, gx1, gx2 fieldElement
+	var y, y1, y2, y11, y12, y21, y22, x2n fieldElement
+	var e1, e2, e3, e4 int32
+
+	feSquare2(&tv1, &u)
+
+	feAdd(&xd, &one, &tv1)
+	feNeg(&x1n, &j)
+	feSquare(&tv2, &xd)
+	feMul(&gxd, &tv2, &xd)
+	feMul(&gx1, &j, &tv1)
+	feMul(&gx1, &gx1, &x1n)
+	feAdd(&gx1, &gx1, &tv2)
+	feMul(&gx1, &gx1, &x1n)
+	feSquare(&tv3, &gxd)
+	feSquare(&tv2, &tv3)
+	feMul(&tv3, &tv3, &gxd)
+	feMul(&tv3, &tv3, &gx1)
+	feMul(&tv2, &tv2, &tv3)
+
+	// compute y11 = tv2 ^ c4
+	s := new([32]byte)
+	feToBytes(s, &tv2)
+	tv2Big := new(big.Int).SetBytes(s[:])
+	y11Big := big.NewInt(0).Exp(tv2Big, c4Big, prime)
+	feFromBytes(&y11, y11Big.Bytes())
+
+	feMul(&y11, &y11, &tv3)
+	feMul(&y12, &y11, &c3)
+	feSquare(&tv2, &y11)
+	feMul(&tv2, &tv2, &gxd)
+	if tv2 == gx1 {
+		e1 = 1
+	}
+
+	feCopy(&y1, &y12)
+	feCMove(&y1, &y11, e1)
+	feMul(&x2n, &x1n, &tv1)
+	feMul(&y21, &y11, &u)
+	feMul(&y21, &y21, &c2)
+	feMul(&y22, &y21, &c3)
+	feMul(&gx2, &gx1, &tv1)
+	feSquare(&tv2, &y21)
+	feMul(&tv2, &tv2, &gxd)
+	if tv2 == gx2 {
+		e2 = 1
+	}
+
+	feCopy(&y2, &y22)
+	feCMove(&y2, &y21, e2)
+	feSquare(&tv2, &y1)
+	feMul(&tv2, &tv2, &gxd)
+	if tv2 == gx1 {
+		e3 = 1
+	}
+
+	feCopy(&xn, &x2n)
+	feCMove(&xn, &x1n, e3)
+	feCopy(&y, &y2)
+	feCMove(&y, &y1, e3)
+	e4 = int32(feIsNegative(&y))
+	var yNeg fieldElement
+	feNeg(&yNeg, &y)
+	feCMove(&y, &yNeg, e3^e4)
+
+	return xn, xd, y, one
+}
+
 func clearCofactor(q kyber.Point) kyber.Point {
 	panic("not yet")
 }
