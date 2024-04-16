@@ -316,9 +316,10 @@ func hashToField(m []byte, dst string, count int) []fieldElement {
 	u := make([]fieldElement, count)
 	for i := 0; i < count; i++ {
 		elmOffset := l * i
-		tv := uniformBytes[elmOffset : elmOffset+l]
+		tv := big.NewInt(0).SetBytes(uniformBytes[elmOffset : elmOffset+l])
+		tv = tv.Mod(tv, prime)
 		fe := fieldElement{}
-		feFromBytes(&fe, tv)
+		feFromBn(&fe, tv)
 		u[i] = fe
 	}
 
