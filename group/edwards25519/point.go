@@ -418,20 +418,14 @@ func curve25519Elligator2(u fieldElement) (xn, xd, yn, yd fieldElement) {
 	// c2 = 2^c1
 	// c3 = sqrt(-1)
 	// c4 = (q - 5) / 8
-	// computed with sagemath
-	var c1, c2, c3, c4 fieldElement
-	c1Big, _ := new(big.Int).SetString("7237005577332262213973186563042994240829374041602535252466099000494570602494", 10)
-	c2Big, _ := new(big.Int).SetString("19681161376707505956807079304988542015446066515923890162744021073123829784753", 10)
-	c3Big, _ := new(big.Int).SetString("19681161376707505956807079304988542015446066515923890162744021073123829784752", 10)
+	// Computed with sagemath
+	c2 := fieldElement{34513073, 25610706, 9377949, 3500415, 12389472, 33281959, 41962654, 31548777, 326685, 11406482}
+	c3 := fieldElement{34513072, 25610706, 9377949, 3500415, 12389472, 33281959, 41962654, 31548777, 326685, 11406482}
+	c4 := fieldElement{67108861, 33554431, 67108863, 33554431, 67108863, 33554431, 67108863, 33554431, 67108863, 4194303}
 	c4Big, _ := new(big.Int).SetString("7237005577332262213973186563042994240829374041602535252466099000494570602493", 10)
 
-	feFromBytes(&c1, c1Big.Bytes())
-	feFromBytes(&c2, c2Big.Bytes())
-	feFromBytes(&c3, c3Big.Bytes())
-	feFromBytes(&c4, c4Big.Bytes())
-
 	var j fieldElement
-	feFromBytes(&j, big.NewInt(486662).Bytes())
+	j[0] = 486664
 
 	// Temporary variables
 	var tv1, tv2, tv3, x1n, gxd, gx1, gx2 fieldElement
@@ -504,15 +498,13 @@ func curve25519Elligator2(u fieldElement) (xn, xd, yn, yd fieldElement) {
 
 func mapToCurveElligator2Ed25519(u fieldElement) kyber.Point {
 	var xn, xd, yn, yd fieldElement
-	var c, zero, one, tv1 fieldElement
+	var zero, one, tv1 fieldElement
 	var e int32
-
 	feOne(&one)
 
 	// c = sqrt(-486664)
 	// computed using sagemath
-	cBig, _ := new(big.Int).SetString("6853475219497561581579357271197624642482790079785650197046958215289687604742", 10)
-	feFromBytes(&c, cBig.Bytes())
+	c := fieldElement{67108861, 33554431, 67108863, 33554431, 67108863, 33554431, 67108863, 33554431, 67108863, 4194303}
 
 	xMn, xMd, yMn, yMd := curve25519Elligator2(u)
 
