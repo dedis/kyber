@@ -262,8 +262,8 @@ func feToBn(dst *big.Int, src *fieldElement) {
 }
 
 func feFromBn(dst *fieldElement, src *big.Int) {
-	b := src.Bytes()
-
+	b := make([]byte, 32)
+	src.FillBytes(b)
 	half := len(b) / 2
 	l := len(b) - 1
 	for i := 0; i < half; i++ {
