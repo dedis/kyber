@@ -449,11 +449,10 @@ func curve25519Elligator2(u fieldElement) (xn, xd, yn, yd fieldElement) {
 	feMul(&tv2, &tv2, &tv3)
 
 	// compute y11 = tv2 ^ c4
-	s := new([32]byte)
-	feToBytes(s, &tv2)
-	tv2Big := new(big.Int).SetBytes(s[:])
+	tv2Big := big.NewInt(0)
+	feToBn(tv2Big, &c4)
 	y11Big := big.NewInt(0).Exp(tv2Big, c4Big, prime)
-	feFromBytes(&y11, y11Big.Bytes())
+	feFromBn(&y11, y11Big)
 
 	feMul(&y11, &y11, &tv3)
 	feMul(&y12, &y11, &c3)
