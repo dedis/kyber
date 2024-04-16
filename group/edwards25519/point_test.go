@@ -5,6 +5,7 @@ import (
 	"crypto/sha512"
 	"encoding/hex"
 	"fmt"
+	"math/big"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -162,11 +163,46 @@ func Test_ExpandMessageXMDSHA512(t *testing.T) {
 	}
 
 	// Long
-	for i := 0; i < len(inputs); i++ {
-		res, err := expandMessageXMD(h, []byte(inputs[i]), dst, outputLength[1])
+	for i := 0; i < len(inputsTestVectRFC9380); i++ {
+		res, err := expandMessageXMD(h, []byte(inputsTestVectRFC9380[i]), dst, outputLength[1])
 		resHex := hex.EncodeToString(res)
 
 		assert.NoError(t, err)
 		assert.Equal(t, expectedHex128byte[i], resHex)
 	}
+}
+
+func Test_HashToField(t *testing.T) {
+	dst := "QUUX-V01-CS02-with-edwards25519_XMD:SHA-512_ELL2_RO_"
+	u := hashToField([]byte(inputsTestVectRFC9380[0]), dst, 2)
+
+	var u0, u1 fieldElement
+	u0B, _ := big.NewInt(0).SetString("005fe8a7b8fef0a16c105e6cadf5a6740b3365e18692a9c05bfbb4d97f645a6a", 16)
+	u1B, _ := big.NewInt(0).SetString("1347edbec6a2b5d8c02e058819819bee177077c9d10a4ce165aab0fd0252261a", 16)
+
+	feFromBytes(&u0, u0B.Bytes())
+	feFromBytes(&u1, u1B.Bytes())
+
+	assert.Equal(t, u[0], u0)
+	assert.Equal(t, u[1], u1)
+}
+
+func Test_HashToPoint(t *testing.T) {
+	dst := "QUUX-V01-CS02-with-edwards25519_XMD:SHA-512_ELL2_RO_"
+	p := new(point)
+	p.Hash([]byte(inputsTestVectRFC9380[0]), dst)
+	fmt.Printf(p.ge.String())
+
+	var zInv fieldElement
+	feInvert(&zInv, &p.ge.Z)
+
+	var x, y fieldElement
+	feMul(&x, &p.ge.X, &zInv)
+	feMul(&y, &p.ge.Y, &zInv)
+
+	resBig, _ := big.NewInt(0).SetString("2de3780abb67e861289f5749d16d3e217ffa722192d16bbd9d1bfb9d112b98c0", 16)
+	var res fieldElement
+	feFromBytes(&res, resBig.Bytes())
+
+	assert.Equal(t, x, res)
 }
