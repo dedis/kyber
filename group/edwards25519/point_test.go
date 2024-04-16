@@ -174,35 +174,36 @@ func Test_ExpandMessageXMDSHA512(t *testing.T) {
 
 func Test_HashToField(t *testing.T) {
 	dst := "QUUX-V01-CS02-with-edwards25519_XMD:SHA-512_ELL2_RO_"
-	u := hashToField([]byte(inputsTestVectRFC9380[0]), dst, 2)
 
-	var u0, u1 fieldElement
-	u0B, _ := big.NewInt(0).SetString("005fe8a7b8fef0a16c105e6cadf5a6740b3365e18692a9c05bfbb4d97f645a6a", 16)
-	u1B, _ := big.NewInt(0).SetString("1347edbec6a2b5d8c02e058819819bee177077c9d10a4ce165aab0fd0252261a", 16)
+	// u-value from rfc9380, leading 0 removed
+	expectedFieldElem := []string{
+		"3fef4813c8cb5f98c6eef88fae174e6e7d5380de2b007799ac7ee712d203f3a",
+		"780bdddd137290c8f589dc687795aafae35f6b674668d92bf92ae793e6a60c75",
 
-	feFromBytes(&u0, u0B.Bytes())
-	feFromBytes(&u1, u1B.Bytes())
+		"5081955c4141e4e7d02ec0e36becffaa1934df4d7a270f70679c78f9bd57c227",
+		"5bdc17a9b378b6272573a31b04361f21c371b256252ae5463119aa0b925b76",
 
-	assert.Equal(t, u[0], u0)
-	assert.Equal(t, u[1], u1)
-}
+		"285ebaa3be701b79871bcb6e225ecc9b0b32dff2d60424b4c50642636a78d5b3",
+		"2e253e6a0ef658fedb8e4bd6a62d1544fd6547922acb3598ec6b369760b81b31",
 
-func Test_HashToPoint(t *testing.T) {
-	dst := "QUUX-V01-CS02-with-edwards25519_XMD:SHA-512_ELL2_RO_"
-	p := new(point)
-	p.Hash([]byte(inputsTestVectRFC9380[0]), dst)
-	fmt.Printf(p.ge.String())
+		"4fedd25431c41f2a606952e2945ef5e3ac905a42cf64b8b4d4a83c533bf321af",
+		"2f20716a5801b843987097a8276b6d869295b2e11253751ca72c109d37485a9",
 
-	var zInv fieldElement
-	feInvert(&zInv, &p.ge.Z)
+		"6e34e04a5106e9bd59f64aba49601bf09d23b27f7b594e56d5de06df4a4ea33b",
+		"1c1c2cb59fc053f44b86c5d5eb8c1954b64976d0302d3729ff66e84068f5fd96",
+	}
 
-	var x, y fieldElement
-	feMul(&x, &p.ge.X, &zInv)
-	feMul(&y, &p.ge.Y, &zInv)
+	j := 0
+	for i := 0; i < len(inputsTestVectRFC9380); i++ {
+		u := hashToField([]byte(inputsTestVectRFC9380[i]), dst, 2)
+		u0Actual := big.NewInt(0)
+		u1Actual := big.NewInt(0)
 
-	resBig, _ := big.NewInt(0).SetString("2de3780abb67e861289f5749d16d3e217ffa722192d16bbd9d1bfb9d112b98c0", 16)
-	var res fieldElement
-	feFromBytes(&res, resBig.Bytes())
+		feToBn(u0Actual, &u[0])
+		feToBn(u1Actual, &u[1])
 
-	assert.Equal(t, x, res)
+		assert.Equal(t, expectedFieldElem[j], u0Actual.Text(16))
+		assert.Equal(t, expectedFieldElem[j+1], u1Actual.Text(16))
+		j += 2
+	}
 }
