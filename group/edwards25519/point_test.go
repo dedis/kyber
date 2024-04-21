@@ -207,3 +207,45 @@ func Test_HashToField(t *testing.T) {
 		j += 2
 	}
 }
+
+func Test_HashToPoint(t *testing.T) {
+	p := new(point)
+
+	dst := "QUUX-V01-CS02-with-edwards25519_XMD:SHA-512_ELL2_RO_"
+	expectedPoints := []string{
+		"3c3da6925a3c3c268448dcabb47ccde5439559d9599646a8260e47b1e4822fc6",
+		"9a6c8561a0b22bef63124c588ce4c62ea83a3c899763af26d795302e115dc21",
+
+		"608040b42285cc0d72cbb3985c6b04c935370c7361f4b7fbdb1ae7f8c1a8ecad",
+		"1a8395b88338f22e435bbd301183e7f20a5f9de643f11882fb237f88268a5531",
+
+		"6d7fabf47a2dc03fe7d47f7dddd21082c5fb8f86743cd020f3fb147d57161472",
+		"53060a3d140e7fbcda641ed3cf42c88a75411e648a1add71217f70ea8ec561a6",
+
+		"5fb0b92acedd16f3bcb0ef83f5c7b7a9466b5f1e0d8d217421878ea3686f8524",
+		"2eca15e355fcfa39d2982f67ddb0eea138e2994f5956ed37b7f72eea5e89d2f7",
+
+		"efcfde5898a839b00997fbe40d2ebe950bc81181afbd5cd6b9618aa336c1e8c",
+		"6dc2fc04f266c5c27f236a80b14f92ccd051ef1ff027f26a07f8c0f327d8f995",
+	}
+
+	j := 0
+	var x, y, rec fieldElement
+	bX := big.NewInt(0)
+	bY := big.NewInt(0)
+
+	for i := 0; i < len(inputsTestVectRFC9380); i++ {
+		p.Hash([]byte(inputsTestVectRFC9380[i]), dst)
+
+		feInvert(&rec, &p.ge.Z)
+		feMul(&x, &p.ge.X, &rec)
+		feToBn(bX, &x)
+
+		feMul(&y, &p.ge.Y, &rec)
+		feToBn(bY, &y)
+
+		assert.Equal(t, expectedPoints[j], bX.Text(16))
+		assert.Equal(t, expectedPoints[j+1], bY.Text(16))
+		j += 2
+	}
+}
