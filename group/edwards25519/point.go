@@ -302,8 +302,7 @@ func (P *point) Hash(m []byte, dst string) kyber.Point {
 	P.Add(q0, q1)
 
 	// Clear cofactor
-	h := newScalarInt(big.NewInt(8))
-	P.Mul(h, P)
+	P.Mul(cofactorScalar, P)
 
 	return P
 }
@@ -501,7 +500,7 @@ func mapToCurveElligator2Ed25519(u fieldElement) kyber.Point {
 
 	// c = sqrt(-486664)
 	// computed using sagemath
-	c := fieldElement{67108861, 33554431, 67108863, 33554431, 67108863, 33554431, 67108863, 33554431, 67108863, 4194303}
+	c := fieldElement{-12222970, -8312128, -11511410, 9067497, -15300785, -241793, 25456130, 14121551, -12187136, 3972024}
 
 	xMn, xMd, yMn, yMd := curve25519Elligator2(u)
 
