@@ -414,6 +414,8 @@ func curve25519Elligator2(u fieldElement) (xn, xd, yn, yd fieldElement) {
 	var one fieldElement
 	feOne(&one)
 
+	j := fieldElement{486662, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+
 	// c1 = (q + 3) / 8
 	// c2 = 2^c1
 	// c3 = sqrt(-1)
@@ -421,11 +423,7 @@ func curve25519Elligator2(u fieldElement) (xn, xd, yn, yd fieldElement) {
 	// Computed with sagemath
 	c2 := fieldElement{34513073, 25610706, 9377949, 3500415, 12389472, 33281959, 41962654, 31548777, 326685, 11406482}
 	c3 := fieldElement{34513072, 25610706, 9377949, 3500415, 12389472, 33281959, 41962654, 31548777, 326685, 11406482}
-	c4 := fieldElement{67108861, 33554431, 67108863, 33554431, 67108863, 33554431, 67108863, 33554431, 67108863, 4194303}
-	c4Big, _ := new(big.Int).SetString("7237005577332262213973186563042994240829374041602535252466099000494570602493", 10)
-
-	var j fieldElement
-	j[0] = 486664
+	c4, _ := new(big.Int).SetString("7237005577332262213973186563042994240829374041602535252466099000494570602493", 10)
 
 	// Temporary variables
 	var tv1, tv2, tv3, x1n, gxd, gx1, gx2 fieldElement
@@ -450,8 +448,8 @@ func curve25519Elligator2(u fieldElement) (xn, xd, yn, yd fieldElement) {
 
 	// compute y11 = tv2 ^ c4
 	tv2Big := big.NewInt(0)
-	feToBn(tv2Big, &c4)
-	y11Big := big.NewInt(0).Exp(tv2Big, c4Big, prime)
+	feToBn(tv2Big, &tv2)
+	y11Big := big.NewInt(0).Exp(tv2Big, c4, prime)
 	feFromBn(&y11, y11Big)
 
 	feMul(&y11, &y11, &tv3)
