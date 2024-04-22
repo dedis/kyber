@@ -11,6 +11,7 @@ import (
 	"go.dedis.ch/kyber/v3/group/nist"
 	"go.dedis.ch/kyber/v3/pairing"
 	"go.dedis.ch/kyber/v3/pairing/bn256"
+	"go.dedis.ch/kyber/v3/sign/anon"
 	"go.dedis.ch/kyber/v3/util/test"
 )
 
@@ -94,10 +95,44 @@ func BenchmarkGroup(name string, description string, gb *test.GroupBench) map[st
 	return result
 }
 
+// BenchmarkAnonSign runs benchmarks for the anon signature scheme.
+func BenchmarkAnonSign() map[string]interface{} {
+	fmt.Printf("Running benchmarks for anon signature scheme...\n")
+	results := make(map[string]map[string]testing.BenchmarkResult)
+
+	benchPubEd25519, benchPriEd25519 := anon.BenchGenKeys(edwards25519.NewBlakeSHA256Ed25519(), 100)
+	benchMessage := []byte("Hello World!")
+
+	// Signing
+	results["sign"] = make(map[string]testing.BenchmarkResult)
+	for i := 1; i <= 100; i *= 10 {
+		results["sign"][fmt.Sprintf("%d", i)] = testing.Benchmark(func(b *testing.B) {
+			anon.BenchSign(edwards25519.NewBlakeSHA256Ed25519(), benchPubEd25519[:i], benchPriEd25519, b.N, benchMessage)
+		})
+	}
+
+	// Verification
+	results["verify"] = make(map[string]testing.BenchmarkResult)
+	for i := 1; i <= 100; i *= 10 {
+		results["verify"][fmt.Sprintf("%d", i)] = testing.Benchmark(func(b *testing.B) {
+			anon.BenchVerify(edwards25519.NewBlakeSHA256Ed25519(), benchPubEd25519[:i],
+				anon.BenchGenSig(edwards25519.NewBlakeSHA256Ed25519(), i, benchMessage, benchPubEd25519, benchPriEd25519),
+				b.N, benchMessage)
+		})
+	}
+
+	result := map[string]interface{}{
+		"name":        "anon",
+		"description": "",
+		"benchmarks":  results,
+	}
+
+	return result
+}
+
 func main() {
 	// Write results to JSON file
 	results := make(map[string]map[string]map[string]interface{})
-	results["groups"] = make(map[string]map[string]interface{})
 
 	file, err := os.Create(outputFile)
 	if err != nil {
@@ -109,11 +144,20 @@ func main() {
 	encoder := json.NewEncoder(file)
 	encoder.SetIndent("", "  ")
 
+	// Run benchmarks for each group
+	results["groups"] = make(map[string]map[string]interface{})
 	for _, suite := range suites {
 		groupBench := test.NewGroupBench(suite)
 		result := BenchmarkGroup(suite.String(), "Description", groupBench)
 		results["groups"][suite.String()] = result
 	}
+
+	// Run benchmarks for signatures
+	results["sign"] = make(map[string]map[string]interface{})
+
+	// anon signature
+	anonResults := BenchmarkAnonSign()
+	results["sign"]["anon"] = anonResults
 
 	if err := encoder.Encode(results); err != nil {
 		fmt.Println("Error encoding JSON:", err)

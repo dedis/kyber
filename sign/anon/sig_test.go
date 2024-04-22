@@ -8,7 +8,6 @@ import (
 
 	"go.dedis.ch/kyber/v3"
 	"go.dedis.ch/kyber/v3/group/edwards25519"
-	"go.dedis.ch/kyber/v3/util/random"
 	"go.dedis.ch/kyber/v3/xof/blake2xb"
 )
 
@@ -242,72 +241,35 @@ var benchSig1Ed25519 = benchGenSigEd25519(1)
 var benchSig10Ed25519 = benchGenSigEd25519(10)
 var benchSig100Ed25519 = benchGenSigEd25519(100)
 
-func benchGenKeys(g kyber.Group,
-	nkeys int) ([]kyber.Point, kyber.Scalar) {
-	rng := random.New()
-
-	// Create an anonymity set of random "public keys"
-	X := make([]kyber.Point, nkeys)
-	for i := range X { // pick random points
-		X[i] = g.Point().Pick(rng)
-	}
-
-	// Make just one of them an actual public/private keypair (X[mine],x)
-	x := g.Scalar().Pick(rng)
-	X[0] = g.Point().Mul(x, nil)
-
-	return X, x
-}
-
 func benchGenKeysEd25519(nkeys int) ([]kyber.Point, kyber.Scalar) {
-	return benchGenKeys(edwards25519.NewBlakeSHA256Ed25519(), nkeys)
+	return BenchGenKeys(edwards25519.NewBlakeSHA256Ed25519(), nkeys)
 }
 func benchGenSigEd25519(nkeys int) []byte {
-	suite := edwards25519.NewBlakeSHA256Ed25519()
-	return Sign(suite, benchMessage,
-		Set(benchPubEd25519[:nkeys]), nil,
-		0, benchPriEd25519)
-}
-
-func benchSign(suite Suite, pub []kyber.Point, pri kyber.Scalar,
-	niter int) {
-	for i := 0; i < niter; i++ {
-		Sign(suite, benchMessage, Set(pub), nil, 0, pri)
-	}
-}
-
-func benchVerify(suite Suite, pub []kyber.Point,
-	sig []byte, niter int) {
-	for i := 0; i < niter; i++ {
-		tag, err := Verify(suite, benchMessage, Set(pub), nil, sig)
-		if tag == nil || err != nil {
-			panic("benchVerify failed")
-		}
-	}
+	return BenchGenSig(edwards25519.NewBlakeSHA256Ed25519(), nkeys, benchMessage, benchPubEd25519, benchPriEd25519)
 }
 
 func BenchmarkSign1Ed25519(b *testing.B) {
-	benchSign(edwards25519.NewBlakeSHA256Ed25519(),
-		benchPubEd25519[:1], benchPriEd25519, b.N)
+	BenchSign(edwards25519.NewBlakeSHA256Ed25519(),
+		benchPubEd25519[:1], benchPriEd25519, b.N, benchMessage)
 }
 func BenchmarkSign10Ed25519(b *testing.B) {
-	benchSign(edwards25519.NewBlakeSHA256Ed25519(),
-		benchPubEd25519[:10], benchPriEd25519, b.N)
+	BenchSign(edwards25519.NewBlakeSHA256Ed25519(),
+		benchPubEd25519[:10], benchPriEd25519, b.N, benchMessage)
 }
 func BenchmarkSign100Ed25519(b *testing.B) {
-	benchSign(edwards25519.NewBlakeSHA256Ed25519(),
-		benchPubEd25519[:100], benchPriEd25519, b.N)
+	BenchSign(edwards25519.NewBlakeSHA256Ed25519(),
+		benchPubEd25519[:100], benchPriEd25519, b.N, benchMessage)
 }
 
 func BenchmarkVerify1Ed25519(b *testing.B) {
-	benchVerify(edwards25519.NewBlakeSHA256Ed25519(),
-		benchPubEd25519[:1], benchSig1Ed25519, b.N)
+	BenchVerify(edwards25519.NewBlakeSHA256Ed25519(),
+		benchPubEd25519[:1], benchSig1Ed25519, b.N, benchMessage)
 }
 func BenchmarkVerify10Ed25519(b *testing.B) {
-	benchVerify(edwards25519.NewBlakeSHA256Ed25519(),
-		benchPubEd25519[:10], benchSig10Ed25519, b.N)
+	BenchVerify(edwards25519.NewBlakeSHA256Ed25519(),
+		benchPubEd25519[:10], benchSig10Ed25519, b.N, benchMessage)
 }
 func BenchmarkVerify100Ed25519(b *testing.B) {
-	benchVerify(edwards25519.NewBlakeSHA256Ed25519(),
-		benchPubEd25519[:100], benchSig100Ed25519, b.N)
+	BenchVerify(edwards25519.NewBlakeSHA256Ed25519(),
+		benchPubEd25519[:100], benchSig100Ed25519, b.N, benchMessage)
 }
