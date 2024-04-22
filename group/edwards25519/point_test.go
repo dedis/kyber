@@ -33,14 +33,14 @@ var (
 	}
 )
 
-func TestPoint_Marshal(t *testing.T) {
+func TestPointMarshal(t *testing.T) {
 	p := point{}
 	require.Equal(t, "ed.point", fmt.Sprintf("%s", p.MarshalID()))
 }
 
 // TestPoint_HasSmallOrder ensures weakKeys are considered to have
 // a small order
-func TestPoint_HasSmallOrder(t *testing.T) {
+func TestPointHasSmallOrder(t *testing.T) {
 	for _, key := range weakKeys {
 		p := point{}
 		err := p.UnmarshalBinary(key)
@@ -51,7 +51,7 @@ func TestPoint_HasSmallOrder(t *testing.T) {
 
 // Test_PointIsCanonical ensures that elements >= p are considered
 // non canonical
-func Test_PointIsCanonical(t *testing.T) {
+func TestPointIsCanonical(t *testing.T) {
 
 	// buffer stores the candidate points (in little endian) that we'll test
 	// against, starting with `prime`
@@ -89,7 +89,7 @@ func Test_PointIsCanonical(t *testing.T) {
 }
 
 // Test vectors from: https://datatracker.ietf.org/doc/rfc9380
-func Test_ExpandMessageXMDSHA256(t *testing.T) {
+func TestExpandMessageXMDSHA256(t *testing.T) {
 	dst := "QUUX-V01-CS02-with-expander-SHA256-128"
 	outputLength := []int{32, 128}
 
@@ -131,7 +131,7 @@ func Test_ExpandMessageXMDSHA256(t *testing.T) {
 }
 
 // Test vectors from: https://datatracker.ietf.org/doc/rfc9380
-func Test_ExpandMessageXMDSHA512(t *testing.T) {
+func TestExpandMessageXMDSHA512(t *testing.T) {
 	dst := "QUUX-V01-CS02-with-expander-SHA512-256"
 	h := sha512.New()
 
@@ -172,7 +172,7 @@ func Test_ExpandMessageXMDSHA512(t *testing.T) {
 	}
 }
 
-func Test_HashToField(t *testing.T) {
+func TestHashToField(t *testing.T) {
 	dst := "QUUX-V01-CS02-with-edwards25519_XMD:SHA-512_ELL2_RO_"
 
 	// u-value from rfc9380, leading 0 removed
@@ -208,7 +208,7 @@ func Test_HashToField(t *testing.T) {
 	}
 }
 
-func Test_HashToPoint(t *testing.T) {
+func TestHashToPoint(t *testing.T) {
 	p := new(point)
 
 	dst := "QUUX-V01-CS02-with-edwards25519_XMD:SHA-512_ELL2_RO_"
