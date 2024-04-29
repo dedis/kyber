@@ -354,13 +354,11 @@ func selectPreComputed(t *preComputedGroupElement, pos int32, b int32) {
 }
 
 // geScalarMultBase computes h = a*B, where
-//
-//	a = a[0]+256*a[1]+...+256^31 a[31]
-//	B is the Ed25519 base point (x,4/5) with x positive.
+//   a = a[0]+256*a[1]+...+256^31 a[31]
+//   B is the Ed25519 base point (x,4/5) with x positive.
 //
 // Preconditions:
-//
-//	a[31] <= 127
+//   a[31] <= 127
 func geScalarMultBase(h *extendedGroupElement, a *[32]byte) {
 	var e [64]int8
 
@@ -424,13 +422,11 @@ func selectCached(c *cachedGroupElement, Ai *[8]cachedGroupElement, b int32) {
 }
 
 // geScalarMult computes h = a*B, where
-//
-//	a = a[0]+256*a[1]+...+256^31 a[31]
-//	B is the Ed25519 base point (x,4/5) with x positive.
+//   a = a[0]+256*a[1]+...+256^31 a[31]
+//   B is the Ed25519 base point (x,4/5) with x positive.
 //
 // Preconditions:
-//
-//	a[31] <= 127
+//   a[31] <= 127
 func geScalarMult(h *extendedGroupElement, a *[32]byte,
 	A *extendedGroupElement) {
 
