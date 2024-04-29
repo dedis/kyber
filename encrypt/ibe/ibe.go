@@ -1,5 +1,7 @@
 package ibe
 
+/*
+
 import (
 	"bytes"
 	"crypto/rand"
@@ -397,3 +399,4 @@ func DecryptCPAonG1(s pairing.Suite, private kyber.Point, c *CiphertextCPA) ([]b
 	}
 	return xor(c.C, hGidT), nil
 }
+*/
