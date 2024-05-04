@@ -25,7 +25,6 @@ var suites = map[string]Suite{}
 var requireConstTime = false
 
 // register is called by suites to make themselves known to Kyber.
-//
 func register(s Suite) {
 	suites[strings.ToLower(s.String())] = s
 }

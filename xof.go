@@ -36,6 +36,9 @@ type XOF interface {
 	// with that key.
 	Reseed()
 
+	// Restore a XOF to its initial state.
+	Reset()
+
 	// Clone returns a copy of the XOF in its current state.
 	Clone() XOF
 }

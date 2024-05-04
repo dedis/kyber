@@ -104,7 +104,6 @@ func signH1(suite Suite, H1pre kyber.XOF, PG, PH kyber.Point) kyber.Scalar {
 // that members' private keys may later be compromised,
 // or that members may be persuaded or coerced into revealing whether or not
 // they produced a signature of interest.
-//
 func Sign(suite Suite, message []byte,
 	anonymitySet Set, linkScope []byte, mine int, privateKey kyber.Scalar) []byte {
 

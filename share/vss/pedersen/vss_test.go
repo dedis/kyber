@@ -1,6 +1,7 @@
 package vss
 
 import (
+	"fmt"
 	"math/rand"
 	"testing"
 
@@ -34,6 +35,31 @@ func init() {
 	dealerSec, dealerPub = genPair()
 	secret, _ = genPair()
 	vssThreshold = MinimumT(nbVerifiers)
+}
+
+func TestMinimumT(t *testing.T) {
+	tests := []struct {
+		input  int
+		output int
+	}{
+		{10, 6},
+		{6, 4},
+		{4, 3},
+		{3, 2},
+		{2, 2},
+		{7, 4},
+		{8, 5},
+		{9, 5},
+	}
+	for _, test := range tests {
+		in := test.input
+		exp := test.output
+		t.Run(fmt.Sprintf("VSS-MininumT-%d", test.input), func(t *testing.T) {
+			if MinimumT(in) != exp {
+				t.Fail()
+			}
+		})
+	}
 }
 
 func TestVSSWhole(t *testing.T) {
