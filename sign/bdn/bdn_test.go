@@ -124,13 +124,8 @@ func TestBDN_RogueAttack(t *testing.T) {
 	require.NoError(t, err)
 
 	// Old scheme not resistant to the attack
-<<<<<<< HEAD
-	agg := bls.NewSchemeOnG1(suite).AggregatePublicKeys(pubs...)
-	require.NoError(t, bls.NewSchemeOnG1(suite).Verify(agg, msg, sig))
-=======
 	agg := scheme.AggregatePublicKeys(pubs...)
 	require.NoError(t, scheme.Verify(agg, msg, sig))
->>>>>>> origin/drandmerge
 
 	// New scheme that should detect
 	mask, _ := sign.NewMask(suite, pubs, nil)

@@ -107,17 +107,6 @@ func NewSchemeOnG2(suite pairing.Suite) *Scheme {
 }
 
 // NewKeyPair creates a new BLS signing key pair. The private key x is a scalar
-<<<<<<< HEAD
-// and the public key X is a point on curve G2.
-func NewKeyPair(suite pairing.Suite, random cipher.Stream) (kyber.Scalar, kyber.Point) {
-	return bls.NewSchemeOnG1(suite).NewKeyPair(random)
-}
-
-// Sign creates a BLS signature S = x * H(m) on a message m using the private
-// key x. The signature S is a point on curve G1.
-func Sign(suite pairing.Suite, x kyber.Scalar, msg []byte) ([]byte, error) {
-	return bls.NewSchemeOnG1(suite).Sign(x, msg)
-=======
 // and the public key X is a point on the scheme's key group.
 func (scheme *Scheme) NewKeyPair(random cipher.Stream) (kyber.Scalar, kyber.Point) {
 	return scheme.blsScheme.NewKeyPair(random)
@@ -127,21 +116,14 @@ func (scheme *Scheme) NewKeyPair(random cipher.Stream) (kyber.Scalar, kyber.Poin
 // key x. The signature S is a point on the scheme's signature group.
 func (scheme *Scheme) Sign(x kyber.Scalar, msg []byte) ([]byte, error) {
 	return scheme.blsScheme.Sign(x, msg)
->>>>>>> origin/drandmerge
 }
 
 // Verify checks the given BLS signature S on the message m using the public
 // key X by verifying that the equality e(H(m), X) == e(H(m), x*B2) ==
 // e(x*H(m), B2) == e(S, B2) holds where e is the pairing operation and B2 is
-<<<<<<< HEAD
-// the base point from curve G2.
-func Verify(suite pairing.Suite, x kyber.Point, msg, sig []byte) error {
-	return bls.NewSchemeOnG1(suite).Verify(x, msg, sig)
-=======
 // the base point from the scheme's key group.
 func (scheme *Scheme) Verify(x kyber.Point, msg, sig []byte) error {
 	return scheme.blsScheme.Verify(x, msg, sig)
->>>>>>> origin/drandmerge
 }
 
 // AggregateSignatures aggregates the signatures using a coefficient for each

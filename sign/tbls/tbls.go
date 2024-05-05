@@ -27,12 +27,6 @@ import (
 // share's value. The signature share Si is a point on curve G1 or G2.
 type SigShare []byte
 
-type scheme struct {
-	keyGroup kyber.Group
-	sigGroup kyber.Group
-	sign.Scheme
-}
-
 // Index returns the index i of the TBLS share Si.
 func (s SigShare) Index() (int, error) {
 	var index uint16
@@ -92,29 +86,6 @@ func (s *scheme) Sign(private *share.PriShare, msg []byte) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-<<<<<<< HEAD
-// NewThresholdSchemeOnG1 returns a treshold scheme that computes bls signatures
-// on G1
-func NewThresholdSchemeOnG1(suite pairing.Suite) sign.ThresholdScheme {
-	return &scheme{
-		keyGroup: suite.G2(),
-		sigGroup: suite.G1(),
-		Scheme:   bls.NewSchemeOnG1(suite),
-	}
-}
-
-// NewThresholdSchemeOnG2 returns a treshold scheme that computes bls signatures
-// on G2
-func NewThresholdSchemeOnG2(suite pairing.Suite) sign.ThresholdScheme {
-	return &scheme{
-		keyGroup: suite.G1(),
-		sigGroup: suite.G2(),
-		Scheme:   bls.NewSchemeOnG2(suite),
-	}
-}
-
-=======
->>>>>>> origin/drandmerge
 func (s *scheme) IndexOf(signature []byte) (int, error) {
 	if len(signature) != s.sigGroup.PointLen()+2 {
 		return -1, errors.New("invalid partial signature length")
