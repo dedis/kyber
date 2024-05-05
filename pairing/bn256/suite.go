@@ -98,6 +98,10 @@ func (s *Suite) Pair(p1 kyber.Point, p2 kyber.Point) kyber.Point {
 	return s.GT().Point().(*pointGT).Pair(p1, p2)
 }
 
+func (s *Suite) ValidatePairing(p1, p2, inv1, inv2 kyber.Point) bool {
+	return s.Pair(p1, p2).Equal(s.Pair(inv1, inv2))
+}
+
 // Not used other than for reflect.TypeOf()
 var aScalar kyber.Scalar
 var aPoint kyber.Point

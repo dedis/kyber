@@ -6,14 +6,13 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/kyber/v3/pairing"
 	"go.dedis.ch/kyber/v3/pairing/bn256"
 	"go.dedis.ch/kyber/v3/sign"
 	"go.dedis.ch/kyber/v3/sign/bls"
 	"go.dedis.ch/kyber/v3/util/random"
 )
 
-var suite = pairing.NewSuiteBn256()
+var suite = bn256.NewSuiteBn256()
 var two = suite.Scalar().Add(suite.Scalar().One(), suite.Scalar().One())
 var three = suite.Scalar().Add(two, suite.Scalar().One())
 
@@ -110,10 +109,11 @@ func TestBDN_SubsetSignature(t *testing.T) {
 func TestBDN_RogueAttack(t *testing.T) {
 	msg := []byte("Hello Boneh-Lynn-Shacham")
 	suite := bn256.NewSuite()
+	scheme := bls.NewSchemeOnG1(suite)
 	// honest
-	_, public1 := NewKeyPair(suite, random.New())
+	_, public1 := scheme.NewKeyPair(random.New())
 	// attacker
-	private2, public2 := NewKeyPair(suite, random.New())
+	private2, public2 := scheme.NewKeyPair(random.New())
 
 	// create a forged public-key for public1
 	rogue := public1.Clone().Sub(public2, public1)
@@ -124,8 +124,8 @@ func TestBDN_RogueAttack(t *testing.T) {
 	require.NoError(t, err)
 
 	// Old scheme not resistant to the attack
-	agg := bls.AggregatePublicKeys(suite, pubs...)
-	require.NoError(t, bls.Verify(suite, agg, msg, sig))
+	agg := scheme.AggregatePublicKeys(pubs...)
+	require.NoError(t, scheme.Verify(agg, msg, sig))
 
 	// New scheme that should detect
 	mask, _ := sign.NewMask(suite, pubs, nil)

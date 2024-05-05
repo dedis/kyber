@@ -239,7 +239,6 @@ func (c *curve) decodePoint(bb []byte, x, y *mod.Int) error {
 //
 // Returns true on success,
 // false if there is no x-coordinate corresponding to the chosen y-coordinate.
-//
 func (c *curve) solveForX(x, y *mod.Int) bool {
 	var yy, t1, t2 mod.Int
 
@@ -254,7 +253,6 @@ func (c *curve) solveForX(x, y *mod.Int) bool {
 // by checking the characteristic equation for Edwards curves:
 //
 //	a*x^2 + y^2 = 1 + d*x^2*y^2
-//
 func (c *curve) onCurve(x, y *mod.Int) bool {
 	var xx, yy, l, r mod.Int
 

@@ -243,6 +243,9 @@ func TestEdDSAVerifySmallOrderPK(t *testing.T) {
 
 // Test the property of a EdDSA signature
 func TestEdDSASigningRandom(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping slow tests in -short mode")
+	}
 	suite := edwards25519.NewBlakeSHA256Ed25519()
 
 	for i := 0.0; i < 10000; i++ {

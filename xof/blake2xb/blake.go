@@ -9,6 +9,7 @@ import (
 
 type xof struct {
 	impl blake2b.XOF
+	seed []byte
 	// key is here to not make excess garbage during repeated calls
 	// to XORKeyStream.
 	key []byte
@@ -22,18 +23,21 @@ func New(seed []byte) kyber.XOF {
 		seed1 = seed[0:blake2b.Size]
 		seed2 = seed[blake2b.Size:]
 	}
+
 	b, err := blake2b.NewXOF(blake2b.OutputLengthUnknown, seed1)
 	if err != nil {
 		panic("blake2b.NewXOF should not return error: " + err.Error())
 	}
 
-	if seed2 != nil {
-		_, err := b.Write(seed2)
-		if err != nil {
-			panic("blake2b.XOF.Write should not return error: " + err.Error())
-		}
+	_, err = b.Write(seed2)
+	if err != nil {
+		panic("blake2b.XOF.Write should not return error: " + err.Error())
 	}
-	return &xof{impl: b}
+
+	seedCopy := make([]byte, len(seed2))
+	copy(seedCopy, seed2)
+
+	return &xof{impl: b, seed: seedCopy}
 }
 
 func (x *xof) Clone() kyber.XOF {
@@ -59,6 +63,11 @@ func (x *xof) Reseed() {
 	y := New(x.key)
 	// Steal the XOF implementation, and put it inside of x.
 	x.impl = y.(*xof).impl
+}
+
+func (x *xof) Reset() {
+	x.impl.Reset()
+	x.impl.Write(x.seed)
 }
 
 func (x *xof) XORKeyStream(dst, src []byte) {

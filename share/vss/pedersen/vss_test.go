@@ -1,6 +1,7 @@
 package vss
 
 import (
+	"fmt"
 	"math/rand"
 	"testing"
 
@@ -8,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.dedis.ch/kyber/v3"
 	"go.dedis.ch/kyber/v3/group/edwards25519"
+	"go.dedis.ch/kyber/v3/share/vss"
 	"go.dedis.ch/kyber/v3/sign/schnorr"
 	"go.dedis.ch/kyber/v3/xof/blake2xb"
 	"go.dedis.ch/protobuf"
@@ -34,6 +36,31 @@ func init() {
 	dealerSec, dealerPub = genPair()
 	secret, _ = genPair()
 	vssThreshold = MinimumT(nbVerifiers)
+}
+
+func TestMinimumT(t *testing.T) {
+	tests := []struct {
+		input  uint32
+		output uint32
+	}{
+		{10, 6},
+		{6, 4},
+		{4, 3},
+		{3, 2},
+		{2, 2},
+		{7, 4},
+		{8, 5},
+		{9, 5},
+	}
+	for _, test := range tests {
+		in := test.input
+		exp := test.output
+		t.Run(fmt.Sprintf("VSS-MininumT-%d", test.input), func(t *testing.T) {
+			if MinimumT(in) != exp {
+				t.Fail()
+			}
+		})
+	}
 }
 
 func TestVSSWhole(t *testing.T) {
@@ -559,12 +586,12 @@ func TestVSSFindPub(t *testing.T) {
 func TestVSSDHExchange(t *testing.T) {
 	pub := suite.Point().Base()
 	priv := suite.Scalar().Pick(rng)
-	point := dhExchange(suite, priv, pub)
+	point := vss.DhExchange(suite, priv, pub)
 	assert.Equal(t, pub.Mul(priv, nil).String(), point.String())
 }
 
 func TestVSSContext(t *testing.T) {
-	c := context(suite, dealerPub, verifiersPub)
+	c := vss.Context(suite, dealerPub, verifiersPub)
 	assert.Len(t, c, suite.Hash().Size())
 }
 

@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.dedis.ch/kyber/v3"
 	"go.dedis.ch/kyber/v3/group/edwards25519"
+	"go.dedis.ch/kyber/v3/share/vss"
 	"go.dedis.ch/kyber/v3/sign/schnorr"
 	"go.dedis.ch/protobuf"
 )
@@ -560,13 +561,13 @@ func TestVSSFindPub(t *testing.T) {
 func TestVSSDHExchange(t *testing.T) {
 	pub := suite.Point().Base()
 	priv := suite.Scalar().Pick(suite.RandomStream())
-	point := dhExchange(suite, priv, pub)
+	point := vss.DhExchange(suite, priv, pub)
 	assert.Equal(t, pub.Mul(priv, nil).String(), point.String())
 }
 
 func TestVSSContext(t *testing.T) {
-	c := context(suite, dealerPub, verifiersPub)
-	assert.Len(t, c, keySize)
+	c := vss.Context(suite, dealerPub, verifiersPub)
+	assert.Len(t, c, 32)
 }
 
 func genPair() (kyber.Scalar, kyber.Point) {

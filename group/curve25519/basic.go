@@ -116,7 +116,6 @@ func (P *basicPoint) Data() ([]byte, error) {
 //
 //	x' = ((x1*y2 + x2*y1) / (1 + d*x1*x2*y1*y2))
 //	y' = ((y1*y2 - a*x1*x2) / (1 - d*x1*x2*y1*y2))
-//
 func (P *basicPoint) Add(P1, P2 kyber.Point) kyber.Point {
 	E1 := P1.(*basicPoint)
 	E2 := P2.(*basicPoint)
@@ -192,7 +191,6 @@ func (P *basicPoint) Mul(s kyber.Scalar, G kyber.Point) kyber.Point {
 // and instructional uses, and not for production use.
 // The projective coordinates implementation (ProjectiveCurve)
 // is just as general and much faster.
-//
 type BasicCurve struct {
 	curve            // generic Edwards curve functionality
 	null  basicPoint // Neutral/identity point (0,1)

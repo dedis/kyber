@@ -1,5 +1,4 @@
 // Package marshalling provides a common implementation of (un)marshalling method using Writer and Reader.
-//
 package marshalling
 
 import (

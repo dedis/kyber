@@ -1,7 +1,9 @@
 package share
 
 import (
+	"fmt"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -11,9 +13,10 @@ import (
 
 func TestSecretRecovery(test *testing.T) {
 	g := edwards25519.NewBlakeSHA256Ed25519()
-	n := uint32(10)
-	t := n/2 + 1
+	n := uint32(6)
+	t := uint32(5)
 	poly := NewPriPoly(g, t, nil, g.RandomStream())
+	fmt.Println("polynom has degree ", len(poly.coeffs)-1)
 	shares := poly.Shares(n)
 
 	recovered, err := RecoverSecret(g, shares, t, n)
@@ -24,6 +27,8 @@ func TestSecretRecovery(test *testing.T) {
 	if !recovered.Equal(poly.Secret()) {
 		test.Fatal("recovered secret does not match initial value")
 	}
+	pp, _ := RecoverPriPoly(g, shares, t, n)
+	require.True(test, poly.Equal(pp))
 }
 
 // tests the recovery of a secret when one of the share has an index
@@ -136,6 +141,29 @@ func TestPublicCheck(test *testing.T) {
 			test.Fatalf("private share %v not valid with respect to the public commitment polynomial", i)
 		}
 	}
+}
+
+func TestBenchy(test *testing.T) {
+	g := edwards25519.NewBlakeSHA256Ed25519()
+	n := uint32(100)
+	t := n/2 + 1
+
+	priPoly := NewPriPoly(g, t, nil, g.RandomStream())
+	pubPoly := priPoly.Commit(nil)
+	pubShares := pubPoly.Shares(n)
+
+	now1 := time.Now()
+	_, err := RecoverCommit(g, pubShares, t, n)
+	//now2 := time.Now()
+	fmt.Println("time elapsed: ", time.Since(now1))
+	if err != nil {
+		test.Fatal(err)
+	}
+
+	now1 = time.Now()
+	RecoverPubPoly(g, pubShares, t, n)
+
+	fmt.Println("time elapsed public poly: ", time.Since(now1))
 }
 
 func TestPublicRecovery(test *testing.T) {

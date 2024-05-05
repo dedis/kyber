@@ -14,6 +14,7 @@ import (
 
 	"go.dedis.ch/kyber/v3"
 	"go.dedis.ch/kyber/v3/share"
+	"go.dedis.ch/kyber/v3/share/vss"
 	"go.dedis.ch/kyber/v3/sign/schnorr"
 	"go.dedis.ch/protobuf"
 )
@@ -154,7 +155,7 @@ func NewDealer(suite Suite, longterm, secret kyber.Scalar, verifiers []kyber.Poi
 			T:           uint32(d.t),
 		}
 	}
-	d.hkdfContext = context(suite, d.pub, verifiers)
+	d.hkdfContext = vss.Context(suite, d.pub, verifiers)
 	d.secretPoly = f
 	return d, nil
 }
@@ -190,8 +191,8 @@ func (d *Dealer) EncryptedDeal(i int) (*EncryptedDeal, error) {
 		return nil, err
 	}
 	// AES128-GCM
-	pre := dhExchange(d.suite, dhSecret, vPub)
-	gcm, err := newAEAD(d.suite.Hash, pre, d.hkdfContext)
+	pre := vss.DhExchange(d.suite, dhSecret, vPub)
+	gcm, err := vss.NewAEAD(d.suite.Hash, pre, d.hkdfContext)
 	if err != nil {
 		return nil, err
 	}
@@ -338,7 +339,7 @@ func NewVerifier(suite Suite, longterm kyber.Scalar, dealerKey kyber.Point,
 		verifiers:   verifiers,
 		pub:         pub,
 		index:       index,
-		hkdfContext: context(suite, dealerKey, verifiers),
+		hkdfContext: vss.Context(suite, dealerKey, verifiers),
 		Aggregator:  NewEmptyAggregator(suite, verifiers),
 	}
 	return v, nil
@@ -403,8 +404,8 @@ func (v *Verifier) decryptDeal(e *EncryptedDeal) (*Deal, error) {
 	if err := dhKey.UnmarshalBinary(e.DHKey); err != nil {
 		return nil, err
 	}
-	pre := dhExchange(v.suite, v.longterm, dhKey)
-	gcm, err := newAEAD(v.suite.Hash, pre, v.hkdfContext)
+	pre := vss.DhExchange(v.suite, v.longterm, dhKey)
+	gcm, err := vss.NewAEAD(v.suite.Hash, pre, v.hkdfContext)
 	if err != nil {
 		return nil, err
 	}
@@ -720,7 +721,7 @@ func (a *Aggregator) MissingResponses() []int {
 // difficulty for an adversary to break secrecy. However, a too large T makes
 // it possible for an adversary to prevent recovery (robustness).
 func MinimumT(n uint32) uint32 {
-	return (n + 1) / 2
+	return (n >> 1) + 1
 }
 
 func validT(t uint32, verifiers []kyber.Point) bool {

@@ -82,6 +82,9 @@ func Decrypt(group kyber.Group, private kyber.Scalar, ctx []byte, hash func() ha
 	// Reconstruct the ephemeral elliptic curve point
 	R := group.Point()
 	l := group.PointLen()
+	if len(ctx) < l {
+		return nil, errors.New("invalid ecies cipher")
+	}
 	if err := R.UnmarshalBinary(ctx[:l]); err != nil {
 		return nil, err
 	}
