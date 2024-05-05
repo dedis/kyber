@@ -8,7 +8,8 @@ import (
 )
 
 type xof struct {
-	sh sha3.ShakeHash
+	sh   sha3.ShakeHash
+	seed []byte
 	// key is here to not make excess garbage during repeated calls
 	// to XORKeyStream.
 	key []byte
@@ -17,8 +18,10 @@ type xof struct {
 // New creates a new XOF using the Shake256 hash.
 func New(seed []byte) kyber.XOF {
 	sh := sha3.NewShake256()
+	seedCopy := make([]byte, len(seed))
+	copy(seedCopy, seed)
 	sh.Write(seed)
-	return &xof{sh: sh}
+	return &xof{sh: sh, seed: seedCopy}
 }
 
 func (x *xof) Clone() kyber.XOF {
@@ -34,6 +37,11 @@ func (x *xof) Reseed() {
 	x.Read(x.key)
 	x.sh = sha3.NewShake256()
 	x.sh.Write(x.key)
+}
+
+func (x *xof) Reset() {
+	x.sh.Reset()
+	x.sh.Write(x.seed)
 }
 
 func (x *xof) Read(dst []byte) (int, error) {

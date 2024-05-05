@@ -60,7 +60,6 @@ func (P *projPoint) UnmarshalFrom(r io.Reader) (int, error) {
 //	(X1/Z1,Y1/Z1) == (X2/Z2,Y2/Z2)
 //		iff
 //	(X1*Z2,Y1*Z2) == (X2*Z1,Y2*Z1)
-//
 func (P *projPoint) Equal(CP2 kyber.Point) bool {
 	P2 := CP2.(*projPoint)
 	var t1, t2 mod.Int
@@ -129,7 +128,6 @@ func (P *projPoint) Data() ([]byte, error) {
 //
 //	http://eprint.iacr.org/2008/013.pdf
 //	https://hyperelliptic.org/EFD/g1p/auto-twisted-projective.html
-//
 func (P *projPoint) Add(CP1, CP2 kyber.Point) kyber.Point {
 	P1 := CP1.(*projPoint)
 	P2 := CP2.(*projPoint)
@@ -240,7 +238,6 @@ func (P *projPoint) Mul(s kyber.Scalar, G kyber.Point) kyber.Point {
 // and avoids expensive modular inversions on the critical paths.
 // Uses the projective arithmetic formulas in:
 // http://cr.yp.to/newelliptic/newelliptic-20070906.pdf
-//
 type ProjectiveCurve struct {
 	curve           // generic Edwards curve functionality
 	null  projPoint // Constant identity/null point (0,1)

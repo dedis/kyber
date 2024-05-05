@@ -109,10 +109,11 @@ func TestBDN_SubsetSignature(t *testing.T) {
 func TestBDN_RogueAttack(t *testing.T) {
 	msg := []byte("Hello Boneh-Lynn-Shacham")
 	suite := bn256.NewSuite()
+	scheme := bls.NewSchemeOnG1(suite)
 	// honest
-	_, public1 := NewKeyPair(suite, random.New())
+	_, public1 := scheme.NewKeyPair(random.New())
 	// attacker
-	private2, public2 := NewKeyPair(suite, random.New())
+	private2, public2 := scheme.NewKeyPair(random.New())
 
 	// create a forged public-key for public1
 	rogue := public1.Clone().Sub(public2, public1)
@@ -123,8 +124,13 @@ func TestBDN_RogueAttack(t *testing.T) {
 	require.NoError(t, err)
 
 	// Old scheme not resistant to the attack
+<<<<<<< HEAD
 	agg := bls.NewSchemeOnG1(suite).AggregatePublicKeys(pubs...)
 	require.NoError(t, bls.NewSchemeOnG1(suite).Verify(agg, msg, sig))
+=======
+	agg := scheme.AggregatePublicKeys(pubs...)
+	require.NoError(t, scheme.Verify(agg, msg, sig))
+>>>>>>> origin/drandmerge
 
 	// New scheme that should detect
 	mask, _ := sign.NewMask(suite, pubs, nil)

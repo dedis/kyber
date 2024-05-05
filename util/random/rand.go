@@ -66,11 +66,13 @@ func (r *randstream) XORKeyStream(dst, src []byte) {
 	// try to read readerBytes bytes from all readers and write them in a buffer
 	var b bytes.Buffer
 	var nerr int
+	var errors []string
 	buff := make([]byte, readerBytes)
 	for _, reader := range r.Readers {
 		n, err := io.ReadFull(reader, buff)
 		if err != nil {
 			nerr++
+			errors = append(errors, err.Error())
 		}
 		b.Write(buff[:n])
 	}
@@ -78,7 +80,7 @@ func (r *randstream) XORKeyStream(dst, src []byte) {
 	// we are ok with few sources being insecure (i.e., providing less than
 	// readerBytes bytes), but not all of them
 	if nerr == len(r.Readers) {
-		panic("all readers failed")
+		panic(errors)
 	}
 
 	// create the XOF output, with hash of collected data as seed

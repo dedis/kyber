@@ -1,6 +1,8 @@
 package bn256
 
-import "go.dedis.ch/kyber/v3"
+import (
+	"go.dedis.ch/kyber/v3"
+)
 
 // SuiteBn256 is an adapter that implements the suites.Suite interface so that
 // bn256 can be used as a common suite to generate key pairs for instance but

@@ -6,7 +6,7 @@ designed to be independent of specific cryptographic algorithms,
 to facilitate upgrading applications to new cryptographic algorithms
 or switching to alternative algorithms for experimentation purposes.
 
-Abstract Groups
+# Abstract Groups
 
 This toolkits public-key crypto API includes a kyber.Group interface
 supporting a broad class of group-based public-key primitives
@@ -23,9 +23,9 @@ DSA-style integer groups.
 
 As a trivial example, generating a public/private keypair is as simple as:
 
-    suite := suites.MustFind("Ed25519")		// Use the edwards25519-curve
-	a := suite.Scalar().Pick(suite.RandomStream()) // Alice's private key
-	A := suite.Point().Mul(a, nil)          // Alice's public key
+	    suite := suites.MustFind("Ed25519")		// Use the edwards25519-curve
+		a := suite.Scalar().Pick(suite.RandomStream()) // Alice's private key
+		A := suite.Point().Mul(a, nil)          // Alice's public key
 
 The first statement picks a private key (Scalar) from a the suites's source of
 cryptographic random or pseudo-random bits, while the second performs elliptic
@@ -42,7 +42,7 @@ rather than the multiplicative-group terminology of traditional
 integer groups - but the two are semantically equivalent and the
 interface itself works for both elliptic curve and integer groups.
 
-Higher-level Building Blocks
+# Higher-level Building Blocks
 
 Various sub-packages provide several specific
 implementations of these cryptographic interfaces.
@@ -91,7 +91,7 @@ that keep the sources of individual votes or bids private
 without anyone having to trust more than one of the shuffler(s) to shuffle
 votes/bids honestly.
 
-Target Use-cases
+# Target Use-cases
 
 As should be obvious, this library is intended to be used by
 developers who are at least moderately knowledgeable about
@@ -109,7 +109,7 @@ to is the Charm rapid prototyping library for Python
 This library incorporates and/or builds on existing code from a variety of
 sources, as documented in the relevant sub-packages.
 
-Reporting Security Problems
+# Reporting Security Problems
 
 This library is offered as-is, and without a guarantee. It will need an
 independent security review before it should be considered ready for use in
@@ -118,6 +118,5 @@ is YOUR RESPONSIBILITY to arrange for that audit.
 
 If you notice a possible security problem, please report it
 to dedis-security@epfl.ch.
-
 */
 package kyber

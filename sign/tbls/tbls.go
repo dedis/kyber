@@ -24,7 +24,7 @@ import (
 
 // SigShare encodes a threshold BLS signature share Si = i || v where the 2-byte
 // big-endian value i corresponds to the share's index and v represents the
-// share's value. The signature share Si is a point on curve G1.
+// share's value. The signature share Si is a point on curve G1 or G2.
 type SigShare []byte
 
 type scheme struct {
@@ -49,21 +49,10 @@ func (s *SigShare) Value() []byte {
 	return []byte(*s)[2:]
 }
 
-// Sign creates a threshold BLS signature Si = xi * H(m) on the given message m
-// using the provided secret key share xi.
-func (s *scheme) Sign(private *share.PriShare, msg []byte) ([]byte, error) {
-	buf := new(bytes.Buffer)
-	if err := binary.Write(buf, binary.BigEndian, uint16(private.I)); err != nil {
-		return nil, err
-	}
-	sig, err := s.Scheme.Sign(private.V, msg)
-	if err != nil {
-		return nil, err
-	}
-	if err := binary.Write(buf, binary.BigEndian, sig); err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), nil
+type scheme struct {
+	keyGroup kyber.Group
+	sigGroup kyber.Group
+	sign.Scheme
 }
 
 // NewThresholdSchemeOnG1 returns a treshold scheme that computes bls signatures
@@ -86,6 +75,46 @@ func NewThresholdSchemeOnG2(suite pairing.Suite) sign.ThresholdScheme {
 	}
 }
 
+// Sign creates a threshold BLS signature Si = xi * H(m) on the given message m
+// using the provided secret key share xi.
+func (s *scheme) Sign(private *share.PriShare, msg []byte) ([]byte, error) {
+	buf := new(bytes.Buffer)
+	if err := binary.Write(buf, binary.BigEndian, uint16(private.I)); err != nil {
+		return nil, err
+	}
+	sig, err := s.Scheme.Sign(private.V, msg)
+	if err != nil {
+		return nil, err
+	}
+	if err := binary.Write(buf, binary.BigEndian, sig); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
+<<<<<<< HEAD
+// NewThresholdSchemeOnG1 returns a treshold scheme that computes bls signatures
+// on G1
+func NewThresholdSchemeOnG1(suite pairing.Suite) sign.ThresholdScheme {
+	return &scheme{
+		keyGroup: suite.G2(),
+		sigGroup: suite.G1(),
+		Scheme:   bls.NewSchemeOnG1(suite),
+	}
+}
+
+// NewThresholdSchemeOnG2 returns a treshold scheme that computes bls signatures
+// on G2
+func NewThresholdSchemeOnG2(suite pairing.Suite) sign.ThresholdScheme {
+	return &scheme{
+		keyGroup: suite.G1(),
+		sigGroup: suite.G2(),
+		Scheme:   bls.NewSchemeOnG2(suite),
+	}
+}
+
+=======
+>>>>>>> origin/drandmerge
 func (s *scheme) IndexOf(signature []byte) (int, error) {
 	if len(signature) != s.sigGroup.PointLen()+2 {
 		return -1, errors.New("invalid partial signature length")

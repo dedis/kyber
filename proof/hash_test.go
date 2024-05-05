@@ -75,7 +75,6 @@ func Example_hashProve1() {
 // This example implementation is less space-efficient, however,
 // because it uses the generic HashProver for Fiat-Shamir noninteractivity
 // instead of Liu/Wei/Wong's customized hash-ring structure.
-//
 func Example_hashProve2() {
 
 	// Crypto setup

@@ -112,10 +112,6 @@ type Point interface {
 	Mul(s Scalar, p Point) Point
 }
 
-type HashablePoint interface {
-	Hash([]byte) Point
-}
-
 // AllowsVarTime allows callers to determine if a given kyber.Scalar
 // or kyber.Point supports opting-in to variable time operations. If
 // an object implements AllowsVarTime, then the caller can use

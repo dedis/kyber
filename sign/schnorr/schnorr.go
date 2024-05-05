@@ -2,28 +2,52 @@
 Package schnorr implements the vanilla Schnorr signature scheme.
 See https://en.wikipedia.org/wiki/Schnorr_signature.
 
-The only difference regarding the vanilla reference is the computation of
-the response. This implementation adds the random component with the
-challenge times private key while the Wikipedia article substracts them.
+The only difference regarding the vanilla reference is the computation of the
+response. This implementation adds the random component with the challenge times
+private key while the Wikipedia article substracts them.
 
-The resulting signature is compatible with EdDSA verification algorithm
-when using the edwards25519 group, and by extension the CoSi verification algorithm.
+The resulting signature is compatible with EdDSA verification algorithm when
+using the edwards25519 group, and by extension the CoSi verification algorithm.
 */
 package schnorr
 
 import (
 	"bytes"
+	"crypto/cipher"
 	"crypto/sha512"
 	"errors"
 	"fmt"
 
 	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/sign"
 )
 
 // Suite represents the set of functionalities needed by the package schnorr.
 type Suite interface {
 	kyber.Group
 	kyber.Random
+}
+
+type SchnorrScheme struct {
+	s Suite
+}
+
+func NewScheme(s Suite) sign.Scheme {
+	return &SchnorrScheme{s}
+}
+
+func (s *SchnorrScheme) NewKeyPair(random cipher.Stream) (kyber.Scalar, kyber.Point) {
+	priv := s.s.Scalar().Pick(random)
+	pub := s.s.Point().Mul(priv, nil)
+	return priv, pub
+}
+
+func (s *SchnorrScheme) Sign(private kyber.Scalar, msg []byte) ([]byte, error) {
+	return Sign(s.s, private, msg)
+}
+
+func (s *SchnorrScheme) Verify(public kyber.Point, msg, sig []byte) error {
+	return Verify(s.s, public, msg, sig)
 }
 
 // Sign creates a Sign signature from a msg and a private key. This
@@ -93,6 +117,9 @@ func VerifyWithChecks(g kyber.Group, pub, msg, sig []byte) error {
 	}
 	if s, ok := g.Scalar().(scalarCanCheckCanonical); ok && !s.IsCanonical(sig[pointSize:]) {
 		return fmt.Errorf("signature is not canonical")
+	}
+	if sub, ok := R.(kyber.SubGroupElement); ok && !sub.IsInCorrectGroup() {
+		return fmt.Errorf("schnorr: point not in correct group")
 	}
 	if err := s.UnmarshalBinary(sig[pointSize:]); err != nil {
 		return err

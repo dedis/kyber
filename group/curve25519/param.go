@@ -44,7 +44,6 @@ func (p *Param) String() string {
 // Bernstein et al, "Elligator: Elliptic-curve points indistinguishable
 // from uniform random strings"
 // http://elligator.cr.yp.to/elligator-20130828.pdf
-//
 func Param1174() *Param {
 	var p Param
 	var mi mod.Int
@@ -72,7 +71,6 @@ func Param1174() *Param {
 // Param25519 defines the Edwards version of Curve25519, as specified in:
 // Bernstein et al, "High-speed high-security signatures",
 // http://ed25519.cr.yp.to/ed25519-20110926.pdf
-//
 func Param25519() *Param {
 	var p Param
 	var qs big.Int
@@ -142,7 +140,6 @@ func Param41417() *Param {
 // and more recently included in:
 // "Additional Elliptic Curves for IETF protocols"
 // http://tools.ietf.org/html/draft-ladd-safecurves-02
-//
 func ParamE521() *Param {
 	var p Param
 	var qs big.Int
