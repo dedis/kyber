@@ -112,6 +112,17 @@ type Point interface {
 	Mul(s Scalar, p Point) Point
 }
 
+// SubGroupElement allows to verify if a Point is in the correct group or not.
+// For curves which don't have a prime order, we need to only consider the
+// points lying in the subgroup of prime order. That check returns true if the
+// point is correct or not. If the curve forms already a prime order// group,
+// then this method should be implemented as a nop returning true, to be able to
+// use the Schnorr signature scheme for example.
+type SubGroupElement interface {
+	Point
+	IsInCorrectGroup() bool
+}
+
 // AllowsVarTime allows callers to determine if a given kyber.Scalar
 // or kyber.Point supports opting-in to variable time operations. If
 // an object implements AllowsVarTime, then the caller can use

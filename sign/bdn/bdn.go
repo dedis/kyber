@@ -67,29 +67,68 @@ func hashPointToR(pubs []kyber.Point) ([]kyber.Scalar, error) {
 	return coefs, nil
 }
 
+type Scheme struct {
+	blsScheme sign.AggregatableScheme
+	sigGroup  kyber.Group
+	keyGroup  kyber.Group
+	pairing   func(signature, public, hashedPoint kyber.Point) bool
+}
+
+// NewSchemeOnG1 returns a sign.Scheme that uses G1 for its signature space and G2
+// for its public keys
+func NewSchemeOnG1(suite pairing.Suite) *Scheme {
+	sigGroup := suite.G1()
+	keyGroup := suite.G2()
+	pairing := func(public, hashedMsg, sigPoint kyber.Point) bool {
+		return suite.ValidatePairing(hashedMsg, public, sigPoint, keyGroup.Point().Base())
+	}
+	return &Scheme{
+		blsScheme: bls.NewSchemeOnG1(suite),
+		sigGroup:  sigGroup,
+		keyGroup:  keyGroup,
+		pairing:   pairing,
+	}
+}
+
+// NewSchemeOnG2 returns a sign.Scheme that uses G2 for its signature space and
+// G1 for its public key
+func NewSchemeOnG2(suite pairing.Suite) *Scheme {
+	sigGroup := suite.G2()
+	keyGroup := suite.G1()
+	pairing := func(public, hashedMsg, sigPoint kyber.Point) bool {
+		return suite.ValidatePairing(public, hashedMsg, keyGroup.Point().Base(), sigPoint)
+	}
+	return &Scheme{
+		blsScheme: bls.NewSchemeOnG2(suite),
+		sigGroup:  sigGroup,
+		keyGroup:  keyGroup,
+		pairing:   pairing,
+	}
+}
+
 // NewKeyPair creates a new BLS signing key pair. The private key x is a scalar
-// and the public key X is a point on curve G2.
-func NewKeyPair(suite pairing.Suite, random cipher.Stream) (kyber.Scalar, kyber.Point) {
-	return bls.NewKeyPair(suite, random)
+// and the public key X is a point on the scheme's key group.
+func (scheme *Scheme) NewKeyPair(random cipher.Stream) (kyber.Scalar, kyber.Point) {
+	return scheme.blsScheme.NewKeyPair(random)
 }
 
 // Sign creates a BLS signature S = x * H(m) on a message m using the private
-// key x. The signature S is a point on curve G1.
-func Sign(suite pairing.Suite, x kyber.Scalar, msg []byte) ([]byte, error) {
-	return bls.Sign(suite, x, msg)
+// key x. The signature S is a point on the scheme's signature group.
+func (scheme *Scheme) Sign(x kyber.Scalar, msg []byte) ([]byte, error) {
+	return scheme.blsScheme.Sign(x, msg)
 }
 
 // Verify checks the given BLS signature S on the message m using the public
 // key X by verifying that the equality e(H(m), X) == e(H(m), x*B2) ==
 // e(x*H(m), B2) == e(S, B2) holds where e is the pairing operation and B2 is
-// the base point from curve G2.
-func Verify(suite pairing.Suite, x kyber.Point, msg, sig []byte) error {
-	return bls.Verify(suite, x, msg, sig)
+// the base point from the scheme's key group.
+func (scheme *Scheme) Verify(x kyber.Point, msg, sig []byte) error {
+	return scheme.blsScheme.Verify(x, msg, sig)
 }
 
 // AggregateSignatures aggregates the signatures using a coefficient for each
-// one of them where c = H(pk) and H: G2 -> R with R = {1, ..., 2^128}
-func AggregateSignatures(suite pairing.Suite, sigs [][]byte, mask *sign.Mask) (kyber.Point, error) {
+// one of them where c = H(pk) and H: keyGroup -> R with R = {1, ..., 2^128}
+func (scheme *Scheme) AggregateSignatures(sigs [][]byte, mask *sign.Mask) (kyber.Point, error) {
 	if len(sigs) != mask.CountEnabled() {
 		return nil, errors.New("length of signatures and public keys must match")
 	}
@@ -99,7 +138,7 @@ func AggregateSignatures(suite pairing.Suite, sigs [][]byte, mask *sign.Mask) (k
 		return nil, err
 	}
 
-	agg := suite.G1().Point()
+	agg := scheme.sigGroup.Point()
 	for i, buf := range sigs {
 		peerIndex := mask.IndexOfNthEnabled(i)
 		if peerIndex < 0 {
@@ -108,7 +147,7 @@ func AggregateSignatures(suite pairing.Suite, sigs [][]byte, mask *sign.Mask) (k
 			return nil, errors.New("couldn't find the index")
 		}
 
-		sig := suite.G1().Point()
+		sig := scheme.sigGroup.Point()
 		err = sig.UnmarshalBinary(buf)
 		if err != nil {
 			return nil, err
@@ -125,14 +164,14 @@ func AggregateSignatures(suite pairing.Suite, sigs [][]byte, mask *sign.Mask) (k
 
 // AggregatePublicKeys aggregates a set of public keys (similarly to
 // AggregateSignatures for signatures) using the hash function
-// H: G2 -> R with R = {1, ..., 2^128}.
-func AggregatePublicKeys(suite pairing.Suite, mask *sign.Mask) (kyber.Point, error) {
+// H: keyGroup -> R with R = {1, ..., 2^128}.
+func (scheme *Scheme) AggregatePublicKeys(mask *sign.Mask) (kyber.Point, error) {
 	coefs, err := hashPointToR(mask.Publics())
 	if err != nil {
 		return nil, err
 	}
 
-	agg := suite.G2().Point()
+	agg := scheme.keyGroup.Point()
 	for i := 0; i < mask.CountEnabled(); i++ {
 		peerIndex := mask.IndexOfNthEnabled(i)
 		if peerIndex < 0 {
@@ -148,4 +187,44 @@ func AggregatePublicKeys(suite pairing.Suite, mask *sign.Mask) (kyber.Point, err
 	}
 
 	return agg, nil
+}
+
+// v1 API Deprecated ----------------------------------
+
+// NewKeyPair creates a new BLS signing key pair. The private key x is a scalar
+// and the public key X is a point on curve G2.
+// Deprecated: use the new scheme methods instead.
+func NewKeyPair(suite pairing.Suite, random cipher.Stream) (kyber.Scalar, kyber.Point) {
+	return NewSchemeOnG1(suite).NewKeyPair(random)
+}
+
+// Sign creates a BLS signature S = x * H(m) on a message m using the private
+// key x. The signature S is a point on curve G1.
+// Deprecated: use the new scheme methods instead.
+func Sign(suite pairing.Suite, x kyber.Scalar, msg []byte) ([]byte, error) {
+	return NewSchemeOnG1(suite).Sign(x, msg)
+}
+
+// Verify checks the given BLS signature S on the message m using the public
+// key X by verifying that the equality e(H(m), X) == e(H(m), x*B2) ==
+// e(x*H(m), B2) == e(S, B2) holds where e is the pairing operation and B2 is
+// the base point from curve G2.
+// Deprecated: use the new scheme methods instead.
+func Verify(suite pairing.Suite, x kyber.Point, msg, sig []byte) error {
+	return NewSchemeOnG1(suite).Verify(x, msg, sig)
+}
+
+// AggregateSignatures aggregates the signatures using a coefficient for each
+// one of them where c = H(pk) and H: G2 -> R with R = {1, ..., 2^128}
+// Deprecated: use the new scheme methods instead.
+func AggregateSignatures(suite pairing.Suite, sigs [][]byte, mask *sign.Mask) (kyber.Point, error) {
+	return NewSchemeOnG1(suite).AggregateSignatures(sigs, mask)
+}
+
+// AggregatePublicKeys aggregates a set of public keys (similarly to
+// AggregateSignatures for signatures) using the hash function
+// H: G2 -> R with R = {1, ..., 2^128}.
+// Deprecated: use the new scheme methods instead.
+func AggregatePublicKeys(suite pairing.Suite, mask *sign.Mask) (kyber.Point, error) {
+	return NewSchemeOnG1(suite).AggregatePublicKeys(mask)
 }

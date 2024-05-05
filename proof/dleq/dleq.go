@@ -1,7 +1,9 @@
 // Package dleq provides functionality to create and verify non-interactive
 // zero-knowledge (NIZK) proofs for the equality (EQ) of discrete logarithms (DL).
 // This means, for two values xG and xH one can check that
-//   log_{G}(xG) == log_{H}(xH)
+//
+//	log_{G}(xG) == log_{H}(xH)
+//
 // without revealing the secret value x.
 package dleq
 
@@ -118,8 +120,9 @@ func NewDLEQProofBatch(suite Suite, G []kyber.Point, H []kyber.Point, secrets []
 
 // Verify examines the validity of the NIZK dlog-equality proof.
 // The proof is valid if the following two conditions hold:
-//   vG == rG + c(xG)
-//   vH == rH + c(xH)
+//
+//	vG == rG + c(xG)
+//	vH == rH + c(xH)
 func (p *Proof) Verify(suite Suite, G kyber.Point, H kyber.Point, xG kyber.Point, xH kyber.Point) error {
 	rG := suite.Point().Mul(p.R, G)
 	rH := suite.Point().Mul(p.R, H)

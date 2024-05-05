@@ -332,7 +332,7 @@ func (p *PubPoly) Threshold() int {
 
 // Commit returns the secret commitment p(0), i.e., the constant term of the polynomial.
 func (p *PubPoly) Commit() kyber.Point {
-	return p.commits[0]
+	return p.commits[0].Clone()
 }
 
 // Eval computes the public share v = p(i).
@@ -379,7 +379,7 @@ func (p *PubPoly) Add(q *PubPoly) (*PubPoly, error) {
 }
 
 // Equal checks equality of two public commitment polynomials p and q. If p and
-// q are trivially unequal (e.g., due to mismatching cryptographic groups),
+// q are trivially unequal (e.g., due to mismatching cryptographic groups, or threshold issues),
 // this routine returns in variable time. Otherwise it runs in constant time
 // regardless of whether it eventually returns true or false.
 func (p *PubPoly) Equal(q *PubPoly) bool {
@@ -387,6 +387,11 @@ func (p *PubPoly) Equal(q *PubPoly) bool {
 		return false
 	}
 	b := 1
+
+	if len(p.commits) < p.Threshold() || len(q.commits) < p.Threshold() || p.Threshold() != q.Threshold() {
+		return false
+	}
+
 	for i := 0; i < p.Threshold(); i++ {
 		pb, _ := p.commits[i].MarshalBinary()
 		qb, _ := q.commits[i].MarshalBinary()

@@ -88,18 +88,27 @@ func TestCompareProjectiveExtended25519(t *testing.T) {
 }
 
 func TestCompareProjectiveExtendedE382(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping slow test in -short mode.")
+	}
 	test.CompareGroups(t, testSuite.XOF,
 		new(ProjectiveCurve).Init(ParamE382(), false),
 		new(ExtendedCurve).Init(ParamE382(), false))
 }
 
 func TestCompareProjectiveExtended41417(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping slow test in -short mode.")
+	}
 	test.CompareGroups(t, testSuite.XOF,
 		new(ProjectiveCurve).Init(Param41417(), false),
 		new(ExtendedCurve).Init(Param41417(), false))
 }
 
 func TestCompareProjectiveExtendedE521(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping slow test in -short mode.")
+	}
 	test.CompareGroups(t, testSuite.XOF,
 		new(ProjectiveCurve).Init(ParamE521(), false),
 		new(ExtendedCurve).Init(ParamE521(), false))
