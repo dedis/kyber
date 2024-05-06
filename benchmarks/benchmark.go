@@ -9,9 +9,10 @@ import (
 	"go.dedis.ch/kyber/v3"
 	"go.dedis.ch/kyber/v3/group/edwards25519"
 	"go.dedis.ch/kyber/v3/group/nist"
-	"go.dedis.ch/kyber/v3/pairing"
+	"go.dedis.ch/kyber/v3/pairing/bn254"
 	"go.dedis.ch/kyber/v3/pairing/bn256"
 	"go.dedis.ch/kyber/v3/sign/anon"
+	"go.dedis.ch/kyber/v3/sign/bls"
 	"go.dedis.ch/kyber/v3/util/test"
 )
 
@@ -19,9 +20,10 @@ var (
 	outputFile = "benchmarks.json"
 	suites     = []kyber.Group{
 		nist.NewBlakeSHA256P256(), nist.NewBlakeSHA256QR512(),
-		bn256.NewSuiteG1(), bn256.NewSuiteG2(), bn256.NewSuiteGT(),
-		pairing.NewSuiteBn256(),
+		bn256.NewSuiteG1(),
+		bn254.NewSuiteG1(),
 		edwards25519.NewBlakeSHA256Ed25519()}
+	signatures = []string{"anon", "bls"}
 )
 
 // BenchmarkGroup runs benchmarks for the given group and writes the results to a JSON file.
@@ -95,34 +97,69 @@ func BenchmarkGroup(name string, description string, gb *test.GroupBench) map[st
 	return result
 }
 
-// BenchmarkAnonSign runs benchmarks for the anon signature scheme.
-func BenchmarkAnonSign() map[string]interface{} {
-	fmt.Printf("Running benchmarks for anon signature scheme...\n")
+// BenchmarkSign runs benchmarks for the some signature schemes.
+func BenchmarkSign(sigType string) map[string]interface{} {
+	fmt.Printf("Running benchmarks for %s signature scheme...\n", sigType)
 	results := make(map[string]map[string]testing.BenchmarkResult)
-
-	benchPubEd25519, benchPriEd25519 := anon.BenchGenKeys(edwards25519.NewBlakeSHA256Ed25519(), 100)
-	benchMessage := []byte("Hello World!")
-
-	// Signing
+	results["keygen"] = make(map[string]testing.BenchmarkResult)
 	results["sign"] = make(map[string]testing.BenchmarkResult)
-	for i := 1; i <= 100; i *= 10 {
-		results["sign"][fmt.Sprintf("%d", i)] = testing.Benchmark(func(b *testing.B) {
-			anon.BenchSign(edwards25519.NewBlakeSHA256Ed25519(), benchPubEd25519[:i], benchPriEd25519, b.N, benchMessage)
-		})
-	}
-
-	// Verification
 	results["verify"] = make(map[string]testing.BenchmarkResult)
-	for i := 1; i <= 100; i *= 10 {
-		results["verify"][fmt.Sprintf("%d", i)] = testing.Benchmark(func(b *testing.B) {
-			anon.BenchVerify(edwards25519.NewBlakeSHA256Ed25519(), benchPubEd25519[:i],
-				anon.BenchGenSig(edwards25519.NewBlakeSHA256Ed25519(), i, benchMessage, benchPubEd25519, benchPriEd25519),
-				b.N, benchMessage)
-		})
+
+	benchMessage := []byte("Hello World!")
+	keys := []int{1, 10, 100}
+
+	if sigType == "anon" {
+		// Generate keys
+		for _, i := range keys {
+			results["keygen"][fmt.Sprintf("%d", i)] = testing.Benchmark(func(b *testing.B) {
+				anon.BenchGenKeys(edwards25519.NewBlakeSHA256Ed25519(), i)
+			})
+		}
+		benchPubEd25519, benchPriEd25519 := anon.BenchGenKeys(edwards25519.NewBlakeSHA256Ed25519(), keys[len(keys)-1])
+
+		// Signing
+		for _, i := range keys {
+			results["sign"][fmt.Sprintf("%d", i)] = testing.Benchmark(func(b *testing.B) {
+				anon.BenchSign(edwards25519.NewBlakeSHA256Ed25519(), benchPubEd25519[:i], benchPriEd25519, b.N, benchMessage)
+			})
+		}
+
+		// Verification
+		for _, i := range keys {
+			results["verify"][fmt.Sprintf("%d", i)] = testing.Benchmark(func(b *testing.B) {
+				anon.BenchVerify(edwards25519.NewBlakeSHA256Ed25519(), benchPubEd25519[:i],
+					anon.BenchGenSig(edwards25519.NewBlakeSHA256Ed25519(), i, benchMessage, benchPubEd25519, benchPriEd25519),
+					b.N, benchMessage)
+			})
+		}
+	} else if sigType == "bls" {
+		// Key generation
+		for _, i := range keys {
+			results["keygen"][fmt.Sprintf("%d", i)] = testing.Benchmark(func(b *testing.B) {
+				_, scheme, _, _, _, _ := bls.PrepareBLS(i)
+				bls.BenchCreateKeys(b, scheme, i)
+			})
+		}
+
+		// Signing
+		for _, i := range keys {
+			results["sign"][fmt.Sprintf("%d", i)] = testing.Benchmark(func(b *testing.B) {
+				_, scheme, _, privates, _, _ := bls.PrepareBLS(i)
+				bls.BenchSign(b, scheme, benchMessage, privates)
+			})
+		}
+
+		// Verification
+		for _, i := range keys {
+			results["verify"][fmt.Sprintf("%d", i)] = testing.Benchmark(func(b *testing.B) {
+				suite, scheme, publics, _, msgs, sigs := bls.PrepareBLS(i)
+				bls.BenchVerify(b, sigs, scheme, suite, publics, msgs)
+			})
+		}
 	}
 
 	result := map[string]interface{}{
-		"name":        "anon",
+		"name":        sigType,
 		"description": "",
 		"benchmarks":  results,
 	}
@@ -154,10 +191,10 @@ func main() {
 
 	// Run benchmarks for signatures
 	results["sign"] = make(map[string]map[string]interface{})
-
-	// anon signature
-	anonResults := BenchmarkAnonSign()
-	results["sign"]["anon"] = anonResults
+	for _, sigType := range signatures {
+		result := BenchmarkSign(sigType)
+		results["sign"][sigType] = result
+	}
 
 	if err := encoder.Encode(results); err != nil {
 		fmt.Println("Error encoding JSON:", err)
