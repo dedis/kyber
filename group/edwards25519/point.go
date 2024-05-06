@@ -504,20 +504,20 @@ func mapToCurveElligator2Ed25519(u fieldElement) kyber.Point {
 
 	xMn, xMd, yMn, yMd := curve25519Elligator2(u)
 
-	feMul(&xn, &xMn, &yMd)
-	feMul(&xn, &xn, &c)
-	feMul(&xd, &xMd, &yMn)
-	feSub(&yn, &xMn, &xMd)
-	feAdd(&yd, &xMn, &xMd)
-	feMul(&tv1, &xd, &yd)
+	feMul(&xn, &xMn, &yMd) // xn = xMn * yMd
+	feMul(&xn, &xn, &c)    // xn = xn * c
+	feMul(&xd, &xMd, &yMn) // xd = xMd * yMn
+	feSub(&yn, &xMn, &xMd) // yn = xMn - xMd
+	feAdd(&yd, &xMn, &xMd) // yd = xMn + xMd
+	feMul(&tv1, &xd, &yd)  // tv1 = xd * yd
 	if tv1 == zero {
 		e = 1
 	}
 
-	feCMove(&xn, &zero, e)
-	feCMove(&xd, &one, e)
-	feCMove(&yn, &one, e)
-	feCMove(&yd, &one, e)
+	feCMove(&xn, &zero, e) // xn = 0 if e == 1 else xn
+	feCMove(&xd, &one, e)  // xd = 1 if e == 1 else xd
+	feCMove(&yn, &one, e)  // yn = 1 if e == 1 else yn
+	feCMove(&yd, &one, e)  // yd = 1 if e == 1 else yd
 
 	p := completedGroupElement{
 		X: xn,
