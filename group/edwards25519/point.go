@@ -432,21 +432,20 @@ func curve25519Elligator2(u fieldElement) (xn, xd, yn, yd fieldElement) {
 	var y, y1, y2, y11, y12, y21, y22, x2n fieldElement
 	var e1, e2, e3, e4 int32
 
-	feSquare2(&tv1, &u)
-
-	feAdd(&xd, &one, &tv1)
-	feNeg(&x1n, &j)
-	feSquare(&tv2, &xd)
-	feMul(&gxd, &tv2, &xd)
-	feMul(&gx1, &j, &tv1)
-	feMul(&gx1, &gx1, &x1n)
-	feAdd(&gx1, &gx1, &tv2)
-	feMul(&gx1, &gx1, &x1n)
-	feSquare(&tv3, &gxd)
-	feSquare(&tv2, &tv3)
-	feMul(&tv3, &tv3, &gxd)
-	feMul(&tv3, &tv3, &gx1)
-	feMul(&tv2, &tv2, &tv3)
+	feSquare2(&tv1, &u)     // tv1 = 2 * u^2
+	feAdd(&xd, &one, &tv1)  // xd = 1 + tv1
+	feNeg(&x1n, &j)         // x1n = -J
+	feSquare(&tv2, &xd)     // tv2 = xd^2
+	feMul(&gxd, &tv2, &xd)  // gxd = tv2 * xd
+	feMul(&gx1, &j, &tv1)   // gx1 = J * tv1
+	feMul(&gx1, &gx1, &x1n) // gx1 = gx1 * x1n
+	feAdd(&gx1, &gx1, &tv2) // gx1 = gx1 + tv2
+	feMul(&gx1, &gx1, &x1n) // gx1 = gx1 * x1n
+	feSquare(&tv3, &gxd)    // tv3 = gxd^2
+	feSquare(&tv2, &tv3)    // tv2 = tv3^2
+	feMul(&tv3, &tv3, &gxd) // tv3 = tv3 * gxd
+	feMul(&tv3, &tv3, &gx1) // tv3 = tv3 * gx1
+	feMul(&tv2, &tv2, &tv3) // tv2 = tv2 * tv3
 
 	// compute y11 = tv2 ^ c4
 	tv2Big := big.NewInt(0)
@@ -454,43 +453,51 @@ func curve25519Elligator2(u fieldElement) (xn, xd, yn, yd fieldElement) {
 	y11Big := big.NewInt(0).Exp(tv2Big, c4, prime)
 	feFromBn(&y11, y11Big)
 
-	feMul(&y11, &y11, &tv3)
-	feMul(&y12, &y11, &c3)
-	feSquare(&tv2, &y11)
-	feMul(&tv2, &tv2, &gxd)
+	feMul(&y11, &y11, &tv3) // y11 = y11 * tv3
+	feMul(&y12, &y11, &c3)  // y12 = y11 * c3
+	feSquare(&tv2, &y11)    // tv2 = y11^2
+	feMul(&tv2, &tv2, &gxd) // tv2 = tv2 * gxd
+
+	//y1 = y11 if e1 == 1 else y12
 	if tv2 == gx1 {
 		e1 = 1
 	}
-
 	feCopy(&y1, &y12)
 	feCMove(&y1, &y11, e1)
-	feMul(&x2n, &x1n, &tv1)
-	feMul(&y21, &y11, &u)
-	feMul(&y21, &y21, &c2)
-	feMul(&y22, &y21, &c3)
-	feMul(&gx2, &gx1, &tv1)
-	feSquare(&tv2, &y21)
-	feMul(&tv2, &tv2, &gxd)
+
+	feMul(&x2n, &x1n, &tv1) // x2n = x1n * tv1
+	feMul(&y21, &y11, &u)   // y21 = y11 * u
+	feMul(&y21, &y21, &c2)  // y21 = y21 * c2
+	feMul(&y22, &y21, &c3)  // y22 = y21 * c3
+	feMul(&gx2, &gx1, &tv1) // gx2 = gx1 * tv1
+	feSquare(&tv2, &y21)    // tv2 = y21^2
+	feMul(&tv2, &tv2, &gxd) // tv2 = tv2 * gxd
+
+	// y2 = y21 if e == 1 else y22
 	if tv2 == gx2 {
 		e2 = 1
 	}
-
 	feCopy(&y2, &y22)
 	feCMove(&y2, &y21, e2)
-	feSquare(&tv2, &y1)
-	feMul(&tv2, &tv2, &gxd)
+
+	feSquare(&tv2, &y1)     // tv2 = y1^2
+	feMul(&tv2, &tv2, &gxd) // tv2 = tv2 * gxd
+
+	// xn = x1n if e3 == 1 else x2n
 	if tv2 == gx1 {
 		e3 = 1
 	}
-
 	feCopy(&xn, &x2n)
 	feCMove(&xn, &x1n, e3)
+
+	// y = y1 if e4 == 1 else y2
 	feCopy(&y, &y2)
 	feCMove(&y, &y1, e3)
 	e4 = int32(feIsNegative(&y))
+
 	var yNeg fieldElement
-	feNeg(&yNeg, &y)
-	feCMove(&y, &yNeg, e3^e4)
+	feNeg(&yNeg, &y)          // yNeg = -y
+	feCMove(&y, &yNeg, e3^e4) // y = yNeg if e3 XOR e4 == 1 else y
 
 	return xn, xd, y, one
 }
