@@ -410,7 +410,7 @@ func byteXor(dst, b1, b2 []byte) ([]byte, error) {
 
 // curve25519Elligator2 implements a map from fieldElement to a point on Curve25519
 // as defined in section G.2.1. of [RFC9380]
-// [RFC9380]: https://datatracker.ietf.org/doc/html/rfc9380#name-curve25519-q-5-mod-8-k-1
+// [RFC9380]: https://datatracker.ietf.org/doc/html/rfc9380#ell2-opt
 func curve25519Elligator2(u fieldElement) (xn, xd, yn, yd fieldElement) {
 	// Some const needed
 	var one fieldElement
@@ -504,7 +504,7 @@ func curve25519Elligator2(u fieldElement) (xn, xd, yn, yd fieldElement) {
 
 // mapToCurveElligator2Ed25519 implements a map from fieldElement to a point on ed25519
 // as defined in section G.2.2. of [RFC9380]
-// [RFC9380]: https://datatracker.ietf.org/doc/html/rfc9380#name-edwards25519
+// [RFC9380]: https://datatracker.ietf.org/doc/html/rfc9380#ell2-opt
 func mapToCurveElligator2Ed25519(u fieldElement) kyber.Point {
 	var xn, xd, yn, yd fieldElement
 	var zero, one, tv1 fieldElement
