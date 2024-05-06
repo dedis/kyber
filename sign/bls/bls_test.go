@@ -173,7 +173,6 @@ func TestBLSFailBatchVerify(t *testing.T) {
 func BenchmarkBLSKeyCreation(b *testing.B) {
 	suite := bn256.NewSuite()
 	scheme := NewSchemeOnG1(suite)
-	b.ResetTimer()
 	BenchCreateKeys(b, scheme, 1)
 }
 
@@ -182,7 +181,6 @@ func BenchmarkBLSSign(b *testing.B) {
 	scheme := NewSchemeOnG1(suite)
 	private, _ := scheme.NewKeyPair(random.New())
 	msg := []byte("Hello many times Boneh-Lynn-Shacham")
-	b.ResetTimer()
 	BenchSign(b, scheme, msg, []kyber.Scalar{private})
 }
 
@@ -223,7 +221,6 @@ func BenchmarkBLSVerifyAggregate(b *testing.B) {
 
 func BenchmarkBLSVerifyBatchVerify(b *testing.B) {
 	suite, scheme, publics, _, msgs, sigs := PrepareBLS(100)
-	b.ResetTimer()
 	BenchVerify(b, sigs, scheme, suite, publics, msgs)
 }
 

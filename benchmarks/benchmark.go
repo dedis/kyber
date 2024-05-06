@@ -28,7 +28,7 @@ var (
 
 // BenchmarkGroup runs benchmarks for the given group and writes the results to a JSON file.
 func BenchmarkGroup(name string, description string, gb *test.GroupBench) map[string]interface{} {
-	fmt.Printf("Running benchmarks for %s...\n", name)
+	fmt.Printf("Running benchmarks for group %s...\n", name)
 	results := make(map[string]map[string]testing.BenchmarkResult)
 
 	// Scalar operations
@@ -135,8 +135,8 @@ func BenchmarkSign(sigType string) map[string]interface{} {
 	} else if sigType == "bls" {
 		// Key generation
 		for _, i := range keys {
+			scheme := bls.NewSchemeOnG1(bn256.NewSuite())
 			results["keygen"][fmt.Sprintf("%d", i)] = testing.Benchmark(func(b *testing.B) {
-				_, scheme, _, _, _, _ := bls.PrepareBLS(i)
 				bls.BenchCreateKeys(b, scheme, i)
 			})
 		}

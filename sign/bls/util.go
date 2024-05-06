@@ -36,6 +36,7 @@ func PrepareBLS(numSigs int) (suite *bn256.Suite, scheme sign.AggregatableScheme
 }
 
 func BenchCreateKeys(b *testing.B, scheme sign.AggregatableScheme, n int) {
+	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		for j := 0; j < n; j++ {
 			scheme.NewKeyPair(random.New())
@@ -44,6 +45,7 @@ func BenchCreateKeys(b *testing.B, scheme sign.AggregatableScheme, n int) {
 }
 
 func BenchSign(b *testing.B, scheme sign.AggregatableScheme, msg []byte, privates []kyber.Scalar) {
+	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		for _, private := range privates {
 			scheme.Sign(private, msg)
@@ -52,6 +54,7 @@ func BenchSign(b *testing.B, scheme sign.AggregatableScheme, msg []byte, private
 }
 
 func BenchVerify(b *testing.B, sigs [][]byte, scheme sign.AggregatableScheme, suite *bn256.Suite, publics []kyber.Point, msgs [][]byte) {
+	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		aggregateSig, _ := scheme.AggregateSignatures(sigs...)
 		BatchVerify(suite, publics, msgs, aggregateSig)
