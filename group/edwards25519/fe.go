@@ -248,6 +248,9 @@ func feToBytes(s *[32]byte, h *fieldElement) {
 	s[31] = byte(h[9] >> 18)
 }
 
+// feToBn converts a fieldElement to a big.Int
+// Limbs are individually stored in big endian but the array is in little endian, e.g:
+// fe[0] corresponds to the smallest exponent, the array needs to be reversed for proper conversion to big.Int.
 func feToBn(dst *big.Int, src *fieldElement) {
 	var b [32]byte
 	feToBytes(&b, src)
@@ -261,6 +264,9 @@ func feToBn(dst *big.Int, src *fieldElement) {
 	dst.SetBytes(b[:])
 }
 
+// feFromBn converts a big.Int to a fieldElement
+// Limbs are individually stored in big endian but the array is in little endian, e.g:
+// fe[0] corresponds to the smallest exponent, big.Int bytes need to be reversed for proper conversion.
 func feFromBn(dst *fieldElement, src *big.Int) {
 	b := make([]byte, 32)
 	src.FillBytes(b)
