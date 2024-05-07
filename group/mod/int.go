@@ -418,3 +418,7 @@ func reverse(dst, src []byte) []byte {
 	}
 	return dst
 }
+
+func (i *Int) ByteOrder() kyber.ByteOrder {
+	return i.BO
+}
