@@ -60,7 +60,7 @@ func (s *scalar) SetInt64(v int64) kyber.Scalar {
 }
 
 func (s *scalar) toInt() *mod.Int {
-	return mod.NewIntBytes(s.v[:], primeOrder, mod.LittleEndian)
+	return mod.NewIntBytes(s.v[:], primeOrder, kyber.LittleEndian)
 }
 
 // Set to the additive identity (0)
@@ -140,7 +140,11 @@ func (s *scalar) Pick(rand cipher.Stream) kyber.Scalar {
 
 // SetBytes s to b, interpreted as a little endian integer.
 func (s *scalar) SetBytes(b []byte) kyber.Scalar {
-	return s.setInt(mod.NewIntBytes(b, primeOrder, mod.LittleEndian))
+	return s.setInt(mod.NewIntBytes(b, primeOrder, kyber.LittleEndian))
+}
+
+func (s *scalar) ByteOrder() kyber.ByteOrder {
+	return kyber.LittleEndian
 }
 
 // String returns the string representation of this scalar (fixed length of 32 bytes, little endian).
