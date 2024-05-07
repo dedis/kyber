@@ -4,6 +4,16 @@ import (
 	"crypto/cipher"
 )
 
+// ByteOrder denotes the endianness of the operation.
+type ByteOrder bool
+
+const (
+	// LittleEndian endianness
+	LittleEndian ByteOrder = true
+	// BigEndian endianness
+	BigEndian ByteOrder = false
+)
+
 // Scalar represents a scalar value by which
 // a Point (group element) may be encrypted to produce another Point.
 // This is an exponent in DSA-style groups,
@@ -56,6 +66,9 @@ type Scalar interface {
 	// The endianess of the byte-slice is determined by the
 	// implementation.
 	SetBytes([]byte) Scalar
+
+	// ByteOrder returns whether the byte order representation
+	ByteOrder() ByteOrder
 }
 
 // Point represents an element of a public-key cryptographic Group.
