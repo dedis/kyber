@@ -3,6 +3,7 @@ package circl
 import (
 	"crypto/cipher"
 	"io"
+	"math/big"
 
 	bls12381 "github.com/cloudflare/circl/ecc/bls12381"
 	"go.dedis.ch/kyber/v3"
@@ -118,4 +119,8 @@ func (s *Scalar) SetBytes(data []byte) kyber.Scalar { s.inner.SetBytes(data); re
 
 func (s *Scalar) ByteOrder() kyber.ByteOrder {
 	return kyber.LittleEndian
+}
+
+func (s *Scalar) Order() *big.Int {
+	return big.NewInt(0).SetBytes(bls12381.Order())
 }

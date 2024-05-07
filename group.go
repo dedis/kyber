@@ -2,6 +2,7 @@ package kyber
 
 import (
 	"crypto/cipher"
+	"math/big"
 )
 
 // ByteOrder denotes the endianness of the operation.
@@ -69,6 +70,9 @@ type Scalar interface {
 
 	// ByteOrder returns the byte order representation type
 	ByteOrder() ByteOrder
+
+	// Order returns the order of the scalar
+	Order() *big.Int
 }
 
 // Point represents an element of a public-key cryptographic Group.

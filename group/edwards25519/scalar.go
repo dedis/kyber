@@ -147,6 +147,10 @@ func (s *scalar) ByteOrder() kyber.ByteOrder {
 	return kyber.LittleEndian
 }
 
+func (s *scalar) Order() *big.Int {
+	return primeOrder
+}
+
 // String returns the string representation of this scalar (fixed length of 32 bytes, little endian).
 func (s *scalar) String() string {
 	b, _ := s.toInt().MarshalBinary()

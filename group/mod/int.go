@@ -296,6 +296,10 @@ func (i *Int) ByteOrder() kyber.ByteOrder {
 	return i.BO
 }
 
+func (i *Int) Order() *big.Int {
+	return i.M
+}
+
 // MarshalSize returns the length in bytes of encoded integers with modulus M.
 // The length of encoded Ints depends only on the size of the modulus,
 // and not on the the value of the encoded integer,
