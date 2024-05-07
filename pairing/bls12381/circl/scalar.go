@@ -115,6 +115,7 @@ func (s *Scalar) Pick(stream cipher.Stream) kyber.Scalar {
 }
 
 func (s *Scalar) SetBytes(data []byte) kyber.Scalar { s.inner.SetBytes(data); return s }
+
 func (s *Scalar) ByteOrder() kyber.ByteOrder {
 	return kyber.LittleEndian
 }

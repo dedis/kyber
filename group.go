@@ -67,7 +67,7 @@ type Scalar interface {
 	// implementation.
 	SetBytes([]byte) Scalar
 
-	// ByteOrder returns whether the byte order representation
+	// ByteOrder returns the byte order representation type
 	ByteOrder() ByteOrder
 }
 

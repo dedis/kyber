@@ -292,6 +292,10 @@ func (i *Int) Pick(rand cipher.Stream) kyber.Scalar {
 	return i
 }
 
+func (i *Int) ByteOrder() kyber.ByteOrder {
+	return i.BO
+}
+
 // MarshalSize returns the length in bytes of encoded integers with modulus M.
 // The length of encoded Ints depends only on the size of the modulus,
 // and not on the the value of the encoded integer,
@@ -417,8 +421,4 @@ func reverse(dst, src []byte) []byte {
 		j--
 	}
 	return dst
-}
-
-func (i *Int) ByteOrder() kyber.ByteOrder {
-	return i.BO
 }
