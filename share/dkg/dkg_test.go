@@ -578,7 +578,7 @@ func TestDKGResharing(t *testing.T) {
 
 func TestDKGThreshold(t *testing.T) {
 	n := uint32(5)
-	thr := uint32(5)
+	thr := uint32(4)
 	suite := edwards25519.NewBlakeSHA256Ed25519()
 	tns := GenerateTestNodes(suite, n)
 	list := NodesFromTest(tns)

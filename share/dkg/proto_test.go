@@ -316,7 +316,7 @@ func TestProtoResharing(t *testing.T) {
 func TestProtoThreshold(t *testing.T) {
 	n := uint32(5)
 	realN := uint32(4)
-	thr := uint32(5)
+	thr := uint32(4)
 	period := 1 * time.Second
 	suite := edwards25519.NewBlakeSHA256Ed25519()
 	tns := GenerateTestNodes(suite, n)
