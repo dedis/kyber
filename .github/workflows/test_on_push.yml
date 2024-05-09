@@ -8,12 +8,24 @@ jobs:
   test_and_coverage:
     strategy:
       matrix:
-        platform: [macos-latest, windows-latest, ubuntu-latest]
-    runs-on: ${{matrix.platform}}
+        platform: [macos-latest, windows-latest, ubuntu-latest, ubuntu-latest-x86]
+    runs-on: ${{ matrix.platform == 'ubuntu-latest-x86' && 'ubuntu-latest' || matrix.platform }}
     env:
       DBGSYNCLOG: trace
       DBGSYNCON: true
     steps:
+    - name: Setup Alpine Linux
+      if: matrix.platform == 'ubuntu-latest-x86'
+      uses: jirutka/setup-alpine@v1
+      with:
+        arch: x86
+        packages: >
+          golang 
+          make 
+          git 
+          gcc 
+          musl-dev
+
     - name: Set up Go ^1.13
       uses: actions/setup-go@v3
       with:
@@ -26,7 +38,7 @@ jobs:
         fetch-depth: 0
 
     - name: Test without coverage
-      if: matrix.platform == 'macos-latest' || matrix.platform == 'windows-latest'
+      if: matrix.platform == 'macos-latest' || matrix.platform == 'windows-latest' || matrix.platform == 'ubuntu-latest-x86'
       run: make test
 
     - name: Test with coverage
