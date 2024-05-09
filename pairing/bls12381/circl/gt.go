@@ -16,16 +16,20 @@ func init() {
 
 var _ kyber.Point = &GTElt{}
 
+// GTElt is a wrapper around the Circl Gt point type.
 type GTElt struct{ inner bls12381.Gt }
 
+// MarshalBinary returns a compressed point, without any domain separation tag information
 func (p *GTElt) MarshalBinary() (data []byte, err error) { return p.inner.MarshalBinary() }
 
+// UnmarshalBinary populates the point from a compressed point representation.
 func (p *GTElt) UnmarshalBinary(data []byte) error { return p.inner.UnmarshalBinary(data) }
 
 func (p *GTElt) String() string { return p.inner.String() }
 
 func (p *GTElt) MarshalSize() int { return bls12381.GtSize }
 
+// MarshalTo writes a compressed point to the Writer, without any domain separation tag information
 func (p *GTElt) MarshalTo(w io.Writer) (int, error) {
 	buf, err := p.MarshalBinary()
 	if err != nil {
@@ -34,6 +38,7 @@ func (p *GTElt) MarshalTo(w io.Writer) (int, error) {
 	return w.Write(buf)
 }
 
+// UnmarshalFrom populates the point from a compressed point representation read from the Reader.
 func (p *GTElt) UnmarshalFrom(r io.Reader) (int, error) {
 	buf := make([]byte, p.MarshalSize())
 	n, err := io.ReadFull(r, buf)

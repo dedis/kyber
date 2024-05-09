@@ -10,16 +10,20 @@ import (
 
 var _ kyber.SubGroupElement = &G2Elt{}
 
+// G2Elt is a wrapper around the Circl G2 point type.
 type G2Elt struct{ inner bls12381.G2 }
 
+// MarshalBinary returns a compressed point, without any domain separation tag information
 func (p *G2Elt) MarshalBinary() (data []byte, err error) { return p.inner.BytesCompressed(), nil }
 
+// UnmarshalBinary populates the point from a compressed point representation.
 func (p *G2Elt) UnmarshalBinary(data []byte) error { return p.inner.SetBytes(data) }
 
 func (p *G2Elt) String() string { return p.inner.String() }
 
 func (p *G2Elt) MarshalSize() int { return bls12381.G2SizeCompressed }
 
+// MarshalTo writes a compressed point to the Writer, without any domain separation tag information
 func (p *G2Elt) MarshalTo(w io.Writer) (int, error) {
 	buf, err := p.MarshalBinary()
 	if err != nil {
@@ -28,6 +32,7 @@ func (p *G2Elt) MarshalTo(w io.Writer) (int, error) {
 	return w.Write(buf)
 }
 
+// UnmarshalFrom populates the point from a compressed point representation read from the Reader.
 func (p *G2Elt) UnmarshalFrom(r io.Reader) (int, error) {
 	buf := make([]byte, p.MarshalSize())
 	n, err := io.ReadFull(r, buf)

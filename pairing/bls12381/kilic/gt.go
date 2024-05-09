@@ -10,6 +10,7 @@ import (
 	"go.dedis.ch/kyber/v3/group/mod"
 )
 
+// GTElt contains a Gt element from the Kilic BLS12-381 curve
 type GTElt struct {
 	f *bls12381.E
 }
@@ -78,10 +79,12 @@ func (k *GTElt) Mul(s kyber.Scalar, q kyber.Point) kyber.Point {
 	return k
 }
 
+// MarshalBinary returns a compressed point, without any domain separation tag information
 func (k *GTElt) MarshalBinary() ([]byte, error) {
 	return bls12381.NewGT().ToBytes(k.f), nil
 }
 
+// MarshalTo writes a compressed point to the Writer, without any domain separation tag information
 func (k *GTElt) MarshalTo(w io.Writer) (int, error) {
 	buf, err := k.MarshalBinary()
 	if err != nil {
@@ -90,12 +93,14 @@ func (k *GTElt) MarshalTo(w io.Writer) (int, error) {
 	return w.Write(buf)
 }
 
+// UnmarshalBinary populates the point from a compressed point representation.
 func (k *GTElt) UnmarshalBinary(buf []byte) error {
 	fe12, err := bls12381.NewGT().FromBytes(buf)
 	k.f = fe12
 	return err
 }
 
+// UnmarshalFrom populates the point from a compressed point representation read from the Reader.
 func (k *GTElt) UnmarshalFrom(r io.Reader) (int, error) {
 	buf := make([]byte, k.MarshalSize())
 	n, err := io.ReadFull(r, buf)

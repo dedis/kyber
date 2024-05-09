@@ -23,6 +23,7 @@ func (s Suite) String() string  { return "bls12381" }
 func (s Suite) G1() kyber.Group { return G1 }
 func (s Suite) G2() kyber.Group { return G2 }
 func (s Suite) GT() kyber.Group { return GT }
+
 func (s Suite) Pair(p1, p2 kyber.Point) kyber.Point {
 	aa, bb := p1.(*G1Elt), p2.(*G2Elt)
 	return &GTElt{*bls12381.Pair(&aa.inner, &bb.inner)}

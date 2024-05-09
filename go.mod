@@ -12,6 +12,7 @@ require (
 	go.dedis.ch/protobuf v1.0.11
 	golang.org/x/crypto v0.21.0
 	golang.org/x/sys v0.18.0
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
@@ -22,6 +23,5 @@ require (
 	github.com/mmcloughlin/addchain v0.4.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rogpeppe/go-internal v1.9.0 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 	rsc.io/tmplfunc v0.0.3 // indirect
 )

@@ -2,16 +2,118 @@ package bls12381
 
 import (
 	"crypto/rand"
+	"encoding/hex"
 	"fmt"
+	"os"
+	"path/filepath"
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	"go.dedis.ch/kyber/v3"
 	"go.dedis.ch/kyber/v3/pairing"
 	circl "go.dedis.ch/kyber/v3/pairing/bls12381/circl"
 	kilic "go.dedis.ch/kyber/v3/pairing/bls12381/kilic"
 	"go.dedis.ch/kyber/v3/sign/bls"
 	"go.dedis.ch/kyber/v3/util/random"
+	"gopkg.in/yaml.v3"
 )
+
+var (
+	deserializationG1Tests, _ = filepath.Abs("pairing/bls12381/deserialization_tests/G1/*")
+	deserializationG2Tests, _ = filepath.Abs("pairing/bls12381/deserialization_tests/G2/*")
+)
+
+func TestZKCryptoVectorsG1Compressed(t *testing.T) {
+	type Test struct {
+		Input struct {
+			PubKeyHexStr string `yaml:"pubkey"`
+		}
+		IsValidPredicate *bool `yaml:"output"`
+	}
+	tests, err := filepath.Glob(deserializationG1Tests)
+	require.NoError(t, err)
+	for _, testPath := range tests {
+		t.Run(testPath, func(t *testing.T) {
+			testFile, err := os.Open(testPath)
+			require.NoError(t, err)
+			test := Test{}
+			err = yaml.NewDecoder(testFile).Decode(&test)
+			require.NoError(t, testFile.Close())
+			require.NoError(t, err)
+			testCaseValid := test.IsValidPredicate != nil
+			byts, err := hex.DecodeString(test.Input.PubKeyHexStr)
+			if err != nil && testCaseValid {
+				panic(err)
+			}
+
+			// Test kilic
+			g := kilic.NullG1()
+			err = g.UnmarshalBinary(byts)
+			if err == nil && !testCaseValid {
+				panic("err should not be nil")
+			}
+			if err != nil && testCaseValid {
+				panic("err should be nil")
+			}
+
+			// Test circl
+			g2 := circl.G1Elt{}
+			err = g2.UnmarshalBinary(byts)
+			if err == nil && !testCaseValid {
+				panic("err should not be nil")
+			}
+			if err != nil && testCaseValid {
+				panic("err should be nil")
+			}
+		})
+	}
+}
+
+func TestZKCryptoVectorsG2Compressed(t *testing.T) {
+	type Test struct {
+		Input struct {
+			SignatureHexStr string `yaml:"signature"`
+		}
+		IsValidPredicate *bool `yaml:"output"`
+	}
+	tests, err := filepath.Glob(deserializationG2Tests)
+	require.NoError(t, err)
+	for _, testPath := range tests {
+		t.Run(testPath, func(t *testing.T) {
+			testFile, err := os.Open(testPath)
+			require.NoError(t, err)
+			test := Test{}
+			err = yaml.NewDecoder(testFile).Decode(&test)
+			require.NoError(t, testFile.Close())
+			require.NoError(t, err)
+			testCaseValid := test.IsValidPredicate != nil
+			byts, err := hex.DecodeString(test.Input.SignatureHexStr)
+			if err != nil && testCaseValid {
+				panic(err)
+			}
+
+			// Test kilic
+			g := kilic.NullG2()
+			err = g.UnmarshalBinary(byts)
+			if err == nil && !testCaseValid {
+				panic("err should not be nil")
+			}
+			if err != nil && testCaseValid {
+				panic("err should be nil")
+			}
+
+			// Test circl
+			g2 := circl.G2Elt{}
+			err = g2.UnmarshalBinary(byts)
+			if err == nil && !testCaseValid {
+				panic("err should not be nil")
+			}
+			if err != nil && testCaseValid {
+				panic("err should be nil")
+			}
+		})
+	}
+}
 
 var (
 	dataSize     = 32
