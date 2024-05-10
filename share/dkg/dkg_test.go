@@ -292,9 +292,9 @@ func TestDKGSkipIndex(t *testing.T) {
 	newT := thr + nodesToAdd - 1 // set the threshold to accept one offline new node
 	var newTns = make([]*TestNode, 0, newN)
 	// remove a random node from the previous group
-	offlineToRemove := uint32(rand.Int31n(int32(n)))
-	for _, node := range tns {
-		if node.Index == offlineToRemove {
+	offlineToRemove := rand.Intn(int(n))
+	for i, node := range tns {
+		if i == offlineToRemove {
 			continue
 		}
 		newTns = append(newTns, node)

@@ -28,24 +28,50 @@ func (m *cosiSuite) RandomStream() cipher.Stream { return m.r }
 var testSuite = &cosiSuite{edwards25519.NewBlakeSHA256Ed25519(), blake2xb.New(nil)}
 
 func TestCoSi(t *testing.T) {
-	testCoSi(t, 2, 0)
-	testCoSi(t, 5, 0)
-	testCoSi(t, 5, 2)
-	testCoSi(t, 5, 4)
-}
-
-func testCoSi(t *testing.T, n, f int) {
 	message := []byte("Hello World Cosi")
 
 	// Generate key pairs
 	var kps []*key.Pair
+	for i := 0; i < 5; i++ {
+		kp := key.NewKeyPair(testSuite)
+		kps = append(kps, kp)
+	}
+
+	testCoSi(t, 2, 0, message, kps)
+	testCoSi(t, 5, 0, message, kps)
+	testCoSi(t, 5, 2, message, kps)
+	testCoSi(t, 5, 4, message, kps)
+}
+
+func FuzzCoSi(f *testing.F) {
+	// Generate key pairs
+	var kps []*key.Pair
+	for i := 0; i < 100; i++ {
+		kp := key.NewKeyPair(testSuite)
+		kps = append(kps, kp)
+	}
+
+	f.Fuzz(func(t *testing.T, n, f int, msg []byte) {
+		if (len(msg) < 1) || (len(msg) > 1000) {
+			t.Skip("msg must have byte length between 1 and 1000")
+		}
+		if n < 1 || n > 100 {
+			t.Skip("n must be between 1 and 100")
+		}
+		if f < 0 || f >= n {
+			t.Skip("f must be between 0 and n-1")
+		}
+
+		testCoSi(t, n, f, msg, kps)
+	})
+}
+
+func testCoSi(t *testing.T, n, f int, message []byte, kps []*key.Pair) {
 	var privates []kyber.Scalar
 	var publics []kyber.Point
 	for i := 0; i < n; i++ {
-		kp := key.NewKeyPair(testSuite)
-		kps = append(kps, kp)
-		privates = append(privates, kp.Private)
-		publics = append(publics, kp.Public)
+		privates = append(privates, kps[i].Private)
+		publics = append(publics, kps[i].Public)
 	}
 
 	// Init masks
