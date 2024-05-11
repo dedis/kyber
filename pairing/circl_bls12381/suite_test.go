@@ -3,6 +3,7 @@ package circl_bls12381_test
 import (
 	"bytes"
 	"crypto/cipher"
+	test2 "go.dedis.ch/kyber/v3/internal/test"
 	"sync"
 	"testing"
 
@@ -11,7 +12,6 @@ import (
 	this "go.dedis.ch/kyber/v3/pairing/circl_bls12381"
 	"go.dedis.ch/kyber/v3/sign/bls"
 	"go.dedis.ch/kyber/v3/sign/tbls"
-	"go.dedis.ch/kyber/v3/sign/test"
 	"go.dedis.ch/kyber/v3/util/random"
 )
 
@@ -350,25 +350,25 @@ func BenchmarkPairingInv(bb *testing.B) {
 func TestKyberBLSG2(t *testing.T) {
 	suite := this.Suite{}
 	scheme := bls.NewSchemeOnG2(suite)
-	test.SchemeTesting(t, scheme)
+	test2.SchemeTesting(t, scheme)
 }
 
 func TestKyberBLSG1(t *testing.T) {
 	suite := this.Suite{}
 	scheme := bls.NewSchemeOnG1(suite)
-	test.SchemeTesting(t, scheme)
+	test2.SchemeTesting(t, scheme)
 }
 
 func TestKyberThresholdG2(t *testing.T) {
 	suite := this.Suite{}
 	tscheme := tbls.NewThresholdSchemeOnG2(suite)
-	test.ThresholdTest(t, suite.G1(), tscheme)
+	test2.ThresholdTest(t, suite.G1(), tscheme)
 }
 
 func TestKyberThresholdG1(t *testing.T) {
 	suite := this.Suite{}
 	tscheme := tbls.NewThresholdSchemeOnG1(suite)
-	test.ThresholdTest(t, suite.G2(), tscheme)
+	test2.ThresholdTest(t, suite.G2(), tscheme)
 }
 
 func TestIsValidGroup(t *testing.T) {

@@ -1,10 +1,10 @@
 package tbls
 
 import (
+	"go.dedis.ch/kyber/v3/internal/test"
 	"testing"
 
 	"go.dedis.ch/kyber/v3/pairing/bn256"
-	"go.dedis.ch/kyber/v3/sign/test"
 )
 
 func TestBN256(t *testing.T) {
