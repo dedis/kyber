@@ -296,8 +296,8 @@ func (i *Int) ByteOrder() kyber.ByteOrder {
 	return i.BO
 }
 
-func (i *Int) Order() *big.Int {
-	return i.M
+func (i *Int) GroupOrder() *big.Int {
+	return big.NewInt(0).SetBytes(i.M.Bytes())
 }
 
 // MarshalSize returns the length in bytes of encoded integers with modulus M.

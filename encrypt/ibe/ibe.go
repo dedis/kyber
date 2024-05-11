@@ -242,7 +242,7 @@ func h3(s pairing.Suite, sigma, msg []byte) (kyber.Scalar, error) {
 
 	hashable := s.G1().Scalar()
 	canonicalBitLen := hashable.MarshalSize() * 8
-	actualBitLen := hashable.Order().BitLen()
+	actualBitLen := hashable.GroupOrder().BitLen()
 	toMask := canonicalBitLen - actualBitLen
 
 	for i := uint16(1); i < 65535; i++ {

@@ -121,6 +121,6 @@ func (s *Scalar) ByteOrder() kyber.ByteOrder {
 	return kyber.LittleEndian
 }
 
-func (s *Scalar) Order() *big.Int {
+func (s *Scalar) GroupOrder() *big.Int {
 	return big.NewInt(0).SetBytes(bls12381.Order())
 }

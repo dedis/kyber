@@ -71,8 +71,8 @@ type Scalar interface {
 	// ByteOrder returns the byte order representation type
 	ByteOrder() ByteOrder
 
-	// Order returns the order of the scalar
-	Order() *big.Int
+	// GroupOrder returns the order of the group the scalar belongs to
+	GroupOrder() *big.Int
 }
 
 // Point represents an element of a public-key cryptographic Group.

@@ -147,8 +147,8 @@ func (s *scalar) ByteOrder() kyber.ByteOrder {
 	return kyber.LittleEndian
 }
 
-func (s *scalar) Order() *big.Int {
-	return primeOrder
+func (s *scalar) GroupOrder() *big.Int {
+	return big.NewInt(0).SetBytes(primeOrder.Bytes())
 }
 
 // String returns the string representation of this scalar (fixed length of 32 bytes, little endian).
