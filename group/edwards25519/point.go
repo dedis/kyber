@@ -18,6 +18,8 @@ import (
 	"crypto/cipher"
 	"crypto/sha512"
 	"encoding/hex"
+	"errors"
+	"fmt"
 	"hash"
 	"io"
 	"math"
@@ -25,7 +27,6 @@ import (
 
 	"go.dedis.ch/kyber/v4"
 	"go.dedis.ch/kyber/v4/group/internal/marshalling"
-	"golang.org/x/xerrors"
 )
 
 var marshalPointID = [8]byte{'e', 'd', '.', 'p', 'o', 'i', 'n', 't'}
@@ -58,7 +59,7 @@ func (P *point) MarshalID() [8]byte {
 
 func (P *point) UnmarshalBinary(b []byte) error {
 	if !P.ge.FromBytes(b) {
-		return xerrors.New("invalid Ed25519 curve point")
+		return errors.New("invalid Ed25519 curve point")
 	}
 	return nil
 }
@@ -176,7 +177,7 @@ func (P *point) Data() ([]byte, error) {
 	P.ge.ToBytes(&b)
 	dl := int(b[0]) // extract length byte
 	if dl > P.EmbedLen() {
-		return nil, xerrors.New("invalid embedded data length")
+		return nil, errors.New("invalid embedded data length")
 	}
 	return b[1 : 1+dl], nil
 }
@@ -329,7 +330,7 @@ func expandMessageXMD(h hash.Hash, m []byte, domainSeparator string, byteLen int
 	r := float64(byteLen) / float64(h.Size()>>3)
 	ell := int(math.Ceil(r))
 	if ell > 255 || ell < 0 || byteLen > 65535 || len(domainSeparator) > 255 {
-		return nil, xerrors.New("invalid parameters")
+		return nil, errors.New("invalid parameters")
 	}
 
 	padDom, err := i2OSP(len(domainSeparator), 1)
@@ -389,7 +390,7 @@ func i2OSP(x int, xLen int) ([]byte, error) {
 	b := big.NewInt(int64(x))
 	s := b.Bytes()
 	if len(s) > xLen {
-		return nil, xerrors.Errorf("input %d superior to max length %d", len(s), xLen)
+		return nil, fmt.Errorf("input %d superior to max length %d", len(s), xLen)
 	}
 
 	pad := make([]byte, (xLen - len(s)))
@@ -398,7 +399,7 @@ func i2OSP(x int, xLen int) ([]byte, error) {
 
 func byteXor(dst, b1, b2 []byte) ([]byte, error) {
 	if !(len(dst) == len(b1) && len(b2) == len(b1)) {
-		return nil, xerrors.New("incompatible lengths")
+		return nil, errors.New("incompatible lengths")
 	}
 
 	for i := 0; i < len(dst); i++ {
