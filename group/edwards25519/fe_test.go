@@ -25,7 +25,7 @@ func Test_feBnConversionRandom(t *testing.T) {
 	// Prepare 2 random numbers
 	var fe0 fieldElement
 	var fe1 fieldElement
-	l := len(fe0) * 4
+	l := 32
 	p0 := make([]byte, l)
 	p1 := make([]byte, l)
 

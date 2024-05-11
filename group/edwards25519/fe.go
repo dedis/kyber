@@ -268,8 +268,9 @@ func feToBn(dst *big.Int, src *fieldElement) {
 // Limbs are individually stored in big endian but the array is in little endian, e.g:
 // fe[0] corresponds to the smallest exponent, big.Int bytes need to be reversed for proper conversion.
 func feFromBn(dst *fieldElement, src *big.Int) {
+	bn := src.Mod(src, prime)
 	b := make([]byte, 32)
-	src.FillBytes(b)
+	bn.FillBytes(b)
 	half := len(b) / 2
 	l := len(b) - 1
 	for i := 0; i < half; i++ {
