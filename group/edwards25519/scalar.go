@@ -143,10 +143,12 @@ func (s *scalar) SetBytes(b []byte) kyber.Scalar {
 	return s.setInt(mod.NewIntBytes(b, primeOrder, kyber.LittleEndian))
 }
 
+// ByteOrder return the byte representation type (big or little endian)
 func (s *scalar) ByteOrder() kyber.ByteOrder {
 	return kyber.LittleEndian
 }
 
+// GroupOrder returns the order of the underlying group
 func (s *scalar) GroupOrder() *big.Int {
 	return big.NewInt(0).SetBytes(primeOrder.Bytes())
 }

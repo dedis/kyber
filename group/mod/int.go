@@ -292,10 +292,12 @@ func (i *Int) Pick(rand cipher.Stream) kyber.Scalar {
 	return i
 }
 
+// ByteOrder return the byte representation type (big or little endian)
 func (i *Int) ByteOrder() kyber.ByteOrder {
 	return i.BO
 }
 
+// GroupOrder returns the order of the underlying group
 func (i *Int) GroupOrder() *big.Int {
 	return big.NewInt(0).SetBytes(i.M.Bytes())
 }

@@ -68,10 +68,10 @@ type Scalar interface {
 	// implementation.
 	SetBytes([]byte) Scalar
 
-	// ByteOrder returns the byte order representation type
+	// ByteOrder return the byte representation type (big or little endian)
 	ByteOrder() ByteOrder
 
-	// GroupOrder returns the order of the group the scalar belongs to
+	// GroupOrder returns the order of the underlying group
 	GroupOrder() *big.Int
 }
 
