@@ -7,6 +7,7 @@ import (
 	"testing/quick"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.dedis.ch/kyber/v3/group/edwards25519"
 	"go.dedis.ch/kyber/v3/sign/eddsa"
 	"go.dedis.ch/kyber/v3/util/key"
@@ -124,4 +125,20 @@ func TestSchnorrMalleability(t *testing.T) {
 
 	err = Verify(suite, kp.Public, msg, s)
 	assert.Error(t, err, "schnorr signature malleable")
+}
+
+func FuzzSchnorr(f *testing.F) {
+	suite := edwards25519.NewBlakeSHA256Ed25519()
+	kp := key.NewKeyPair(suite)
+
+	f.Fuzz(func(t *testing.T, msg []byte) {
+		if (len(msg) < 1) || (len(msg) > 1000) {
+			t.Skip("msg must have byte length between 1 and 1000")
+		}
+		s, err := Sign(suite, kp.Private, msg)
+		require.NoError(t, err, "Couldn't sign msg: %s: %v", msg, err)
+
+		err = Verify(suite, kp.Public, msg, s)
+		require.NoError(t, err, "Couldn't verify signature: \n%+v\nfor msg:'%s'. Error:\n%v", s, msg, err)
+	})
 }

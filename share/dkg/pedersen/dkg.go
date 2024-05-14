@@ -85,7 +85,7 @@ type Config struct {
 	// crypto/rand's entropy.
 	Reader io.Reader
 
-	// When UserReaderOnly it set to true, only the user-specified entropy
+	// When UserReaderOnly is set to true, only the user-specified entropy
 	// source Reader will be used. This should only be used in tests, allowing
 	// reproducibility.
 	UserReaderOnly bool
