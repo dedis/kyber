@@ -15,6 +15,7 @@ import (
 	kilic "go.dedis.ch/kyber/v3/pairing/bls12381/kilic"
 	"go.dedis.ch/kyber/v3/sign/bls"
 	"go.dedis.ch/kyber/v3/util/random"
+	"go.dedis.ch/kyber/v3/xof/blake2xb"
 	"gopkg.in/yaml.v3"
 )
 
@@ -22,6 +23,38 @@ var (
 	deserializationG1Tests, _ = filepath.Abs("pairing/bls12381/deserialization_tests/G1/*")
 	deserializationG2Tests, _ = filepath.Abs("pairing/bls12381/deserialization_tests/G2/*")
 )
+
+func TestScalarEndianess(t *testing.T) {
+	suites := []pairing.Suite{
+		kilic.NewBLS12381Suite(),
+		circl.NewSuiteBLS12381(),
+	}
+
+	seed := "TestScalarEndianess"
+	rng := blake2xb.New([]byte(seed))
+
+	// byte 1 and 8
+	var one, eight byte
+	one |= 1
+	eight |= 8
+
+	for _, suite := range suites {
+		// Select a random element
+		s := suite.G1().Scalar().Pick(rng)
+		sInv := s.Clone().Inv(s)
+
+		// We expect the multiplicative neutral 1
+		neutral := s.Mul(s, sInv)
+		byteNeutral, err := neutral.MarshalBinary()
+		require.NoError(t, err)
+
+		if neutral.ByteOrder() == kyber.LittleEndian {
+			require.Equal(t, byteNeutral[0], eight)
+		} else {
+			require.Equal(t, byteNeutral[len(byteNeutral)-1], one)
+		}
+	}
+}
 
 func TestZKCryptoVectorsG1Compressed(t *testing.T) {
 	type Test struct {
