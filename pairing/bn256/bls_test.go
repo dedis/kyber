@@ -1,10 +1,10 @@
 package bn256
 
 import (
-	"go.dedis.ch/kyber/v3/internal/test"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"go.dedis.ch/kyber/v3/internal/test"
 	"go.dedis.ch/kyber/v3/sign/bls"
 	"go.dedis.ch/kyber/v3/util/random"
 )

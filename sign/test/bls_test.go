@@ -1,9 +1,9 @@
 package test
 
 import (
-	"go.dedis.ch/kyber/v3/internal/test"
 	"testing"
 
+	"go.dedis.ch/kyber/v3/internal/test"
 	bls "go.dedis.ch/kyber/v3/pairing/circl_bls12381"
 	sign "go.dedis.ch/kyber/v3/sign/bls"
 )

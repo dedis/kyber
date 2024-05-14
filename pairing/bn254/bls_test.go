@@ -1,9 +1,9 @@
 package bn254
 
 import (
-	"go.dedis.ch/kyber/v3/internal/test"
 	"testing"
 
+	"go.dedis.ch/kyber/v3/internal/test"
 	"go.dedis.ch/kyber/v3/sign/bls"
 )
 
