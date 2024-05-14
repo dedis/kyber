@@ -362,7 +362,7 @@ func (i *Int) UnmarshalFrom(r io.Reader) (int, error) {
 	return marshalling.ScalarUnmarshalFrom(i, r)
 }
 
-// kyber.BigEndian encodes the value of this Int into a big-endian byte-slice
+// BigEndian encodes the value of this Int into a big-endian byte-slice
 // at least min bytes but no more than max bytes long.
 // Panics if max != 0 and the Int cannot be represented in max bytes.
 func (i *Int) BigEndian(min, max int) []byte {
