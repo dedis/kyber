@@ -8,10 +8,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/internal/test"
 	this "go.dedis.ch/kyber/v3/pairing/circl_bls12381"
 	"go.dedis.ch/kyber/v3/sign/bls"
 	"go.dedis.ch/kyber/v3/sign/tbls"
-	"go.dedis.ch/kyber/v3/sign/test"
 	"go.dedis.ch/kyber/v3/util/random"
 )
 

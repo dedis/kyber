@@ -119,6 +119,7 @@ func TestBLSFailAggregatedKey(t *testing.T) {
 		t.Fatal("bls: verification succeeded unexpectedly")
 	}
 }
+
 func TestBLSBatchVerify(t *testing.T) {
 	msg1 := []byte("Hello Boneh-Lynn-Shacham")
 	msg2 := []byte("Hello Dedis & Boneh-Lynn-Shacham")
@@ -136,6 +137,7 @@ func TestBLSBatchVerify(t *testing.T) {
 	err = BatchVerify(suite, []kyber.Point{public1, public2}, [][]byte{msg1, msg2}, aggregatedSig)
 	require.Nil(t, err)
 }
+
 func TestBLSFailBatchVerify(t *testing.T) {
 	msg1 := []byte("Hello Boneh-Lynn-Shacham")
 	msg2 := []byte("Hello Dedis & Boneh-Lynn-Shacham")
@@ -168,7 +170,6 @@ func TestBLSFailBatchVerify(t *testing.T) {
 			t.Fatal("bls: verification succeeded unexpectedly")
 		}
 	})
-
 }
 
 func BenchmarkBLSKeyCreation(b *testing.B) {
@@ -187,7 +188,8 @@ func BenchmarkBLSSign(b *testing.B) {
 	msg := []byte("Hello many times Boneh-Lynn-Shacham")
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		scheme.Sign(private, msg)
+		_, err := scheme.Sign(private, msg)
+		require.Nil(b, err)
 	}
 }
 
@@ -204,7 +206,8 @@ func BenchmarkBLSAggregateSigs(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		scheme.AggregateSignatures(sig1, sig2)
+		_, err := scheme.AggregateSignatures(sig1, sig2)
+		require.Nil(b, err)
 	}
 }
 
@@ -222,14 +225,14 @@ func BenchmarkBLSVerifyAggregate(b *testing.B) {
 	key := scheme.AggregatePublicKeys(public1, public2)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		scheme.Verify(key, msg, sig)
+		err := scheme.Verify(key, msg, sig)
+		require.Nil(b, err)
 	}
 }
 
 func BenchmarkBLSVerifyBatchVerify(b *testing.B) {
 	suite := bn256.NewSuite()
 	scheme := NewSchemeOnG1(suite)
-
 	numSigs := 100
 	privates := make([]kyber.Scalar, numSigs)
 	publics := make([]kyber.Point, numSigs)
@@ -240,7 +243,8 @@ func BenchmarkBLSVerifyBatchVerify(b *testing.B) {
 		privates[i] = private
 		publics[i] = public
 		msg := make([]byte, 64, 64)
-		rand.Read(msg)
+		_, err := rand.Read(msg)
+		require.Nil(b, err)
 		msgs[i] = msg
 		sig, err := scheme.Sign(private, msg)
 		require.Nil(b, err)
@@ -250,7 +254,8 @@ func BenchmarkBLSVerifyBatchVerify(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		aggregateSig, _ := scheme.AggregateSignatures(sigs...)
-		BatchVerify(suite, publics, msgs, aggregateSig)
+		err := BatchVerify(suite, publics, msgs, aggregateSig)
+		require.Nil(b, err)
 	}
 }
 
