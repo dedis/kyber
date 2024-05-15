@@ -10,6 +10,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/crypto/sha3"
 )
 
 var (
@@ -211,6 +212,78 @@ func TestExpandMessageXMDSHA512(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Equal(t, expectedHex128byte[i], resHex)
+	}
+}
+
+func TestExpandMessageXOFSHAKE128ShortDST(t *testing.T) {
+	dst := "QUUX-V01-CS02-with-expander-SHAKE128"
+	h := sha3.NewShake128()
+	outputLength := []int{32, 128}
+
+	expectedHex32byte := []string{
+		"86518c9cd86581486e9485aa74ab35ba150d1c75c88e26b7043e44e2acd735a2",
+		"8696af52a4d862417c0763556073f47bc9b9ba43c99b505305cb1ec04a9ab468",
+		"912c58deac4821c3509dbefa094df54b34b8f5d01a191d1d3108a2c89077acca",
+		"1adbcc448aef2a0cebc71dac9f756b22e51839d348e031e63b33ebb50faeaf3f",
+		"df3447cc5f3e9a77da10f819218ddf31342c310778e0e4ef72bbaecee786a4fe",
+	}
+
+	expectedHex128byte := []string{
+		"7314ff1a155a2fb99a0171dc71b89ab6e3b2b7d59e38e64419b8b6294d03ffee42491f11370261f436220ef787f8f76f5b26bdcd850071920ce023f3ac46847744f4612b8714db8f5db83205b2e625d95afd7d7b4d3094d3bdde815f52850bb41ead9822e08f22cf41d615a303b0d9dde73263c049a7b9898208003a739a2e57",
+		"c952f0c8e529ca8824acc6a4cab0e782fc3648c563ddb00da7399f2ae35654f4860ec671db2356ba7baa55a34a9d7f79197b60ddae6e64768a37d699a78323496db3878c8d64d909d0f8a7de4927dcab0d3dbbc26cb20a49eceb0530b431cdf47bc8c0fa3e0d88f53b318b6739fbed7d7634974f1b5c386d6230c76260d5337a",
+		"19b65ee7afec6ac06a144f2d6134f08eeec185f1a890fe34e68f0e377b7d0312883c048d9b8a1d6ecc3b541cb4987c26f45e0c82691ea299b5e6889bbfe589153016d8131717ba26f07c3c14ffbef1f3eff9752e5b6183f43871a78219a75e7000fbac6a7072e2b83c790a3a5aecd9d14be79f9fd4fb180960a3772e08680495",
+		"ca1b56861482b16eae0f4a26212112362fcc2d76dcc80c93c4182ed66c5113fe41733ed68be2942a3487394317f3379856f4822a611735e50528a60e7ade8ec8c71670fec6661e2c59a09ed36386513221688b35dc47e3c3111ee8c67ff49579089d661caa29db1ef10eb6eace575bf3dc9806e7c4016bd50f3c0e2a6481ee6d",
+		"9d763a5ce58f65c91531b4100c7266d479a5d9777ba761693d052acd37d149e7ac91c796a10b919cd74a591a1e38719fb91b7203e2af31eac3bff7ead2c195af7d88b8bc0a8adf3d1e90ab9bed6ddc2b7f655dd86c730bdeaea884e73741097142c92f0e3fc1811b699ba593c7fbd81da288a29d423df831652e3a01a9374999",
+	}
+
+	// Short
+	for i := 0; i < len(inputsTestVectRFC9380); i++ {
+		res, err := expandMessageXOF(h, []byte(inputsTestVectRFC9380[i]), dst, outputLength[0])
+		assert.NoError(t, err)
+		assert.Equal(t, expectedHex32byte[i], hex.EncodeToString(res))
+	}
+
+	// Long
+	for i := 0; i < len(inputsTestVectRFC9380); i++ {
+		res, err := expandMessageXOF(h, []byte(inputsTestVectRFC9380[i]), dst, outputLength[1])
+		assert.NoError(t, err)
+		assert.Equal(t, expectedHex128byte[i], hex.EncodeToString(res))
+	}
+}
+
+func TestExpandMessageXOFSHAKE128LongDST(t *testing.T) {
+	dst := "QUUX-V01-CS02-with-expander-SHAKE128-long-DST-111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111"
+	h := sha3.NewShake128()
+	outputLength := []int{32, 128}
+
+	expectedHex32byte := []string{
+		"827c6216330a122352312bccc0c8d6e7a146c5257a776dbd9ad9d75cd880fc53",
+		"690c8d82c7213b4282c6cb41c00e31ea1d3e2005f93ad19bbf6da40f15790c5c",
+		"979e3a15064afbbcf99f62cc09fa9c85028afcf3f825eb0711894dcfc2f57057",
+		"c5a9220962d9edc212c063f4f65b609755a1ed96e62f9db5d1fd6adb5a8dc52b",
+		"f7b96a5901af5d78ce1d071d9c383cac66a1dfadb508300ec6aeaea0d62d5d62",
+	}
+
+	expectedHex128byte := []string{
+		"3890dbab00a2830be398524b71c2713bbef5f4884ac2e6f070b092effdb19208c7df943dc5dcbaee3094a78c267ef276632ee2c8ea0c05363c94b6348500fae4208345dd3475fe0c834c2beac7fa7bc181692fb728c0a53d809fc8111495222ce0f38468b11becb15b32060218e285c57a60162c2c8bb5b6bded13973cd41819",
+		"41b7ffa7a301b5c1441495ebb9774e2a53dbbf4e54b9a1af6a20fd41eafd69ef7b9418599c5545b1ee422f363642b01d4a53449313f68da3e49dddb9cd25b97465170537d45dcbdf92391b5bdff344db4bd06311a05bca7dcd360b6caec849c299133e5c9194f4e15e3e23cfaab4003fab776f6ac0bfae9144c6e2e1c62e7d57",
+		"55317e4a21318472cd2290c3082957e1242241d9e0d04f47026f03401643131401071f01aa03038b2783e795bdfa8a3541c194ad5de7cb9c225133e24af6c86e748deb52e560569bd54ef4dac03465111a3a44b0ea490fb36777ff8ea9f1a8a3e8e0de3cf0880b4b2f8dd37d3a85a8b82375aee4fa0e909f9763319b55778e71",
+		"19fdd2639f082e31c77717ac9bb032a22ff0958382b2dbb39020cdc78f0da43305414806abf9a561cb2d0067eb2f7bc544482f75623438ed4b4e39dd9e6e2909dd858bd8f1d57cd0fce2d3150d90aa67b4498bdf2df98c0100dd1a173436ba5d0df6be1defb0b2ce55ccd2f4fc05eb7cb2c019c35d5398b85adc676da4238bc7",
+		"945373f0b3431a103333ba6a0a34f1efab2702efde41754c4cb1d5216d5b0a92a67458d968562bde7fa6310a83f53dda1383680a276a283438d58ceebfa7ab7ba72499d4a3eddc860595f63c93b1c5e823ea41fc490d938398a26db28f61857698553e93f0574eb8c5017bfed6249491f9976aaa8d23d9485339cc85ca329308",
+	}
+
+	// Short
+	for i := 0; i < len(inputsTestVectRFC9380); i++ {
+		res, err := expandMessageXOF(h, []byte(inputsTestVectRFC9380[i]), dst, outputLength[0])
+		assert.NoError(t, err)
+		assert.Equal(t, expectedHex32byte[i], hex.EncodeToString(res))
+	}
+
+	// Long
+	for i := 0; i < len(inputsTestVectRFC9380); i++ {
+		res, err := expandMessageXOF(h, []byte(inputsTestVectRFC9380[i]), dst, outputLength[1])
+		assert.NoError(t, err)
+		assert.Equal(t, expectedHex128byte[i], hex.EncodeToString(res))
 	}
 }
 
