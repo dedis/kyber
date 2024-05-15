@@ -27,6 +27,7 @@ import (
 
 	"go.dedis.ch/kyber/v4"
 	"go.dedis.ch/kyber/v4/group/internal/marshalling"
+	"golang.org/x/crypto/sha3"
 )
 
 var marshalPointID = [8]byte{'e', 'd', '.', 'p', 'o', 'i', 'n', 't'}
@@ -393,6 +394,63 @@ func expandMessageXMD(h hash.Hash, m []byte, domainSeparator string, byteLen int
 	}
 
 	return bFinal[:byteLen], nil
+}
+
+func expandMessageXOF(h sha3.ShakeHash, m []byte, domainSeparator string, byteLen int) ([]byte, error) {
+	if byteLen > 65535 {
+		return nil, errors.New("invalid parameters")
+	}
+
+	if len(domainSeparator) > 255 {
+		longDstSep := "H2C-OVERSIZE-DST-"
+		outputSize := h.Size()
+
+		h.Reset()
+		h.Write([]byte(longDstSep))
+		h.Write([]byte(domainSeparator))
+
+		dst := make([]byte, outputSize)
+		n, err := h.Read(dst)
+		if err != nil {
+			return nil, err
+		}
+
+		if n != outputSize {
+			return nil, fmt.Errorf("read %d byte instead of expected %d from xof", n, byteLen)
+		}
+
+		domainSeparator = string(dst)
+	}
+
+	dstPad, err := i2OSP(len(domainSeparator), 1)
+	if err != nil {
+		return nil, err
+	}
+
+	lenPad, err := i2OSP(byteLen, 2)
+	if err != nil {
+		return nil, err
+	}
+
+	dstPrime := append([]byte(domainSeparator), dstPad...)
+
+	h.Reset()
+	h.Write(m)
+	h.Write(lenPad)
+	h.Write(dstPrime)
+
+	uniformBytes := make([]byte, byteLen)
+	n, err := h.Read(uniformBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	if n != byteLen {
+		return nil, fmt.Errorf("read %d byte instead of expected %d from xof", n, byteLen)
+	}
+
+	h.Reset()
+	return uniformBytes, nil
 }
 
 func i2OSP(x int, xLen int) ([]byte, error) {
