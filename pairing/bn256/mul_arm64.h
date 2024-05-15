@@ -126,6 +126,7 @@
 	SBCS R6, R22, R11 \
 	SBCS R7, R23, R12 \
 	SBCS R8, R24, R13 \
+	SBCS $0, R0, R0 \
 	\
 	CSEL CS, R10, R21, R1 \
 	CSEL CS, R11, R22, R2 \
