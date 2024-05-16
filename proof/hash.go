@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io"
 
-	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v4"
 )
 
 // Hash-based noninteractive Sigma-protocol prover context

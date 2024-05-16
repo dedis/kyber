@@ -3,9 +3,9 @@ package test
 import (
 	"testing"
 
-	"go.dedis.ch/kyber/v3/internal/test"
-	bls "go.dedis.ch/kyber/v3/pairing/circl_bls12381"
-	sign "go.dedis.ch/kyber/v3/sign/bls"
+	"go.dedis.ch/kyber/v4/internal/test"
+	bls "go.dedis.ch/kyber/v4/pairing/circl_bls12381"
+	sign "go.dedis.ch/kyber/v4/sign/bls"
 )
 
 func TestBLS12381(t *testing.T) {

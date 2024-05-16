@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"go.dedis.ch/kyber/v3/sign"
-	"go.dedis.ch/kyber/v3/util/random"
+	"go.dedis.ch/kyber/v4/sign"
+	"go.dedis.ch/kyber/v4/util/random"
 )
 
 // SchemeTesting tests a scheme with simple checks

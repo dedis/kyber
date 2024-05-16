@@ -7,12 +7,12 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/kyber/v3/internal/test"
-	this "go.dedis.ch/kyber/v3/pairing/circl_bls12381"
-	"go.dedis.ch/kyber/v3/sign/bls"
-	"go.dedis.ch/kyber/v3/sign/tbls"
-	"go.dedis.ch/kyber/v3/util/random"
+	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v4/internal/test"
+	this "go.dedis.ch/kyber/v4/pairing/circl_bls12381"
+	"go.dedis.ch/kyber/v4/sign/bls"
+	"go.dedis.ch/kyber/v4/sign/tbls"
+	"go.dedis.ch/kyber/v4/util/random"
 )
 
 // Code extracted from kyber/utils/test

@@ -18,8 +18,8 @@ import (
 	"errors"
 	"fmt"
 
-	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/kyber/v3/sign"
+	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v4/sign"
 )
 
 // Suite represents the set of functionalities needed by the package schnorr.

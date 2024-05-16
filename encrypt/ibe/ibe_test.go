@@ -8,10 +8,10 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/kyber/v3/pairing"
-	bls "go.dedis.ch/kyber/v3/pairing/circl_bls12381"
-	"go.dedis.ch/kyber/v3/util/random"
+	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v4/pairing"
+	bls "go.dedis.ch/kyber/v4/pairing/circl_bls12381"
+	"go.dedis.ch/kyber/v4/util/random"
 )
 
 func newSetting(i uint) (

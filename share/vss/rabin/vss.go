@@ -38,9 +38,9 @@ import (
 	"fmt"
 	"reflect"
 
-	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/kyber/v3/share"
-	"go.dedis.ch/kyber/v3/sign/schnorr"
+	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v4/share"
+	"go.dedis.ch/kyber/v4/sign/schnorr"
 	"go.dedis.ch/protobuf"
 )
 
@@ -133,7 +133,7 @@ type Justification struct {
 // does not have to be trusted by other Verifiers. The security parameter t is
 // the number of shares required to reconstruct the secret. MinimumT() provides
 // a middle ground between robustness and secrecy. Increasing t will increase
-// the secrecy at the cost of the decreased robustness and vice versa. It 
+// the secrecy at the cost of the decreased robustness and vice versa. It
 // returns an error if the t is inferior or equal to 2.
 func NewDealer(suite Suite, longterm, secret kyber.Scalar, verifiers []kyber.Point, t int) (*Dealer, error) {
 	d := &Dealer{
@@ -696,7 +696,7 @@ func (a *aggregator) UnsafeSetResponseDKG(idx uint32, approval bool) {
 // difficulty for an adversary to break secrecy. However, a too large T makes
 // it possible for an adversary to prevent recovery (robustness).
 func MinimumT(n int) int {
-	return (n + 1) / 2
+	return (n >> 1) + 1
 }
 
 func validT(t int, verifiers []kyber.Point) bool {

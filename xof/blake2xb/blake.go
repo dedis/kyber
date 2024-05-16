@@ -3,7 +3,7 @@
 package blake2xb
 
 import (
-	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v4"
 	"golang.org/x/crypto/blake2b"
 )
 

@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"go.dedis.ch/kyber/v3/util/key"
+	"go.dedis.ch/kyber/v4/util/key"
 )
 
 func TestAdapter_SuiteBLS12381(t *testing.T) {
