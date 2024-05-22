@@ -1,0 +1,39 @@
+name: Deploy Static Site and React App to GitHub Pages
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies and build React app
+        run: |
+          cd ./docs/benchmark-app/
+          npm install
+          npm run build
+          cd ../../
+          mkdir -p public/benchmark
+          mv ./docs/benchmark-app/build/* public/benchmark/
+
+      - name: Copy static index.html
+        run: |
+          cp ./docs/index.html public/
+          cp ./docs/*.md public/
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./public

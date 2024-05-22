@@ -1,0 +1,51 @@
+/* BenchmarkMenu.css */
+.benchmark-menu {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 200px; /* Initial width of the sidebar */
+  height: 100%;
+  background-color: #f0f0f0;
+  transition: width 0.3s ease;
+  z-index: 1000;
+}
+
+.benchmark-menu.closed {
+  width: 30px;
+}
+
+.menu-toggle {
+  cursor: pointer;
+  padding: 10px;
+  text-align: right;
+}
+
+.menu-toggle:hover {
+  background-color: #ddd;
+}
+
+.menu-icon {
+  cursor: pointer;
+  padding: 10px;
+  text-align: left;
+}
+.menu-icon:hover {
+  background-color: #ddd;
+}
+
+
+ul {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+  text-align: center;
+}
+
+ul li {
+  padding: 10px;
+  cursor: pointer;
+}
+
+ul li:hover {
+  background-color: #ddd;
+}

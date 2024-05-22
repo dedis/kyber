@@ -1,0 +1,128 @@
+.benchmark-chart-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    font-family: Arial, sans-serif;
+}
+
+.group-selection {
+    margin-top: 20px;
+}
+
+.group-buttons {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 10px;
+}
+
+.group-button {
+    padding: 10px;
+    font-size: 16px;
+    border: none;
+    background-color: #007bff;
+    color: #fff;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.group-button:hover {
+    background-color: #0056b3;
+}
+
+.benchmark-display {
+    margin-top: 20px;
+}
+
+.benchmark-display ul {
+    list-style: none;
+    padding: 0;
+}
+
+.benchmark-display h3 {
+    margin-top: 10px;
+}
+
+.comparison {
+    margin-top: 20px;
+}
+
+.comparison .group-selection select {
+    padding: 10px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    margin-right: 10px;
+}
+
+.ranking {
+    margin-top: 20px;
+}
+
+.benchmark-chart-container {
+    padding: 20px;
+}
+
+.section {
+    margin-bottom: 20px;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+}
+
+.section-title {
+    margin: 0;
+}
+
+.section-toggle {
+    font-size: 20px;
+}
+
+.section-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+}
+
+.section-content.expanded {
+    max-height: 1000px;
+}
+
+.comparison > div {
+  height:100px;
+  box-sizing:border-box;
+  -moz-box-sizing:border-box;
+}
+
+.left {
+  float:left;
+  width: 50%;
+}
+
+.right {
+  float:right;
+  width: 50%;
+}
+
+.ranking {
+  margin-top: 20px;
+}
+
+.ranking table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.ranking th, .ranking td {
+  padding: 8px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+.ranking th {
+  background-color: #f2f2f2;
+  font-weight: bold;
+}
