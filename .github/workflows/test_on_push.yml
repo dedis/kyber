@@ -5,27 +5,13 @@ on:
     branches: [ master ]
 
 jobs:
-  test_and_coverage:
-    strategy:
-      matrix:
-        platform: [macos-latest, windows-latest, ubuntu-latest, ubuntu-latest-x86]
-    runs-on: ${{ matrix.platform == 'ubuntu-latest-x86' && 'ubuntu-latest' || matrix.platform }}
+  test-mac:
+    needs: permission
+    runs-on: macos-latest
     env:
       DBGSYNCLOG: trace
       DBGSYNCON: true
     steps:
-    - name: Setup Alpine Linux
-      if: matrix.platform == 'ubuntu-latest-x86'
-      uses: jirutka/setup-alpine@v1
-      with:
-        arch: x86
-        packages: >
-          golang 
-          make 
-          git 
-          gcc 
-          musl-dev
-
     - name: Set up Go ^1.13
       uses: actions/setup-go@v3
       with:
@@ -38,15 +24,51 @@ jobs:
         fetch-depth: 0
 
     - name: Test without coverage
-      if: matrix.platform == 'macos-latest' || matrix.platform == 'windows-latest' || matrix.platform == 'ubuntu-latest-x86'
       run: make test
 
+  test-windows:
+    needs: permission
+    runs-on: windows-latest
+    env:
+      DBGSYNCLOG: trace
+      DBGSYNCON: true
+    steps:
+    - name: Set up Go ^1.13
+      uses: actions/setup-go@v3
+      with:
+        go-version: ^1.13
+
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v3
+      with:
+        ref: ${{ github.event.pull_request.head.sha }}
+        fetch-depth: 0
+
+    - name: Test without coverage
+      run: make test
+
+  test-ubuntu:
+    needs: permission
+    runs-on: ubuntu-latest
+    env:
+      DBGSYNCLOG: trace
+      DBGSYNCON: true
+    steps:
+    - name: Set up Go ^1.13
+      uses: actions/setup-go@v3
+      with:
+        go-version: ^1.13
+
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v3
+      with:
+        ref: ${{ github.event.pull_request.head.sha }}
+        fetch-depth: 0
+
     - name: Test with coverage
-      if: matrix.platform == 'ubuntu-latest'
       run: make coverage
-        
+
     - name: SonarCloud scan
-      if: matrix.platform == 'ubuntu-latest'
       uses: sonarsource/sonarcloud-github-action@master
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -65,7 +87,38 @@ jobs:
           -Dsonar.objc.file.suffixes=-
 
     - name: Send coverage
-      if: matrix.platform == 'ubuntu-latest'
       uses: shogo82148/actions-goveralls@v1
       with:
         path-to-profile: profile.cov
+
+  test-ubuntu-x86:
+    needs: permission
+    runs-on: ubuntu-latest
+    env:
+      DBGSYNCLOG: trace
+      DBGSYNCON: true
+    steps:
+    - name: Setup Alpine Linux
+      uses: jirutka/setup-alpine@v1
+      with:
+        arch: x86
+        packages: >
+          golang 
+          make 
+          git 
+          gcc 
+          musl-dev
+
+    - name: Set up Go ^1.13 for x86
+      uses: actions/setup-go@v3
+      with:
+        go-version: ^1.13
+
+    - name: Check out code into the Go module directory for x86
+      uses: actions/checkout@v3
+      with:
+        ref: ${{ github.event.pull_request.head.sha }}
+        fetch-depth: 0
+
+    - name: Test without coverage for x86
+      run: make test
