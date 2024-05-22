@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"go.dedis.ch/kyber/v3/internal/test"
 	"go.dedis.ch/kyber/v3/sign/bls"
-	"go.dedis.ch/kyber/v3/sign/test"
 	"go.dedis.ch/kyber/v3/util/random"
 )
 
