@@ -119,7 +119,7 @@ jobs:
       with:
         arch: x86
         packages: >
-          golang 
+          go 
           make 
           git 
           gcc 
