@@ -96,8 +96,6 @@ type EncryptedDeal struct {
 	DHKey kyber.Point
 	// Signature of the DH key by the longterm key of the dealer
 	Signature []byte
-	// Nonce used for the encryption
-	Nonce []byte
 	// AEAD encryption of the deal marshalled by protobuf
 	Cipher []byte
 }
@@ -133,7 +131,7 @@ type Justification struct {
 // does not have to be trusted by other Verifiers. The security parameter t is
 // the number of shares required to reconstruct the secret. MinimumT() provides
 // a middle ground between robustness and secrecy. Increasing t will increase
-// the secrecy at the cost of the decreased robustness and vice versa. It 
+// the secrecy at the cost of the decreased robustness and vice versa. It
 // returns an error if the t is inferior or equal to 2.
 func NewDealer(suite Suite, longterm, secret kyber.Scalar, verifiers []kyber.Point, t int) (*Dealer, error) {
 	d := &Dealer{
@@ -232,7 +230,6 @@ func (d *Dealer) EncryptedDeal(i int) (*EncryptedDeal, error) {
 	return &EncryptedDeal{
 		DHKey:     dhPublic,
 		Signature: signature,
-		Nonce:     nonce,
 		Cipher:    encrypted,
 	}, nil
 }
@@ -432,7 +429,8 @@ func (v *Verifier) decryptDeal(e *EncryptedDeal) (*Deal, error) {
 	if err != nil {
 		return nil, err
 	}
-	decrypted, err := gcm.Open(nil, e.Nonce, e.Cipher, v.hkdfContext)
+	nonce := make([]byte, gcm.NonceSize())
+	decrypted, err := gcm.Open(nil, nonce, e.Cipher, v.hkdfContext)
 	if err != nil {
 		return nil, err
 	}
