@@ -36,10 +36,10 @@ jobs:
       DBGSYNCLOG: trace
       DBGSYNCON: true
     steps:
-    - name: Set up Go ^1.13
+    - name: Set up Go 1.21
       uses: actions/setup-go@v3
       with:
-        go-version: ^1.13
+        go-version: 1.21
 
     - name: Check out code into the Go module directory
       uses: actions/checkout@v3
@@ -56,10 +56,10 @@ jobs:
       DBGSYNCLOG: trace
       DBGSYNCON: true
     steps:
-    - name: Set up Go ^1.13
+    - name: Set up Go 1.21
       uses: actions/setup-go@v3
       with:
-        go-version: ^1.13
+        go-version: 1.21
 
     - name: Check out code into the Go module directory
       uses: actions/checkout@v3
@@ -76,10 +76,10 @@ jobs:
       DBGSYNCLOG: trace
       DBGSYNCON: true
     steps:
-    - name: Set up Go ^1.13
+    - name: Set up Go 1.21
       uses: actions/setup-go@v3
       with:
-        go-version: ^1.13
+        go-version: 1.21
 
     - name: Check out code into the Go module directory
       uses: actions/checkout@v3
@@ -125,10 +125,10 @@ jobs:
           gcc 
           musl-dev
 
-    - name: Set up Go ^1.13 for x86
+    - name: Set up Go 1.21 for x86
       uses: actions/setup-go@v3
       with:
-        go-version: ^1.13
+        go-version: 1.21
 
     - name: Check out code into the Go module directory for x86
       uses: actions/checkout@v3
