@@ -42,20 +42,17 @@ jobs:
           - os: macos-latest
             size: '32b'
 
-    runs-on: ${{matrix.os}}
+    runs-on: ${{ matrix.os }}
     env:
       DBGSYNCLOG: trace
       DBGSYNCON: true
 
     steps:
-    - name: Matrix is ${{matrix.os}} / ${{matrix.size}} - Go is ${{matrix.golang}}
-      run: date
-
-    - name: Set up Go ${{matrix.golang}}
+    - name: Set up Go ${{ matrix.golang }}
       uses: actions/setup-go@v5
       if: ${{ matrix.size == '64b' }}
       with:
-        go-version: ${{matrix.golang}}
+        go-version: ${{ matrix.golang }}
         check-latest: false
 
     - name: Check out code into the Go module directory
@@ -64,46 +61,39 @@ jobs:
         ref: ${{ github.event.pull_request.head.sha }}
         fetch-depth: 0
 
-    - name: Setup Alpine Linux ${{matrix.size}}
+    - name: Setup Alpine Linux
       uses: jirutka/setup-alpine@v1
       if: ${{ matrix.size == '32b' }}
       with:
         arch: x86
         packages: >
-          go
           make 
           git 
           gcc 
           musl-dev
 
-    - name: getconf x86
-      if: ${{ matrix.size == '32b' }}
-      run: |
-        getconf LONG_BIT
-        go version
-      shell: alpine.sh {0}
-
-    - name: getconf x64
-      if: ${{ matrix.size == '64b' }}
-      run: |
-        getconf LONG_BIT
-        go version
-
     - name: Test without coverage (Windows, MacOS)
-      if: ${{matrix.os == 'macos-latest' || matrix.os == 'windows-latest'}}
+      if: ${{ matrix.os == 'macos-latest' || matrix.os == 'windows-latest' }}
       run: make test
 
     - name: Test without coverage (Ubuntu x86)
-      if: ${{matrix.os == 'ubuntu-latest' && matrix.size == '32b'}}
-      run: make test
+      if: ${{ matrix.size == '32b' }}
+      run: |
+        GOVERSION=${{ matrix.golang == '1.21' && '1.21.10' || '1.22.3' }}
+        cd ..
+        wget -O go.tgz -nv https://go.dev/dl/go$GOVERSION.linux-386.tar.gz
+        tar -xzf go.tgz
+        export PATH=$PATH:$(pwd)/go/bin
+        cd kyber
+        make test
       shell: alpine.sh {0}
 
     - name: Test with coverage
-      if: ${{matrix.platform == 'ubuntu-latest' && matrix.size == '64b'}}
+      if: ${{ matrix.platform == 'ubuntu-latest' && matrix.size == '64b' }}
       run: make coverage
 
     - name: SonarCloud scan
-      if: ${{matrix.platform == 'ubuntu-latest' && matrix.size == '64b'}}
+      if: ${{ matrix.platform == 'ubuntu-latest' && matrix.size == '64b' }}
       uses: sonarsource/sonarcloud-github-action@master
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
