@@ -26,13 +26,15 @@ jobs:
     - name: Matrix is ${{matrix.os}} / ${{matrix.size}} - Go is ${{matrix.golang}}
       run: date
 
-    - name: Set up Go ^${{matrix.golang}}
-      uses: actions/setup-go@v3
+    - name: Set up Go ${{matrix.golang}}
+      uses: actions/setup-go@v5
+      if: ${{ matrix.size == '64b' }}
       with:
-        go-version: ^${{matrix.golang}}
+        go-version: ${{matrix.golang}}
+        check-latest: false
 
     - name: Check out code into the Go module directory
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         ref: ${{ github.event.pull_request.head.sha }}
         fetch-depth: 0
@@ -43,19 +45,32 @@ jobs:
       with:
         arch: x86
         packages: >
-          go
           make 
           git 
           gcc 
           musl-dev
 
+    - name: Install specific Go version on Alpine Linux
+      if: ${{ matrix.size == '32b' && matrix.os == 'ubuntu-latest'}}
+      run: |
+        GO_VERSION=${{ matrix.golang }}
+        wget https://golang.org/dl/go$GO_VERSION.linux-386.tar.gz
+        tar -C /usr/local -xzf go$GO_VERSION.linux-386.tar.gz
+        rm go$GO_VERSION.linux-386.tar.gz
+        export PATH=$PATH:/usr/local/go/bin
+      shell: alpine.sh {0}
+
     - name: getconf x86
       if: ${{ matrix.size == '32b' }}
-      run: getconf LONG_BIT
+      run: |
+        getconf LONG_BIT
+        go version
       shell: alpine.sh {0}
 
     - name: getconf x64
-      run: getconf LONG_BIT
+      run: |
+        getconf LONG_BIT
+        go version
 
     - name: Test without coverage (Windows, MacOS)
       if: ${{matrix.os == 'macos-latest' || matrix.os == 'windows-latest'}}
