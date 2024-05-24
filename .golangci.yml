@@ -167,7 +167,7 @@ linters:
     #- decorder # checks declaration order and count of types, constants, variables and functions
     #- exhaustruct # checks if all structure fields are initialized
     #- gci # controls golang package import order and makes it always deterministic
-    #- godox # detects FIXME, TODO and other comment keywords
+    - godox # detects FIXME, TODO and other comment keywords
     #- goheader # checks is file header matches to pattern
     - interfacebloat # checks the number of methods inside an interface
     #- ireturn # accept interfaces, return concrete types
