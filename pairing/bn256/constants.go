@@ -54,3 +54,18 @@ var r2 = &gfP{0x9c21c3ff7e444f56, 0x409ed151b2efb0c2, 0xc6dc37b80fb1651, 0x7c36e
 
 // r3 is R^3 where R = 2^256 mod p.
 var r3 = &gfP{0x2af2dfb9324a5bb8, 0x388f899054f538a4, 0xdf2ff66396b107a7, 0x24ebbbb3a2529292}
+
+// pPlus1Over4 is (p+1)/4.
+var pPlus1Over4 = [4]uint64{0x86172b1b1782259a, 0x7b96e234482d6d67, 0x6a9bfb2e18613708, 0x23ed4078d2a8e1fe}
+
+// pMinus2 is p-2.
+var pMinus2 = [4]uint64{0x185cac6c5e089665, 0xee5b88d120b5b59e, 0xaa6fecb86184dc21, 0x8fb501e34aa387f9}
+
+// pMinus1Over2 is (p-1)/2.
+var pMinus1Over2 = [4]uint64{0x0c2e56362f044b33, 0xf72dc468905adacf, 0xd537f65c30c26e10, 0x47da80f1a551c3fc}
+
+// s is the Montgomery encoding of the square root of -3. Then, s = sqrt(-3) * 2^256 mod p.
+var s = &gfP{0x236e675956be783b, 0x053957e6f379ab64, 0xe60789a768f4a5c4, 0x04f8979dd8bad754}
+
+// sMinus1Over2 is the Montgomery encoding of (s-1)/2. Then, sMinus1Over2 = ( (s-1) / 2) * 2^256 mod p.
+var sMinus1Over2 = &gfP{0x3642364f386c1db8, 0xe825f92d2acd661f, 0xf2aba7e846c19d14, 0x5a0bcea3dc52b7a0}
