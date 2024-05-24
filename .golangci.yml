@@ -8,10 +8,6 @@ run:
 # This file contains only configs which differ from defaults.
 # All possible options can be found here https://github.com/golangci/golangci-lint/blob/master/.golangci.reference.yml
 linters-settings:
-  staticcheck:
-    checks:
-      - all
-      - '-SA1019' # Ignore deprecated for now
   cyclop:
     # The maximal code complexity to report.
     # Default: 10
@@ -113,7 +109,7 @@ linters:
     - asciicheck # checks that your code does not contain non-ASCII identifiers
     - bidichk # checks for dangerous unicode character sequences
     - bodyclose # checks whether HTTP response body is closed successfully
-    - contextcheck # checks the function whether use a non-inherited context
+    #- contextcheck # checks the function whether use a non-inherited context # TODO: enable after golangci-lint uses https://github.com/sylvia7788/contextcheck/releases/tag/v1.0.7
     - cyclop # checks function and package cyclomatic complexity
     - dupl # tool for code clone detection
     - durationcheck # checks for two durations multiplied together
@@ -167,7 +163,7 @@ linters:
     #- decorder # checks declaration order and count of types, constants, variables and functions
     #- exhaustruct # checks if all structure fields are initialized
     #- gci # controls golang package import order and makes it always deterministic
-    #- godox # detects FIXME, TODO and other comment keywords
+    - godox # detects FIXME, TODO and other comment keywords
     #- goheader # checks is file header matches to pattern
     - interfacebloat # checks the number of methods inside an interface
     #- ireturn # accept interfaces, return concrete types
@@ -250,17 +246,3 @@ issues:
     - linters:
         - govet
       text: "shadow: declaration of \"err\" shadows declaration"
-    - path: ".*_decl.go"
-    - path: 'group.go'
-      linters:
-        - interfacebloat
-    - path: 'group/edwards25519/scalar.go'
-      linters:
-        - ineffassign
-        - funlen
-    - path: 'group/edwards25519/const.go'
-      linters:
-        - lll
-    - path: 'group/edwards25519/fe.go'
-      linters:
-        - funlen
