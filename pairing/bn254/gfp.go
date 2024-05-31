@@ -24,7 +24,7 @@ func newGFpFromBase10(x string) *gfP {
 	bx, _ := new(big.Int).SetString(x, 10)
 	bx = bx.Mod(bx, p)
 	out := &gfP{}
-	out.Unmarshal(zeroPadBytes(bx.Bytes(), 32))
+	_ = out.Unmarshal(zeroPadBytes(bx.Bytes(), 32))
 	montEncode(out, out)
 	return out
 }

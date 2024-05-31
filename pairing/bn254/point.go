@@ -66,7 +66,7 @@ func (p *pointG1) EmbedLen() int {
 	panic("bn254.G1: unsupported operation")
 }
 
-func (p *pointG1) Embed(data []byte, rand cipher.Stream) kyber.Point {
+func (p *pointG1) Embed(_ []byte, _ cipher.Stream) kyber.Point {
 	// XXX: An approach to implement this is:
 	// - Encode data as the x-coordinate of a point on y²=x³+3 where len(data)
 	//   is stored in the least significant byte of x and the rest is being
@@ -152,8 +152,15 @@ func (p *pointG1) UnmarshalBinary(buf []byte) error {
 		p.g.x, p.g.y = gfP{0}, gfP{0}
 	}
 
-	p.g.x.Unmarshal(buf)
-	p.g.y.Unmarshal(buf[n:])
+	err := p.g.x.Unmarshal(buf)
+	if err != nil {
+		return err
+	}
+	err = p.g.y.Unmarshal(buf[n:])
+	if err != nil {
+		return err
+	}
+
 	montEncode(&p.g.x, &p.g.x)
 	montEncode(&p.g.y, &p.g.y)
 
@@ -215,8 +222,8 @@ func hashToField(domain, m []byte) (*gfP, *gfP) {
 	x.SetBytes(_msg[0:48]).Mod(x, p)
 	y.SetBytes(_msg[48:96]).Mod(y, p)
 	gx, gy := &gfP{}, &gfP{}
-	gx.Unmarshal(zeroPadBytes(x.Bytes(), 32))
-	gy.Unmarshal(zeroPadBytes(y.Bytes(), 32))
+	_ = gx.Unmarshal(zeroPadBytes(x.Bytes(), 32))
+	_ = gy.Unmarshal(zeroPadBytes(y.Bytes(), 32))
 	montEncode(gx, gx)
 	montEncode(gy, gy)
 	return gx, gy
@@ -254,17 +261,20 @@ func mapToPoint(domain []byte, u *gfP) kyber.Point {
 	gfpMul(x3, c4, x3)
 	gfpAdd(x3, newGFp(1), x3)
 
-	x, y := &gfP{}, &gfP{}
-	if legendre(g(x1)) == 1 {
+	var x *gfP
+	y := &gfP{}
+	switch {
+	case legendre(g(x1)) == 1:
 		x = x1
 		y.Sqrt(g(x1))
-	} else if legendre(g(x2)) == 1 {
+	case legendre(g(x2)) == 1:
 		x = x2
 		y.Sqrt(g(x2))
-	} else {
+	default:
 		x = x3
 		y.Sqrt(g(x3))
 	}
+
 	if sgn0(u) != sgn0(y) {
 		gfpNeg(y, y)
 	}
@@ -318,11 +328,11 @@ func expandMsgXmdKeccak256(domain, msg []byte, outLen int) []byte {
 		_, _ = h.Write([]byte{domainLen})
 
 		// b_1 || ... || b_(ell - 1)
-		copy(out[(i-1)*h.Size():i*h.Size()], bi[:])
+		copy(out[(i-1)*h.Size():i*h.Size()], bi)
 		bi = h.Sum(nil)
 	}
 	// b_ell
-	copy(out[(ell-1)*h.Size():], bi[:])
+	copy(out[(ell-1)*h.Size():], bi)
 	return out[:outLen]
 }
 
@@ -376,7 +386,7 @@ func (p *pointG2) EmbedLen() int {
 	panic("bn254.G2: unsupported operation")
 }
 
-func (p *pointG2) Embed(data []byte, rand cipher.Stream) kyber.Point {
+func (p *pointG2) Embed(_ []byte, _ cipher.Stream) kyber.Point {
 	panic("bn254.G2: unsupported operation")
 }
 
@@ -463,10 +473,23 @@ func (p *pointG2) UnmarshalBinary(buf []byte) error {
 		return errors.New("bn254.G2: not enough data")
 	}
 
-	p.g.x.x.Unmarshal(buf[0*n:])
-	p.g.x.y.Unmarshal(buf[1*n:])
-	p.g.y.x.Unmarshal(buf[2*n:])
-	p.g.y.y.Unmarshal(buf[3*n:])
+	err := p.g.x.x.Unmarshal(buf[0*n:])
+	if err != nil {
+		return err
+	}
+	err = p.g.x.y.Unmarshal(buf[1*n:])
+	if err != nil {
+		return err
+	}
+	err = p.g.y.x.Unmarshal(buf[2*n:])
+	if err != nil {
+		return err
+	}
+	err = p.g.y.y.Unmarshal(buf[3*n:])
+	if err != nil {
+		return err
+	}
+
 	montEncode(&p.g.x.x, &p.g.x.x)
 	montEncode(&p.g.x.y, &p.g.x.y)
 	montEncode(&p.g.y.x, &p.g.y.x)
@@ -560,7 +583,7 @@ func (p *pointGT) EmbedLen() int {
 	panic("bn254.GT: unsupported operation")
 }
 
-func (p *pointGT) Embed(data []byte, rand cipher.Stream) kyber.Point {
+func (p *pointGT) Embed(_ []byte, _ cipher.Stream) kyber.Point {
 	panic("bn254.GT: unsupported operation")
 }
 
@@ -641,6 +664,7 @@ func (p *pointGT) MarshalTo(w io.Writer) (int, error) {
 	return w.Write(buf)
 }
 
+//nolint:funlen
 func (p *pointGT) UnmarshalBinary(buf []byte) error {
 	n := p.ElementSize()
 	if len(buf) < p.MarshalSize() {
@@ -651,18 +675,55 @@ func (p *pointGT) UnmarshalBinary(buf []byte) error {
 		p.g = &gfP12{}
 	}
 
-	p.g.x.x.x.Unmarshal(buf[0*n:])
-	p.g.x.x.y.Unmarshal(buf[1*n:])
-	p.g.x.y.x.Unmarshal(buf[2*n:])
-	p.g.x.y.y.Unmarshal(buf[3*n:])
-	p.g.x.z.x.Unmarshal(buf[4*n:])
-	p.g.x.z.y.Unmarshal(buf[5*n:])
-	p.g.y.x.x.Unmarshal(buf[6*n:])
-	p.g.y.x.y.Unmarshal(buf[7*n:])
-	p.g.y.y.x.Unmarshal(buf[8*n:])
-	p.g.y.y.y.Unmarshal(buf[9*n:])
-	p.g.y.z.x.Unmarshal(buf[10*n:])
-	p.g.y.z.y.Unmarshal(buf[11*n:])
+	err := p.g.x.x.x.Unmarshal(buf[0*n:])
+	if err != nil {
+		return err
+	}
+	err = p.g.x.x.y.Unmarshal(buf[1*n:])
+	if err != nil {
+		return err
+	}
+	err = p.g.x.y.x.Unmarshal(buf[2*n:])
+	if err != nil {
+		return err
+	}
+	err = p.g.x.y.y.Unmarshal(buf[3*n:])
+	if err != nil {
+		return err
+	}
+	err = p.g.x.z.x.Unmarshal(buf[4*n:])
+	if err != nil {
+		return err
+	}
+	err = p.g.x.z.y.Unmarshal(buf[5*n:])
+	if err != nil {
+		return err
+	}
+	err = p.g.y.x.x.Unmarshal(buf[6*n:])
+	if err != nil {
+		return err
+	}
+	err = p.g.y.x.y.Unmarshal(buf[7*n:])
+	if err != nil {
+		return err
+	}
+	err = p.g.y.y.x.Unmarshal(buf[8*n:])
+	if err != nil {
+		return err
+	}
+	err = p.g.y.y.y.Unmarshal(buf[9*n:])
+	if err != nil {
+		return err
+	}
+	err = p.g.y.z.x.Unmarshal(buf[10*n:])
+	if err != nil {
+		return err
+	}
+	err = p.g.y.z.y.Unmarshal(buf[11*n:])
+	if err != nil {
+		return err
+	}
+
 	montEncode(&p.g.x.x.x, &p.g.x.x.x)
 	montEncode(&p.g.x.x.y, &p.g.x.x.y)
 	montEncode(&p.g.x.y.x, &p.g.x.y.x)
@@ -677,7 +738,6 @@ func (p *pointGT) UnmarshalBinary(buf []byte) error {
 	montEncode(&p.g.y.z.y, &p.g.y.z.y)
 
 	// TODO: check if point is on curve
-
 	return nil
 }
 

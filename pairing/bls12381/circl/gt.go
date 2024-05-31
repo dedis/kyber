@@ -54,7 +54,7 @@ func (p *GTElt) Null() kyber.Point { p.inner.SetIdentity(); return p }
 
 func (p *GTElt) Base() kyber.Point { p.inner = *gtBase; return p }
 
-func (p *GTElt) Pick(rand cipher.Stream) kyber.Point {
+func (p *GTElt) Pick(_ cipher.Stream) kyber.Point {
 	panic("bls12-381: unsupported operation")
 }
 
@@ -66,7 +66,7 @@ func (p *GTElt) EmbedLen() int {
 	panic("bls12-381: unsupported operation")
 }
 
-func (p *GTElt) Embed(data []byte, r cipher.Stream) kyber.Point {
+func (p *GTElt) Embed(_ []byte, _ cipher.Stream) kyber.Point {
 	panic("bls12-381: unsupported operation")
 }
 

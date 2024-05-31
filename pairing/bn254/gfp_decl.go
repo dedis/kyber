@@ -10,6 +10,7 @@ import (
 	"golang.org/x/sys/cpu"
 )
 
+//nolint:unused // maybe useful
 var hasBMI2 = cpu.X86.HasBMI2
 
 // go:noescape
