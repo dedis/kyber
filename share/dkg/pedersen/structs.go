@@ -159,7 +159,7 @@ func (d *DealBundle) Sig() []byte {
 type Response struct {
 	// Index of the Dealer for which this response is for
 	DealerIndex uint32
-	Status      bool
+	Status      Status
 }
 
 var _ Packet = (*ResponseBundle)(nil)
@@ -186,7 +186,7 @@ func (b *ResponseBundle) Hash() ([]byte, error) {
 	_ = binary.Write(h, binary.BigEndian, b.ShareIndex)
 	for _, resp := range b.Responses {
 		_ = binary.Write(h, binary.BigEndian, resp.DealerIndex)
-		if resp.Status {
+		if resp.Status == Success {
 			_ = binary.Write(h, binary.BigEndian, byte(1))
 		} else {
 			_ = binary.Write(h, binary.BigEndian, byte(0))

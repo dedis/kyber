@@ -263,3 +263,9 @@ issues:
     - path: 'group/edwards25519/fe.go'
       linters:
         - funlen
+    - path: "share/dkg/pedersen"
+      linters:
+        - gocognit
+        - funlen
+        - gocyclo
+        - cyclop

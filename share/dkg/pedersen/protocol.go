@@ -96,11 +96,11 @@ func NewProtocol(c *Config, b Board, phaser Phaser, skipVerification bool) (*Pro
 }
 
 func (p *Protocol) Info(keyvals ...interface{}) {
-	p.dkg.c.Info(append([]interface{}{"dkg-step"}, keyvals...))
+	p.dkg.c.Info("dkg-step", keyvals)
 }
 
 func (p *Protocol) Error(keyvals ...interface{}) {
-	p.dkg.c.Error(append([]interface{}{"dkg-step"}, keyvals...))
+	p.dkg.c.Error("dkg-step", keyvals)
 }
 
 func (p *Protocol) Start() {
@@ -116,6 +116,7 @@ func (p *Protocol) Start() {
 		select {
 		case newPhase := <-p.phaser.NextPhase():
 			switch newPhase {
+			case InitPhase:
 			case DealPhase:
 				if !p.sendDeals() {
 					return
@@ -191,6 +192,7 @@ func (p *Protocol) startFast() {
 		select {
 		case newPhase := <-p.phaser.NextPhase():
 			switch newPhase {
+			case InitPhase:
 			case DealPhase:
 				p.Info("phaser", "msg", "moving to sending deals phase")
 				if !p.sendDeals() {
