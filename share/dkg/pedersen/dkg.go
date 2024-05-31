@@ -645,10 +645,10 @@ func (d *DistKeyGenerator) ProcessResponses(bundles []*ResponseBundle) (res *Res
 		if d.canReceive {
 			res, err := d.computeResult()
 			return res, nil, err
-		} else {
-			// old nodes that are not present in the new group
-			return nil, nil, nil
 		}
+
+		// old nodes that are not present in the new group
+		return nil, nil, nil
 	}
 
 	// check if there are some node who received at least t complaints.
@@ -853,9 +853,9 @@ func (d *DistKeyGenerator) computeResult() (*Result, error) {
 	if d.isResharing {
 		// instead of adding, in this case, we interpolate all shares
 		return d.computeResharingResult()
-	} else {
-		return d.computeDKGResult()
 	}
+
+	return d.computeDKGResult()
 }
 
 func (d *DistKeyGenerator) computeResharingResult() (*Result, error) {
@@ -1159,10 +1159,10 @@ func (c *Config) CheckForDuplicates() error {
 		for _, n := range list {
 			if _, present := hashSet[n.Index]; present {
 				return fmt.Errorf("index %d", n.Index)
-			} else {
-				hashSet[n.Index] = true
 			}
+			hashSet[n.Index] = true
 		}
+
 		return nil
 	}
 	if err := checkDuplicate(c.OldNodes); err != nil {
