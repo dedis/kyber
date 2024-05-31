@@ -28,25 +28,25 @@ type Suite interface {
 	kyber.Random
 }
 
-type SchnorrScheme struct {
+type Scheme struct {
 	s Suite
 }
 
 func NewScheme(s Suite) sign.Scheme {
-	return &SchnorrScheme{s}
+	return &Scheme{s}
 }
 
-func (s *SchnorrScheme) NewKeyPair(random cipher.Stream) (kyber.Scalar, kyber.Point) {
+func (s *Scheme) NewKeyPair(random cipher.Stream) (kyber.Scalar, kyber.Point) {
 	priv := s.s.Scalar().Pick(random)
 	pub := s.s.Point().Mul(priv, nil)
 	return priv, pub
 }
 
-func (s *SchnorrScheme) Sign(private kyber.Scalar, msg []byte) ([]byte, error) {
+func (s *Scheme) Sign(private kyber.Scalar, msg []byte) ([]byte, error) {
 	return Sign(s.s, private, msg)
 }
 
-func (s *SchnorrScheme) Verify(public kyber.Point, msg, sig []byte) error {
+func (s *Scheme) Verify(public kyber.Point, msg, sig []byte) error {
 	return Verify(s.s, public, msg, sig)
 }
 
