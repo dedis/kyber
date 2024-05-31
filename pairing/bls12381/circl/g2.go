@@ -1,3 +1,4 @@
+//nolint:dupl // unavoidable duplication between g1 and g2
 package circl
 
 import (

@@ -1,3 +1,4 @@
+//nolint:lll
 package bn254
 
 // Generated from bls-bn254 tests

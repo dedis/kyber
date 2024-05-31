@@ -1,3 +1,4 @@
+//nolint:lll
 package bn254
 
 import (
