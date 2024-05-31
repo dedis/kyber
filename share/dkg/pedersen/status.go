@@ -108,16 +108,6 @@ func (s *StatusMatrix) String() string {
 	return str
 }
 
-func findMaxIndex(list []Node) int {
-	m := 0
-	for _, n := range list {
-		if n.Index > uint32(m) {
-			m = int(n.Index)
-		}
-	}
-	return m
-}
-
 func (b BitSet) LengthComplaints() int {
 	var count = 0
 	for _, status := range b {

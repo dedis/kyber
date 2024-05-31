@@ -3,7 +3,6 @@ package dkg
 import (
 	"bytes"
 	"fmt"
-	"strings"
 	"time"
 )
 
@@ -77,15 +76,6 @@ type Protocol struct {
 	canIssue  bool
 	res       chan OptionResult
 	skipVerif bool
-}
-
-// XXX TO DELETE
-func printNodes(list []Node) string {
-	var arr []string
-	for _, node := range list {
-		arr = append(arr, fmt.Sprintf("[%d : %s]", node.Index, node.Public))
-	}
-	return strings.Join(arr, "\n")
 }
 
 func NewProtocol(c *Config, b Board, phaser Phaser, skipVerification bool) (*Protocol, error) {

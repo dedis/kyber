@@ -183,8 +183,6 @@ type DistKeyGenerator struct {
 	newPresent bool
 	// indicates whether the node is present in the old list
 	oldPresent bool
-	// already processed our own deal
-	processed bool
 	// public polynomial of the old group
 	olddpub *share.PubPoly
 }
