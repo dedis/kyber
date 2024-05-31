@@ -120,6 +120,8 @@ func (p *extPoint) normalize() {
 }
 
 // Check the validity of the T coordinate
+//
+//nolint:unused // may be useful
 func (p *extPoint) checkT() {
 	var t1, t2 mod.Int
 	if !t1.Mul(&p.X, &p.Y).Equal(t2.Mul(&p.Z, &p.T)) {
