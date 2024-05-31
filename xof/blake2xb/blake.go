@@ -71,7 +71,7 @@ func (x *xof) Reseed() {
 
 func (x *xof) Reset() {
 	x.impl.Reset()
-	x.impl.Write(x.seed)
+	_, _ = x.impl.Write(x.seed)
 }
 
 func (x *xof) XORKeyStream(dst, src []byte) {
