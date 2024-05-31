@@ -252,19 +252,8 @@ func NewDistKeyHandler(c *Config) (*DistKeyGenerator, error) {
 		} else if c.Reader != nil && c.UserReaderOnly {
 			randomStream = random.New(c.Reader)
 		}
-		pickErr := func() (err error) {
-			defer func() {
-				if r := recover(); r != nil {
-					err = fmt.Errorf("error picking secret: %v", r)
-					return
-				}
-			}()
-			secretCoeff = c.Suite.Scalar().Pick(randomStream)
-			return nil
-		}()
-		if pickErr != nil {
-			return nil, pickErr
-		}
+		secretCoeff = c.Suite.Scalar().Pick(randomStream)
+
 		// in fresh dkg case, we consider the old nodes same a new nodes
 		c.OldNodes = c.NewNodes
 		oidx, oldPresent = findPub(c.OldNodes, pub)
