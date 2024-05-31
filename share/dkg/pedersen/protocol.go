@@ -368,7 +368,7 @@ func newSet() *set {
 }
 
 func (s *set) Push(p Packet) {
-	hash := p.Hash()
+	hash, _ := p.Hash()
 	idx := p.Index()
 	if s.isBad(idx) {
 		// already misbehaved before
@@ -376,7 +376,8 @@ func (s *set) Push(p Packet) {
 	}
 	prev, present := s.vals[idx]
 	if present {
-		if !bytes.Equal(prev.Hash(), hash) {
+		prevHash, _ := prev.Hash()
+		if !bytes.Equal(prevHash, hash) {
 			// bad behavior - we evict
 			delete(s.vals, idx)
 			s.bad = append(s.bad, idx)

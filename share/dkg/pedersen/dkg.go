@@ -1131,7 +1131,11 @@ func GetNonce() []byte {
 }
 
 func (d *DistKeyGenerator) sign(p Packet) ([]byte, error) {
-	msg := p.Hash()
+	msg, err := p.Hash()
+	if err != nil {
+		return nil, err
+	}
+
 	priv := d.c.Longterm
 	return d.c.Auth.Sign(priv, msg)
 }
