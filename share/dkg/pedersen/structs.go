@@ -177,14 +177,14 @@ type ResponseBundle struct {
 }
 
 // Hash hashes the share index and responses
-func (r *ResponseBundle) Hash() ([]byte, error) {
+func (b *ResponseBundle) Hash() ([]byte, error) {
 	// first order the response slice in a canonical order
-	sort.SliceStable(r.Responses, func(i, j int) bool {
-		return r.Responses[i].DealerIndex < r.Responses[j].DealerIndex
+	sort.SliceStable(b.Responses, func(i, j int) bool {
+		return b.Responses[i].DealerIndex < b.Responses[j].DealerIndex
 	})
 	h := sha256.New()
-	_ = binary.Write(h, binary.BigEndian, r.ShareIndex)
-	for _, resp := range r.Responses {
+	_ = binary.Write(h, binary.BigEndian, b.ShareIndex)
+	for _, resp := range b.Responses {
 		_ = binary.Write(h, binary.BigEndian, resp.DealerIndex)
 		if resp.Status {
 			_ = binary.Write(h, binary.BigEndian, byte(1))
@@ -192,7 +192,7 @@ func (r *ResponseBundle) Hash() ([]byte, error) {
 			_ = binary.Write(h, binary.BigEndian, byte(0))
 		}
 	}
-	h.Write(r.SessionID)
+	h.Write(b.SessionID)
 	return h.Sum(nil), nil
 }
 
