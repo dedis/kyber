@@ -283,7 +283,9 @@ func NewDistKeyHandler(c *Config) (*DistKeyGenerator, error) {
 	if isResharing && newPresent {
 		if c.PublicCoeffs == nil && c.Share == nil {
 			return nil, errors.New("dkg: can't receive new shares without the public polynomial")
-		} else if c.PublicCoeffs != nil {
+		}
+
+		if c.PublicCoeffs != nil {
 			olddpub = share.NewPubPoly(c.Suite, c.Suite.Point().Base(), c.PublicCoeffs)
 		} else if c.Share != nil {
 			// take the commits of the share, no need to duplicate information
