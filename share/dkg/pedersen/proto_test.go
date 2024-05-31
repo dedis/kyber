@@ -1,7 +1,6 @@
 package dkg
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
@@ -122,12 +121,12 @@ func (t *TestBoard) IncomingJustification() <-chan JustificationBundle {
 	return t.newJusts
 }
 
-func SetupProto(tns []*TestNode, dkgC *Config, period time.Duration, network *TestNetwork) {
+func SetupProto(tns []*TestNode, period time.Duration, network *TestNetwork) {
 	for _, n := range tns {
-		clock := clock.NewFakeClock()
-		n.clock = clock
+		clk := clock.NewFakeClock()
+		n.clock = clk
 		n.phaser = NewTimePhaserFunc(func(Phase) {
-			clock.Sleep(period)
+			clk.Sleep(period)
 		})
 		n.board = network.BoardFor(n.Index)
 		c2 := *n.dkg.c
@@ -160,7 +159,7 @@ func TestProtoFull(t *testing.T) {
 		Auth:      schnorr.NewScheme(suite),
 	}
 	SetupNodes(tns, &dkgConf)
-	SetupProto(tns, &dkgConf, period, network)
+	SetupProto(tns, period, network)
 
 	var resCh = make(chan OptionResult, 1)
 	// start all nodes and wait until each end
@@ -211,7 +210,7 @@ func TestProtoResharing(t *testing.T) {
 		Auth:      schnorr.NewScheme(suite),
 	}
 	SetupNodes(tns, &dkgConf)
-	SetupProto(tns, &dkgConf, period, network)
+	SetupProto(tns, period, network)
 
 	var resCh = make(chan OptionResult, 1)
 	// start all nodes and wait until each end
@@ -250,7 +249,7 @@ func TestProtoResharing(t *testing.T) {
 	}
 	testResults(t, suite, thr, n, results)
 
-	fmt.Printf("\n\n ----- RESHARING ----\n\n")
+	t.Log("\n\n ----- RESHARING ----\n\n")
 	// RESHARING
 	// we setup now the second group with one node left from old group and two
 	// new node
@@ -273,7 +272,7 @@ func TestProtoResharing(t *testing.T) {
 	}
 
 	SetupReshareNodes(newTns, newConf, tns[0].res.Key.Commits)
-	SetupProto(newTns, newConf, period, network)
+	SetupProto(newTns, period, network)
 
 	resCh = make(chan OptionResult, 1)
 	// start all nodes and wait until each end
@@ -304,7 +303,7 @@ func TestProtoResharing(t *testing.T) {
 	for optRes := range resCh {
 		require.NoError(t, optRes.Error)
 		results = append(results, optRes.Result)
-		fmt.Printf("GOT %d RESULTS\n", len(results))
+		t.Logf("GOT %d RESULTS\n", len(results))
 		if len(results) == newN {
 			break
 		}
@@ -330,7 +329,7 @@ func TestProtoThreshold(t *testing.T) {
 		Auth:      schnorr.NewScheme(suite),
 	}
 	SetupNodes(tns, &dkgConf)
-	SetupProto(tns, &dkgConf, period, network)
+	SetupProto(tns, period, network)
 
 	var resCh = make(chan OptionResult, 1)
 	// start all nodes and wait until each end
@@ -380,7 +379,7 @@ func TestProtoFullFast(t *testing.T) {
 		Auth:      schnorr.NewScheme(suite),
 	}
 	SetupNodes(tns, &dkgConf)
-	SetupProto(tns, &dkgConf, period, network)
+	SetupProto(tns, period, network)
 
 	var resCh = make(chan OptionResult, 1)
 	// start all nodes and wait until each end
@@ -425,7 +424,7 @@ func TestProtoResharingAbsent(t *testing.T) {
 		Auth:      schnorr.NewScheme(suite),
 	}
 	SetupNodes(tns, &dkgConf)
-	SetupProto(tns, &dkgConf, period, network)
+	SetupProto(tns, period, network)
 
 	var resCh = make(chan OptionResult, 1)
 	// start all nodes and wait until each end
@@ -464,7 +463,7 @@ func TestProtoResharingAbsent(t *testing.T) {
 	}
 	testResults(t, suite, thr, n, results)
 
-	fmt.Printf("\n\n ----- RESHARING ----\n\n")
+	t.Log("\n\n ----- RESHARING ----\n\n")
 	// RESHARING
 	var newTns = make([]*TestNode, newN)
 	copy(newTns, tns[:n-1])
@@ -483,7 +482,7 @@ func TestProtoResharingAbsent(t *testing.T) {
 	}
 
 	SetupReshareNodes(newTns, newConf, tns[0].res.Key.Commits)
-	SetupProto(newTns, newConf, period, network)
+	SetupProto(newTns, period, network)
 	///
 	/// We set a node as registered but offline
 	///
@@ -517,13 +516,13 @@ func TestProtoResharingAbsent(t *testing.T) {
 	var errNode error
 	for optRes := range resCh {
 		if optRes.Error != nil {
-			fmt.Printf("GOT ONE ERROR\n")
+			t.Log("GOT ONE ERROR\n")
 			require.Nil(t, errNode, "already an error saved!?")
 			errNode = optRes.Error
 			continue
 		}
 		results = append(results, optRes.Result)
-		fmt.Printf("GOT %d RESULTS\n", len(results))
+		t.Logf("GOT %d RESULTS\n", len(results))
 		if len(results) == newN-1 {
 			break
 		}
@@ -547,7 +546,7 @@ func TestProtoThresholdFast(t *testing.T) {
 		Auth:      schnorr.NewScheme(suite),
 	}
 	SetupNodes(tns, &dkgConf)
-	SetupProto(tns, &dkgConf, period, network)
+	SetupProto(tns, period, network)
 	// set a node that will send a bad deal such that all deals are received
 	// "fast", then the normal rounds are happening
 	network.BoardFor(1).badDeal = true
@@ -653,7 +652,7 @@ func TestProtoSkip(t *testing.T) {
 		Auth:      schnorr.NewScheme(suite),
 	}
 	SetupNodes(tns, &dkgConf)
-	SetupProto(tns, &dkgConf, period, network)
+	SetupProto(tns, period, network)
 	for _, tn := range tns {
 		tn.proto.skipVerif = true
 	}
@@ -677,7 +676,7 @@ func TestProtoSkip(t *testing.T) {
 	// expect all results
 	var results []*Result
 	for optRes := range resCh {
-		//require.NoError(t, optRes.Error)
+		require.NoError(t, optRes.Error)
 		results = append(results, optRes.Result)
 		if len(results) == n {
 			break

@@ -717,7 +717,7 @@ func TestDKGResharingFast(t *testing.T) {
 			skipNew = n.Index
 		}
 	}
-	fmt.Println("skipping old index: ", list[p].Index, "public key", skipKey, "newIdx", skipNew)
+	t.Log("skipping old index: ", list[p].Index, "public key", skipKey, "newIdx", skipNew)
 
 	newConf := &Config{
 		Suite:        suite,
