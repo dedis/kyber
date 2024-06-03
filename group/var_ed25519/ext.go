@@ -1,4 +1,4 @@
-package curve25519
+package var_ed25519
 
 import (
 	"crypto/cipher"

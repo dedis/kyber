@@ -10,7 +10,7 @@
 // are isomorphic to curves having c == 1.
 //
 // For details see Bernstein et al, "Twisted Edwards Curves", http://eprint.iacr.org/2008/013.pdf
-package curve25519
+package var_ed25519
 
 import (
 	"math/big"
