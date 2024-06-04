@@ -9,10 +9,7 @@ on:
 jobs:
   permission:
     if: ${{ github.event_name == 'pull_request_target' }}
-    strategy:
-      matrix:
-        platform: [macos-latest, windows-latest, ubuntu-latest]
-    runs-on: ${{ matrix.platform }}
+    runs-on: ubuntu-latest
     steps:
     - name: Add comment if PR permission failed
       if: ${{ !contains(github.event.pull_request.labels.*.name, 'safe PR') }}
