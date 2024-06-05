@@ -1,3 +1,3 @@
-// Package nist implements cryptographic groups and ciphersuites
-// based on the NIST standards, using Go's built-in crypto library.
+// Package p256 implements the P-256 elliptic curve
+// based on the NIST standard.
 package p256

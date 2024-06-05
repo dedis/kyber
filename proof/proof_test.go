@@ -256,8 +256,8 @@ func BenchmarkProof(b *testing.B) {
 		Suite
 	}{
 		{edwards25519.NewBlakeSHA256Ed25519()},
-		{var_ed25519.NewBlakeSHA256Curve25519(false)},
-		{var_ed25519.NewBlakeSHA256Curve25519(true)},
+		{var_ed25519.NewBlakeSHA256Ed25519(false)},
+		{var_ed25519.NewBlakeSHA256Ed25519(true)},
 		{p256.NewBlakeSHA256P256()},
 		{p256.NewBlakeSHA256QR512()},
 	}
