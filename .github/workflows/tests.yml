@@ -6,6 +6,10 @@ on:
   push:
     branches: [ master ]
 
+concurrency:
+  group: ci-${{ github.ref }}-test
+  cancel-in-progress: true
+
 jobs:
   permission:
     if: ${{ github.event_name == 'pull_request_target' }}
