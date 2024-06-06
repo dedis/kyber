@@ -399,7 +399,7 @@ func expandMessageXMD(h hash.Hash, m []byte, domainSeparator string, byteLen int
 }
 
 func expandMessageXOF(h sha3.ShakeHash, m []byte, domainSeparator string, byteLen int) ([]byte, error) {
-	if byteLen > 65535 {
+	if byteLen > 65535 || len(domainSeparator) == 0 {
 		return nil, errors.New("invalid parameters")
 	}
 
