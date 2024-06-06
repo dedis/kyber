@@ -6,14 +6,14 @@ import (
 	"os"
 	"testing"
 
-	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/kyber/v3/group/edwards25519"
-	"go.dedis.ch/kyber/v3/group/nist"
-	"go.dedis.ch/kyber/v3/pairing/bn254"
-	"go.dedis.ch/kyber/v3/pairing/bn256"
-	"go.dedis.ch/kyber/v3/sign/anon"
-	"go.dedis.ch/kyber/v3/sign/bls"
-	"go.dedis.ch/kyber/v3/util/test"
+	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v4/group/edwards25519"
+	nist "go.dedis.ch/kyber/v4/group/p256"
+	"go.dedis.ch/kyber/v4/pairing/bn254"
+	"go.dedis.ch/kyber/v4/pairing/bn256"
+	"go.dedis.ch/kyber/v4/sign/anon"
+	"go.dedis.ch/kyber/v4/sign/bls"
+	"go.dedis.ch/kyber/v4/util/test"
 )
 
 var (

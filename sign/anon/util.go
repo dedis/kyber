@@ -1,8 +1,8 @@
 package anon
 
 import (
-	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/kyber/v3/util/random"
+	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v4/util/random"
 )
 
 func BenchGenSig(suite Suite, nkeys int, benchMessage []byte, benchPub []kyber.Point, benchPri kyber.Scalar) []byte {

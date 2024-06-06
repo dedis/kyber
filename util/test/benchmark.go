@@ -4,11 +4,11 @@ import (
 	"crypto/rand"
 	"testing"
 
-	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/kyber/v3/pairing/bn256"
-	"go.dedis.ch/kyber/v3/sign"
-	"go.dedis.ch/kyber/v3/sign/bls"
-	"go.dedis.ch/kyber/v3/util/random"
+	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v4/pairing/bn256"
+	"go.dedis.ch/kyber/v4/sign"
+	"go.dedis.ch/kyber/v4/sign/bls"
+	"go.dedis.ch/kyber/v4/util/random"
 )
 
 func PrepareBLS(numSigs int) (suite *bn256.Suite, scheme sign.AggregatableScheme,
