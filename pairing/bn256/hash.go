@@ -1,6 +1,6 @@
 package bn256
 
-import "go.dedis.ch/kyber/v3"
+import "go.dedis.ch/kyber/v4"
 
 // HashG1 implements a hashing function into the G1 group.
 //
