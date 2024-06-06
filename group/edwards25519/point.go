@@ -310,7 +310,9 @@ func (P *point) Hash(m []byte, dst string) kyber.Point {
 }
 
 func hashToField(m []byte, dst string, count int) []fieldElement {
-	l := 48 // L param in RFC9380
+	// L param in RFC9380 section 5
+	// https://datatracker.ietf.org/doc/html/rfc9380#name-hashing-to-a-finite-field
+	l := 48
 	byteLen := count * l
 	uniformBytes, _ := expandMessageXMD(sha512.New(), m, dst, byteLen)
 
