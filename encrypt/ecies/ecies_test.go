@@ -6,9 +6,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"go.dedis.ch/kyber/v4"
-	"go.dedis.ch/kyber/v4/group/curve25519"
 	"go.dedis.ch/kyber/v4/group/edwards25519"
-	"go.dedis.ch/kyber/v4/group/nist"
+	"go.dedis.ch/kyber/v4/group/p256"
+	"go.dedis.ch/kyber/v4/group/var_ed25519"
 	"go.dedis.ch/kyber/v4/util/random"
 )
 
@@ -54,10 +54,10 @@ func BenchmarkECIES(b *testing.B) {
 		kyber.Group
 	}{
 		{edwards25519.NewBlakeSHA256Ed25519()},
-		{curve25519.NewBlakeSHA256Curve25519(false)},
-		{curve25519.NewBlakeSHA256Curve25519(true)},
-		{nist.NewBlakeSHA256P256()},
-		{nist.NewBlakeSHA256QR512()},
+		{var_ed25519.NewBlakeSHA256Ed25519(false)},
+		{var_ed25519.NewBlakeSHA256Ed25519(true)},
+		{p256.NewBlakeSHA256P256()},
+		{p256.NewBlakeSHA256QR512()},
 	}
 
 	message := make([]byte, 100_000)

@@ -1,4 +1,4 @@
-package nist
+package p256
 
 import (
 	"crypto/cipher"

@@ -1,4 +1,4 @@
-package curve25519
+package var_ed25519
 
 import (
 	"testing"
@@ -7,16 +7,16 @@ import (
 	"go.dedis.ch/kyber/v4/util/test"
 )
 
-var testSuite = NewBlakeSHA256Curve25519(false)
+var testSuite = NewBlakeSHA256Ed25519(false)
 
 // Test each curve implementation of the Ed25519 curve.
 
 func TestProjective25519(t *testing.T) {
-	test.GroupTest(t, new(ProjectiveCurve).Init(Param25519(), false))
+	test.GroupTest(t, new(ProjectiveCurve).Init(ParamEd25519(), false))
 }
 
 func TestExtended25519(t *testing.T) {
-	test.GroupTest(t, new(ExtendedCurve).Init(Param25519(), false))
+	test.GroupTest(t, new(ExtendedCurve).Init(ParamEd25519(), false))
 }
 
 func TestEd25519(t *testing.T) {
@@ -30,7 +30,7 @@ func Test1174(t *testing.T) {
 }
 
 func Test25519(t *testing.T) {
-	test.GroupTest(t, new(ExtendedCurve).Init(Param25519(), false))
+	test.GroupTest(t, new(ExtendedCurve).Init(ParamEd25519(), false))
 }
 
 func TestE382(t *testing.T) {
@@ -64,7 +64,7 @@ func TestFullOrder1174(t *testing.T) {
 }
 
 func TestFullOrder25519(t *testing.T) {
-	test.GroupTest(t, new(ExtendedCurve).Init(Param25519(), true))
+	test.GroupTest(t, new(ExtendedCurve).Init(ParamEd25519(), true))
 }
 
 func TestFullOrderE382(t *testing.T) {
@@ -83,8 +83,8 @@ func TestFullOrderE521(t *testing.T) {
 
 func TestCompareProjectiveExtended25519(t *testing.T) {
 	test.CompareGroups(t, testSuite.XOF,
-		new(ProjectiveCurve).Init(Param25519(), false),
-		new(ExtendedCurve).Init(Param25519(), false))
+		new(ProjectiveCurve).Init(ParamEd25519(), false),
+		new(ExtendedCurve).Init(ParamEd25519(), false))
 }
 
 func TestCompareProjectiveExtendedE382(t *testing.T) {
@@ -117,14 +117,14 @@ func TestCompareProjectiveExtendedE521(t *testing.T) {
 // Test Ed25519 versus ExtendedCurve implementations of Curve25519.
 func TestCompareEd25519(t *testing.T) {
 	test.CompareGroups(t, testSuite.XOF,
-		new(ExtendedCurve).Init(Param25519(), false),
+		new(ExtendedCurve).Init(ParamEd25519(), false),
 		new(edwards25519.Curve))
 }
 
 // Benchmark contrasting implementations of the Ed25519 curve
 
-var projBench = test.NewGroupBench(new(ProjectiveCurve).Init(Param25519(), false))
-var extBench = test.NewGroupBench(new(ExtendedCurve).Init(Param25519(), false))
+var projBench = test.NewGroupBench(new(ProjectiveCurve).Init(ParamEd25519(), false))
+var extBench = test.NewGroupBench(new(ExtendedCurve).Init(ParamEd25519(), false))
 var optBench = test.NewGroupBench(new(edwards25519.Curve))
 
 func BenchmarkPointAddProjective(b *testing.B) { projBench.PointAdd(b.N) }
