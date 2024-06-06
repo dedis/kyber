@@ -31,6 +31,7 @@ import (
 )
 
 var marshalPointID = [8]byte{'e', 'd', '.', 'p', 'o', 'i', 'n', 't'}
+var longDomainSeparator = "H2C-OVERSIZE-DST-"
 
 type point struct {
 	ge      extendedGroupElement
@@ -337,9 +338,8 @@ func expandMessageXMD(h hash.Hash, m []byte, domainSeparator string, byteLen int
 	}
 
 	if len(domainSeparator) > 255 {
-		longDstSep := "H2C-OVERSIZE-DST-"
 		h.Reset()
-		h.Write([]byte(longDstSep))
+		h.Write([]byte(longDomainSeparator))
 		h.Write([]byte(domainSeparator))
 
 		domainSeparator = string(h.Sum(nil))
@@ -404,11 +404,10 @@ func expandMessageXOF(h sha3.ShakeHash, m []byte, domainSeparator string, byteLe
 	}
 
 	if len(domainSeparator) > 255 {
-		longDstSep := "H2C-OVERSIZE-DST-"
 		outputSize := h.Size()
 
 		h.Reset()
-		h.Write([]byte(longDstSep))
+		h.Write([]byte(longDomainSeparator))
 		h.Write([]byte(domainSeparator))
 
 		dst := make([]byte, outputSize)
