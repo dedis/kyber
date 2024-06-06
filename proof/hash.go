@@ -54,7 +54,10 @@ func (c *hashProver) consumeMsg() error {
 		}
 
 		// Append the current message data to the proof
-		c.proof.Write(buf)
+		_, err = c.proof.Write(buf)
+		if err != nil {
+			return err
+		}
 		c.msg.Reset()
 	}
 
