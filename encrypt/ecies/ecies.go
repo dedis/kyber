@@ -36,13 +36,13 @@ func Encrypt(group kyber.Group, public kyber.Point, message []byte, hash func() 
 	// ephemeral key for every ECIES encryption and thus have a fresh
 	// HKDF-derived key for AES-GCM, the nonce for AES-GCM can be an arbitrary
 	// (even static) value. We derive it here simply via HKDF as well.)
-	l := 32 + 12
-	buf, err := deriveKey(hash, dh, l)
+	keyNonceLen := 32 + 12
+	buf, err := deriveKey(hash, dh, keyNonceLen)
 	if err != nil {
 		return nil, err
 	}
 	key := buf[:32]
-	nonce := buf[32:l]
+	nonce := buf[32:keyNonceLen]
 
 	// Encrypt message using AES-GCM
 	aes, err := aes.NewCipher(key)
@@ -91,13 +91,13 @@ func Decrypt(group kyber.Group, private kyber.Scalar, ctx []byte, hash func() ha
 
 	// Compute shared DH key and derive the symmetric key and nonce via HKDF
 	dh := group.Point().Mul(private, R)
-	length := 32 + 12
-	buf, err := deriveKey(hash, dh, length)
+	keyNonceLen := 32 + 12
+	buf, err := deriveKey(hash, dh, keyNonceLen)
 	if err != nil {
 		return nil, err
 	}
 	key := buf[:32]
-	nonce := buf[32:length]
+	nonce := buf[32:keyNonceLen]
 
 	// Decrypt message using AES-GCM
 	aes, err := aes.NewCipher(key)
