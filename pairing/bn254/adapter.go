@@ -1,7 +1,7 @@
 package bn254
 
 import (
-	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v4"
 )
 
 // SuiteBn254 is an adapter that implements the suites.Suite interface so that

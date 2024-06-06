@@ -3,8 +3,8 @@ package var_ed25519
 import (
 	"testing"
 
-	"go.dedis.ch/kyber/v3/group/edwards25519"
-	"go.dedis.ch/kyber/v3/util/test"
+	"go.dedis.ch/kyber/v4/group/edwards25519"
+	"go.dedis.ch/kyber/v4/util/test"
 )
 
 var testSuite = NewBlakeSHA256Ed25519(false)

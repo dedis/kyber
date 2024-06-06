@@ -8,8 +8,8 @@ import (
 	"sort"
 	"strings"
 
-	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/kyber/v3/share"
+	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v4/share"
 )
 
 // Index is an alias to designate the index of a node. The index is used to

@@ -4,10 +4,10 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"go.dedis.ch/kyber/v3/internal/test"
-	"go.dedis.ch/kyber/v3/pairing/bn256"
-	"go.dedis.ch/kyber/v3/share"
-	"go.dedis.ch/kyber/v3/xof/blake2xb"
+	"go.dedis.ch/kyber/v4/internal/test"
+	"go.dedis.ch/kyber/v4/pairing/bn256"
+	"go.dedis.ch/kyber/v4/share"
+	"go.dedis.ch/kyber/v4/xof/blake2xb"
 )
 
 func TestTBLS(test *testing.T) {

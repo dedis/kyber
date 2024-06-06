@@ -8,10 +8,10 @@ import (
 	"reflect"
 
 	"go.dedis.ch/fixbuf"
-	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/kyber/v3/group/internal/marshalling"
-	"go.dedis.ch/kyber/v3/util/random"
-	"go.dedis.ch/kyber/v3/xof/blake2xb"
+	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v4/group/internal/marshalling"
+	"go.dedis.ch/kyber/v4/util/random"
+	"go.dedis.ch/kyber/v4/xof/blake2xb"
 )
 
 // SuiteEd25519 is the suite for the Ed25519 curve
@@ -49,7 +49,7 @@ func (s *SuiteEd25519) RandomStream() cipher.Stream {
 }
 
 // NewBlakeSHA256Ed25519 returns a cipher suite based on package
-// go.dedis.ch/kyber/v3/xof/blake2xb, SHA-256, and Ed25519.
+// go.dedis.ch/kyber/v4/xof/blake2xb, SHA-256, and Ed25519.
 //
 // If fullGroup is false, then the group is the prime-order subgroup.
 //

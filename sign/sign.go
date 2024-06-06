@@ -3,8 +3,8 @@ package sign
 import (
 	"crypto/cipher"
 
-	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/kyber/v3/share"
+	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v4/share"
 )
 
 // Scheme is the minimal interface for a signature scheme.
