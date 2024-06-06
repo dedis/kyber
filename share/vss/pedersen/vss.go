@@ -12,9 +12,9 @@ import (
 	"fmt"
 	"reflect"
 
-	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/kyber/v3/share"
-	"go.dedis.ch/kyber/v3/sign/schnorr"
+	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v4/share"
+	"go.dedis.ch/kyber/v4/sign/schnorr"
 	"go.dedis.ch/protobuf"
 )
 
@@ -69,8 +69,6 @@ type EncryptedDeal struct {
 	DHKey []byte
 	// Signature of the DH key by the longterm key of the dealer
 	Signature []byte
-	// Nonce used for the encryption
-	Nonce []byte
 	// AEAD encryption of the deal marshalled by protobuf
 	Cipher []byte
 }
@@ -206,7 +204,6 @@ func (d *Dealer) EncryptedDeal(i int) (*EncryptedDeal, error) {
 	return &EncryptedDeal{
 		DHKey:     dhBytes,
 		Signature: signature,
-		Nonce:     nonce,
 		Cipher:    encrypted,
 	}, nil
 }
@@ -408,7 +405,8 @@ func (v *Verifier) decryptDeal(e *EncryptedDeal) (*Deal, error) {
 	if err != nil {
 		return nil, err
 	}
-	decrypted, err := gcm.Open(nil, e.Nonce, e.Cipher, v.hkdfContext)
+	nonce := make([]byte, gcm.NonceSize())
+	decrypted, err := gcm.Open(nil, nonce, e.Cipher, v.hkdfContext)
 	if err != nil {
 		return nil, err
 	}

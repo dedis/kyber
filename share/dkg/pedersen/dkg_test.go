@@ -8,13 +8,13 @@ import (
 
 	clock "github.com/jonboulle/clockwork"
 	"github.com/stretchr/testify/require"
-	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/kyber/v3/group/edwards25519"
-	"go.dedis.ch/kyber/v3/pairing/bn256"
-	"go.dedis.ch/kyber/v3/share"
-	"go.dedis.ch/kyber/v3/sign/schnorr"
-	"go.dedis.ch/kyber/v3/sign/tbls"
-	"go.dedis.ch/kyber/v3/util/random"
+	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v4/group/edwards25519"
+	"go.dedis.ch/kyber/v4/pairing/bn256"
+	"go.dedis.ch/kyber/v4/share"
+	"go.dedis.ch/kyber/v4/sign/schnorr"
+	"go.dedis.ch/kyber/v4/sign/tbls"
+	"go.dedis.ch/kyber/v4/util/random"
 )
 
 type TestNode struct {

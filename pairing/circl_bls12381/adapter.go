@@ -1,7 +1,7 @@
 package circl_bls12381
 
 import (
-	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v4"
 )
 
 // SuiteBLS12381 is an adapter that implements the suites.Suite interface so that

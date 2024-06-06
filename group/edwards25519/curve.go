@@ -4,8 +4,8 @@ import (
 	"crypto/cipher"
 	"crypto/sha512"
 
-	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/kyber/v3/util/random"
+	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v4/util/random"
 )
 
 // Curve represents the Ed25519 group.
