@@ -1,4 +1,4 @@
-module go.dedis.ch/kyber/v3
+module go.dedis.ch/kyber/v4
 
 go 1.20
 
