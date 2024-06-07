@@ -1,5 +1,7 @@
 package bn254
 
+import "fmt"
+
 // For details of the algorithms used, see "Multiplication and Squaring on
 // Pairing-Friendly Fields, Devegili et al.
 // http://eprint.iacr.org/2006/471.pdf.
@@ -11,7 +13,7 @@ type gfP6 struct {
 }
 
 func (e *gfP6) String() string {
-	return "(" + e.x.String() + ", " + e.y.String() + ", " + e.z.String() + ")"
+	return fmt.Sprintf("(%s, %s, %s)", e.x.String(), e.y.String(), e.z.String())
 }
 
 func (e *gfP6) Set(a *gfP6) *gfP6 {
@@ -212,7 +214,7 @@ func (e *gfP6) Invert(a *gfP6) *gfP6 {
 	return e
 }
 
-// Clone makes a hard copy of the field
+// Clone makes a deep copy of the field
 func (e *gfP6) Clone() gfP6 {
 	n := gfP6{
 		x: e.x.Clone(),

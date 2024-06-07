@@ -1,4 +1,4 @@
-// Package curve25519 contains several implementations of Twisted Edwards Curves,
+// Package var_ed25519 contains several implementations of Twisted Edwards Curves,
 // from general and unoptimized to highly specialized and optimized.
 //
 // Twisted Edwards curves are elliptic curves satisfying the equation:
@@ -10,12 +10,12 @@
 // are isomorphic to curves having c == 1.
 //
 // For details see Bernstein et al, "Twisted Edwards Curves", http://eprint.iacr.org/2008/013.pdf
-package curve25519
+package var_ed25519
 
 import (
 	"math/big"
 
-	"go.dedis.ch/kyber/v3/group/mod"
+	"go.dedis.ch/kyber/v4/group/mod"
 )
 
 // Param defines a Twisted Edwards curve (TEC).
@@ -68,13 +68,13 @@ func Param1174() *Param {
 	return &p
 }
 
-// Param25519 defines the Edwards version of Curve25519, as specified in:
+// ParamEd25519 defines the Edwards version of Curve25519, as specified in:
 // Bernstein et al, "High-speed high-security signatures",
 // http://ed25519.cr.yp.to/ed25519-20110926.pdf
-func Param25519() *Param {
+func ParamEd25519() *Param {
 	var p Param
 	var qs big.Int
-	p.Name = "Curve25519"
+	p.Name = "var_ed25519"
 	p.P.SetBit(zero, 255, 1).Sub(&p.P, big.NewInt(19))
 	qs.SetString("27742317777372353535851937790883648493", 10)
 	p.Q.SetBit(zero, 252, 1).Add(&p.Q, &qs)

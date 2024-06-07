@@ -1,22 +1,24 @@
 package suites
 
 import (
-	"go.dedis.ch/kyber/v3/group/edwards25519"
-	"go.dedis.ch/kyber/v3/group/nist"
-	"go.dedis.ch/kyber/v3/pairing/bls12381/circl"
-	"go.dedis.ch/kyber/v3/pairing/bls12381/kilic"
-	"go.dedis.ch/kyber/v3/pairing/bn256"
+	"go.dedis.ch/kyber/v4/group/edwards25519"
+	"go.dedis.ch/kyber/v4/group/p256"
+	"go.dedis.ch/kyber/v4/pairing/bls12381/circl"
+	"go.dedis.ch/kyber/v4/pairing/bls12381/kilic"
+	"go.dedis.ch/kyber/v4/pairing/bn254"
+	"go.dedis.ch/kyber/v4/pairing/bn256"
 )
 
 func init() {
 	// Those are variable time suites that shouldn't be used
 	// in production environment when possible
-	register(nist.NewBlakeSHA256P256())
-	register(nist.NewBlakeSHA256QR512())
+	register(p256.NewBlakeSHA256P256())
+	register(p256.NewBlakeSHA256QR512())
 	register(bn256.NewSuiteG1())
 	register(bn256.NewSuiteG2())
 	register(bn256.NewSuiteGT())
 	register(bn256.NewSuiteBn256())
+	register(bn254.NewSuite())
 	register(circl.NewSuiteBLS12381())
 	register(kilic.NewSuiteBLS12381())
 	// This is a constant time implementation that should be

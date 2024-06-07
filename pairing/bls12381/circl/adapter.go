@@ -1,7 +1,7 @@
 package circl
 
 import (
-	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v4"
 )
 
 // SuiteBLS12381 is an adapter that implements the suites.Suite interface so that
@@ -37,7 +37,7 @@ func (s *SuiteBLS12381) Scalar() kyber.Scalar {
 	return s.G1().Scalar()
 }
 
-// ScalarLen returns the lenght of a scalar
+// ScalarLen returns the length of a scalar
 func (s *SuiteBLS12381) ScalarLen() int {
 	return s.G1().ScalarLen()
 }

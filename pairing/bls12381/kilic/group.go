@@ -5,9 +5,9 @@ import (
 	"crypto/sha256"
 	"hash"
 
-	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/kyber/v3/util/random"
-	"go.dedis.ch/kyber/v3/xof/blake2xb"
+	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v4/util/random"
+	"go.dedis.ch/kyber/v4/xof/blake2xb"
 )
 
 // GroupChecker allows to verify if a Point is in the correct group or not. For

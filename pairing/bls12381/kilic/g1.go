@@ -7,8 +7,8 @@ import (
 	"io"
 
 	bls12381 "github.com/kilic/bls12-381"
-	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/kyber/v3/group/mod"
+	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v4/group/mod"
 )
 
 // domainG1 is the DST used for hash to curve on G1, this is the default from the RFC.

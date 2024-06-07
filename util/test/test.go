@@ -5,9 +5,9 @@ import (
 	"crypto/cipher"
 	"testing"
 
-	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/kyber/v3/util/key"
-	"go.dedis.ch/kyber/v3/util/random"
+	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v4/util/key"
+	"go.dedis.ch/kyber/v4/util/random"
 )
 
 // Suite represents the functionalities that this package can test

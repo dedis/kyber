@@ -1,4 +1,4 @@
-package curve25519
+package var_ed25519
 
 import (
 	"crypto/cipher"
@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"math/big"
 
-	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/kyber/v3/group/mod"
-	"go.dedis.ch/kyber/v3/util/random"
+	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v4/group/mod"
+	"go.dedis.ch/kyber/v4/util/random"
 )
 
 var zero = big.NewInt(0)
@@ -67,7 +67,7 @@ func (c *curve) PointLen() int {
 	return (c.P.BitLen() + 7 + 1) / 8
 }
 
-// NewKey returns a formatted curve25519 key (avoiding subgroup attack by requiring
+// NewKey returns a formatted, clamped scalar (avoiding subgroup attack by requiring
 // it to be a multiple of 8). NewKey implements the kyber/util/key.Generator interface.
 func (c *curve) NewKey(stream cipher.Stream) kyber.Scalar {
 	var buffer [32]byte

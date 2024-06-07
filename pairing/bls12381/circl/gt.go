@@ -5,7 +5,7 @@ import (
 	"io"
 
 	bls12381 "github.com/cloudflare/circl/ecc/bls12381"
-	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v4"
 )
 
 var gtBase *bls12381.Gt

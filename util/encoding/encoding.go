@@ -8,7 +8,7 @@ import (
 	"io"
 	"strings"
 
-	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v4"
 )
 
 // ReadHexPoint reads a point from r in hex representation.

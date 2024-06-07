@@ -1,12 +1,12 @@
 //go:build experimental
 // +build experimental
 
-package curve25519
+package var_ed25519
 
 import (
 	"testing"
 
-	"go.dedis.ch/kyber/v3/util/test"
+	"go.dedis.ch/kyber/v4/util/test"
 )
 
 // Test the basic implementation of the Ed25519 curve.

@@ -8,10 +8,10 @@ import (
 	"reflect"
 
 	bls12381 "github.com/kilic/bls12-381"
-	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/kyber/v3/pairing"
-	"go.dedis.ch/kyber/v3/util/random"
-	"go.dedis.ch/kyber/v3/xof/blake2xb"
+	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v4/pairing"
+	"go.dedis.ch/kyber/v4/util/random"
+	"go.dedis.ch/kyber/v4/xof/blake2xb"
 )
 
 type Suite struct {

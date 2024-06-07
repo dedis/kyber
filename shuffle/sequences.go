@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"math/big"
 
-	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/kyber/v3/proof"
-	"go.dedis.ch/kyber/v3/util/random"
+	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v4/proof"
+	"go.dedis.ch/kyber/v4/util/random"
 )
 
 // SequencesShuffle shuffles a sequence of ElGamal pairs based on Section 5 of

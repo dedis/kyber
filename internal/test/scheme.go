@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"go.dedis.ch/kyber/v3/sign"
-	"go.dedis.ch/kyber/v3/util/random"
+	"go.dedis.ch/kyber/v4/sign"
+	"go.dedis.ch/kyber/v4/util/random"
 )
 
 // SchemeTesting tests a scheme with simple checks
@@ -40,7 +40,7 @@ func SchemeTesting(t *testing.T, s sign.Scheme) {
 	})
 }
 
-// AggregationTesting test an aggrgatable scheme
+// AggregationTesting tests an aggregatable scheme
 func AggregationTesting(t *testing.T, s sign.AggregatableScheme) {
 	t.Run("Aggregation valid", func(tt *testing.T) {
 		msg := []byte("Hello Boneh-Lynn-Shacham")

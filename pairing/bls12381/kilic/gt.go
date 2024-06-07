@@ -6,8 +6,8 @@ import (
 	"io"
 
 	bls12381 "github.com/kilic/bls12-381"
-	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/kyber/v3/group/mod"
+	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v4/group/mod"
 )
 
 // GTElt contains a Gt element from the Kilic BLS12-381 curve

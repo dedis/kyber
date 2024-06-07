@@ -5,7 +5,7 @@ import (
 	"encoding/hex"
 	"testing"
 
-	"go.dedis.ch/kyber/v3/util/random"
+	"go.dedis.ch/kyber/v4/util/random"
 )
 
 func TestPointG1_HashToPoint(t *testing.T) {

@@ -10,29 +10,29 @@
 //
 // The protocol works as follow:
 //
-//   1. Each participant instantiates a DistKeyShare (DKS) struct.
-//   2. Then each participant runs an instance of the VSS protocol:
+//  1. Each participant instantiates a DistKeyShare (DKS) struct.
+//  2. Then each participant runs an instance of the VSS protocol:
 //     - each participant generates their deals with the method `Deals()` and then
-//      sends them to the right recipient.
+//     sends them to the right recipient.
 //     - each participant processes the received deal with `ProcessDeal()` and
-//      broadcasts the resulting response.
+//     broadcasts the resulting response.
 //     - each participant processes the response with `ProcessResponse()`. If a
-//      justification is returned, it must be broadcasted.
-//   3. Each participant can check if step 2. is done by calling
-//   `Certified()`.Those participants where Certified() returned true, belong to
-//   the set of "qualified" participants who will generate the distributed
-//   secret. To get the list of qualified participants, use QUAL().
-//   4. Each QUAL participant generates their secret commitments calling
-//    `SecretCommits()` and broadcasts them to the QUAL set.
-//   5. Each QUAL participant processes the received secret commitments using
-//    `SecretCommits()`. If there is an error, it can return a commitment complaint
-//    (ComplaintCommits) that must be broadcasted to the QUAL set.
-//   6. Each QUAL participant receiving a complaint can process it with
-//    `ProcessComplaintCommits()` which returns the secret share
-//    (ReconstructCommits) given from the malicious participant. This structure
-//    must be broadcasted to all the QUAL participant.
-//   7. At this point, every QUAL participant can issue the distributed key by
-//    calling `DistKeyShare()`.
+//     justification is returned, it must be broadcasted.
+//  3. Each participant can check if step 2. is done by calling
+//     `Certified()`.Those participants where Certified() returned true, belong to
+//     the set of "qualified" participants who will generate the distributed
+//     secret. To get the list of qualified participants, use QUAL().
+//  4. Each QUAL participant generates their secret commitments calling
+//     `SecretCommits()` and broadcasts them to the QUAL set.
+//  5. Each QUAL participant processes the received secret commitments using
+//     `SecretCommits()`. If there is an error, it can return a commitment complaint
+//     (ComplaintCommits) that must be broadcasted to the QUAL set.
+//  6. Each QUAL participant receiving a complaint can process it with
+//     `ProcessComplaintCommits()` which returns the secret share
+//     (ReconstructCommits) given from the malicious participant. This structure
+//     must be broadcasted to all the QUAL participant.
+//  7. At this point, every QUAL participant can issue the distributed key by
+//     calling `DistKeyShare()`.
 package dkg
 
 import (
@@ -41,12 +41,11 @@ import (
 	"errors"
 	"fmt"
 
-	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/kyber/v3/sign/schnorr"
+	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v4/share"
+	vss "go.dedis.ch/kyber/v4/share/vss/rabin"
+	"go.dedis.ch/kyber/v4/sign/schnorr"
 	"go.dedis.ch/protobuf"
-
-	"go.dedis.ch/kyber/v3/share"
-	vss "go.dedis.ch/kyber/v3/share/vss/rabin"
 )
 
 // Suite wraps the functionalities needed by the dkg package
@@ -79,8 +78,9 @@ func (d *DistKeyShare) Commitments() []kyber.Point {
 
 // Deal holds the Deal for one participant as well as the index of the issuing
 // Dealer.
-//  NOTE: Doing that in vss.go would be possible but then the Dealer is always
-//  assumed to be a member of the participants. It's only the case here.
+//
+//	NOTE: Doing that in vss.go would be possible but then the Dealer is always
+//	assumed to be a member of the participants. It's only the case here.
 type Deal struct {
 	// Index of the Dealer in the list of participants
 	Index uint32
@@ -222,9 +222,9 @@ func NewDistKeyGenerator(suite Suite, longterm kyber.Scalar, participants []kybe
 // to which participant a deal belongs to, loop over the keys as indices in
 // the list of participants:
 //
-//   for i,dd := range distDeals {
-//      sendTo(participants[i],dd)
-//   }
+//	for i,dd := range distDeals {
+//	   sendTo(participants[i],dd)
+//	}
 //
 // This method panics if it can't process its own deal.
 func (d *DistKeyGenerator) Deals() (map[int]*Deal, error) {
