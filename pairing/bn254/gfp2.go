@@ -155,7 +155,7 @@ func (e *gfP2) Invert(a *gfP2) *gfP2 {
 	return e
 }
 
-// Clone makes a hard copy of the field
+// Clone makes a deep copy of the field
 func (e *gfP2) Clone() gfP2 {
 	n := gfP2{}
 	copy(n.x[:], e.x[:])

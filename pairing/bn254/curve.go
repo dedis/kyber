@@ -246,7 +246,7 @@ func (c *curvePoint) Neg(a *curvePoint) {
 	c.t = gfP{0}
 }
 
-// Clone makes a hard copy of the curve point
+// Clone makes a deep copy of the curve point
 func (c *curvePoint) Clone() *curvePoint {
 	n := &curvePoint{}
 	copy(n.x[:], c.x[:])

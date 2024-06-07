@@ -159,7 +159,7 @@ func (e *gfP12) Invert(a *gfP12) *gfP12 {
 	return e
 }
 
-// Clone makes a hard copy of the field
+// Clone makes a deep copy of the field
 func (e *gfP12) Clone() *gfP12 {
 	n := &gfP12{}
 	n.x = e.x.Clone()
