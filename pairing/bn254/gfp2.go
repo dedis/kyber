@@ -1,5 +1,7 @@
 package bn254
 
+import "fmt"
+
 // For details of the algorithms used, see "Multiplication and Squaring on
 // Pairing-Friendly Fields, Devegili et al.
 // http://eprint.iacr.org/2006/471.pdf.
@@ -18,7 +20,7 @@ func gfP2Decode(in *gfP2) *gfP2 {
 }
 
 func (e *gfP2) String() string {
-	return "(" + e.x.String() + ", " + e.y.String() + ")"
+	return fmt.Sprintf("(%s, %s)", e.x.String(), e.y.String())
 }
 
 func (e *gfP2) Set(a *gfP2) *gfP2 {

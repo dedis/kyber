@@ -1,5 +1,7 @@
 package bn254
 
+import "fmt"
+
 // For details of the algorithms used, see "Multiplication and Squaring on
 // Pairing-Friendly Fields, Devegili et al.
 // http://eprint.iacr.org/2006/471.pdf.
@@ -11,7 +13,7 @@ type gfP6 struct {
 }
 
 func (e *gfP6) String() string {
-	return "(" + e.x.String() + ", " + e.y.String() + ", " + e.z.String() + ")"
+	return fmt.Sprintf("(%s, %s, %s)", e.x.String(), e.y.String(), e.z.String())
 }
 
 func (e *gfP6) Set(a *gfP6) *gfP6 {
