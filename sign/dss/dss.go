@@ -118,7 +118,7 @@ func (d *DSS) PartialSig() (*PartialSig, error) {
 	ps := &PartialSig{
 		Partial: &share.PriShare{
 			V: right.Add(right, beta),
-			I: d.index,
+			I: uint32(d.index),
 		},
 		SessionID: d.sessionID,
 	}
@@ -138,7 +138,7 @@ func (d *DSS) PartialSig() (*PartialSig, error) {
 // received by the same peer. To know whether the distributed signature can be
 // computed after this call, one can use the `EnoughPartialSigs` method.
 func (d *DSS) ProcessPartialSig(ps *PartialSig) error {
-	public, ok := findPub(d.participants, ps.Partial.I)
+	public, ok := findPub(d.participants, int(ps.Partial.I))
 	if !ok {
 		return errors.New("dss: partial signature with invalid index")
 	}
@@ -152,7 +152,7 @@ func (d *DSS) ProcessPartialSig(ps *PartialSig) error {
 		return errors.New("dss: session id do not match")
 	}
 
-	if _, ok := d.partialsIdx[ps.Partial.I]; ok {
+	if _, ok := d.partialsIdx[int(ps.Partial.I)]; ok {
 		return errors.New("dss: partial signature already received from peer")
 	}
 
@@ -166,7 +166,7 @@ func (d *DSS) ProcessPartialSig(ps *PartialSig) error {
 	if !left.Equal(right) {
 		return errors.New("dss: partial signature not valid")
 	}
-	d.partialsIdx[ps.Partial.I] = true
+	d.partialsIdx[int(ps.Partial.I)] = true
 	d.partials = append(d.partials, ps.Partial)
 	return nil
 }

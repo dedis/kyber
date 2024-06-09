@@ -348,7 +348,7 @@ func (d *DistKeyGenerator) Deals() (*DealBundle, error) {
 	deals := make([]Deal, 0, len(d.c.NewNodes))
 	for _, node := range d.c.NewNodes {
 		// compute share
-		si := d.dpriv.Eval(int(node.Index)).V
+		si := d.dpriv.Eval(node.Index).V
 
 		if d.canReceive && uint32(d.nidx) == node.Index {
 			d.validShares[d.oidx] = si
@@ -467,7 +467,7 @@ func (d *DistKeyGenerator) ProcessDeals(bundles []*DealBundle) (*ResponseBundle,
 				continue
 			}
 			// check if share is valid w.r.t. public commitment
-			comm := pubPoly.Eval(int(d.nidx)).V
+			comm := pubPoly.Eval(d.nidx).V
 			commShare := d.c.Suite.Point().Mul(share, nil)
 			if !comm.Equal(commShare) {
 				d.c.Error("Deal share invalid wrt public poly")
@@ -478,7 +478,7 @@ func (d *DistKeyGenerator) ProcessDeals(bundles []*DealBundle) (*ResponseBundle,
 			if d.isResharing {
 				// check that the evaluation this public polynomial at 0,
 				// corresponds to the commitment of the previous the dealer's index
-				oldShareCommit := d.olddpub.Eval(int(bundle.DealerIndex)).V
+				oldShareCommit := d.olddpub.Eval(bundle.DealerIndex).V
 				publicCommit := pubPoly.Commit()
 				if !oldShareCommit.Equal(publicCommit) {
 					// inconsistent share from old member
@@ -689,7 +689,7 @@ func (d *DistKeyGenerator) ProcessResponses(bundles []*ResponseBundle) (res *Res
 			continue
 		}
 		// create justifications for the requested share
-		var sh = d.dpriv.Eval(int(shareIndex)).V
+		var sh = d.dpriv.Eval(shareIndex).V
 		justifications = append(justifications, Justification{
 			ShareIndex: shareIndex,
 			Share:      sh,
@@ -788,7 +788,7 @@ func (d *DistKeyGenerator) ProcessJustifications(bundles []*JustificationBundle)
 			}
 			// compare commit and public poly
 			commit := d.c.Suite.Point().Mul(justif.Share, nil)
-			expected := pubPoly.Eval(int(justif.ShareIndex)).V
+			expected := pubPoly.Eval(justif.ShareIndex).V
 			if !commit.Equal(expected) {
 				// invalid justification - evict
 				d.evicted = append(d.evicted, bundle.DealerIndex)
@@ -798,7 +798,7 @@ func (d *DistKeyGenerator) ProcessJustifications(bundles []*JustificationBundle)
 			if d.isResharing {
 				// check that the evaluation this public polynomial at 0,
 				// corresponds to the commitment of the previous the dealer's index
-				oldShareCommit := d.olddpub.Eval(int(bundle.DealerIndex)).V
+				oldShareCommit := d.olddpub.Eval(bundle.DealerIndex).V
 				publicCommit := pubPoly.Commit()
 				if !oldShareCommit.Equal(publicCommit) {
 					// inconsistent share from old member
@@ -895,7 +895,7 @@ func (d *DistKeyGenerator) computeResharingResult() (*Result, error) {
 		// share of dist. secret. Invertion of rows/column
 		shares = append(shares, &share.PriShare{
 			V: sh,
-			I: int(n.Index),
+			I: n.Index,
 		})
 		validDealers = append(validDealers, n.Index)
 	}
@@ -907,7 +907,7 @@ func (d *DistKeyGenerator) computeResharingResult() (*Result, error) {
 		return nil, err
 	}
 	privateShare := &share.PriShare{
-		I: int(d.nidx),
+		I: d.nidx,
 		V: priPoly.Secret(),
 	}
 
@@ -923,7 +923,7 @@ func (d *DistKeyGenerator) computeResharingResult() (*Result, error) {
 			if coeffs[j] == nil {
 				continue
 			}
-			tmpCoeffs = append(tmpCoeffs, &share.PubShare{I: int(j), V: coeffs[j][i]})
+			tmpCoeffs = append(tmpCoeffs, &share.PubShare{I: j, V: coeffs[j][i]})
 		}
 
 		// using the old threshold / length because there are at most
@@ -1030,7 +1030,7 @@ func (d *DistKeyGenerator) computeDKGResult() (*Result, error) {
 		Key: &DistKeyShare{
 			Commits: commits,
 			Share: &share.PriShare{
-				I: int(d.nidx),
+				I: d.nidx,
 				V: finalShare,
 			},
 		},
