@@ -14,6 +14,7 @@ package pvss
 
 import (
 	"errors"
+	"math/big"
 
 	"go.dedis.ch/kyber/v4"
 	"go.dedis.ch/kyber/v4/proof/dleq"
@@ -35,6 +36,7 @@ var ErrTooFewShares = errors.New("not enough shares to recover secret")
 var ErrDifferentLengths = errors.New("inputs of different lengths")
 var ErrEncVerification = errors.New("verification of encrypted share failed")
 var ErrDecVerification = errors.New("verification of decrypted share failed")
+var ErrCommitmentComputation = errors.New("integer too large to be represented in int64")
 
 // PubVerShare is a public verifiable share.
 type PubVerShare struct {
@@ -81,6 +83,35 @@ func EncShares(suite Suite, H kyber.Point, X []kyber.Point, secret kyber.Scalar,
 	}
 
 	return encShares, pubPoly, nil
+}
+
+func computeCommitments(suite Suite, n int, polyComs []kyber.Point) ([]kyber.Point, error) {
+	coms := make([]kyber.Point, n) // holds Xi in the paper
+	i := big.NewInt(0)
+	j := big.NewInt(0)
+	exp := big.NewInt(0)
+	expScalar := suite.Scalar().Zero()
+
+	for ith := range coms {
+		i.SetInt64(int64(ith + 1)) // 1 <= i <= n
+
+		acc := suite.Point().Null()
+		for jth, cj := range polyComs {
+			j.SetInt64(int64(jth))
+			exp.Exp(i, j, nil) // i ** j
+			if !exp.IsInt64() {
+				return nil, ErrCommitmentComputation
+			}
+
+			expScalar.SetInt64(exp.Int64())
+			com := suite.Point().Mul(expScalar, cj) // C_j ** (i**j)
+			acc.Add(acc, com)
+		}
+
+		coms[ith] = acc
+	}
+
+	return coms, nil
 }
 
 // VerifyEncShare checks that the encrypted share sX satisfies
