@@ -37,6 +37,7 @@ var ErrDifferentLengths = errors.New("inputs of different lengths")
 var ErrEncVerification = errors.New("verification of encrypted share failed")
 var ErrDecVerification = errors.New("verification of decrypted share failed")
 var ErrCommitmentComputation = errors.New("integer too large to be represented in int64")
+var ErrChallengeVerification = errors.New("failed to verify the challenge")
 
 // PubVerShare is a public verifiable share.
 type PubVerShare struct {
@@ -127,13 +128,53 @@ func VerifyEncShare(suite Suite, H kyber.Point, X kyber.Point, sH kyber.Point, e
 // VerifyEncShareBatch provides the same functionality as VerifyEncShare but for
 // slices of encrypted shares. The function returns the valid encrypted shares
 // together with the corresponding public keys.
-func VerifyEncShareBatch(suite Suite, H kyber.Point, X []kyber.Point, sH []kyber.Point, encShares []*PubVerShare) ([]kyber.Point, []*PubVerShare, error) {
+func VerifyEncShareBatch(suite Suite, H kyber.Point, X []kyber.Point, sH []kyber.Point, commit *share.PubPoly, encShares []*PubVerShare) ([]kyber.Point, []*PubVerShare, error) {
 	if len(X) != len(sH) || len(sH) != len(encShares) {
 		return nil, nil, ErrDifferentLengths
 	}
 	var K []kyber.Point  // good public keys
 	var E []*PubVerShare // good encrypted shares
+
+	n := len(X)
+
+	// Need to compute the global challenge and verify the encrypted shares
+	_, polyComs := commit.Info()
+	coms, err := computeCommitments(suite, len(X), polyComs)
+	if err != nil {
+		return nil, nil, err
+	}
+	ps := make([]kyber.Point, n)
+	vG := make([]kyber.Point, n)
+	vH := make([]kyber.Point, n)
+
+	for i := 0; i < n; i++ {
+		ps[i] = encShares[i].S.V
+		vG[i] = encShares[i].P.VG
+		vH[i] = encShares[i].P.VH
+	}
+
+	h := suite.Hash()
+	for _, x := range coms {
+		x.MarshalTo(h)
+	}
+	for _, x := range ps {
+		x.MarshalTo(h)
+	}
+	for _, x := range vG {
+		x.MarshalTo(h)
+	}
+	for _, x := range vH {
+		x.MarshalTo(h)
+	}
+	cb := h.Sum(nil)
+
+	expectedChallenge := suite.Scalar().Pick(suite.XOF(cb))
+
 	for i := 0; i < len(X); i++ {
+		if !encShares[i].P.C.Equal(expectedChallenge) {
+			return nil, nil, ErrChallengeVerification
+		}
+
 		if err := VerifyEncShare(suite, H, X[i], sH[i], encShares[i]); err == nil {
 			K = append(K, X[i])
 			E = append(E, encShares[i])

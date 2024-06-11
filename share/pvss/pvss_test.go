@@ -190,13 +190,13 @@ func TestPVSSBatch(test *testing.T) {
 	}
 
 	// Batch verification
-	X0, E0, err := VerifyEncShareBatch(suite, H, X, sH0, e0)
+	X0, E0, err := VerifyEncShareBatch(suite, H, X, sH0, p0, e0)
 	require.Equal(test, err, nil)
 
-	X1, E1, err := VerifyEncShareBatch(suite, H, X, sH1, e1)
+	X1, E1, err := VerifyEncShareBatch(suite, H, X, sH1, p1, e1)
 	require.Equal(test, err, nil)
 
-	X2, E2, err := VerifyEncShareBatch(suite, H, X, sH2, e2)
+	X2, E2, err := VerifyEncShareBatch(suite, H, X, sH2, p2, e2)
 	require.Equal(test, err, nil)
 
 	// Reorder (some) poly evals, keys, and shares
