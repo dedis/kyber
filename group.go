@@ -1,4 +1,3 @@
-//nolint:interfacebloat // Already a well defined interface
 package kyber
 
 import (
