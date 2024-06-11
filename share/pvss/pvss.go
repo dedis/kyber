@@ -31,10 +31,10 @@ type Suite interface {
 }
 
 // Some error definitions.
-var errorTooFewShares = errors.New("not enough shares to recover secret")
-var errorDifferentLengths = errors.New("inputs of different lengths")
-var errorEncVerification = errors.New("verification of encrypted share failed")
-var errorDecVerification = errors.New("verification of decrypted share failed")
+var ErrTooFewShares = errors.New("not enough shares to recover secret")
+var ErrDifferentLengths = errors.New("inputs of different lengths")
+var ErrEncVerification = errors.New("verification of encrypted share failed")
+var ErrDecVerification = errors.New("verification of decrypted share failed")
 
 // PubVerShare is a public verifiable share.
 type PubVerShare struct {
@@ -88,7 +88,7 @@ func EncShares(suite Suite, H kyber.Point, X []kyber.Point, secret kyber.Scalar,
 // evaluating the public commitment polynomial at the encrypted share's index i.
 func VerifyEncShare(suite Suite, H kyber.Point, X kyber.Point, sH kyber.Point, encShare *PubVerShare) error {
 	if err := encShare.P.Verify(suite, H, X, sH, encShare.S.V); err != nil {
-		return errorEncVerification
+		return ErrEncVerification
 	}
 	return nil
 }
@@ -98,7 +98,7 @@ func VerifyEncShare(suite Suite, H kyber.Point, X kyber.Point, sH kyber.Point, e
 // together with the corresponding public keys.
 func VerifyEncShareBatch(suite Suite, H kyber.Point, X []kyber.Point, sH []kyber.Point, encShares []*PubVerShare) ([]kyber.Point, []*PubVerShare, error) {
 	if len(X) != len(sH) || len(sH) != len(encShares) {
-		return nil, nil, errorDifferentLengths
+		return nil, nil, ErrDifferentLengths
 	}
 	var K []kyber.Point  // good public keys
 	var E []*PubVerShare // good encrypted shares
@@ -133,7 +133,7 @@ func DecShare(suite Suite, H kyber.Point, X kyber.Point, sH kyber.Point, x kyber
 // shares as well as the corresponding public keys.
 func DecShareBatch(suite Suite, H kyber.Point, X []kyber.Point, sH []kyber.Point, x kyber.Scalar, encShares []*PubVerShare) ([]kyber.Point, []*PubVerShare, []*PubVerShare, error) {
 	if len(X) != len(sH) || len(sH) != len(encShares) {
-		return nil, nil, nil, errorDifferentLengths
+		return nil, nil, nil, ErrDifferentLengths
 	}
 	var K []kyber.Point  // good public keys
 	var E []*PubVerShare // good encrypted shares
@@ -152,7 +152,7 @@ func DecShareBatch(suite Suite, H kyber.Point, X []kyber.Point, sH []kyber.Point
 // log_{G}(X) == log_{sG}(sX). Note that X = xG and sX = s(xG) = x(sG).
 func VerifyDecShare(suite Suite, G kyber.Point, X kyber.Point, encShare *PubVerShare, decShare *PubVerShare) error {
 	if err := decShare.P.Verify(suite, G, decShare.S.V, X, encShare.S.V); err != nil {
-		return errorDecVerification
+		return ErrDecVerification
 	}
 	return nil
 }
@@ -161,7 +161,7 @@ func VerifyDecShare(suite Suite, G kyber.Point, X kyber.Point, encShare *PubVerS
 // slices of decrypted shares. The function returns the the valid decrypted shares.
 func VerifyDecShareBatch(suite Suite, G kyber.Point, X []kyber.Point, encShares []*PubVerShare, decShares []*PubVerShare) ([]*PubVerShare, error) {
 	if len(X) != len(encShares) || len(encShares) != len(decShares) {
-		return nil, errorDifferentLengths
+		return nil, ErrDifferentLengths
 	}
 	var D []*PubVerShare // good decrypted shares
 	for i := 0; i < len(X); i++ {
@@ -180,7 +180,7 @@ func RecoverSecret(suite Suite, G kyber.Point, X []kyber.Point, encShares []*Pub
 		return nil, err
 	}
 	if len(D) < t {
-		return nil, errorTooFewShares
+		return nil, ErrTooFewShares
 	}
 	var shares []*share.PubShare
 	for _, s := range D {

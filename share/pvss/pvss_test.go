@@ -151,7 +151,7 @@ func TestPVSSDeleteFail(test *testing.T) {
 
 	// (3) Check decrypted shares and recover secret if possible (dealer/3rd party)
 	_, err = RecoverSecret(suite, G, K, E, D, t, n)
-	require.Equal(test, err, errorTooFewShares) // this test is supposed to fail
+	require.Equal(test, err, ErrTooFewShares) // this test is supposed to fail
 }
 
 func TestPVSSBatch(test *testing.T) {
