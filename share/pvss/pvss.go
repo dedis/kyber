@@ -115,6 +115,46 @@ func computeCommitments(suite Suite, n int, polyComs []kyber.Point) ([]kyber.Poi
 	return coms, nil
 }
 
+func computeGlobalChallenge(suite Suite, n int, commit *share.PubPoly, encShares []*PubVerShare) (kyber.Scalar, error) {
+	_, polyComs := commit.Info()
+	coms, err := computeCommitments(suite, n, polyComs)
+	if err != nil {
+		return nil, err
+	}
+
+	h := suite.Hash()
+	for _, com := range coms {
+		_, err = com.MarshalTo(h)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	for _, share := range encShares {
+		_, err = share.S.V.MarshalTo(h)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	for _, share := range encShares {
+		_, err = share.P.VG.MarshalTo(h)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	for _, share := range encShares {
+		_, err = share.P.VH.MarshalTo(h)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	cb := h.Sum(nil)
+	return suite.Scalar().Pick(suite.XOF(cb)), nil
+}
+
 // VerifyEncShare checks that the encrypted share sX satisfies
 // log_{H}(sH) == log_{X}(sX) where sH is the public commitment computed by
 // evaluating the public commitment polynomial at the encrypted share's index i.
@@ -135,40 +175,11 @@ func VerifyEncShareBatch(suite Suite, H kyber.Point, X []kyber.Point, sH []kyber
 	var K []kyber.Point  // good public keys
 	var E []*PubVerShare // good encrypted shares
 
-	n := len(X)
-
 	// Need to compute the global challenge and verify the encrypted shares
-	_, polyComs := commit.Info()
-	coms, err := computeCommitments(suite, len(X), polyComs)
+	expectedChallenge, err := computeGlobalChallenge(suite, len(X), commit, encShares)
 	if err != nil {
 		return nil, nil, err
 	}
-	ps := make([]kyber.Point, n)
-	vG := make([]kyber.Point, n)
-	vH := make([]kyber.Point, n)
-
-	for i := 0; i < n; i++ {
-		ps[i] = encShares[i].S.V
-		vG[i] = encShares[i].P.VG
-		vH[i] = encShares[i].P.VH
-	}
-
-	h := suite.Hash()
-	for _, x := range coms {
-		x.MarshalTo(h)
-	}
-	for _, x := range ps {
-		x.MarshalTo(h)
-	}
-	for _, x := range vG {
-		x.MarshalTo(h)
-	}
-	for _, x := range vH {
-		x.MarshalTo(h)
-	}
-	cb := h.Sum(nil)
-
-	expectedChallenge := suite.Scalar().Pick(suite.XOF(cb))
 
 	for i := 0; i < len(X); i++ {
 		if !encShares[i].P.C.Equal(expectedChallenge) {
