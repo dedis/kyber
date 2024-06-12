@@ -97,6 +97,10 @@ linters-settings:
       - G107 # variables in URLs
       - G404 # use of weak random generator
 
+  gocritic:
+    disabled-checks:
+      - captLocal
+
 linters:
   disable-all: true
   enable:
