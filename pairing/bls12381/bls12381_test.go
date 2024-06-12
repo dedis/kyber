@@ -76,10 +76,6 @@ func TestZKCryptoVectorsG1Compressed(t *testing.T) {
 	tests, err := filepath.Glob(deserializationG1Tests)
 	require.NoError(t, err)
 
-	// Remove from tests "deserialization_fails_with_b_flag_and_a_flag_true.yaml", failing on Circl (index 6)
-	// https://github.com/cloudflare/circl/issues/499 - Remove the line when the issue is fixed
-	tests = append(tests[:6], tests[7:]...)
-
 	for _, testPath := range tests {
 		t.Run(testPath, func(t *testing.T) {
 			testFile, err := os.Open(testPath)
@@ -126,10 +122,6 @@ func TestZKCryptoVectorsG2Compressed(t *testing.T) {
 	}
 	tests, err := filepath.Glob(deserializationG2Tests)
 	require.NoError(t, err)
-
-	// Remove from tests "deserialization_fails_with_b_flag_and_a_flag_true.yaml", failing on Circl (index 6)
-	// https://github.com/cloudflare/circl/issues/499 - Remove the line when the issue is fixed
-	tests = append(tests[:6], tests[7:]...)
 
 	for _, testPath := range tests {
 		t.Run(testPath, func(t *testing.T) {
