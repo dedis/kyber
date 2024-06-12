@@ -125,24 +125,24 @@ func SequencesShuffle(
 // assertXY checks that x, y have the same dimensions and at least one element
 func assertXY(X, Y [][]kyber.Point) error {
 	if len(X) == 0 || len(X[0]) == 0 {
-		return errors.New("X is empty")
+		return errors.New("array X is empty")
 	}
 	if len(Y) == 0 || len(Y[0]) == 0 {
-		return errors.New("Y is empty")
+		return errors.New("array Y is empty")
 	}
 
 	if len(X) != len(Y) {
-		return fmt.Errorf("X and Y have a different size: %d != %d", len(X), len(Y))
+		return fmt.Errorf("arrays X and Y have a different size: %d != %d", len(X), len(Y))
 	}
 
 	expected := len(X[0])
 
 	for i := range X {
 		if len(X[i]) != expected {
-			return fmt.Errorf("X[%d] has unexpected size: %d != %d", i, expected, len(X[i]))
+			return fmt.Errorf("array X[%d] has unexpected size: %d != %d", i, expected, len(X[i]))
 		}
 		if len(Y[i]) != expected {
-			return fmt.Errorf("Y[%d] has unexpected size: %d != %d", i, expected, len(Y[i]))
+			return fmt.Errorf("array Y[%d] has unexpected size: %d != %d", i, expected, len(Y[i]))
 		}
 	}
 

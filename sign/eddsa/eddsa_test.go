@@ -171,7 +171,7 @@ func TestEdDSAVerifyNonCanonicalR(t *testing.T) {
 		sig[i] = nonCanonicalR[i]
 	}
 	err = Verify(ed.Public, msg, sig)
-	require.EqualError(t, err, "r is not canonical")
+	require.EqualError(t, err, "point R is not canonical")
 }
 
 // Test non-canonical keys
@@ -215,7 +215,7 @@ func TestEdDSAVerifySmallOrderR(t *testing.T) {
 	}
 
 	err = Verify(ed.Public, msg, sig)
-	require.EqualError(t, err, "r has small order")
+	require.EqualError(t, err, "point R has small order")
 }
 
 // Test for small order public key
