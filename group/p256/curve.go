@@ -98,7 +98,7 @@ func (P *curvePoint) Pick(rand cipher.Stream) kyber.Point {
 	return P.Embed(nil, rand)
 }
 
-// Embed pick a curve point containing a variable amount of embedded data.
+// Embed picks a curve point containing a variable amount of embedded data.
 // Remaining bits comprising the point are chosen randomly.
 func (P *curvePoint) Embed(data []byte, rand cipher.Stream) kyber.Point {
 	l := P.c.coordLen()
@@ -119,7 +119,7 @@ func (P *curvePoint) Embed(data []byte, rand cipher.Stream) kyber.Point {
 	}
 }
 
-// Data extract embedded data from a curve point
+// Data extracts embedded data from a curve point
 func (P *curvePoint) Data() ([]byte, error) {
 	b := P.x.Bytes()
 	l := P.c.coordLen()
