@@ -35,7 +35,6 @@ type PriShare struct {
 func (p *PriShare) Hash(s kyber.HashFactory) []byte {
 	h := s.Hash()
 	_, _ = p.V.MarshalTo(h)
-	//nolint:staticcheck // TODO: SA1003 fixed with https://github.com/dedis/kyber/issues/492
 	_ = binary.Write(h, binary.LittleEndian, p.I)
 	return h.Sum(nil)
 }
@@ -304,7 +303,6 @@ type PubShare struct {
 func (p *PubShare) Hash(s kyber.HashFactory) []byte {
 	h := s.Hash()
 	_, _ = p.V.MarshalTo(h)
-	//nolint:staticcheck // TODO: SA1003 fixed with https://github.com/dedis/kyber/issues/492
 	_ = binary.Write(h, binary.LittleEndian, p.I)
 	return h.Sum(nil)
 }
