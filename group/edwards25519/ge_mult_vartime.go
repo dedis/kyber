@@ -9,10 +9,10 @@ package edwards25519
 //
 //	a[31] <= 127
 func geScalarMultVartime(h *extendedGroupElement, a *[32]byte,
-	b *extendedGroupElement) {
+	A *extendedGroupElement) {
 
 	var aSlide [256]int8
-	var Ai [8]cachedGroupElement // b,3A,5A,7A,9A,11A,13A,15A
+	var Ai [8]cachedGroupElement // A,3A,5A,7A,9A,11A,13A,15A
 	var t completedGroupElement
 	var u, A2 extendedGroupElement
 	var r projectiveGroupElement
@@ -22,12 +22,12 @@ func geScalarMultVartime(h *extendedGroupElement, a *[32]byte,
 	// resulting in only zero or odd multipliers between -15 and 15.
 	slide(&aSlide, a)
 
-	// Form an array of odd multiples of b from 1A through 15A,
+	// Form an array of odd multiples of A from 1A through 15A,
 	// in addition-ready cached group element form.
-	// We only need odd multiples of b because slide()
+	// We only need odd multiples of A because slide()
 	// produces only odd-multiple clumps of bits.
-	b.ToCached(&Ai[0])
-	b.Double(&t)
+	A.ToCached(&Ai[0])
+	A.Double(&t)
 	t.ToExtended(&A2)
 	for i := 0; i < 7; i++ {
 		t.Add(&A2, &Ai[i])

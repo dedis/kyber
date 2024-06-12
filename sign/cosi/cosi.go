@@ -55,7 +55,7 @@ import (
 // Commit returns a random scalar v, generated from the given suite,
 // and a corresponding commitment V = [v]G. If the given cipher stream is nil,
 // a random stream is used.
-func Commit(suite Suite) (v kyber.Scalar, vp kyber.Point) {
+func Commit(suite Suite) (v kyber.Scalar, V kyber.Point) {
 	random := suite.Scalar().Pick(suite.RandomStream())
 	commitment := suite.Point().Mul(random, nil)
 	return random, commitment

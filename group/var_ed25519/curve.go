@@ -81,11 +81,11 @@ func (c *curve) NewKey(stream cipher.Stream) kyber.Scalar {
 	return secret
 }
 
-func (c *curve) initBasePoint(self kyber.Group, p *Param, fullGroup bool, base point) {
+func (c *curve) initBasePoint(self kyber.Group, p *Param, fullGroup bool, Base point) {
 	var bx, by *big.Int
 	if fullGroup {
 		bx, by = &p.FBX, &p.FBY
-		base.initXY(&p.FBX, &p.FBY, self)
+		Base.initXY(&p.FBX, &p.FBY, self)
 	} else {
 		bx, by = &p.PBX, &p.PBY
 	}
@@ -101,25 +101,25 @@ func (c *curve) initBasePoint(self kyber.Group, p *Param, fullGroup bool, base p
 			if c.coordSign(&x) != 0 {
 				x.Neg(&x) // try positive x first
 			}
-			base.initXY(&x.V, &y.V, self)
-			if c.validPoint(base) {
+			Base.initXY(&x.V, &y.V, self)
+			if c.validPoint(Base) {
 				break // got one
 			}
 			x.Neg(&x) // try -bx
-			if c.validPoint(base) {
+			if c.validPoint(Base) {
 				break // got one
 			}
 		}
 
 		bx, by = &x.V, &y.V
 	}
-	base.initXY(bx, by, self)
+	Base.initXY(bx, by, self)
 }
 
 // Initialize a twisted Edwards curve with given parameters.
 // Caller passes pointers to null and base point prototypes to be initialized.
 func (c *curve) init(self kyber.Group, p *Param, fullGroup bool,
-	null, base point) *curve {
+	null, Base point) *curve {
 	c.self = self
 	c.Param = *p
 	c.full = fullGroup
@@ -153,14 +153,14 @@ func (c *curve) init(self kyber.Group, p *Param, fullGroup bool,
 	null.initXY(zero, one, self)
 
 	// Base point B
-	c.initBasePoint(self, p, fullGroup, base)
+	c.initBasePoint(self, p, fullGroup, Base)
 
 	// Sanity checks
 	if !c.validPoint(null) {
 		panic("invalid identity point " + null.String())
 	}
-	if !c.validPoint(base) {
-		panic("invalid base point " + base.String())
+	if !c.validPoint(Base) {
+		panic("invalid base point " + Base.String())
 	}
 
 	return c
@@ -269,17 +269,17 @@ func (c *curve) onCurve(x, y *mod.Int) bool {
 
 // Sanity-check a point to ensure that it is on the curve
 // and within the appropriate subgroup.
-func (c *curve) validPoint(p point) bool {
+func (c *curve) validPoint(P point) bool {
 
 	// Check on-curve
-	x, y := p.getXY()
+	x, y := P.getXY()
 	if !c.onCurve(x, y) {
 		return false
 	}
 
 	// Check in-subgroup by multiplying by subgroup order
 	Q := c.self.Point()
-	Q.Mul(&c.order, p)
+	Q.Mul(&c.order, P)
 
 	return Q.Equal(c.null)
 }
@@ -294,7 +294,7 @@ func (c *curve) embedLen() int {
 
 // Pick a [pseudo-]random curve point with optional embedded data,
 // filling in the point's x,y coordinates
-func (c *curve) embed(p point, data []byte, rand cipher.Stream) {
+func (c *curve) embed(P point, data []byte, rand cipher.Stream) {
 
 	// How much data to embed?
 	dl := c.embedLen()
@@ -333,7 +333,7 @@ func (c *curve) embed(p point, data []byte, rand cipher.Stream) {
 		}
 
 		// Initialize the point
-		p.initXY(&x.V, &y.V, c.self)
+		P.initXY(&x.V, &y.V, c.self)
 		if c.full {
 			// If we're using the full group,
 			// we just need any point on the curve, so we're done.
@@ -346,8 +346,8 @@ func (c *curve) embed(p point, data []byte, rand cipher.Stream) {
 		// we can convert our point into one in the subgroup
 		// simply by multiplying it by the cofactor.
 		if data == nil {
-			p.Mul(&c.cofact, p) // multiply by cofactor
-			if p.Equal(c.null) {
+			P.Mul(&c.cofact, P) // multiply by cofactor
+			if P.Equal(c.null) {
 				continue // unlucky; try again
 			}
 			return
@@ -359,7 +359,7 @@ func (c *curve) embed(p point, data []byte, rand cipher.Stream) {
 		if Q == nil {
 			Q = c.self.Point()
 		}
-		Q.Mul(&c.order, p)
+		Q.Mul(&c.order, P)
 		if Q.Equal(c.null) {
 			return
 		}

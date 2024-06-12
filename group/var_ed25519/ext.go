@@ -16,50 +16,50 @@ type extPoint struct {
 	c          *ExtendedCurve
 }
 
-func (p *extPoint) initXY(x, y *big.Int, c kyber.Group) {
-	p.c = c.(*ExtendedCurve) //nolint:errcheck // V4 may bring better error handling
+func (P *extPoint) initXY(x, y *big.Int, c kyber.Group) {
+	P.c = c.(*ExtendedCurve) //nolint:errcheck // V4 may bring better error handling
 
-	p.X.Init(x, &p.c.P)
-	p.Y.Init(y, &p.c.P)
-	p.Z.Init64(1, &p.c.P)
-	p.T.Mul(&p.X, &p.Y)
+	P.X.Init(x, &P.c.P)
+	P.Y.Init(y, &P.c.P)
+	P.Z.Init64(1, &P.c.P)
+	P.T.Mul(&P.X, &P.Y)
 }
 
-func (p *extPoint) getXY() (x, y *mod.Int) {
-	p.normalize()
-	return &p.X, &p.Y
+func (P *extPoint) getXY() (x, y *mod.Int) {
+	P.normalize()
+	return &P.X, &P.Y
 }
 
-func (p *extPoint) String() string {
-	p.normalize()
-	buf, _ := p.MarshalBinary()
+func (P *extPoint) String() string {
+	P.normalize()
+	buf, _ := P.MarshalBinary()
 	return hex.EncodeToString(buf)
 }
 
-func (p *extPoint) MarshalSize() int {
-	return p.c.PointLen()
+func (P *extPoint) MarshalSize() int {
+	return P.c.PointLen()
 }
 
-func (p *extPoint) MarshalBinary() ([]byte, error) {
-	p.normalize()
-	return p.c.encodePoint(&p.X, &p.Y), nil
+func (P *extPoint) MarshalBinary() ([]byte, error) {
+	P.normalize()
+	return P.c.encodePoint(&P.X, &P.Y), nil
 }
 
-func (p *extPoint) UnmarshalBinary(b []byte) error {
-	if err := p.c.decodePoint(b, &p.X, &p.Y); err != nil {
+func (P *extPoint) UnmarshalBinary(b []byte) error {
+	if err := P.c.decodePoint(b, &P.X, &P.Y); err != nil {
 		return err
 	}
-	p.Z.Init64(1, &p.c.P)
-	p.T.Mul(&p.X, &p.Y)
+	P.Z.Init64(1, &P.c.P)
+	P.T.Mul(&P.X, &P.Y)
 	return nil
 }
 
-func (p *extPoint) MarshalTo(w io.Writer) (int, error) {
-	return marshalling.PointMarshalTo(p, w)
+func (P *extPoint) MarshalTo(w io.Writer) (int, error) {
+	return marshalling.PointMarshalTo(P, w)
 }
 
-func (p *extPoint) UnmarshalFrom(r io.Reader) (int, error) {
-	return marshalling.PointUnmarshalFrom(p, r)
+func (P *extPoint) UnmarshalFrom(r io.Reader) (int, error) {
+	return marshalling.PointUnmarshalFrom(P, r)
 }
 
 // Equality test for two Points on the same curve.
@@ -68,158 +68,158 @@ func (p *extPoint) UnmarshalFrom(r io.Reader) (int, error) {
 //	(X1/Z1,Y1/Z1) == (X2/Z2,Y2/Z2)
 //		iff
 //	(X1*Z2,Y1*Z2) == (X2*Z1,Y2*Z1)
-func (p *extPoint) Equal(cp2 kyber.Point) bool {
-	p2 := cp2.(*extPoint) //nolint:errcheck // V4 may bring better error handling
+func (P *extPoint) Equal(CP2 kyber.Point) bool {
+	p2 := CP2.(*extPoint) //nolint:errcheck // V4 may bring better error handling
 	var t1, t2 mod.Int
-	xeq := t1.Mul(&p.X, &p2.Z).Equal(t2.Mul(&p2.X, &p.Z))
-	yeq := t1.Mul(&p.Y, &p2.Z).Equal(t2.Mul(&p2.Y, &p.Z))
+	xeq := t1.Mul(&P.X, &p2.Z).Equal(t2.Mul(&p2.X, &P.Z))
+	yeq := t1.Mul(&P.Y, &p2.Z).Equal(t2.Mul(&p2.Y, &P.Z))
 	return xeq && yeq
 }
 
-func (p *extPoint) Set(cp2 kyber.Point) kyber.Point {
-	p2 := cp2.(*extPoint) //nolint:errcheck // V4 may bring better error handling
-	p.c = p2.c
-	p.X.Set(&p2.X)
-	p.Y.Set(&p2.Y)
-	p.Z.Set(&p2.Z)
-	p.T.Set(&p2.T)
-	return p
+func (P *extPoint) Set(CP2 kyber.Point) kyber.Point {
+	p2 := CP2.(*extPoint) //nolint:errcheck // V4 may bring better error handling
+	P.c = p2.c
+	P.X.Set(&p2.X)
+	P.Y.Set(&p2.Y)
+	P.Z.Set(&p2.Z)
+	P.T.Set(&p2.T)
+	return P
 }
 
-func (p *extPoint) Clone() kyber.Point {
+func (P *extPoint) Clone() kyber.Point {
 	p2 := extPoint{}
-	p2.c = p.c
-	p2.X.Set(&p.X)
-	p2.Y.Set(&p.Y)
-	p2.Z.Set(&p.Z)
-	p2.T.Set(&p.T)
+	p2.c = P.c
+	p2.X.Set(&P.X)
+	p2.Y.Set(&P.Y)
+	p2.Z.Set(&P.Z)
+	p2.T.Set(&P.T)
 	return &p2
 }
 
-func (p *extPoint) Null() kyber.Point {
-	p.Set(&p.c.null)
-	return p
+func (P *extPoint) Null() kyber.Point {
+	P.Set(&P.c.null)
+	return P
 }
 
-func (p *extPoint) Base() kyber.Point {
-	p.Set(&p.c.base)
-	return p
+func (P *extPoint) Base() kyber.Point {
+	P.Set(&P.c.base)
+	return P
 }
 
-func (p *extPoint) EmbedLen() int {
-	return p.c.embedLen()
+func (P *extPoint) EmbedLen() int {
+	return P.c.embedLen()
 }
 
 // Normalize the point's representation to Z=1.
-func (p *extPoint) normalize() {
-	p.Z.Inv(&p.Z)
-	p.X.Mul(&p.X, &p.Z)
-	p.Y.Mul(&p.Y, &p.Z)
-	p.Z.V.SetInt64(1)
-	p.T.Mul(&p.X, &p.Y)
+func (P *extPoint) normalize() {
+	P.Z.Inv(&P.Z)
+	P.X.Mul(&P.X, &P.Z)
+	P.Y.Mul(&P.Y, &P.Z)
+	P.Z.V.SetInt64(1)
+	P.T.Mul(&P.X, &P.Y)
 }
 
 // Check the validity of the T coordinate
 //
 //nolint:unused // may be useful
-func (p *extPoint) checkT() {
+func (P *extPoint) checkT() {
 	var t1, t2 mod.Int
-	if !t1.Mul(&p.X, &p.Y).Equal(t2.Mul(&p.Z, &p.T)) {
+	if !t1.Mul(&P.X, &P.Y).Equal(t2.Mul(&P.Z, &P.T)) {
 		panic("oops")
 	}
 }
 
-func (p *extPoint) Embed(data []byte, rand cipher.Stream) kyber.Point {
-	p.c.embed(p, data, rand)
-	return p
+func (P *extPoint) Embed(data []byte, rand cipher.Stream) kyber.Point {
+	P.c.embed(P, data, rand)
+	return P
 }
 
-func (p *extPoint) Pick(rand cipher.Stream) kyber.Point {
-	p.c.embed(p, nil, rand)
-	return p
+func (P *extPoint) Pick(rand cipher.Stream) kyber.Point {
+	P.c.embed(P, nil, rand)
+	return P
 }
 
 // Extract embedded data from a point group element
-func (p *extPoint) Data() ([]byte, error) {
-	p.normalize()
-	return p.c.data(&p.X, &p.Y)
+func (P *extPoint) Data() ([]byte, error) {
+	P.normalize()
+	return P.c.data(&P.X, &P.Y)
 }
 
 // Add two points using optimized extended coordinate addition formulas.
 //
 //nolint:dupl //Doesn't make sense to extract part of Add(), Sub(), double()
-func (p *extPoint) Add(cp1, cp2 kyber.Point) kyber.Point {
-	p1 := cp1.(*extPoint) //nolint:errcheck // V4 may bring better error handling
-	p2 := cp2.(*extPoint) //nolint:errcheck // V4 may bring better error handling
+func (P *extPoint) Add(CP1, CP2 kyber.Point) kyber.Point {
+	p1 := CP1.(*extPoint) //nolint:errcheck // V4 may bring better error handling
+	p2 := CP2.(*extPoint) //nolint:errcheck // V4 may bring better error handling
 	X1, Y1, Z1, T1 := &p1.X, &p1.Y, &p1.Z, &p1.T
 	X2, Y2, Z2, T2 := &p2.X, &p2.Y, &p2.Z, &p2.T
-	X3, Y3, Z3, T3 := &p.X, &p.Y, &p.Z, &p.T
+	X3, Y3, Z3, T3 := &P.X, &P.Y, &P.Z, &P.T
 	var A, B, C, D, E, F, G, H mod.Int
 
 	A.Mul(X1, X2)
 	B.Mul(Y1, Y2)
-	C.Mul(T1, T2).Mul(&C, &p.c.d)
+	C.Mul(T1, T2).Mul(&C, &P.c.d)
 	D.Mul(Z1, Z2)
 	E.Add(X1, Y1).Mul(&E, F.Add(X2, Y2)).Sub(&E, &A).Sub(&E, &B)
 	F.Sub(&D, &C)
 	G.Add(&D, &C)
-	H.Mul(&p.c.a, &A).Sub(&B, &H)
+	H.Mul(&P.c.a, &A).Sub(&B, &H)
 	X3.Mul(&E, &F)
 	Y3.Mul(&G, &H)
 	T3.Mul(&E, &H)
 	Z3.Mul(&F, &G)
-	return p
+	return P
 }
 
 // Subtract points.
 //
 //nolint:dupl //Doesn't make sense to extract part of Add(), Sub(), double()
-func (p *extPoint) Sub(cp1, cp2 kyber.Point) kyber.Point {
-	p1 := cp1.(*extPoint) //nolint:errcheck // V4 may bring better error handling
-	p2 := cp2.(*extPoint) //nolint:errcheck // V4 may bring better error handling
+func (P *extPoint) Sub(CP1, CP2 kyber.Point) kyber.Point {
+	p1 := CP1.(*extPoint) //nolint:errcheck // V4 may bring better error handling
+	p2 := CP2.(*extPoint) //nolint:errcheck // V4 may bring better error handling
 	X1, Y1, Z1, T1 := &p1.X, &p1.Y, &p1.Z, &p1.T
 	X2, Y2, Z2, T2 := &p2.X, &p2.Y, &p2.Z, &p2.T
-	X3, Y3, Z3, T3 := &p.X, &p.Y, &p.Z, &p.T
+	X3, Y3, Z3, T3 := &P.X, &P.Y, &P.Z, &P.T
 	var A, B, C, D, E, F, G, H mod.Int
 
 	A.Mul(X1, X2)
 	B.Mul(Y1, Y2)
-	C.Mul(T1, T2).Mul(&C, &p.c.d)
+	C.Mul(T1, T2).Mul(&C, &P.c.d)
 	D.Mul(Z1, Z2)
 	E.Add(X1, Y1).Mul(&E, F.Sub(Y2, X2)).Add(&E, &A).Sub(&E, &B)
 	F.Add(&D, &C)
 	G.Sub(&D, &C)
-	H.Mul(&p.c.a, &A).Add(&B, &H)
+	H.Mul(&P.c.a, &A).Add(&B, &H)
 	X3.Mul(&E, &F)
 	Y3.Mul(&G, &H)
 	T3.Mul(&E, &H)
 	Z3.Mul(&F, &G)
-	return p
+	return P
 }
 
 // Find the negative of point A.
 // For Edwards curves, the negative of (x,y) is (-x,y).
-func (p *extPoint) Neg(ca kyber.Point) kyber.Point {
-	A := ca.(*extPoint) //nolint:errcheck // V4 may bring better error handling
-	p.c = A.c
-	p.X.Neg(&A.X)
-	p.Y.Set(&A.Y)
-	p.Z.Set(&A.Z)
-	p.T.Neg(&A.T)
-	return p
+func (P *extPoint) Neg(CA kyber.Point) kyber.Point {
+	A := CA.(*extPoint) //nolint:errcheck // V4 may bring better error handling
+	P.c = A.c
+	P.X.Neg(&A.X)
+	P.Y.Set(&A.Y)
+	P.Z.Set(&A.Z)
+	P.T.Neg(&A.T)
+	return P
 }
 
 // Optimized point doubling for use in scalar multiplication.
 // Uses the formulae in section 3.3 of:
 // https://www.iacr.org/archive/asiacrypt2008/53500329/53500329.pdf
-func (p *extPoint) double() {
-	X1, Y1, Z1, T1 := &p.X, &p.Y, &p.Z, &p.T
+func (P *extPoint) double() {
+	X1, Y1, Z1, T1 := &P.X, &P.Y, &P.Z, &P.T
 	var A, B, C, D, E, F, G, H mod.Int
 
 	A.Mul(X1, X1)
 	B.Mul(Y1, Y1)
 	C.Mul(Z1, Z1).Add(&C, &C)
-	D.Mul(&p.c.a, &A)
+	D.Mul(&P.c.a, &A)
 	E.Add(X1, Y1).Mul(&E, &E).Sub(&E, &A).Sub(&E, &B)
 	G.Add(&D, &B)
 	F.Sub(&G, &C)
@@ -235,26 +235,26 @@ func (p *extPoint) double() {
 // Currently doesn't implement the optimization of
 // switching between projective and extended coordinates during
 // scalar multiplication.
-func (p *extPoint) Mul(s kyber.Scalar, g kyber.Point) kyber.Point {
+func (P *extPoint) Mul(s kyber.Scalar, G kyber.Point) kyber.Point {
 	v := s.(*mod.Int).V
-	if g == nil {
-		return p.Base().Mul(s, p)
+	if G == nil {
+		return P.Base().Mul(s, P)
 	}
-	T := p
-	if g == p { // Must use temporary for in-place multiply
+	T := P
+	if G == P { // Must use temporary for in-place multiply
 		T = &extPoint{}
 	}
-	T.Set(&p.c.null) // Initialize to identity element (0,1)
+	T.Set(&P.c.null) // Initialize to identity element (0,1)
 	for i := v.BitLen() - 1; i >= 0; i-- {
 		T.double()
 		if v.Bit(i) != 0 {
-			T.Add(T, g)
+			T.Add(T, G)
 		}
 	}
-	if T != p {
-		p.Set(T)
+	if T != P {
+		P.Set(T)
 	}
-	return p
+	return P
 }
 
 // ExtendedCurve implements Twisted Edwards curves

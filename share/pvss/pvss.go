@@ -49,7 +49,13 @@ type PubVerShare struct {
 // the given secret and the list of public keys X using the sharing threshold
 // t and the base point H. The function returns the list of shares and the
 // public commitment polynomial.
-func EncShares(suite Suite, H kyber.Point, X []kyber.Point, secret kyber.Scalar, t int) (shares []*PubVerShare, commit *share.PubPoly, err error) {
+func EncShares(
+	suite Suite,
+	H kyber.Point,
+	X []kyber.Point,
+	secret kyber.Scalar,
+	t int,
+) (shares []*PubVerShare, commit *share.PubPoly, err error) {
 	n := len(X)
 	encShares := make([]*PubVerShare, n)
 
@@ -149,7 +155,7 @@ func computeGlobalChallenge(suite Suite, n int, commit *share.PubPoly, encShares
 // VerifyEncShare checks that the encrypted share sX satisfies
 // log_{H}(sH) == log_{X}(sX) where sH is the public commitment computed by
 // evaluating the public commitment polynomial at the encrypted share's index i.
-func VerifyEncShare(suite Suite, H kyber.Point, X kyber.Point, sH kyber.Point, expGlobalChallenge kyber.Scalar, encShare *PubVerShare) error {
+func VerifyEncShare(suite Suite, H, X, sH kyber.Point, expGlobalChallenge kyber.Scalar, encShare *PubVerShare) error {
 	if !encShare.P.C.Equal(expGlobalChallenge) {
 		return ErrGlobalChallengeVerification
 	}
@@ -163,7 +169,7 @@ func VerifyEncShare(suite Suite, H kyber.Point, X kyber.Point, sH kyber.Point, e
 // VerifyEncShareBatch provides the same functionality as VerifyEncShare but for
 // slices of encrypted shares. The function returns the valid encrypted shares
 // together with the corresponding public keys.
-func VerifyEncShareBatch(suite Suite, H kyber.Point, X []kyber.Point, sH []kyber.Point, commit *share.PubPoly, encShares []*PubVerShare) ([]kyber.Point, []*PubVerShare, error) {
+func VerifyEncShareBatch(suite Suite, H kyber.Point, X, sH []kyber.Point, commit *share.PubPoly, encShares []*PubVerShare) ([]kyber.Point, []*PubVerShare, error) {
 	if len(X) != len(sH) || len(sH) != len(encShares) {
 		return nil, nil, ErrDifferentLengths
 	}
@@ -189,7 +195,7 @@ func VerifyEncShareBatch(suite Suite, H kyber.Point, X []kyber.Point, sH []kyber
 // DecShare first verifies the encrypted share against the encryption
 // consistency proof and, if valid, decrypts it and creates a decryption
 // consistency proof.
-func DecShare(suite Suite, H kyber.Point, X kyber.Point, sH kyber.Point, x, expGlobalChallenge kyber.Scalar, encShare *PubVerShare) (*PubVerShare, error) {
+func DecShare(suite Suite, H, X, sH kyber.Point, x, expGlobalChallenge kyber.Scalar, encShare *PubVerShare) (*PubVerShare, error) {
 	if err := VerifyEncShare(suite, H, X, sH, expGlobalChallenge, encShare); err != nil {
 		return nil, err
 	}
@@ -207,7 +213,7 @@ func DecShare(suite Suite, H kyber.Point, X kyber.Point, sH kyber.Point, x, expG
 // DecShareBatch provides the same functionality as DecShare but for slices of
 // encrypted shares. The function returns the valid encrypted and decrypted
 // shares as well as the corresponding public keys.
-func DecShareBatch(suite Suite, H kyber.Point, X []kyber.Point, sH []kyber.Point, x kyber.Scalar, expGlobalChallenges []kyber.Scalar, encShares []*PubVerShare) ([]kyber.Point, []*PubVerShare, []*PubVerShare, error) {
+func DecShareBatch(suite Suite, H kyber.Point, X, sH []kyber.Point, x kyber.Scalar, expGlobalChallenges []kyber.Scalar, encShares []*PubVerShare) ([]kyber.Point, []*PubVerShare, []*PubVerShare, error) {
 	if len(X) != len(sH) || len(sH) != len(encShares) {
 		return nil, nil, nil, ErrDifferentLengths
 	}
@@ -226,7 +232,7 @@ func DecShareBatch(suite Suite, H kyber.Point, X []kyber.Point, sH []kyber.Point
 
 // VerifyDecShare checks that the decrypted share sG satisfies
 // log_{G}(X) == log_{sG}(sX). Note that X = xG and sX = s(xG) = x(sG).
-func VerifyDecShare(suite Suite, G kyber.Point, X kyber.Point, encShare *PubVerShare, decShare *PubVerShare) error {
+func VerifyDecShare(suite Suite, G, X kyber.Point, encShare *PubVerShare, decShare *PubVerShare) error {
 	// Compute challenge for the decShare
 	h := suite.Hash()
 	X.MarshalTo(h)

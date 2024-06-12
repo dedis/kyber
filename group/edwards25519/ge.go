@@ -415,14 +415,14 @@ func geScalarMultBase(h *extendedGroupElement, a *[32]byte) {
 	}
 }
 
-func selectCached(c *cachedGroupElement, ai *[8]cachedGroupElement, b int32) {
+func selectCached(c *cachedGroupElement, Ai *[8]cachedGroupElement, b int32) {
 	bNegative := negative(b)
 	bAbs := b - (((-bNegative) & b) << 1)
 
 	// in constant-time pick cached multiplier for exponent 0 through 8
 	c.Zero()
 	for i := int32(0); i < 8; i++ {
-		c.CMove(&ai[i], equal(bAbs, i+1))
+		c.CMove(&Ai[i], equal(bAbs, i+1))
 	}
 
 	// in constant-time compute negated version, conditionally use it
@@ -440,7 +440,7 @@ func selectCached(c *cachedGroupElement, ai *[8]cachedGroupElement, b int32) {
 //
 //	a[31] <= 127
 func geScalarMult(h *extendedGroupElement, a *[32]byte,
-	b *extendedGroupElement) {
+	A *extendedGroupElement) {
 
 	var t completedGroupElement
 	var u extendedGroupElement
@@ -465,11 +465,11 @@ func geScalarMult(h *extendedGroupElement, a *[32]byte,
 	e[63] += carry
 	// each e[i] is between -8 and 8.
 
-	// compute cached array of multiples of b from 1A through 8A
-	var Ai [8]cachedGroupElement // b,1A,2A,3A,4A,5A,6A,7A
-	b.ToCached(&Ai[0])
+	// compute cached array of multiples of A from 1A through 8A
+	var Ai [8]cachedGroupElement // A,1A,2A,3A,4A,5A,6A,7A
+	A.ToCached(&Ai[0])
 	for i := 0; i < 7; i++ {
-		t.Add(b, &Ai[i])
+		t.Add(A, &Ai[i])
 		t.ToExtended(&u)
 		u.ToCached(&Ai[i+1])
 	}

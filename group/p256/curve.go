@@ -18,164 +18,164 @@ type curvePoint struct {
 	c    *curve
 }
 
-func (p *curvePoint) String() string {
-	return "(" + p.x.String() + "," + p.y.String() + ")"
+func (P *curvePoint) String() string {
+	return "(" + P.x.String() + "," + P.y.String() + ")"
 }
 
-func (p *curvePoint) Equal(p2 kyber.Point) bool {
-	cp2 := p2.(*curvePoint) //nolint:errcheck // V4 may bring better error handling
+func (P *curvePoint) Equal(P2 kyber.Point) bool {
+	cp2 := P2.(*curvePoint) //nolint:errcheck // V4 may bring better error handling
 
 	// Make sure both coordinates are normalized.
 	// Apparently Go's elliptic curve code doesn't always ensure this.
-	M := p.c.p.P
-	p.x.Mod(p.x, M)
-	p.y.Mod(p.y, M)
+	M := P.c.p.P
+	P.x.Mod(P.x, M)
+	P.y.Mod(P.y, M)
 	cp2.x.Mod(cp2.x, M)
 	cp2.y.Mod(cp2.y, M)
 
-	return p.x.Cmp(cp2.x) == 0 && p.y.Cmp(cp2.y) == 0
+	return P.x.Cmp(cp2.x) == 0 && P.y.Cmp(cp2.y) == 0
 }
 
-func (p *curvePoint) Null() kyber.Point {
-	p.x = new(big.Int).SetInt64(0)
-	p.y = new(big.Int).SetInt64(0)
-	return p
+func (P *curvePoint) Null() kyber.Point {
+	P.x = new(big.Int).SetInt64(0)
+	P.y = new(big.Int).SetInt64(0)
+	return P
 }
 
-func (p *curvePoint) Base() kyber.Point {
-	p.x = p.c.p.Gx
-	p.y = p.c.p.Gy
-	return p
+func (P *curvePoint) Base() kyber.Point {
+	P.x = P.c.p.Gx
+	P.y = P.c.p.Gy
+	return P
 }
 
-func (p *curvePoint) Valid() bool {
+func (P *curvePoint) Valid() bool {
 	// The IsOnCurve function in Go's elliptic curve package
 	// doesn't consider the point-at-infinity to be "on the curve"
-	return p.c.IsOnCurve(p.x, p.y) ||
-		(p.x.Sign() == 0 && p.y.Sign() == 0)
+	return P.c.IsOnCurve(P.x, P.y) ||
+		(P.x.Sign() == 0 && P.y.Sign() == 0)
 }
 
 // Try to generate a point on this curve from a chosen x-coordinate,
 // with a random sign.
-func (p *curvePoint) genPoint(x *big.Int, rand cipher.Stream) bool {
+func (P *curvePoint) genPoint(x *big.Int, rand cipher.Stream) bool {
 	// Compute the corresponding Y coordinate, if any
 	y2 := new(big.Int).Mul(x, x)
 	y2.Mul(y2, x)
 	threeX := new(big.Int).Lsh(x, 1)
 	threeX.Add(threeX, x)
 	y2.Sub(y2, threeX)
-	y2.Add(y2, p.c.p.B)
-	y2.Mod(y2, p.c.p.P)
-	y := p.c.sqrt(y2)
+	y2.Add(y2, P.c.p.B)
+	y2.Mod(y2, P.c.p.P)
+	y := P.c.sqrt(y2)
 
 	// Pick a random sign for the y coordinate
 	b := make([]byte, 1)
 	rand.XORKeyStream(b, b)
 	if (b[0] & 0x80) != 0 {
-		y.Sub(p.c.p.P, y)
+		y.Sub(P.c.p.P, y)
 	}
 
 	// Check that it's a valid point
 	y2t := new(big.Int).Mul(y, y)
-	y2t.Mod(y2t, p.c.p.P)
+	y2t.Mod(y2t, P.c.p.P)
 	if y2t.Cmp(y2) != 0 {
 		return false // Doesn't yield a valid point!
 	}
 
-	p.x = x
-	p.y = y
+	P.x = x
+	P.y = y
 	return true
 }
 
-func (p *curvePoint) EmbedLen() int {
+func (P *curvePoint) EmbedLen() int {
 	// Reserve at least 8 most-significant bits for randomness,
 	// and the least-significant 8 bits for embedded data length.
 	// (Hopefully it's unlikely we'll need >=2048-bit curves soon.)
-	return (p.c.p.P.BitLen() - 8 - 8) / 8
+	return (P.c.p.P.BitLen() - 8 - 8) / 8
 }
 
-func (p *curvePoint) Pick(rand cipher.Stream) kyber.Point {
-	return p.Embed(nil, rand)
+func (P *curvePoint) Pick(rand cipher.Stream) kyber.Point {
+	return P.Embed(nil, rand)
 }
 
 // Embed pick a curve point containing a variable amount of embedded data.
 // Remaining bits comprising the point are chosen randomly.
-func (p *curvePoint) Embed(data []byte, rand cipher.Stream) kyber.Point {
-	l := p.c.coordLen()
-	dl := p.EmbedLen()
+func (P *curvePoint) Embed(data []byte, rand cipher.Stream) kyber.Point {
+	l := P.c.coordLen()
+	dl := P.EmbedLen()
 	if dl > len(data) {
 		dl = len(data)
 	}
 
 	for {
-		b := random.Bits(uint(p.c.p.P.BitLen()), false, rand)
+		b := random.Bits(uint(P.c.p.P.BitLen()), false, rand)
 		if data != nil {
 			b[l-1] = byte(dl)         // Encode length in low 8 bits
 			copy(b[l-dl-1:l-1], data) // Copy in data to embed
 		}
-		if p.genPoint(new(big.Int).SetBytes(b), rand) {
-			return p
+		if P.genPoint(new(big.Int).SetBytes(b), rand) {
+			return P
 		}
 	}
 }
 
 // Data extract embedded data from a curve point
-func (p *curvePoint) Data() ([]byte, error) {
-	b := p.x.Bytes()
-	l := p.c.coordLen()
+func (P *curvePoint) Data() ([]byte, error) {
+	b := P.x.Bytes()
+	l := P.c.coordLen()
 	if len(b) < l { // pad leading zero bytes if necessary
 		b = append(make([]byte, l-len(b)), b...)
 	}
 	dl := int(b[l-1])
-	if dl > p.EmbedLen() {
+	if dl > P.EmbedLen() {
 		return nil, errors.New("invalid embedded data length")
 	}
 	return b[l-dl-1 : l-1], nil
 }
 
-func (p *curvePoint) Add(a, b kyber.Point) kyber.Point {
-	ca := a.(*curvePoint) //nolint:errcheck // V4 may bring better error handling
-	cb := b.(*curvePoint) //nolint:errcheck // V4 may bring better error handling
-	p.x, p.y = p.c.Add(ca.x, ca.y, cb.x, cb.y)
-	return p
+func (P *curvePoint) Add(A, B kyber.Point) kyber.Point {
+	ca := A.(*curvePoint) //nolint:errcheck // V4 may bring better error handling
+	cb := B.(*curvePoint) //nolint:errcheck // V4 may bring better error handling
+	P.x, P.y = P.c.Add(ca.x, ca.y, cb.x, cb.y)
+	return P
 }
 
-func (p *curvePoint) Sub(a, b kyber.Point) kyber.Point {
-	ca := a.(*curvePoint) //nolint:errcheck // V4 may bring better error handling
-	cb := b.(*curvePoint) //nolint:errcheck // V4 may bring better error handling
+func (P *curvePoint) Sub(A, B kyber.Point) kyber.Point {
+	ca := A.(*curvePoint) //nolint:errcheck // V4 may bring better error handling
+	cb := B.(*curvePoint) //nolint:errcheck // V4 may bring better error handling
 
-	cbn := p.c.Point().Neg(cb).(*curvePoint) //nolint:errcheck // V4 may bring better error handling
-	p.x, p.y = p.c.Add(ca.x, ca.y, cbn.x, cbn.y)
-	return p
+	cbn := P.c.Point().Neg(cb).(*curvePoint) //nolint:errcheck // V4 may bring better error handling
+	P.x, P.y = P.c.Add(ca.x, ca.y, cbn.x, cbn.y)
+	return P
 }
 
-func (p *curvePoint) Neg(a kyber.Point) kyber.Point {
-	s := p.c.Scalar().One()
+func (P *curvePoint) Neg(A kyber.Point) kyber.Point {
+	s := P.c.Scalar().One()
 	s.Neg(s)
-	return p.Mul(s, a).(*curvePoint)
+	return P.Mul(s, A).(*curvePoint)
 }
 
-func (p *curvePoint) Mul(s kyber.Scalar, b kyber.Point) kyber.Point {
+func (P *curvePoint) Mul(s kyber.Scalar, B kyber.Point) kyber.Point {
 	cs := s.(*mod.Int) //nolint:errcheck // V4 may bring better error handling
-	if b != nil {
-		cb := b.(*curvePoint) //nolint:errcheck // V4 may bring better error handling
-		p.x, p.y = p.c.ScalarMult(cb.x, cb.y, cs.V.Bytes())
+	if B != nil {
+		cb := B.(*curvePoint) //nolint:errcheck // V4 may bring better error handling
+		P.x, P.y = P.c.ScalarMult(cb.x, cb.y, cs.V.Bytes())
 	} else {
-		p.x, p.y = p.c.ScalarBaseMult(cs.V.Bytes())
+		P.x, P.y = P.c.ScalarBaseMult(cs.V.Bytes())
 	}
-	return p
+	return P
 }
 
-func (p *curvePoint) MarshalSize() int {
-	coordlen := (p.c.Params().BitSize + 7) >> 3
+func (P *curvePoint) MarshalSize() int {
+	coordlen := (P.c.Params().BitSize + 7) >> 3
 	return 1 + 2*coordlen // uncompressed ANSI X9.62 representation
 }
 
-func (p *curvePoint) MarshalBinary() ([]byte, error) {
-	return elliptic.Marshal(p.c, p.x, p.y), nil
+func (P *curvePoint) MarshalBinary() ([]byte, error) {
+	return elliptic.Marshal(P.c, P.x, P.y), nil
 }
 
-func (p *curvePoint) UnmarshalBinary(buf []byte) error {
+func (P *curvePoint) UnmarshalBinary(buf []byte) error {
 	// Check whether all bytes after first one are 0, so we
 	// just return the initial point. Read everything to
 	// prevent timing-leakage.
@@ -184,24 +184,24 @@ func (p *curvePoint) UnmarshalBinary(buf []byte) error {
 		c |= b
 	}
 	if c != 0 {
-		p.x, p.y = elliptic.Unmarshal(p.c, buf)
-		if p.x == nil || !p.Valid() {
+		P.x, P.y = elliptic.Unmarshal(P.c, buf)
+		if P.x == nil || !P.Valid() {
 			return errors.New("invalid elliptic curve point")
 		}
 	} else {
 		// All bytes are 0, so we initialize x and y
-		p.x = big.NewInt(0)
-		p.y = big.NewInt(0)
+		P.x = big.NewInt(0)
+		P.y = big.NewInt(0)
 	}
 	return nil
 }
 
-func (p *curvePoint) MarshalTo(w io.Writer) (int, error) {
-	return marshalling.PointMarshalTo(p, w)
+func (P *curvePoint) MarshalTo(w io.Writer) (int, error) {
+	return marshalling.PointMarshalTo(P, w)
 }
 
-func (p *curvePoint) UnmarshalFrom(r io.Reader) (int, error) {
-	return marshalling.PointUnmarshalFrom(p, r)
+func (P *curvePoint) UnmarshalFrom(r io.Reader) (int, error) {
+	return marshalling.PointUnmarshalFrom(P, r)
 }
 
 // interface for curve-specifc mathematical functions
@@ -247,14 +247,14 @@ func (c *curve) Point() kyber.Point {
 	return p
 }
 
-func (p *curvePoint) Set(a kyber.Point) kyber.Point {
-	p.x = a.(*curvePoint).x
-	p.y = a.(*curvePoint).y
-	return p
+func (P *curvePoint) Set(A kyber.Point) kyber.Point {
+	P.x = A.(*curvePoint).x
+	P.y = A.(*curvePoint).y
+	return P
 }
 
-func (p *curvePoint) Clone() kyber.Point {
-	return &curvePoint{x: p.x, y: p.y, c: p.c}
+func (P *curvePoint) Clone() kyber.Point {
+	return &curvePoint{x: P.x, y: P.y, c: P.c}
 }
 
 // Return the order of this curve: the prime N in the curve parameters.

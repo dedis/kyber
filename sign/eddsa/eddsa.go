@@ -142,15 +142,15 @@ func VerifyWithChecks(pub, msg, sig []byte) error {
 		IsCanonical(b []byte) bool
 	}
 
-	r := group.Point()
-	if !r.(pointCanCheckCanonicalAndSmallOrder).IsCanonical(sig[:32]) {
-		return fmt.Errorf("r is not canonical")
+	R := group.Point()
+	if !R.(pointCanCheckCanonicalAndSmallOrder).IsCanonical(sig[:32]) {
+		return fmt.Errorf("point R is not canonical")
 	}
-	if err := r.UnmarshalBinary(sig[:32]); err != nil {
-		return fmt.Errorf("got r invalid point: %w", err)
+	if err := R.UnmarshalBinary(sig[:32]); err != nil {
+		return fmt.Errorf("got R invalid point: %w", err)
 	}
-	if r.(pointCanCheckCanonicalAndSmallOrder).HasSmallOrder() {
-		return fmt.Errorf("r has small order")
+	if R.(pointCanCheckCanonicalAndSmallOrder).HasSmallOrder() {
+		return fmt.Errorf("point R has small order")
 	}
 
 	s := group.Scalar()
@@ -169,17 +169,17 @@ func VerifyWithChecks(pub, msg, sig []byte) error {
 		return fmt.Errorf("public key has small order")
 	}
 
-	// reconstruct h = H(r || Public || Msg)
+	// reconstruct h = H(R || Public || Msg)
 	hash := sha512.New()
 	_, _ = hash.Write(sig[:32])
 	_, _ = hash.Write(pub)
 	_, _ = hash.Write(msg)
 
 	h := group.Scalar().SetBytes(hash.Sum(nil))
-	// reconstruct S == k*A + r
+	// reconstruct S == k*A + R
 	S := group.Point().Mul(s, nil)
 	hA := group.Point().Mul(h, public)
-	RhA := group.Point().Add(r, hA)
+	RhA := group.Point().Add(R, hA)
 
 	if !RhA.Equal(S) {
 		return errors.New("reconstructed S is not equal to signature")

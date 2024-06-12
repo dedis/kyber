@@ -39,18 +39,18 @@ type Proof struct {
 // and xH.
 func NewDLEQProof(
 	suite Suite,
-	g kyber.Point,
-	h kyber.Point,
+	G kyber.Point,
+	H kyber.Point,
 	x kyber.Scalar,
 ) (proof *Proof, xG kyber.Point, xH kyber.Point, err error) {
 	// Encrypt base points with secret
-	xG = suite.Point().Mul(x, g)
-	xH = suite.Point().Mul(x, h)
+	xG = suite.Point().Mul(x, G)
+	xH = suite.Point().Mul(x, H)
 
 	// Commitment
 	v := suite.Scalar().Pick(suite.RandomStream())
-	vG := suite.Point().Mul(v, g)
-	vH := suite.Point().Mul(v, h)
+	vG := suite.Point().Mul(v, G)
+	vH := suite.Point().Mul(v, H)
 
 	// Challenge
 	hSuite := suite.Hash()
@@ -89,11 +89,11 @@ func NewDLEQProof(
 // input values.
 func NewDLEQProofBatch(
 	suite Suite,
-	g []kyber.Point,
-	h []kyber.Point,
+	G []kyber.Point,
+	H []kyber.Point,
 	secrets []kyber.Scalar,
 ) (proof []*Proof, xG []kyber.Point, xH []kyber.Point, err error) {
-	if len(g) != len(h) || len(h) != len(secrets) {
+	if len(G) != len(H) || len(H) != len(secrets) {
 		return nil, nil, nil, errDifferentLengths
 	}
 
@@ -107,13 +107,13 @@ func NewDLEQProofBatch(
 
 	for i, x := range secrets {
 		// Encrypt base points with secrets
-		xG[i] = suite.Point().Mul(x, g[i])
-		xH[i] = suite.Point().Mul(x, h[i])
+		xG[i] = suite.Point().Mul(x, G[i])
+		xH[i] = suite.Point().Mul(x, H[i])
 
 		// Commitments
 		v[i] = suite.Scalar().Pick(suite.RandomStream())
-		vG[i] = suite.Point().Mul(v[i], g[i])
-		vH[i] = suite.Point().Mul(v[i], h[i])
+		vG[i] = suite.Point().Mul(v[i], G[i])
+		vH[i] = suite.Point().Mul(v[i], H[i])
 	}
 
 	// Collective challenge
@@ -161,9 +161,9 @@ func NewDLEQProofBatch(
 //
 //	vG == rG + c(xG)
 //	vH == rH + c(xH)
-func (p *Proof) Verify(suite Suite, g kyber.Point, h kyber.Point, xG kyber.Point, xH kyber.Point) error {
-	rG := suite.Point().Mul(p.R, g)
-	rH := suite.Point().Mul(p.R, h)
+func (p *Proof) Verify(suite Suite, G kyber.Point, H kyber.Point, xG kyber.Point, xH kyber.Point) error {
+	rG := suite.Point().Mul(p.R, G)
+	rH := suite.Point().Mul(p.R, H)
 	cxG := suite.Point().Mul(p.C, xG)
 	cxH := suite.Point().Mul(p.C, xH)
 	a := suite.Point().Add(rG, cxG)

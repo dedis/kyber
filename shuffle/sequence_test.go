@@ -20,37 +20,37 @@ func TestAssertXY(t *testing.T) {
 		{
 			x:      nil,
 			y:      nil,
-			errStr: "x is empty",
+			errStr: "X is empty",
 		},
 		{
 			x:      [][]kyber.Point{{}},
 			y:      [][]kyber.Point{{}},
-			errStr: "x is empty",
+			errStr: "X is empty",
 		},
 		{
 			x:      [][]kyber.Point{make([]kyber.Point, 1)},
 			y:      [][]kyber.Point{{}},
-			errStr: "y is empty",
+			errStr: "Y is empty",
 		},
 		{
 			x:      [][]kyber.Point{make([]kyber.Point, 1)},
 			y:      nil,
-			errStr: "y is empty",
+			errStr: "Y is empty",
 		},
 		{
 			x:      [][]kyber.Point{make([]kyber.Point, 1), make([]kyber.Point, 2)},
 			y:      [][]kyber.Point{make([]kyber.Point, 1)},
-			errStr: "x and y have a different size: 2 != 1",
+			errStr: "X and Y have a different size: 2 != 1",
 		},
 		{
 			x:      [][]kyber.Point{make([]kyber.Point, 1)},
 			y:      [][]kyber.Point{make([]kyber.Point, 2)},
-			errStr: "y[0] has unexpected size: 1 != 2",
+			errStr: "Y[0] has unexpected size: 1 != 2",
 		},
 		{
 			x:      [][]kyber.Point{make([]kyber.Point, 1), make([]kyber.Point, 2)},
 			y:      [][]kyber.Point{make([]kyber.Point, 1), make([]kyber.Point, 1)},
-			errStr: "x[1] has unexpected size: 1 != 2",
+			errStr: "X[1] has unexpected size: 1 != 2",
 		},
 	}
 

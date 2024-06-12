@@ -31,12 +31,12 @@ func signH1pre(suite Suite, linkScope []byte, linkTag kyber.Point,
 	return H1pre
 }
 
-func signH1(suite Suite, h1pre kyber.XOF, pg, ph kyber.Point) kyber.Scalar {
-	H1 := h1pre.Clone()
-	PGb, _ := pg.MarshalBinary()
+func signH1(suite Suite, H1pre kyber.XOF, PG, PH kyber.Point) kyber.Scalar {
+	H1 := H1pre.Clone()
+	PGb, _ := PG.MarshalBinary()
 	_, _ = H1.Write(PGb)
-	if ph != nil {
-		PHb, _ := ph.MarshalBinary()
+	if PH != nil {
+		PHb, _ := PH.MarshalBinary()
 		_, _ = H1.Write(PHb)
 	}
 	return suite.Scalar().Pick(H1)

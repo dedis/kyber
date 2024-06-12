@@ -50,7 +50,7 @@ type SimpleShuffle struct {
 }
 
 // Simple helper to compute G^{ab-cd} for Theta vector computation.
-func thenc(grp kyber.Group, g kyber.Point,
+func thenc(grp kyber.Group, G kyber.Point,
 	a, b, c, d kyber.Scalar) kyber.Point {
 
 	var ab, cd kyber.Scalar
@@ -68,7 +68,7 @@ func thenc(grp kyber.Group, g kyber.Point,
 	} else {
 		cd = grp.Scalar().Zero()
 	}
-	return grp.Point().Mul(ab.Sub(ab, cd), g)
+	return grp.Point().Mul(ab.Sub(ab, cd), G)
 }
 
 // Init initializes the simple shuffle with the given group and the k parameter
@@ -175,15 +175,15 @@ func (ss *SimpleShuffle) Prove(g kyber.Point, gamma kyber.Scalar,
 // Simple helper to verify Theta elements,
 // by checking whether A^a*B^-b = T.
 // P,Q,s are simply "scratch" kyber.Point/Scalars reused for efficiency.
-func thver(a, b, t, p, q kyber.Point, aS, bS, s kyber.Scalar) bool {
-	p.Mul(aS, a)
-	q.Mul(s.Neg(bS), b)
-	p.Add(p, q)
-	return p.Equal(t)
+func thver(A, B, T, P, Q kyber.Point, aS, bS, s kyber.Scalar) bool {
+	P.Mul(aS, A)
+	Q.Mul(s.Neg(bS), B)
+	P.Add(P, Q)
+	return P.Equal(T)
 }
 
 // Verify for Neff simple k-shuffle proofs.
-func (ss *SimpleShuffle) Verify(g, gamma kyber.Point,
+func (ss *SimpleShuffle) Verify(G, Gamma kyber.Point,
 	ctx proof.VerifierContext) error {
 
 	grp := ss.grp
@@ -223,8 +223,8 @@ func (ss *SimpleShuffle) Verify(g, gamma kyber.Point,
 
 	// Verifier step 5
 	negt := grp.Scalar().Neg(t)
-	U := grp.Point().Mul(negt, g)
-	W := grp.Point().Mul(negt, gamma)
+	U := grp.Point().Mul(negt, G)
+	W := grp.Point().Mul(negt, Gamma)
 	Xhat := make([]kyber.Point, k)
 	Yhat := make([]kyber.Point, k)
 	for i := 0; i < k; i++ {
@@ -241,10 +241,10 @@ func (ss *SimpleShuffle) Verify(g, gamma kyber.Point,
 			alpha[i-1], alpha[i], s)
 	}
 	for i := k; i < thlen; i++ {
-		good = good && thver(gamma, g, Theta[i], P, Q,
+		good = good && thver(Gamma, G, Theta[i], P, Q,
 			alpha[i-1], alpha[i], s)
 	}
-	good = good && thver(gamma, g, Theta[thlen], P, Q,
+	good = good && thver(Gamma, G, Theta[thlen], P, Q,
 		alpha[thlen-1], c, s)
 	if !good {
 		return errors.New("incorrect SimpleShuffleProof")

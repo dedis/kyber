@@ -4,6 +4,6 @@ package edwards25519
 // but variable time implementation can be used. Set this only on Points
 // which represent public information. Using variable time algorithms to
 // operate on private information can result in timing side-channels.
-func (p *point) AllowVarTime(varTime bool) {
-	p.varTime = varTime
+func (P *point) AllowVarTime(varTime bool) {
+	P.varTime = varTime
 }

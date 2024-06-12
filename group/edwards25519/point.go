@@ -38,48 +38,48 @@ type point struct {
 	varTime bool
 }
 
-func (p *point) String() string {
+func (P *point) String() string {
 	var b [32]byte
-	p.ge.ToBytes(&b)
+	P.ge.ToBytes(&b)
 	return hex.EncodeToString(b[:])
 }
 
-func (p *point) MarshalSize() int {
+func (P *point) MarshalSize() int {
 	return 32
 }
 
-func (p *point) MarshalBinary() ([]byte, error) {
+func (P *point) MarshalBinary() ([]byte, error) {
 	var b [32]byte
-	p.ge.ToBytes(&b)
+	P.ge.ToBytes(&b)
 	return b[:], nil
 }
 
 // MarshalID returns the type tag used in encoding/decoding
-func (p *point) MarshalID() [8]byte {
+func (P *point) MarshalID() [8]byte {
 	return marshalPointID
 }
 
-func (p *point) UnmarshalBinary(b []byte) error {
-	if !p.ge.FromBytes(b) {
+func (P *point) UnmarshalBinary(b []byte) error {
+	if !P.ge.FromBytes(b) {
 		return errors.New("invalid Ed25519 curve point")
 	}
 	return nil
 }
 
-func (p *point) MarshalTo(w io.Writer) (int, error) {
-	return marshalling.PointMarshalTo(p, w)
+func (P *point) MarshalTo(w io.Writer) (int, error) {
+	return marshalling.PointMarshalTo(P, w)
 }
 
-func (p *point) UnmarshalFrom(r io.Reader) (int, error) {
-	return marshalling.PointUnmarshalFrom(p, r)
+func (P *point) UnmarshalFrom(r io.Reader) (int, error) {
+	return marshalling.PointUnmarshalFrom(P, r)
 }
 
 // Equality test for two Points on the same curve
-func (p *point) Equal(p2 kyber.Point) bool {
+func (P *point) Equal(P2 kyber.Point) bool {
 
 	var b1, b2 [32]byte
-	p.ge.ToBytes(&b1)
-	p2.(*point).ge.ToBytes(&b2)
+	P.ge.ToBytes(&b1)
+	P2.(*point).ge.ToBytes(&b2)
 	for i := range b1 {
 		if b1[i] != b2[i] {
 			return false
@@ -88,40 +88,40 @@ func (p *point) Equal(p2 kyber.Point) bool {
 	return true
 }
 
-// Set point to be equal to p2.
-func (p *point) Set(p2 kyber.Point) kyber.Point {
-	p.ge = p2.(*point).ge
-	return p
+// Set point to be equal to P2.
+func (P *point) Set(P2 kyber.Point) kyber.Point {
+	P.ge = P2.(*point).ge
+	return P
 }
 
-// Set point to be equal to p2.
-func (p *point) Clone() kyber.Point {
-	return &point{ge: p.ge}
+// Set point to be equal to P2.
+func (P *point) Clone() kyber.Point {
+	return &point{ge: P.ge}
 }
 
 // Set to the neutral element, which is (0,1) for twisted Edwards curves.
-func (p *point) Null() kyber.Point {
-	p.ge.Zero()
-	return p
+func (P *point) Null() kyber.Point {
+	P.ge.Zero()
+	return P
 }
 
 // Set to the standard base point for this curve
-func (p *point) Base() kyber.Point {
-	p.ge = baseext
-	return p
+func (P *point) Base() kyber.Point {
+	P.ge = baseext
+	return P
 }
 
-func (p *point) EmbedLen() int {
+func (P *point) EmbedLen() int {
 	// Reserve the most-significant 8 bits for pseudo-randomness.
 	// Reserve the least-significant 8 bits for embedded data length.
 	// (Hopefully it's unlikely we'll need >=2048-bit curves soon.)
 	return (255 - 8 - 8) / 8
 }
 
-func (p *point) Embed(data []byte, rand cipher.Stream) kyber.Point {
+func (P *point) Embed(data []byte, rand cipher.Stream) kyber.Point {
 
 	// How many bytes to embed?
-	dl := p.EmbedLen()
+	dl := P.EmbedLen()
 	if dl > len(data) {
 		dl = len(data)
 	}
@@ -134,14 +134,14 @@ func (p *point) Embed(data []byte, rand cipher.Stream) kyber.Point {
 			b[0] = byte(dl)       // Encode length in low 8 bits
 			copy(b[1:1+dl], data) // Copy in data to embed
 		}
-		if !p.ge.FromBytes(b[:]) { // Try to decode
+		if !P.ge.FromBytes(b[:]) { // Try to decode
 			continue // invalid point, retry
 		}
 
 		// If we're using the full group,
 		// we just need any point on the curve, so we're done.
 		//		if c.full {
-		//			return p,data[dl:]
+		//			return P,data[dl:]
 		//		}
 
 		// We're using the prime-order subgroup,
@@ -150,91 +150,91 @@ func (p *point) Embed(data []byte, rand cipher.Stream) kyber.Point {
 		// we can convert our point into one in the subgroup
 		// simply by multiplying it by the cofactor.
 		if data == nil {
-			p.Mul(cofactorScalar, p) // multiply by cofactor
-			if p.Equal(nullPoint) {
+			P.Mul(cofactorScalar, P) // multiply by cofactor
+			if P.Equal(nullPoint) {
 				continue // unlucky; try again
 			}
-			return p // success
+			return P // success
 		}
 
 		// Since we need the point's y-coordinate to hold our data,
 		// we must simply check if the point is in the subgroup
 		// and retry point generation until it is.
 		var Q point
-		Q.Mul(primeOrderScalar, p)
+		Q.Mul(primeOrderScalar, P)
 		if Q.Equal(nullPoint) {
-			return p // success
+			return P // success
 		}
 		// Keep trying...
 	}
 }
 
-func (p *point) Pick(rand cipher.Stream) kyber.Point {
-	return p.Embed(nil, rand)
+func (P *point) Pick(rand cipher.Stream) kyber.Point {
+	return P.Embed(nil, rand)
 }
 
 // Extract embedded data from a point group element
-func (p *point) Data() ([]byte, error) {
+func (P *point) Data() ([]byte, error) {
 	var b [32]byte
-	p.ge.ToBytes(&b)
+	P.ge.ToBytes(&b)
 	dl := int(b[0]) // extract length byte
-	if dl > p.EmbedLen() {
+	if dl > P.EmbedLen() {
 		return nil, errors.New("invalid embedded data length")
 	}
 	return b[1 : 1+dl], nil
 }
 
-func (p *point) Add(p1, p2 kyber.Point) kyber.Point {
-	E1 := p1.(*point) //nolint:errcheck // V4 may bring better error handling
-	E2 := p2.(*point) //nolint:errcheck // V4 may bring better error handling
+func (P *point) Add(P1, P2 kyber.Point) kyber.Point {
+	E1 := P1.(*point) //nolint:errcheck // V4 may bring better error handling
+	E2 := P2.(*point) //nolint:errcheck // V4 may bring better error handling
 
 	var t2 cachedGroupElement
 	var r completedGroupElement
 
 	E2.ge.ToCached(&t2)
 	r.Add(&E1.ge, &t2)
-	r.ToExtended(&p.ge)
+	r.ToExtended(&P.ge)
 
-	return p
+	return P
 }
 
-func (p *point) Sub(p1, p2 kyber.Point) kyber.Point {
-	E1 := p1.(*point) //nolint:errcheck // V4 may bring better error handling
-	E2 := p2.(*point) //nolint:errcheck // V4 may bring better error handling
+func (P *point) Sub(P1, P2 kyber.Point) kyber.Point {
+	E1 := P1.(*point) //nolint:errcheck // V4 may bring better error handling
+	E2 := P2.(*point) //nolint:errcheck // V4 may bring better error handling
 
 	var t2 cachedGroupElement
 	var r completedGroupElement
 
 	E2.ge.ToCached(&t2)
 	r.Sub(&E1.ge, &t2)
-	r.ToExtended(&p.ge)
+	r.ToExtended(&P.ge)
 
-	return p
+	return P
 }
 
 // Neg finds the negative of point A.
 // For Edwards curves, the negative of (x,y) is (-x,y).
-func (p *point) Neg(a kyber.Point) kyber.Point {
-	p.ge.Neg(&a.(*point).ge)
-	return p
+func (P *point) Neg(A kyber.Point) kyber.Point {
+	P.ge.Neg(&A.(*point).ge)
+	return P
 }
 
 // Mul multiplies point p by scalar s using the repeated doubling method.
-func (p *point) Mul(s kyber.Scalar, b kyber.Point) kyber.Point {
+func (P *point) Mul(s kyber.Scalar, A kyber.Point) kyber.Point {
 
 	a := &s.(*scalar).v
 
-	if b == nil {
-		geScalarMultBase(&p.ge, a)
+	if A == nil {
+		geScalarMultBase(&P.ge, a)
 	} else {
-		if p.varTime {
-			geScalarMultVartime(&p.ge, a, &b.(*point).ge)
+		if P.varTime {
+			geScalarMultVartime(&P.ge, a, &A.(*point).ge)
 		} else {
-			geScalarMult(&p.ge, a, &b.(*point).ge)
+			geScalarMult(&P.ge, a, &A.(*point).ge)
 		}
 	}
 
-	return p
+	return P
 }
 
 // HasSmallOrder determines whether the group element has small order
@@ -247,8 +247,8 @@ func (p *point) Mul(s kyber.Scalar, b kyber.Point) kyber.Point {
 // https://github.com/jedisct1/libsodium/blob/4744636721d2e420f8bbe2d563f31b1f5e682229/src/libsodium/crypto_core/ed25519/ref10/ed25519_ref10.c#L1170
 //
 //nolint:lll // Url above
-func (p *point) HasSmallOrder() bool {
-	s, err := p.MarshalBinary()
+func (P *point) HasSmallOrder() bool {
+	s, err := P.MarshalBinary()
 	if err != nil {
 		return false
 	}
@@ -285,7 +285,7 @@ func (p *point) HasSmallOrder() bool {
 // because that always returns a value modulo `prime`.
 //
 //nolint:lll // Url above
-func (p *point) IsCanonical(s []byte) bool {
+func (P *point) IsCanonical(s []byte) bool {
 	if len(s) != 32 {
 		return false
 	}

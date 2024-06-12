@@ -35,17 +35,17 @@ import (
 // Variable names are as representative to the paper as possible.
 func SequencesShuffle(
 	group kyber.Group,
-	g, h kyber.Point,
-	x, y [][]kyber.Point,
+	G, H kyber.Point,
+	X, Y [][]kyber.Point,
 	rand cipher.Stream) (xBar, yBar [][]kyber.Point, getProver func(e []kyber.Scalar) (proof.Prover, error)) {
 
-	err := assertXY(x, y)
+	err := assertXY(X, Y)
 	if err != nil {
 		panic(fmt.Sprintf("invalid data: %v", err))
 	}
 
-	NQ := len(x)
-	k := len(x[0])
+	NQ := len(X)
+	k := len(X[0])
 
 	// Pick a random permutation used in ALL k ElGamal sequences. The permutation
 	// (π) of an ElGamal pair at index i always outputs to the same index
@@ -81,11 +81,11 @@ func SequencesShuffle(
 		yBar[j] = make([]kyber.Point, k)
 
 		for i := 0; i < k; i++ {
-			xBar[j][i] = group.Point().Mul(beta[j][pi[i]], g)
-			xBar[j][i].Add(xBar[j][i], x[j][pi[i]])
+			xBar[j][i] = group.Point().Mul(beta[j][pi[i]], G)
+			xBar[j][i].Add(xBar[j][i], X[j][pi[i]])
 
-			yBar[j][i] = group.Point().Mul(beta[j][pi[i]], h)
-			yBar[j][i].Add(yBar[j][i], y[j][pi[i]])
+			yBar[j][i] = group.Point().Mul(beta[j][pi[i]], H)
+			yBar[j][i].Add(yBar[j][i], Y[j][pi[i]])
 		}
 	}
 
@@ -113,9 +113,9 @@ func SequencesShuffle(
 				}
 			}
 
-			XUp, YUp, _, _ := GetSequenceVerifiable(group, x, y, xBar, yBar, e)
+			XUp, YUp, _, _ := GetSequenceVerifiable(group, X, Y, xBar, yBar, e)
 
-			return ps.Prove(pi, g, h, beta2, XUp, YUp, rand, ctx)
+			return ps.Prove(pi, G, H, beta2, XUp, YUp, rand, ctx)
 		}, nil
 	}
 
@@ -123,26 +123,26 @@ func SequencesShuffle(
 }
 
 // assertXY checks that x, y have the same dimensions and at least one element
-func assertXY(x, y [][]kyber.Point) error {
-	if len(x) == 0 || len(x[0]) == 0 {
-		return errors.New("x is empty")
+func assertXY(X, Y [][]kyber.Point) error {
+	if len(X) == 0 || len(X[0]) == 0 {
+		return errors.New("X is empty")
 	}
-	if len(y) == 0 || len(y[0]) == 0 {
-		return errors.New("y is empty")
-	}
-
-	if len(x) != len(y) {
-		return fmt.Errorf("x and y have a different size: %d != %d", len(x), len(y))
+	if len(Y) == 0 || len(Y[0]) == 0 {
+		return errors.New("Y is empty")
 	}
 
-	expected := len(x[0])
+	if len(X) != len(Y) {
+		return fmt.Errorf("X and Y have a different size: %d != %d", len(X), len(Y))
+	}
 
-	for i := range x {
-		if len(x[i]) != expected {
-			return fmt.Errorf("x[%d] has unexpected size: %d != %d", i, expected, len(x[i]))
+	expected := len(X[0])
+
+	for i := range X {
+		if len(X[i]) != expected {
+			return fmt.Errorf("X[%d] has unexpected size: %d != %d", i, expected, len(X[i]))
 		}
-		if len(y[i]) != expected {
-			return fmt.Errorf("y[%d] has unexpected size: %d != %d", i, expected, len(y[i]))
+		if len(Y[i]) != expected {
+			return fmt.Errorf("Y[%d] has unexpected size: %d != %d", i, expected, len(Y[i]))
 		}
 	}
 
@@ -151,12 +151,12 @@ func assertXY(x, y [][]kyber.Point) error {
 
 // GetSequenceVerifiable returns the consolidated input and output of sequence
 // shuffling elements. Needed by the prover and verifier.
-func GetSequenceVerifiable(group kyber.Group, x, y, xBar, yBar [][]kyber.Point, e []kyber.Scalar) (
+func GetSequenceVerifiable(group kyber.Group, X, Y, Xbar, Ybar [][]kyber.Point, e []kyber.Scalar) (
 	xUp, yUp, xDown, yDown []kyber.Point) {
 
 	// EGAR1 (Verifier) - Consolidate input and output
-	NQ := len(x)
-	k := len(x[0])
+	NQ := len(X)
+	k := len(X[0])
 
 	xUp = make([]kyber.Point, k)
 	yUp = make([]kyber.Point, k)
@@ -166,22 +166,22 @@ func GetSequenceVerifiable(group kyber.Group, x, y, xBar, yBar [][]kyber.Point, 
 	for i := 0; i < k; i++ {
 		// No modification could be made for e[0] -> e[0] = 1 if one wanted -
 		// Remark 7 in the paper
-		xUp[i] = group.Point().Mul(e[0], x[0][i])
-		yUp[i] = group.Point().Mul(e[0], y[0][i])
+		xUp[i] = group.Point().Mul(e[0], X[0][i])
+		yUp[i] = group.Point().Mul(e[0], Y[0][i])
 
-		xDown[i] = group.Point().Mul(e[0], xBar[0][i])
-		yDown[i] = group.Point().Mul(e[0], yBar[0][i])
+		xDown[i] = group.Point().Mul(e[0], Xbar[0][i])
+		yDown[i] = group.Point().Mul(e[0], Ybar[0][i])
 
 		for j := 1; j < NQ; j++ {
 			xUp[i] = group.Point().Add(xUp[i],
-				group.Point().Mul(e[j], x[j][i]))
+				group.Point().Mul(e[j], X[j][i]))
 			yUp[i] = group.Point().Add(yUp[i],
-				group.Point().Mul(e[j], y[j][i]))
+				group.Point().Mul(e[j], Y[j][i]))
 
 			xDown[i] = group.Point().Add(xDown[i],
-				group.Point().Mul(e[j], xBar[j][i]))
+				group.Point().Mul(e[j], Xbar[j][i]))
 			yDown[i] = group.Point().Add(yDown[i],
-				group.Point().Mul(e[j], yBar[j][i]))
+				group.Point().Mul(e[j], Ybar[j][i]))
 		}
 	}
 

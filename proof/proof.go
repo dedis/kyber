@@ -157,16 +157,16 @@ type repPred struct {
 // A Rep statement of the form Rep(P,x1,B1,...,xn,Bn)
 // indicates that the prover knows secrets x1,...,xn
 // such that point P is the sum x1*B1+...+xn*Bn.
-func Rep(p string, sb ...string) Predicate {
-	if len(sb)&1 != 0 {
+func Rep(P string, SB ...string) Predicate {
+	if len(SB)&1 != 0 {
 		panic("mismatched Scalar")
 	}
-	t := make([]term, len(sb)/2)
+	t := make([]term, len(SB)/2)
 	for i := range t {
-		t[i].S = sb[i*2]
-		t[i].B = sb[i*2+1]
+		t[i].S = SB[i*2]
+		t[i].B = SB[i*2+1]
 	}
-	return &repPred{p, t}
+	return &repPred{P, t}
 }
 
 // Return a string representation of this proof-of-representation predicate,
