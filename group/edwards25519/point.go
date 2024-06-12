@@ -450,7 +450,6 @@ func expandMessageXOF(h sha3.ShakeHash, m []byte, domainSeparator string, byteLe
 		return nil, fmt.Errorf("read %d byte instead of expected %d from xof", n, byteLen)
 	}
 
-	h.Reset()
 	return uniformBytes, nil
 }
 
