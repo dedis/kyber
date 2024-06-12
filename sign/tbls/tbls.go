@@ -103,7 +103,7 @@ func (s *scheme) VerifyPartial(public *share.PubPoly, msg, sig []byte) error {
 	if err != nil {
 		return err
 	}
-	return s.Scheme.Verify(public.Eval(i).V, msg, sh.Value())
+	return s.Scheme.Verify(public.Eval(uint32(i)).V, msg, sh.Value())
 }
 
 func (s *scheme) VerifyRecovered(public kyber.Point, msg, sig []byte) error {
@@ -123,14 +123,15 @@ func (s *scheme) Recover(public *share.PubPoly, msg []byte, sigs [][]byte, t, n 
 		if err != nil {
 			continue
 		}
-		if err = s.Scheme.Verify(public.Eval(i).V, msg, sh.Value()); err != nil {
+		idx := uint32(i)
+		if err = s.Scheme.Verify(public.Eval(idx).V, msg, sh.Value()); err != nil {
 			continue
 		}
 		point := s.sigGroup.Point()
 		if err := point.UnmarshalBinary(sh.Value()); err != nil {
 			continue
 		}
-		pubShares = append(pubShares, &share.PubShare{I: i, V: point})
+		pubShares = append(pubShares, &share.PubShare{I: idx, V: point})
 		if len(pubShares) >= t {
 			break
 		}
