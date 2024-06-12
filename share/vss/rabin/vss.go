@@ -574,7 +574,7 @@ func (a *aggregator) VerifyDeal(d *Deal, inclusion bool) error {
 	if fi.I != gi.I {
 		return errors.New("vss: not the same index for f and g share in Deal")
 	}
-	if fi.I < 0 || fi.I >= uint32(len(a.verifiers)) {
+	if fi.I >= uint32(len(a.verifiers)) {
 		return errors.New("vss: index out of bounds in Deal")
 	}
 	// compute fi * G + gi * H
