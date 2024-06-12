@@ -649,7 +649,7 @@ func (d *DistKeyGenerator) DistKeyShare() (*DistKeyShare, error) {
 	return &DistKeyShare{
 		Commits: commits,
 		Share: &share.PriShare{
-			I: int(d.index),
+			I: d.index,
 			V: sh,
 		},
 	}, nil

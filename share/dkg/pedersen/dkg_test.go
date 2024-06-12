@@ -629,7 +629,7 @@ func TestDKGThreshold(t *testing.T) {
 			continue
 		}
 		for _, res := range results {
-			if res.Key.Share.I != int(n.Index) {
+			if res.Key.Share.I != n.Index {
 				continue
 			}
 			for _, nodeQual := range res.QUAL {
@@ -1055,7 +1055,7 @@ func TestDKGTooManyComplaints(t *testing.T) {
 			continue
 		}
 		for _, res := range results {
-			if res.Key.Share.I != int(n.Index) {
+			if res.Key.Share.I != n.Index {
 				continue
 			}
 			for _, nodeQual := range res.QUAL {

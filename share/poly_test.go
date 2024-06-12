@@ -396,7 +396,7 @@ func TestRecoverPriPoly(test *testing.T) {
 	reverseRecovered, err := RecoverPriPoly(suite, reverses, t, n)
 	assert.Nil(test, err)
 
-	for i := 0; i < t; i++ {
+	for i := uint32(0); i < uint32(t); i++ {
 		assert.Equal(test, recovered.Eval(i).V.String(), a.Eval(i).V.String())
 		assert.Equal(test, reverseRecovered.Eval(i).V.String(), a.Eval(i).V.String())
 	}
@@ -445,7 +445,7 @@ func TestRefreshDKG(test *testing.T) {
 
 	// Create private DKG shares
 	dkgShares := make([]*PriShare, n)
-	for i := 0; i < n; i++ {
+	for i := uint32(0); i < uint32(n); i++ {
 		acc := g.Scalar().Zero()
 		for j := 0; j < n; j++ { // assuming all participants are in the qualified set
 			acc = g.Scalar().Add(acc, priShares[j][i].V)
@@ -487,10 +487,10 @@ func TestRefreshDKG(test *testing.T) {
 
 	// Handout shares to new nodes column-wise and verify them
 	newDKGShares := make([]*PriShare, n)
-	for i := 0; i < n; i++ {
+	for i := uint32(0); i < uint32(n); i++ {
 		tmpPriShares := make([]*PriShare, n) // column-wise reshuffled sub-shares
 		tmpPubShares := make([]*PubShare, n) // public commitments to old DKG private shares
-		for j := 0; j < n; j++ {
+		for j := uint32(0); j < uint32(n); j++ {
 			// Check 1: Verify that the received individual private subshares s_ji
 			// is correct by evaluating the public commitment vector
 			tmpPriShares[j] = &PriShare{I: j, V: subPriShares[j][i].V} // Shares that participant i gets from j
@@ -517,7 +517,7 @@ func TestRefreshDKG(test *testing.T) {
 	newDKGCommits := make([]kyber.Point, t)
 	for i := 0; i < t; i++ {
 		pubShares := make([]*PubShare, n)
-		for j := 0; j < n; j++ {
+		for j := uint32(0); j < uint32(n); j++ {
 			_, c := subPubPolys[j].Info()
 			pubShares[j] = &PubShare{I: j, V: c[i]}
 		}
