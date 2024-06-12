@@ -37,7 +37,8 @@ var ErrDifferentLengths = errors.New("inputs of different lengths")
 var ErrEncVerification = errors.New("verification of encrypted share failed")
 var ErrDecVerification = errors.New("verification of decrypted share failed")
 var ErrCommitmentComputation = errors.New("integer too large to be represented in int64")
-var ErrChallengeVerification = errors.New("failed to verify the challenge")
+var ErrGlobalChallengeVerification = errors.New("failed to verify global challenge")
+var ErrDecShareChallengeVerification = errors.New("failed to verify the share decryption challenge")
 
 // PubVerShare is a public verifiable share.
 type PubVerShare struct {
@@ -183,7 +184,7 @@ func VerifyEncShareBatch(suite Suite, H kyber.Point, X []kyber.Point, sH []kyber
 
 	for i := 0; i < len(X); i++ {
 		if !encShares[i].P.C.Equal(expectedChallenge) {
-			return nil, nil, ErrChallengeVerification
+			return nil, nil, ErrGlobalChallengeVerification
 		}
 
 		if err := VerifyEncShare(suite, H, X[i], sH[i], encShares[i]); err == nil {
@@ -234,6 +235,19 @@ func DecShareBatch(suite Suite, H kyber.Point, X []kyber.Point, sH []kyber.Point
 // VerifyDecShare checks that the decrypted share sG satisfies
 // log_{G}(X) == log_{sG}(sX). Note that X = xG and sX = s(xG) = x(sG).
 func VerifyDecShare(suite Suite, G kyber.Point, X kyber.Point, encShare *PubVerShare, decShare *PubVerShare) error {
+	// Compute challenge for the decShare
+	h := suite.Hash()
+	X.MarshalTo(h)
+	encShare.S.V.MarshalTo(h)
+	decShare.P.VG.MarshalTo(h)
+	decShare.P.VH.MarshalTo(h)
+	cb := h.Sum(nil)
+	expDecChallenge := suite.Scalar().Pick(suite.XOF(cb))
+
+	if !decShare.P.C.Equal(expDecChallenge) {
+		return ErrDecShareChallengeVerification
+	}
+
 	if err := decShare.P.Verify(suite, G, decShare.S.V, X, encShare.S.V); err != nil {
 		return ErrDecVerification
 	}
