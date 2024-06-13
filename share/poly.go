@@ -27,7 +27,7 @@ var errorCoeffs = errors.New("different number of coefficients")
 
 // PriShare represents a private share.
 type PriShare struct {
-	I int          // Index of the private share
+	I uint32       // Index of the private share
 	V kyber.Scalar // Value of the private share
 }
 
@@ -81,7 +81,7 @@ func (p *PriPoly) Secret() kyber.Scalar {
 }
 
 // Eval computes the private share v = p(i).
-func (p *PriPoly) Eval(i int) *PriShare {
+func (p *PriPoly) Eval(i uint32) *PriShare {
 	xi := p.g.Scalar().SetInt64(1 + int64(i))
 	v := p.g.Scalar().Zero()
 	for j := p.Threshold() - 1; j >= 0; j-- {
@@ -95,7 +95,7 @@ func (p *PriPoly) Eval(i int) *PriShare {
 func (p *PriPoly) Shares(n int) []*PriShare {
 	shares := make([]*PriShare, n)
 	for i := range shares {
-		shares[i] = p.Eval(i)
+		shares[i] = p.Eval(uint32(i))
 	}
 	return shares
 }
@@ -232,7 +232,7 @@ func xyScalar(g kyber.Group, shares []*PriShare, t, n int) (map[int]kyber.Scalar
 		if s == nil || s.V == nil || s.I < 0 {
 			continue
 		}
-		idx := s.I
+		idx := int(s.I)
 		x[idx] = g.Scalar().SetInt64(int64(idx + 1))
 		y[idx] = s.V
 		if len(x) == t {
@@ -296,7 +296,7 @@ func (p *PriPoly) String() string {
 
 // PubShare represents a public share.
 type PubShare struct {
-	I int         // Index of the public share
+	I uint32      // Index of the public share
 	V kyber.Point // Value of the public share
 }
 
@@ -336,7 +336,7 @@ func (p *PubPoly) Commit() kyber.Point {
 }
 
 // Eval computes the public share v = p(i).
-func (p *PubPoly) Eval(i int) *PubShare {
+func (p *PubPoly) Eval(i uint32) *PubShare {
 	xi := p.g.Scalar().SetInt64(1 + int64(i)) // x-coordinate of this share
 	v := p.g.Point().Null()
 	for j := p.Threshold() - 1; j >= 0; j-- {
@@ -350,7 +350,7 @@ func (p *PubPoly) Eval(i int) *PubShare {
 func (p *PubPoly) Shares(n int) []*PubShare {
 	shares := make([]*PubShare, n)
 	for i := range shares {
-		shares[i] = p.Eval(i)
+		shares[i] = p.Eval(uint32(i))
 	}
 	return shares
 }
@@ -433,7 +433,7 @@ func xyCommit(g kyber.Group, shares []*PubShare, t, n int) (map[int]kyber.Scalar
 		if s == nil || s.V == nil || s.I < 0 {
 			continue
 		}
-		idx := s.I
+		idx := int(s.I)
 		x[idx] = g.Scalar().SetInt64(int64(idx + 1))
 		y[idx] = s.V
 		if len(x) == t {

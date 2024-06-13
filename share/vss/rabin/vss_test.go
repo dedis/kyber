@@ -245,7 +245,7 @@ func TestVSSVerifierReceiveDeal(t *testing.T) {
 
 	// wrong index
 	goodIdx := d.SecShare.I
-	d.SecShare.I = (goodIdx - 1) % nbVerifiers
+	d.SecShare.I = (goodIdx - 1) % uint32(nbVerifiers)
 	encD, _ = dealer.EncryptedDeal(0)
 	resp, err = v.ProcessEncryptedDeal(encD)
 	assert.Error(t, err)
@@ -443,9 +443,7 @@ func TestVSSAggregatorVerifyDeal(t *testing.T) {
 	deal.RndShare.I = goodI
 
 	// index not in bounds
-	deal.SecShare.I = -1
-	assert.Error(t, aggr.VerifyDeal(deal, false))
-	deal.SecShare.I = len(verifiersPub)
+	deal.SecShare.I = uint32(len(verifiersPub))
 	assert.Error(t, aggr.VerifyDeal(deal, false))
 
 	// shares invalid in respect to the commitments

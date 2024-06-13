@@ -9,7 +9,7 @@ type HashFactory interface {
 	Hash() hash.Hash
 }
 
-// HashablePoint is an interface implemented by n
+// HashablePoint is an interface implemented by some curves
 type HashablePoint interface {
 	Hash([]byte) Point
 }

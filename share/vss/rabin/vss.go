@@ -170,8 +170,9 @@ func NewDealer(suite Suite, longterm, secret kyber.Scalar, verifiers []kyber.Poi
 	// C = F + G
 	d.deals = make([]*Deal, len(d.verifiers))
 	for i := range d.verifiers {
-		fi := f.Eval(i)
-		gi := g.Eval(i)
+		idx := uint32(i)
+		fi := f.Eval(idx)
+		gi := g.Eval(idx)
 		d.deals[i] = &Deal{
 			SessionID:   d.sessionID,
 			SecShare:    fi,
@@ -375,7 +376,7 @@ func (v *Verifier) ProcessEncryptedDeal(e *EncryptedDeal) (*Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	if d.SecShare.I != v.index {
+	if int(d.SecShare.I) != v.index {
 		return nil, errors.New("vss: verifier got wrong index from deal")
 	}
 
@@ -562,7 +563,7 @@ func (a *aggregator) VerifyDeal(d *Deal, inclusion bool) error {
 	if fi.I != gi.I {
 		return errors.New("vss: not the same index for f and g share in Deal")
 	}
-	if fi.I < 0 || fi.I >= len(a.verifiers) {
+	if fi.I < 0 || fi.I >= uint32(len(a.verifiers)) {
 		return errors.New("vss: index out of bounds in Deal")
 	}
 	// compute fi * G + gi * H

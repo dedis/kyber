@@ -40,7 +40,7 @@ func SchemeTesting(t *testing.T, s sign.Scheme) {
 	})
 }
 
-// AggregationTesting test an aggrgatable scheme
+// AggregationTesting tests an aggregatable scheme
 func AggregationTesting(t *testing.T, s sign.AggregatableScheme) {
 	t.Run("Aggregation valid", func(tt *testing.T) {
 		msg := []byte("Hello Boneh-Lynn-Shacham")

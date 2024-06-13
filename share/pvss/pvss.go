@@ -60,7 +60,7 @@ func EncShares(suite Suite, H kyber.Point, X []kyber.Point, secret kyber.Scalar,
 	pubPoly := priPoly.Commit(H)
 
 	// Prepare data for encryption consistency proofs ...
-	indices := make([]int, n)
+	indices := make([]uint32, n)
 	values := make([]kyber.Scalar, n)
 	HS := make([]kyber.Point, n)
 	for i := 0; i < n; i++ {

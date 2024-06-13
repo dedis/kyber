@@ -55,7 +55,7 @@ func (p *pointG1) Set(q kyber.Point) kyber.Point {
 	return p
 }
 
-// Clone makes a hard copy of the point
+// Clone makes a deep copy of the point
 func (p *pointG1) Clone() kyber.Point {
 	q := newPointG1(p.dst)
 	q.g = p.g.Clone()
@@ -365,7 +365,7 @@ func (p *pointG2) Set(q kyber.Point) kyber.Point {
 	return p
 }
 
-// Clone makes a hard copy of the field
+// Clone makes a deep copy of the point
 func (p *pointG2) Clone() kyber.Point {
 	q := newPointG2(p.dst)
 	q.g = p.g.Clone()
@@ -549,7 +549,7 @@ func (p *pointGT) Set(q kyber.Point) kyber.Point {
 	return p
 }
 
-// Clone makes a hard copy of the point
+// Clone makes a deep copy of the point
 func (p *pointGT) Clone() kyber.Point {
 	q := newPointGT()
 	q.g = p.g.Clone()

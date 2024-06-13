@@ -130,9 +130,6 @@ func miller(q *twistPoint, p *curvePoint) *gfP12 {
 	bAffine.Set(p)
 	bAffine.MakeAffine()
 
-	minusA := &twistPoint{}
-	minusA.Neg(aAffine)
-
 	r := &twistPoint{}
 	r.Set(aAffine)
 
@@ -151,6 +148,8 @@ func miller(q *twistPoint, p *curvePoint) *gfP12 {
 		case 1:
 			a, b, c, newR = lineFunctionAdd(r, aAffine, bAffine, r2)
 		case -1:
+			minusA := &twistPoint{}
+			minusA.Neg(aAffine)
 			a, b, c, newR = lineFunctionAdd(r, minusA, bAffine, r2)
 		default:
 			continue
