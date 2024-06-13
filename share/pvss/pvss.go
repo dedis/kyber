@@ -14,7 +14,6 @@ package pvss
 
 import (
 	"errors"
-	"math/big"
 
 	"go.dedis.ch/kyber/v4"
 	"go.dedis.ch/kyber/v4/proof/dleq"
@@ -88,29 +87,22 @@ func EncShares(suite Suite, H kyber.Point, X []kyber.Point, secret kyber.Scalar,
 }
 
 func computeCommitments(suite Suite, n int, polyComs []kyber.Point) ([]kyber.Point, error) {
-	coms := make([]kyber.Point, n) // holds Xi in the paper
-	i := big.NewInt(0)
-	j := big.NewInt(0)
-	exp := big.NewInt(0)
-	expScalar := suite.Scalar().Zero()
+	coms := make([]kyber.Point, n)
 
-	for ith := range coms {
-		i.SetInt64(int64(ith + 1)) // 1 <= i <= n
-
+	// Compute Xi = C0 + iC1 + (i^2)C2 + ... + (i^(t-1))C_(t-1) for i in [1, ..., n]
+	// Using Horner's method: Xi = C0 + i(C1 + i(C2 + i(....)))
+	for i := 0; i < n; i++ {
+		ith := suite.Scalar().SetInt64(int64(i) + 1)
 		acc := suite.Point().Null()
-		for jth, cj := range polyComs {
-			j.SetInt64(int64(jth))
-			exp.Exp(i, j, nil) // i ** j
-			if !exp.IsInt64() {
-				return nil, ErrCommitmentComputation
-			}
 
-			expScalar.SetInt64(exp.Int64())
-			com := suite.Point().Mul(expScalar, cj) // C_j ** (i**j)
-			acc.Add(acc, com)
+		// From j=t-1 to j = 1 since last C0 is not multiplied by ith
+		for j := len(polyComs) - 1; j > 0; j-- {
+			acc.Add(acc, polyComs[j])
+			acc.Mul(ith, acc)
 		}
 
-		coms[ith] = acc
+		acc.Add(acc, polyComs[0])
+		coms[i] = acc
 	}
 
 	return coms, nil
