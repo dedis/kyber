@@ -6,6 +6,7 @@ package edwards25519
 
 import (
 	"fmt"
+	"math/big"
 )
 
 // This code is a port of the public domain, "ref10" implementation of ed25519
@@ -135,27 +136,29 @@ func feFromBytes(dst *fieldElement, src []byte) {
 
 // feToBytes marshals h to s.
 // Preconditions:
-//   |h| bounded by 1.1*2^25,1.1*2^24,1.1*2^25,1.1*2^24,etc.
+//
+//	|h| bounded by 1.1*2^25,1.1*2^24,1.1*2^25,1.1*2^24,etc.
 //
 // Write p=2^255-19; q=floor(h/p).
 // Basic claim: q = floor(2^(-255)(h + 19 2^(-25)h9 + 2^(-1))).
 //
 // Proof:
-//   Have |h|<=p so |q|<=1 so |19^2 2^(-255) q|<1/4.
-//   Also have |h-2^230 h9|<2^230 so |19 2^(-255)(h-2^230 h9)|<1/4.
 //
-//   Write y=2^(-1)-19^2 2^(-255)q-19 2^(-255)(h-2^230 h9).
-//   Then 0<y<1.
+//	Have |h|<=p so |q|<=1 so |19^2 2^(-255) q|<1/4.
+//	Also have |h-2^230 h9|<2^230 so |19 2^(-255)(h-2^230 h9)|<1/4.
 //
-//   Write r=h-pq.
-//   Have 0<=r<=p-1=2^255-20.
-//   Thus 0<=r+19(2^-255)r<r+19(2^-255)2^255<=2^255-1.
+//	Write y=2^(-1)-19^2 2^(-255)q-19 2^(-255)(h-2^230 h9).
+//	Then 0<y<1.
 //
-//   Write x=r+19(2^-255)r+y.
-//   Then 0<x<2^255 so floor(2^(-255)x) = 0 so floor(q+2^(-255)x) = q.
+//	Write r=h-pq.
+//	Have 0<=r<=p-1=2^255-20.
+//	Thus 0<=r+19(2^-255)r<r+19(2^-255)2^255<=2^255-1.
 //
-//   Have q+2^(-255)x = 2^(-255)(h + 19 2^(-25) h9 + 2^(-1))
-//   so floor(2^(-255)(h + 19 2^(-25) h9 + 2^(-1))) = q.
+//	Write x=r+19(2^-255)r+y.
+//	Then 0<x<2^255 so floor(2^(-255)x) = 0 so floor(q+2^(-255)x) = q.
+//
+//	Have q+2^(-255)x = 2^(-255)(h + 19 2^(-25) h9 + 2^(-1))
+//	so floor(2^(-255)(h + 19 2^(-25) h9 + 2^(-1))) = q.
 func feToBytes(s *[32]byte, h *fieldElement) {
 	var carry [10]int32
 
@@ -245,6 +248,38 @@ func feToBytes(s *[32]byte, h *fieldElement) {
 	s[31] = byte(h[9] >> 18)
 }
 
+// feToBn converts a fieldElement to a big.Int
+// Limbs are individually stored in big endian but the array is in little endian, e.g:
+// fe[0] corresponds to the smallest exponent, the array needs to be reversed for proper conversion to big.Int.
+func feToBn(dst *big.Int, src *fieldElement) {
+	var b [32]byte
+	feToBytes(&b, src)
+
+	half := len(b) / 2
+	l := len(b) - 1
+	for i := 0; i < half; i++ {
+		b[i], b[l-i] = b[l-i], b[i]
+	}
+
+	dst.SetBytes(b[:])
+}
+
+// feFromBn converts a big.Int to a fieldElement
+// Limbs are individually stored in big endian but the array is in little endian, e.g:
+// fe[0] corresponds to the smallest exponent, big.Int bytes need to be reversed for proper conversion.
+func feFromBn(dst *fieldElement, src *big.Int) {
+	bn := src.Mod(src, prime)
+	b := make([]byte, 32)
+	bn.FillBytes(b)
+	half := len(b) / 2
+	l := len(b) - 1
+	for i := 0; i < half; i++ {
+		b[i], b[l-i] = b[l-i], b[i]
+	}
+
+	feFromBytes(dst, b)
+}
+
 func feIsNegative(f *fieldElement) byte {
 	var s [32]byte
 	feToBytes(&s, f)
@@ -267,10 +302,12 @@ func feIsNonZero(f *fieldElement) int32 {
 // feNeg sets h = -f
 //
 // Preconditions:
-//    |f| bounded by 1.1*2^25,1.1*2^24,1.1*2^25,1.1*2^24,etc.
+//
+//	|f| bounded by 1.1*2^25,1.1*2^24,1.1*2^25,1.1*2^24,etc.
 //
 // Postconditions:
-//    |h| bounded by 1.1*2^25,1.1*2^24,1.1*2^25,1.1*2^24,etc.
+//
+//	|h| bounded by 1.1*2^25,1.1*2^24,1.1*2^25,1.1*2^24,etc.
 func feNeg(h, f *fieldElement) {
 	for i := range h {
 		h[i] = -f[i]
@@ -281,11 +318,13 @@ func feNeg(h, f *fieldElement) {
 // Can overlap h with f or g.
 //
 // Preconditions:
-//    |f| bounded by 1.1*2^26,1.1*2^25,1.1*2^26,1.1*2^25,etc.
-//    |g| bounded by 1.1*2^26,1.1*2^25,1.1*2^26,1.1*2^25,etc.
+//
+//	|f| bounded by 1.1*2^26,1.1*2^25,1.1*2^26,1.1*2^25,etc.
+//	|g| bounded by 1.1*2^26,1.1*2^25,1.1*2^26,1.1*2^25,etc.
 //
 // Postconditions:
-//    |h| bounded by 1.1*2^25,1.1*2^24,1.1*2^25,1.1*2^24,etc.
+//
+//	|h| bounded by 1.1*2^25,1.1*2^24,1.1*2^25,1.1*2^24,etc.
 //
 // Notes on implementation strategy:
 //
@@ -540,10 +579,12 @@ func feMul(h, f, g *fieldElement) {
 // feSquare calculates h = f*f. Can overlap h with f.
 //
 // Preconditions:
-//    |f| bounded by 1.1*2^26,1.1*2^25,1.1*2^26,1.1*2^25,etc.
+//
+//	|f| bounded by 1.1*2^26,1.1*2^25,1.1*2^26,1.1*2^25,etc.
 //
 // Postconditions:
-//    |h| bounded by 1.1*2^25,1.1*2^24,1.1*2^25,1.1*2^24,etc.
+//
+//	|h| bounded by 1.1*2^25,1.1*2^24,1.1*2^25,1.1*2^24,etc.
 func feSquare(h, f *fieldElement) {
 	f0 := f[0]
 	f1 := f[1]
@@ -695,10 +736,13 @@ func feSquare(h, f *fieldElement) {
 // Can overlap h with f.
 //
 // Preconditions:
-//    |f| bounded by 1.65*2^26,1.65*2^25,1.65*2^26,1.65*2^25,etc.
+//
+//	|f| bounded by 1.65*2^26,1.65*2^25,1.65*2^26,1.65*2^25,etc.
 //
 // Postconditions:
-//    |h| bounded by 1.01*2^25,1.01*2^24,1.01*2^25,1.01*2^24,etc.
+//
+//	|h| bounded by 1.01*2^25,1.01*2^24,1.01*2^25,1.01*2^24,etc.
+//
 // See fe_mul.c for discussion of implementation strategy.
 func feSquare2(h, f *fieldElement) {
 	f0 := f[0]
