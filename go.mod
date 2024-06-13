@@ -1,6 +1,6 @@
 module go.dedis.ch/kyber/v4
 
-go 1.20
+go 1.21
 
 require (
 	github.com/cloudflare/circl v1.3.9
