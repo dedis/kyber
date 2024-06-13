@@ -24,6 +24,7 @@ import (
 // The scalars are GF(2^252 + 27742317777372353535851937790883648493).
 
 var marshalScalarID = [8]byte{'e', 'd', '.', 's', 'c', 'a', 'l', 'a'}
+var defaultEndianess = kyber.LittleEndian
 
 type scalar struct {
 	v [32]byte
@@ -60,7 +61,7 @@ func (s *scalar) SetInt64(v int64) kyber.Scalar {
 }
 
 func (s *scalar) toInt() *mod.Int {
-	return mod.NewIntBytes(s.v[:], primeOrder, mod.LittleEndian)
+	return mod.NewIntBytes(s.v[:], primeOrder, defaultEndianess)
 }
 
 // Set to the additive identity (0)
@@ -140,7 +141,17 @@ func (s *scalar) Pick(rand cipher.Stream) kyber.Scalar {
 
 // SetBytes s to b, interpreted as a little endian integer.
 func (s *scalar) SetBytes(b []byte) kyber.Scalar {
-	return s.setInt(mod.NewIntBytes(b, primeOrder, mod.LittleEndian))
+	return s.setInt(mod.NewIntBytes(b, primeOrder, defaultEndianess))
+}
+
+// ByteOrder return the byte representation type (big or little endian)
+func (s *scalar) ByteOrder() kyber.ByteOrder {
+	return defaultEndianess
+}
+
+// GroupOrder returns the order of the underlying group
+func (s *scalar) GroupOrder() *big.Int {
+	return big.NewInt(0).SetBytes(primeOrder.Bytes())
 }
 
 // String returns the string representation of this scalar (fixed length of 32 bytes, little endian).

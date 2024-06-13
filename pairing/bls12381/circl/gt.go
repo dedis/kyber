@@ -1,31 +1,35 @@
-package circl_bls12381
+package circl
 
 import (
 	"crypto/cipher"
 	"io"
 
-	circl "github.com/cloudflare/circl/ecc/bls12381"
+	bls12381 "github.com/cloudflare/circl/ecc/bls12381"
 	"go.dedis.ch/kyber/v4"
 )
 
-var gtBase *circl.Gt
+var gtBase *bls12381.Gt
 
 func init() {
-	gtBase = circl.Pair(circl.G1Generator(), circl.G2Generator())
+	gtBase = bls12381.Pair(bls12381.G1Generator(), bls12381.G2Generator())
 }
 
 var _ kyber.Point = &GTElt{}
 
-type GTElt struct{ inner circl.Gt }
+// GTElt is a wrapper around the Circl Gt point type.
+type GTElt struct{ inner bls12381.Gt }
 
+// MarshalBinary returns a compressed point, without any domain separation tag information
 func (p *GTElt) MarshalBinary() (data []byte, err error) { return p.inner.MarshalBinary() }
 
+// UnmarshalBinary populates the point from a compressed point representation.
 func (p *GTElt) UnmarshalBinary(data []byte) error { return p.inner.UnmarshalBinary(data) }
 
 func (p *GTElt) String() string { return p.inner.String() }
 
-func (p *GTElt) MarshalSize() int { return circl.GtSize }
+func (p *GTElt) MarshalSize() int { return bls12381.GtSize }
 
+// MarshalTo writes a compressed point to the Writer, without any domain separation tag information
 func (p *GTElt) MarshalTo(w io.Writer) (int, error) {
 	buf, err := p.MarshalBinary()
 	if err != nil {
@@ -34,6 +38,7 @@ func (p *GTElt) MarshalTo(w io.Writer) (int, error) {
 	return w.Write(buf)
 }
 
+// UnmarshalFrom populates the point from a compressed point representation read from the Reader.
 func (p *GTElt) UnmarshalFrom(r io.Reader) (int, error) {
 	buf := make([]byte, p.MarshalSize())
 	n, err := io.ReadFull(r, buf)

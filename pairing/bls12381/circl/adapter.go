@@ -1,4 +1,4 @@
-package circl_bls12381
+package circl
 
 import (
 	"go.dedis.ch/kyber/v4"
@@ -44,5 +44,5 @@ func (s *SuiteBLS12381) ScalarLen() int {
 
 // String returns the name of the suite
 func (s *SuiteBLS12381) String() string {
-	return "bls12381.adapter"
+	return "circl.adapter"
 }

@@ -1,7 +1,5 @@
 package ibe
 
-/*
-
 import (
 	"encoding/hex"
 	"strings"
@@ -10,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.dedis.ch/kyber/v4"
 	"go.dedis.ch/kyber/v4/pairing"
-	bls "go.dedis.ch/kyber/v4/pairing/circl_bls12381"
+	circl "go.dedis.ch/kyber/v4/pairing/bls12381/circl"
 	"go.dedis.ch/kyber/v4/util/random"
 )
 
@@ -23,7 +21,7 @@ func newSetting(i uint) (
 		panic("invalid test")
 	}
 	if i == 1 {
-		suite := bls.NewSuiteBLS12381()
+		suite := circl.NewSuiteBLS12381()
 		P := suite.G1().Point().Base()
 		s := suite.G1().Scalar().Pick(random.New())
 		Ppub := suite.G1().Point().Mul(s, P)
@@ -35,7 +33,7 @@ func newSetting(i uint) (
 		return suite, Ppub, ID, sQid, EncryptCCAonG1, DecryptCCAonG1
 	}
 	// i == 2
-	suite := bls.NewSuiteBLS12381()
+	suite := circl.NewSuiteBLS12381()
 	P := suite.G2().Point().Base()
 	s := suite.G2().Scalar().Pick(random.New())
 	Ppub := suite.G2().Point().Mul(s, P)
@@ -246,7 +244,7 @@ func TestBackwardsInteropWithTypescript(t *testing.T) {
 }
 
 func TestCPAEncryptOnG1(t *testing.T) {
-	suite := bls.NewSuiteBLS12381()
+	suite := circl.NewSuiteBLS12381()
 	P := suite.G1().Point().Pick(random.New())
 	s := suite.G1().Scalar().Pick(random.New())
 	Ppub := suite.G1().Point().Mul(s, P)
@@ -261,4 +259,3 @@ func TestCPAEncryptOnG1(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, msg, msg2)
 }
-*/

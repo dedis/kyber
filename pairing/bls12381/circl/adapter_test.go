@@ -1,4 +1,4 @@
-package circl_bls12381
+package circl
 
 import (
 	"testing"
@@ -24,5 +24,5 @@ func TestAdapter_SuiteBLS12381(t *testing.T) {
 	err = privhex.UnmarshalBinary(privkey)
 	require.Nil(t, err)
 
-	require.Equal(t, "bls12381.adapter", suite.String())
+	require.Equal(t, "circl.adapter", suite.String())
 }

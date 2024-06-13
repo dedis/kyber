@@ -61,7 +61,7 @@ func hashPointToR(pubs []kyber.Point) ([]kyber.Scalar, error) {
 
 	coefs := make([]kyber.Scalar, len(pubs))
 	for i := range coefs {
-		coefs[i] = mod.NewIntBytes(out[i*16:(i+1)*16], modulus128, mod.LittleEndian)
+		coefs[i] = mod.NewIntBytes(out[i*16:(i+1)*16], modulus128, kyber.LittleEndian)
 	}
 
 	return coefs, nil

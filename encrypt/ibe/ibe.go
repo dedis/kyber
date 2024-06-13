@@ -1,7 +1,5 @@
 package ibe
 
-/*
-
 import (
 	"bytes"
 	"crypto/rand"
@@ -10,7 +8,6 @@ import (
 	"fmt"
 
 	"go.dedis.ch/kyber/v4"
-	"go.dedis.ch/kyber/v4/group/mod"
 	"go.dedis.ch/kyber/v4/pairing"
 	"go.dedis.ch/kyber/v4/util/random"
 )
@@ -243,12 +240,9 @@ func h3(s pairing.Suite, sigma, msg []byte) (kyber.Scalar, error) {
 	// we hash it a first time: buffer = hash("IBE-H3" || sigma || msg)
 	buffer := h.Sum(nil)
 
-	hashable, ok := s.G1().Scalar().(*mod.Int)
-	if !ok {
-		return nil, fmt.Errorf("unable to instantiate scalar as a mod.Int")
-	}
+	hashable := s.G1().Scalar()
 	canonicalBitLen := hashable.MarshalSize() * 8
-	actualBitLen := hashable.M.BitLen()
+	actualBitLen := hashable.GroupOrder().BitLen()
 	toMask := canonicalBitLen - actualBitLen
 
 	for i := uint16(1); i < 65535; i++ {
@@ -263,7 +257,7 @@ func h3(s pairing.Suite, sigma, msg []byte) (kyber.Scalar, error) {
 		// We then apply masking to our resulting bytes at the bit level
 		// but we assume that toMask is a few bits, at most 8.
 		// For instance when using BLS12-381 toMask == 1.
-		if hashable.BO == mod.BigEndian {
+		if hashable.ByteOrder() == kyber.BigEndian {
 			hashed[0] = hashed[0] >> toMask
 		} else {
 			hashed[len(hashed)-1] = hashed[len(hashed)-1] >> toMask
@@ -399,4 +393,3 @@ func DecryptCPAonG1(s pairing.Suite, private kyber.Point, c *CiphertextCPA) ([]b
 	}
 	return xor(c.C, hGidT), nil
 }
-*/

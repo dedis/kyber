@@ -1,7 +1,7 @@
-package circl_bls12381
+package circl
 
 import (
-	circl "github.com/cloudflare/circl/ecc/bls12381"
+	bls12381 "github.com/cloudflare/circl/ecc/bls12381"
 	"go.dedis.ch/kyber/v4"
 )
 
@@ -17,7 +17,7 @@ type groupBls struct {
 }
 
 func (g groupBls) String() string       { return g.name }
-func (g groupBls) ScalarLen() int       { return circl.ScalarSize }
+func (g groupBls) ScalarLen() int       { return bls12381.ScalarSize }
 func (g groupBls) Scalar() kyber.Scalar { return new(Scalar).SetInt64(0) }
 func (g groupBls) PointLen() int        { return g.newPoint().MarshalSize() }
 func (g groupBls) Point() kyber.Point   { return g.newPoint() }

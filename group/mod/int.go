@@ -18,16 +18,6 @@ var one = big.NewInt(1)
 var two = big.NewInt(2)
 var marshalScalarID = [8]byte{'m', 'o', 'd', '.', 'i', 'n', 't', ' '}
 
-// ByteOrder denotes the endianness of the operation.
-type ByteOrder bool
-
-const (
-	// LittleEndian endianness
-	LittleEndian ByteOrder = true
-	// BigEndian endianness
-	BigEndian ByteOrder = false
-)
-
 // Int is a generic implementation of finite field arithmetic
 // on integer finite fields with a given constant modulus,
 // built using Go's built-in big.Int package.
@@ -47,9 +37,9 @@ const (
 // For efficiency the modulus field M is a pointer,
 // whose target is assumed never to change.
 type Int struct {
-	V  big.Int   // Integer value from 0 through M-1
-	M  *big.Int  // Modulus for finite field arithmetic
-	BO ByteOrder // Endianness which will be used on input and output
+	V  big.Int         // Integer value from 0 through M-1
+	M  *big.Int        // Modulus for finite field arithmetic
+	BO kyber.ByteOrder // Endianness which will be used on input and output
 }
 
 // NewInt creaters a new Int with a given big.Int and a big.Int modulus.
@@ -64,7 +54,7 @@ func NewInt64(v int64, M *big.Int) *Int {
 
 // NewIntBytes creates a new Int with a given slice of bytes and a big.Int
 // modulus.
-func NewIntBytes(a []byte, m *big.Int, byteOrder ByteOrder) *Int {
+func NewIntBytes(a []byte, m *big.Int, byteOrder kyber.ByteOrder) *Int {
 	return new(Int).InitBytes(a, m, byteOrder)
 }
 
@@ -78,7 +68,7 @@ func NewIntString(n, d string, base int, m *big.Int) *Int {
 // Note that the value is copied; the modulus is not.
 func (i *Int) Init(V *big.Int, m *big.Int) *Int {
 	i.M = m
-	i.BO = BigEndian
+	i.BO = kyber.BigEndian
 	i.V.Set(V).Mod(&i.V, m)
 	return i
 }
@@ -86,13 +76,13 @@ func (i *Int) Init(V *big.Int, m *big.Int) *Int {
 // Init64 creates an Int with an int64 value and big.Int modulus.
 func (i *Int) Init64(v int64, m *big.Int) *Int {
 	i.M = m
-	i.BO = BigEndian
+	i.BO = kyber.BigEndian
 	i.V.SetInt64(v).Mod(&i.V, m)
 	return i
 }
 
 // InitBytes init the Int to a number represented in a big-endian byte string.
-func (i *Int) InitBytes(a []byte, m *big.Int, byteOrder ByteOrder) *Int {
+func (i *Int) InitBytes(a []byte, m *big.Int, byteOrder kyber.ByteOrder) *Int {
 	i.M = m
 	i.BO = byteOrder
 	i.SetBytes(a)
@@ -103,7 +93,7 @@ func (i *Int) InitBytes(a []byte, m *big.Int, byteOrder ByteOrder) *Int {
 // specified with a pair of strings in a given base.
 func (i *Int) InitString(n, d string, base int, m *big.Int) *Int {
 	i.M = m
-	i.BO = BigEndian
+	i.BO = kyber.BigEndian
 	if _, succ := i.SetString(n, d, base); !succ {
 		panic("InitString: invalid fraction representation")
 	}
@@ -302,6 +292,16 @@ func (i *Int) Pick(rand cipher.Stream) kyber.Scalar {
 	return i
 }
 
+// ByteOrder return the byte representation type (big or little endian)
+func (i *Int) ByteOrder() kyber.ByteOrder {
+	return i.BO
+}
+
+// GroupOrder returns the order of the underlying group
+func (i *Int) GroupOrder() *big.Int {
+	return big.NewInt(0).Set(i.M)
+}
+
 // MarshalSize returns the length in bytes of encoded integers with modulus M.
 // The length of encoded Ints depends only on the size of the modulus,
 // and not on the the value of the encoded integer,
@@ -317,7 +317,7 @@ func (i *Int) MarshalBinary() ([]byte, error) {
 	b := i.V.Bytes() // may be shorter than l
 	offset := l - len(b)
 
-	if i.BO == LittleEndian {
+	if i.BO == kyber.LittleEndian {
 		return i.LittleEndian(l, l), nil
 	}
 
@@ -342,7 +342,7 @@ func (i *Int) UnmarshalBinary(buf []byte) error {
 		return errors.New("UnmarshalBinary: wrong size buffer")
 	}
 	// Still needed here because of the comparison with the modulo
-	if i.BO == LittleEndian {
+	if i.BO == kyber.LittleEndian {
 		buf = reverse(nil, buf)
 	}
 	i.V.SetBytes(buf)
@@ -384,7 +384,7 @@ func (i *Int) BigEndian(min, max int) []byte {
 // Endianness depends on the endianess set in i.
 func (i *Int) SetBytes(a []byte) kyber.Scalar {
 	var buff = a
-	if i.BO == LittleEndian {
+	if i.BO == kyber.LittleEndian {
 		buff = reverse(nil, a)
 	}
 	i.V.SetBytes(buff).Mod(&i.V, i.M)

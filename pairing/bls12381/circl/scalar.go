@@ -1,16 +1,17 @@
-package circl_bls12381
+package circl
 
 import (
 	"crypto/cipher"
 	"io"
+	"math/big"
 
-	circl "github.com/cloudflare/circl/ecc/bls12381"
+	bls12381 "github.com/cloudflare/circl/ecc/bls12381"
 	"go.dedis.ch/kyber/v4"
 )
 
 var _ kyber.Scalar = &Scalar{}
 
-type Scalar struct{ inner circl.Scalar }
+type Scalar struct{ inner bls12381.Scalar }
 
 func (s *Scalar) MarshalBinary() (data []byte, err error) { return s.inner.MarshalBinary() }
 
@@ -18,7 +19,7 @@ func (s *Scalar) UnmarshalBinary(data []byte) error { return s.inner.UnmarshalBi
 
 func (s *Scalar) String() string { return s.inner.String() }
 
-func (s *Scalar) MarshalSize() int { return circl.ScalarSize }
+func (s *Scalar) MarshalSize() int { return bls12381.ScalarSize }
 
 func (s *Scalar) MarshalTo(w io.Writer) (int, error) {
 	buf, err := s.inner.MarshalBinary()
@@ -115,3 +116,11 @@ func (s *Scalar) Pick(stream cipher.Stream) kyber.Scalar {
 }
 
 func (s *Scalar) SetBytes(data []byte) kyber.Scalar { s.inner.SetBytes(data); return s }
+
+func (s *Scalar) ByteOrder() kyber.ByteOrder {
+	return kyber.BigEndian
+}
+
+func (s *Scalar) GroupOrder() *big.Int {
+	return big.NewInt(0).SetBytes(bls12381.Order())
+}

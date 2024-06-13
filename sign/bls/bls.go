@@ -22,10 +22,6 @@ import (
 	"go.dedis.ch/kyber/v4/sign"
 )
 
-type hashablePoint interface {
-	Hash([]byte) kyber.Point
-}
-
 type scheme struct {
 	sigGroup kyber.Group
 	keyGroup kyber.Group
@@ -69,7 +65,7 @@ func (s *scheme) NewKeyPair(random cipher.Stream) (kyber.Scalar, kyber.Point) {
 }
 
 func (s *scheme) Sign(private kyber.Scalar, msg []byte) ([]byte, error) {
-	hashable, ok := s.sigGroup.Point().(hashablePoint)
+	hashable, ok := s.sigGroup.Point().(kyber.HashablePoint)
 	if !ok {
 		return nil, errors.New("point needs to implement hashablePoint")
 	}
@@ -84,7 +80,7 @@ func (s *scheme) Sign(private kyber.Scalar, msg []byte) ([]byte, error) {
 }
 
 func (s *scheme) Verify(X kyber.Point, msg, sig []byte) error {
-	hashable, ok := s.sigGroup.Point().(hashablePoint)
+	hashable, ok := s.sigGroup.Point().(kyber.HashablePoint)
 	if !ok {
 		return errors.New("bls: point needs to implement hashablePoint")
 	}
@@ -137,7 +133,7 @@ func BatchVerify(suite pairing.Suite, publics []kyber.Point, msgs [][]byte, sig 
 
 	var aggregatedLeft kyber.Point
 	for i := range msgs {
-		hashable, ok := suite.G1().Point().(hashablePoint)
+		hashable, ok := suite.G1().Point().(kyber.HashablePoint)
 		if !ok {
 			return errors.New("bls: point needs to implement hashablePoint")
 		}
