@@ -14,6 +14,7 @@ package pvss
 
 import (
 	"errors"
+	"fmt"
 
 	"go.dedis.ch/kyber/v4"
 	"go.dedis.ch/kyber/v4/proof/dleq"
@@ -243,8 +244,9 @@ func VerifyDecShare(suite Suite, G kyber.Point, X kyber.Point, encShare *PubVerS
 	}
 
 	if err := decShare.P.Verify(suite, G, decShare.S.V, X, encShare.S.V); err != nil {
-		return ErrDecVerification
+		return fmt.Errorf("didn't verify: %w", ErrDecVerification)
 	}
+
 	return nil
 }
 
@@ -252,8 +254,9 @@ func VerifyDecShare(suite Suite, G kyber.Point, X kyber.Point, encShare *PubVerS
 // slices of decrypted shares. The function returns the the valid decrypted shares.
 func VerifyDecShareBatch(suite Suite, G kyber.Point, X []kyber.Point, encShares []*PubVerShare, decShares []*PubVerShare) ([]*PubVerShare, error) {
 	if len(X) != len(encShares) || len(encShares) != len(decShares) {
-		return nil, ErrDifferentLengths
+		return nil, fmt.Errorf("didn't verify: %w", ErrDifferentLengths)
 	}
+
 	var D []*PubVerShare // good decrypted shares
 	for i := 0; i < len(X); i++ {
 		if err := VerifyDecShare(suite, G, X[i], encShares[i], decShares[i]); err == nil {
