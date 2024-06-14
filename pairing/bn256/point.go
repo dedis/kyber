@@ -16,6 +16,8 @@ var marshalPointID1 = [8]byte{'b', 'n', '2', '5', '6', '.', 'g', '1'}
 var marshalPointID2 = [8]byte{'b', 'n', '2', '5', '6', '.', 'g', '2'}
 var marshalPointIDT = [8]byte{'b', 'n', '2', '5', '6', '.', 'g', 't'}
 
+var ErrTypeCast = errors.New("invalid type cast")
+
 type pointG1 struct {
 	g *curvePoint
 }
@@ -148,7 +150,7 @@ func (p *pointG1) MarshalBinary() ([]byte, error) {
 	// Clone is required as we change the point
 	p, ok := p.Clone().(*pointG1)
 	if !ok {
-		return nil, errors.New("invalid type cast")
+		return nil, ErrTypeCast
 	}
 
 	n := p.ElementSize()
@@ -378,7 +380,7 @@ func (p *pointG2) MarshalBinary() ([]byte, error) {
 	// Clone is required as we change the point during the operation
 	p, ok := p.Clone().(*pointG2)
 	if !ok {
-		return nil, errors.New("invalid type cast")
+		return nil, ErrTypeCast
 	}
 	n := p.ElementSize()
 	if p.g == nil {
