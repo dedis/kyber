@@ -77,7 +77,7 @@ func (k *G1Elt) EmbedLen() int {
 	panic("bls12-381: unsupported operation")
 }
 
-func (k *G1Elt) Embed(data []byte, rand cipher.Stream) kyber.Point {
+func (k *G1Elt) Embed(_ []byte, _ cipher.Stream) kyber.Point {
 	panic("bls12-381: unsupported operation")
 }
 

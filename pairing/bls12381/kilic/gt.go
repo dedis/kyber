@@ -39,7 +39,7 @@ func (k *GTElt) Base() kyber.Point {
 	panic("bls12-381.GT.Base(): unsupported operation")
 }
 
-func (k *GTElt) Pick(rand cipher.Stream) kyber.Point {
+func (k *GTElt) Pick(_ cipher.Stream) kyber.Point {
 	panic("bls12-381.GT.Pick(): unsupported operation")
 }
 
@@ -123,7 +123,7 @@ func (k *GTElt) EmbedLen() int {
 	panic("bls12-381.GT.EmbedLen(): unsupported operation")
 }
 
-func (k *GTElt) Embed(data []byte, rand cipher.Stream) kyber.Point {
+func (k *GTElt) Embed(_ []byte, _ cipher.Stream) kyber.Point {
 	panic("bls12-381.GT.Embed(): unsupported operation")
 }
 

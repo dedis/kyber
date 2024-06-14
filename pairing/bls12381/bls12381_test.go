@@ -166,6 +166,8 @@ func TestZKCryptoVectorsG2Compressed(t *testing.T) {
 // Returns a log of the pseudorandom Points produced in the test,
 // for comparison across alternative implementations
 // that are supposed to be equivalent.
+//
+//nolint:gocyclo,cyclop // complete test
 func testGroup(t *testing.T, g kyber.Group, rand cipher.Stream) []kyber.Point {
 	t.Logf("\nTesting group '%s': %d-byte Point, %d-byte Scalar\n",
 		g.String(), g.PointLen(), g.ScalarLen())
@@ -220,13 +222,7 @@ func testGroup(t *testing.T, g kyber.Group, rand cipher.Stream) []kyber.Point {
 
 	// Verify additive and multiplicative identities of the generator.
 	// TODO: Check GT exp
-	/*fmt.Println("Inverse of base")*/
-	//f := ptmp.Base().(*KyberGT).f
-	//newFp12(nil).inverse(f, f)
-	//fmt.Printf("\n-Inverse: %v\n", f)
-	//fmt.Println("Multiply by -1")
 	ptmp.Mul(stmp.SetInt64(-1), nil).Add(ptmp, gen)
-	/*fmt.Printf(" \n\nChecking equality additive identity\nptmp: %v \n\n zero %v\n", ptmp, pzero)*/
 	if !ptmp.Equal(pzero) {
 		t.Fatalf("generator additive identity doesn't work: (scalar -1 %v) %v (x) -1 (+) %v = %v != %v the group point identity",
 			stmp.SetInt64(-1), ptmp.Mul(stmp.SetInt64(-1), nil), gen, ptmp.Mul(stmp.SetInt64(-1), nil).Add(ptmp, gen), pzero)
@@ -256,7 +252,6 @@ func testGroup(t *testing.T, g kyber.Group, rand cipher.Stream) []kyber.Point {
 		t.Fatalf("Diffie-Hellman didn't work: %v == %v (x) %v != %v (x) %v == %v", dh1, s2, p1, s1, p2, dh2)
 	}
 	points = append(points, dh1)
-	//t.Logf("shared secret = %v", dh1)
 
 	// Test secret inverse to get from dh1 back to p1
 	if primeOrder {
@@ -267,7 +262,6 @@ func testGroup(t *testing.T, g kyber.Group, rand cipher.Stream) []kyber.Point {
 	}
 
 	// Zero and One identity secrets
-	//println("dh1^0 = ",ptmp.Mul(dh1, szero).String())
 	if !ptmp.Mul(szero, dh1).Equal(pzero) {
 		t.Fatalf("Encryption with secret=0 didn't work: %v (x) %v == %v != %v", szero, dh1, ptmp, pzero)
 	}
@@ -324,11 +318,7 @@ func testGroup(t *testing.T, g kyber.Group, rand cipher.Stream) []kyber.Point {
 
 	pick := func(rand cipher.Stream) (p kyber.Point) {
 		defer func() {
-			/*if err := recover(); err != nil {*/
-			//// TODO implement Pick for GT
-			//p = g.Point().Mul(g.Scalar().Pick(rand), nil)
-			//return
-			/*}*/
+			// TODO implement Pick for GT
 		}()
 		p = g.Point().Pick(rand)
 		return
@@ -455,7 +445,7 @@ func TestKyberPairingG2(t *testing.T) {
 	}
 }
 
-func TestRacePairings(t *testing.T) {
+func TestRacePairings(_ *testing.T) {
 	suites := []pairing.Suite{
 		kilic.NewBLS12381Suite(),
 		circl.NewSuiteBLS12381(),
@@ -701,11 +691,12 @@ func BLSBenchmark(b *testing.B, curveOption string) {
 
 	randSource := random.New(rand.Reader)
 	var suite pairing.Suite
-	if curveOption == "kilic" {
+	switch curveOption {
+	case "kilic":
 		suite = kilic.NewBLS12381Suite()
-	} else if curveOption == "circl" {
+	case "circl":
 		suite = circl.NewSuiteBLS12381()
-	} else {
+	default:
 		panic(fmt.Errorf("invalid curve option: %s", curveOption))
 	}
 
