@@ -43,7 +43,7 @@ func TestComputePolyCommitments(test *testing.T) {
 	require.NoError(test, err)
 
 	_, com := pubPoly.Info()
-	actualComm, err := computeCommitments(suite, n, com)
+	actualComm := computeCommitments(suite, n, com)
 
 	require.Equal(test, n, len(expectedComm))
 	require.Equal(test, len(expectedComm), len(actualComm))

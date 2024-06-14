@@ -87,7 +87,7 @@ func EncShares(suite Suite, H kyber.Point, X []kyber.Point, secret kyber.Scalar,
 	return encShares, pubPoly, nil
 }
 
-func computeCommitments(suite Suite, n int, polyComs []kyber.Point) ([]kyber.Point, error) {
+func computeCommitments(suite Suite, n int, polyComs []kyber.Point) []kyber.Point {
 	coms := make([]kyber.Point, n)
 
 	// Compute Xi = C0 + iC1 + (i^2)C2 + ... + (i^(t-1))C_(t-1) for i in [1, ..., n]
@@ -106,17 +106,15 @@ func computeCommitments(suite Suite, n int, polyComs []kyber.Point) ([]kyber.Poi
 		coms[i] = acc
 	}
 
-	return coms, nil
+	return coms
 }
 
 func computeGlobalChallenge(suite Suite, n int, commit *share.PubPoly, encShares []*PubVerShare) (kyber.Scalar, error) {
 	_, polyComs := commit.Info()
-	coms, err := computeCommitments(suite, n, polyComs)
-	if err != nil {
-		return nil, err
-	}
+	coms := computeCommitments(suite, n, polyComs)
 
 	h := suite.Hash()
+	var err error
 	for _, com := range coms {
 		_, err = com.MarshalTo(h)
 		if err != nil {
