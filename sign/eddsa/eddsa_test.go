@@ -129,7 +129,7 @@ func TestEdDSAVerifyMalleability(t *testing.T) {
 	}
 
 	err = Verify(ed.Public, msg, sig)
-	require.EqualError(t, err, "signature is not canonical")
+	require.ErrorIs(t, err, ErrSignatureNotCanonical)
 
 	// Additional malleability test from golang/crypto
 	// https://github.com/golang/crypto/blob/master/ed25519/ed25519_test.go#L167
@@ -148,7 +148,7 @@ func TestEdDSAVerifyMalleability(t *testing.T) {
 		0xb1, 0x08, 0xc3, 0xbd, 0xae, 0x36, 0x9e, 0xf5, 0x49, 0xfa}
 
 	err = VerifyWithChecks(publicKey, msg2, sig2)
-	require.EqualError(t, err, "signature is not canonical")
+	require.ErrorIs(t, err, ErrSignatureNotCanonical)
 }
 
 // Test non-canonical R
@@ -171,7 +171,7 @@ func TestEdDSAVerifyNonCanonicalR(t *testing.T) {
 		sig[i] = nonCanonicalR[i]
 	}
 	err = Verify(ed.Public, msg, sig)
-	require.EqualError(t, err, "point R is not canonical")
+	require.ErrorIs(t, err, ErrPointRNotCanonical)
 }
 
 // Test non-canonical keys
@@ -191,7 +191,7 @@ func TestEdDSAVerifyNonCanonicalPK(t *testing.T) {
 	require.Nil(t, Verify(ed.Public, msg, sig))
 
 	err = VerifyWithChecks(nonCanonicalPk, msg, sig)
-	require.EqualError(t, err, "public key is not canonical")
+	require.ErrorIs(t, err, ErrPKNotCanonical)
 }
 
 // Test for small order R
@@ -215,7 +215,7 @@ func TestEdDSAVerifySmallOrderR(t *testing.T) {
 	}
 
 	err = Verify(ed.Public, msg, sig)
-	require.EqualError(t, err, "point R has small order")
+	require.ErrorIs(t, err, ErrPointRSmallOrder)
 }
 
 // Test for small order public key
@@ -238,7 +238,7 @@ func TestEdDSAVerifySmallOrderPK(t *testing.T) {
 	require.Nil(t, err)
 
 	err = Verify(ed.Public, msg, sig)
-	require.EqualError(t, err, "public key has small order")
+	require.ErrorIs(t, err, ErrPKSmallOrder)
 }
 
 // Test the property of a EdDSA signature
