@@ -57,5 +57,5 @@ func TestDLEQLengths(t *testing.T) {
 	// Remove an element to make the test fail
 	x = append(x[:5], x[6:]...)
 	_, _, _, err := NewDLEQProofBatch(suite, g, h, x)
-	require.Equal(t, err, ErrDifferentLengths)
+	require.ErrorIs(t, err, ErrDifferentLengths)
 }

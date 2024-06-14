@@ -9,6 +9,7 @@ package dleq
 
 import (
 	"errors"
+	"fmt"
 
 	"go.dedis.ch/kyber/v4"
 )
@@ -94,7 +95,7 @@ func NewDLEQProofBatch(
 	secrets []kyber.Scalar,
 ) (proof []*Proof, xG []kyber.Point, xH []kyber.Point, err error) {
 	if len(G) != len(H) || len(H) != len(secrets) {
-		return nil, nil, nil, ErrDifferentLengths
+		return nil, nil, nil, fmt.Errorf("invalid: %w", ErrDifferentLengths)
 	}
 
 	n := len(secrets)
@@ -169,7 +170,7 @@ func (p *Proof) Verify(suite Suite, G kyber.Point, H kyber.Point, xG kyber.Point
 	a := suite.Point().Add(rG, cxG)
 	b := suite.Point().Add(rH, cxH)
 	if !(p.VG.Equal(a) && p.VH.Equal(b)) {
-		return ErrInvalidProof
+		return fmt.Errorf("invalid. %w", ErrInvalidProof)
 	}
 	return nil
 }
