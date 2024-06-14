@@ -21,8 +21,8 @@ type Suite interface {
 	kyber.Random
 }
 
-var errDifferentLengths = errors.New("inputs of different lengths")
-var errInvalidProof = errors.New("invalid proof")
+var ErrDifferentLengths = errors.New("inputs of different lengths")
+var ErrInvalidProof = errors.New("invalid proof")
 
 // Proof represents a NIZK dlog-equality proof.
 type Proof struct {
@@ -94,7 +94,7 @@ func NewDLEQProofBatch(
 	secrets []kyber.Scalar,
 ) (proof []*Proof, xG []kyber.Point, xH []kyber.Point, err error) {
 	if len(G) != len(H) || len(H) != len(secrets) {
-		return nil, nil, nil, errDifferentLengths
+		return nil, nil, nil, ErrDifferentLengths
 	}
 
 	n := len(secrets)
@@ -169,7 +169,7 @@ func (p *Proof) Verify(suite Suite, G kyber.Point, H kyber.Point, xG kyber.Point
 	a := suite.Point().Add(rG, cxG)
 	b := suite.Point().Add(rH, cxH)
 	if !(p.VG.Equal(a) && p.VH.Equal(b)) {
-		return errInvalidProof
+		return ErrInvalidProof
 	}
 	return nil
 }
