@@ -36,7 +36,6 @@ var ErrTooFewShares = errors.New("not enough shares to recover secret")
 var ErrDifferentLengths = errors.New("inputs of different lengths")
 var ErrEncVerification = errors.New("verification of encrypted share failed")
 var ErrDecVerification = errors.New("verification of decrypted share failed")
-var ErrCommitmentComputation = errors.New("integer too large to be represented in int64")
 var ErrGlobalChallengeVerification = errors.New("failed to verify global challenge")
 var ErrDecShareChallengeVerification = errors.New("failed to verify the share decryption challenge")
 
