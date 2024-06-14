@@ -6,7 +6,52 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.dedis.ch/kyber/v4"
 	"go.dedis.ch/kyber/v4/group/edwards25519"
+	"go.dedis.ch/kyber/v4/proof/dleq"
+	"go.dedis.ch/kyber/v4/share"
 )
+
+func TestComputePolyCommitments(test *testing.T) {
+	suite := edwards25519.NewBlakeSHA256Ed25519()
+	n := 20
+	t := 15
+	H := suite.Point().Pick(suite.XOF([]byte("H")))
+	secret := suite.Scalar().Pick(suite.RandomStream())
+	priPoly := share.NewPriPoly(suite, t, secret, suite.RandomStream())
+
+	x := make([]kyber.Scalar, n) // trustee private keys
+	X := make([]kyber.Point, n)  // trustee public keys
+	for i := 0; i < n; i++ {
+		x[i] = suite.Scalar().Pick(suite.RandomStream())
+		X[i] = suite.Point().Mul(x[i], nil)
+	}
+
+	pubPoly := priPoly.Commit(H)
+	// Create secret set of shares
+	priShares := priPoly.Shares(n)
+
+	// Prepare data for encryption consistency proofs ...
+	indices := make([]uint32, n)
+	values := make([]kyber.Scalar, n)
+	HS := make([]kyber.Point, n)
+	for i := 0; i < n; i++ {
+		indices[i] = priShares[i].I
+		values[i] = priShares[i].V
+		HS[i] = H
+	}
+
+	_, expectedComm, _, err := dleq.NewDLEQProofBatch(suite, HS, X, values)
+	require.NoError(test, err)
+
+	_, com := pubPoly.Info()
+	actualComm, err := computeCommitments(suite, n, com)
+
+	require.Equal(test, n, len(expectedComm))
+	require.Equal(test, len(expectedComm), len(actualComm))
+
+	for i := 0; i < n; i++ {
+		require.Equal(test, expectedComm[i].String(), actualComm[i].String())
+	}
+}
 
 func TestPVSS(test *testing.T) {
 	suite := edwards25519.NewBlakeSHA256Ed25519()
