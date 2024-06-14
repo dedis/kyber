@@ -483,6 +483,8 @@ func byteXor(dst, b1, b2 []byte) ([]byte, error) {
 // curve25519Elligator2 implements a map from fieldElement to a point on Curve25519
 // as defined in section G.2.1. of [RFC9380]
 // [RFC9380]: https://datatracker.ietf.org/doc/html/rfc9380#ell2-opt
+//
+//nolint:funlen
 func curve25519Elligator2(u fieldElement) (xn, xd, yn, yd fieldElement) {
 	// Some const needed
 	var one fieldElement
@@ -530,7 +532,7 @@ func curve25519Elligator2(u fieldElement) (xn, xd, yn, yd fieldElement) {
 	feSquare(&tv2, &y11)    // tv2 = y11^2
 	feMul(&tv2, &tv2, &gxd) // tv2 = tv2 * gxd
 
-	//y1 = y11 if e1 == 1 else y12
+	// y1 = y11 if e1 == 1 else y12
 	if tv2 == gx1 {
 		e1 = 1
 	}

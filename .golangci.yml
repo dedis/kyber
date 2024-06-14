@@ -289,3 +289,7 @@ issues:
       linters:
         - stylecheck # Keep variable name as is
       text: "var Gid should be GID|var hrGid should be hrGID|rGid should be rGID|var hGidT should be hGIDT|var GidT should be GIDT"
+    - path: "pairing/bls12381/circl/*|pairing/bls12381/kilic/*"
+      linters:
+        - errcheck
+      text: "Error return value is not checked"
