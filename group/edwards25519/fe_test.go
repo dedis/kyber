@@ -63,7 +63,7 @@ func Test_feBnConversionRandom(t *testing.T) {
 	b0 = b0.Mod(b0, prime)
 
 	b1 := big.NewInt(0).SetBytes(p1)
-	b0 = b1.Mod(b1, prime)
+	b1 = b1.Mod(b1, prime)
 
 	b2 := big.NewInt(0).SetBytes(p2)
 	b2 = b1.Mod(b2, prime)
