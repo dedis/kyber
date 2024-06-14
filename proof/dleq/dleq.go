@@ -120,26 +120,22 @@ func NewDLEQProofBatch(
 	// Collective challenge
 	hSuite := suite.Hash()
 	for _, x := range xG {
-		_, err := x.MarshalTo(hSuite)
-		if err != nil {
+		if _, err := x.MarshalTo(hSuite); err != nil {
 			return nil, nil, nil, err
 		}
 	}
 	for _, x := range xH {
-		_, err := x.MarshalTo(hSuite)
-		if err != nil {
+		if _, err := x.MarshalTo(hSuite); err != nil {
 			return nil, nil, nil, err
 		}
 	}
 	for _, x := range vG {
-		_, err := x.MarshalTo(hSuite)
-		if err != nil {
+		if _, err := x.MarshalTo(hSuite); err != nil {
 			return nil, nil, nil, err
 		}
 	}
 	for _, x := range vH {
-		_, err := x.MarshalTo(hSuite)
-		if err != nil {
+		if _, err := x.MarshalTo(hSuite); err != nil {
 			return nil, nil, nil, err
 		}
 	}
