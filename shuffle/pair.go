@@ -297,17 +297,12 @@ func (ps *PairShuffle) Verify(
 		Phi1 = Phi1.Sub(Phi1, P.Mul(v2.Zrho[i], X[i]))
 		Phi2 = Phi2.Add(Phi2, P.Mul(p5.Zsigma[i], Ybar[i])) // (32)
 		Phi2 = Phi2.Sub(Phi2, P.Mul(v2.Zrho[i], Y[i]))
-		//		println("i",i)
 		if !P.Mul(p5.Zsigma[i], p1.Gamma).Equal( // (33)
 			Q.Add(p1.W[i], p3.D[i])) {
 			return errors.New("invalid PairShuffleProof")
 		}
 	}
-	//	println("last")
-	//	println("Phi1",Phi1.String());
-	//	println("Phi2",Phi2.String());
-	//	println("1",P.Add(p1.Lambda1,Q.Mul(G,p5.Ztau)).String());
-	//	println("2",P.Add(p1.Lambda2,Q.Mul(H,p5.Ztau)).String());
+
 	if !P.Add(p1.Lambda1, Q.Mul(p5.Ztau, G)).Equal(Phi1) || // (34)
 		!P.Add(p1.Lambda2, Q.Mul(p5.Ztau, H)).Equal(Phi2) { // (35)
 		return errors.New("invalid PairShuffleProof")

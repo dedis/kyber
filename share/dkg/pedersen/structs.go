@@ -183,17 +183,27 @@ func (b *ResponseBundle) Hash() ([]byte, error) {
 		return b.Responses[i].DealerIndex < b.Responses[j].DealerIndex
 	})
 	h := sha256.New()
-	_ = binary.Write(h, binary.BigEndian, b.ShareIndex)
+	var err error
+	if err = binary.Write(h, binary.BigEndian, b.ShareIndex); err != nil {
+		return nil, err
+	}
+
 	for _, resp := range b.Responses {
-		_ = binary.Write(h, binary.BigEndian, resp.DealerIndex)
+		if err = binary.Write(h, binary.BigEndian, resp.DealerIndex); err != nil {
+			return nil, err
+		}
 		if resp.Status == Success {
-			_ = binary.Write(h, binary.BigEndian, byte(1))
+			if err = binary.Write(h, binary.BigEndian, byte(1)); err != nil {
+				return nil, err
+			}
 		} else {
-			_ = binary.Write(h, binary.BigEndian, byte(0))
+			if err = binary.Write(h, binary.BigEndian, byte(0)); err != nil {
+				return nil, err
+			}
 		}
 	}
-	h.Write(b.SessionID)
-	return h.Sum(nil), nil
+	_, err = h.Write(b.SessionID)
+	return h.Sum(nil), err
 }
 
 func (b *ResponseBundle) Index() Index {
@@ -331,6 +341,8 @@ func VerifyPacketSignature(c *Config, p Packet) error {
 		return errors.New("unknown packet type")
 	}
 
-	err = c.Auth.Verify(pub, hash, sig)
-	return err
+	if err := c.Auth.Verify(pub, hash, sig); err != nil {
+		return fmt.Errorf("invalid signature: %w", err)
+	}
+	return nil
 }
