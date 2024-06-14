@@ -285,3 +285,7 @@ issues:
       linters:
         - errcheck #TODO: proper error handling
       text: "Error return value is not checked"
+    - path: "encrypt/ibe/ibe.go"
+      linters:
+        - stylecheck # Keep variable name as is
+      text: "var Gid should be GID|var hrGid should be hrGID|rGid should be rGID|var hGidT should be hGIDT|var GidT should be GIDT"
