@@ -1,4 +1,4 @@
-name: CI Workflow for tests
+name: Go Tests
 
 on:
   pull_request_target:
