@@ -6,7 +6,52 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.dedis.ch/kyber/v4"
 	"go.dedis.ch/kyber/v4/group/edwards25519"
+	"go.dedis.ch/kyber/v4/proof/dleq"
+	"go.dedis.ch/kyber/v4/share"
 )
+
+func TestComputePolyCommitments(test *testing.T) {
+	suite := edwards25519.NewBlakeSHA256Ed25519()
+	n := 20
+	t := 15
+	H := suite.Point().Pick(suite.XOF([]byte("H")))
+	secret := suite.Scalar().Pick(suite.RandomStream())
+	priPoly := share.NewPriPoly(suite, t, secret, suite.RandomStream())
+
+	x := make([]kyber.Scalar, n) // trustee private keys
+	X := make([]kyber.Point, n)  // trustee public keys
+	for i := 0; i < n; i++ {
+		x[i] = suite.Scalar().Pick(suite.RandomStream())
+		X[i] = suite.Point().Mul(x[i], nil)
+	}
+
+	pubPoly := priPoly.Commit(H)
+	// Create secret set of shares
+	priShares := priPoly.Shares(n)
+
+	// Prepare data for encryption consistency proofs ...
+	indices := make([]uint32, n)
+	values := make([]kyber.Scalar, n)
+	HS := make([]kyber.Point, n)
+	for i := 0; i < n; i++ {
+		indices[i] = priShares[i].I
+		values[i] = priShares[i].V
+		HS[i] = H
+	}
+
+	_, expectedComm, _, err := dleq.NewDLEQProofBatch(suite, HS, X, values)
+	require.NoError(test, err)
+
+	_, com := pubPoly.Info()
+	actualComm := computeCommitments(suite, n, com)
+
+	require.Equal(test, n, len(expectedComm))
+	require.Equal(test, len(expectedComm), len(actualComm))
+
+	for i := 0; i < n; i++ {
+		require.Equal(test, expectedComm[i].String(), actualComm[i].String())
+	}
+}
 
 func TestPVSS(test *testing.T) {
 	suite := edwards25519.NewBlakeSHA256Ed25519()
@@ -38,8 +83,11 @@ func TestPVSS(test *testing.T) {
 	var E []*PubVerShare // good encrypted shares
 	var D []*PubVerShare // good decrypted shares
 
+	globalChallenge, err := computeGlobalChallenge(suite, n, pubPoly, encShares)
+	require.NoError(test, err)
+
 	for i := 0; i < n; i++ {
-		if ds, err := DecShare(suite, H, X[i], sH[i], x[i], encShares[i]); err == nil {
+		if ds, err := DecShare(suite, H, X[i], sH[i], x[i], globalChallenge, encShares[i]); err == nil {
 			K = append(K, X[i])
 			E = append(E, encShares[i])
 			D = append(D, ds)
@@ -72,10 +120,6 @@ func TestPVSSDelete(test *testing.T) {
 	encShares, pubPoly, err := EncShares(suite, H, X, secret, t)
 	require.Equal(test, err, nil)
 
-	// Corrupt some of the encrypted shares
-	encShares[0].S.V = suite.Point().Null()
-	encShares[5].S.V = suite.Point().Null()
-
 	// (2) Share decryption (trustees)
 	sH := make([]kyber.Point, n)
 	for i := 0; i < n; i++ {
@@ -86,8 +130,11 @@ func TestPVSSDelete(test *testing.T) {
 	var E []*PubVerShare // good encrypted shares
 	var D []*PubVerShare // good decrypted shares
 
+	globalChallenge, err := computeGlobalChallenge(suite, len(X), pubPoly, encShares)
+	require.NoError(test, err)
+
 	for i := 0; i < n; i++ {
-		if ds, err := DecShare(suite, H, X[i], sH[i], x[i], encShares[i]); err == nil {
+		if ds, err := DecShare(suite, H, X[i], sH[i], x[i], globalChallenge, encShares[i]); err == nil {
 			K = append(K, X[i])
 			E = append(E, encShares[i])
 			D = append(D, ds)
@@ -95,7 +142,9 @@ func TestPVSSDelete(test *testing.T) {
 	}
 
 	// Corrupt some of the decrypted shares
+	D[0].S.V = suite.Point().Null()
 	D[1].S.V = suite.Point().Null()
+	D[2].S.V = suite.Point().Null()
 
 	// (3) Check decrypted shares and recover secret if possible (dealer/3rd party)
 	recovered, err := RecoverSecret(suite, G, K, E, D, t, n)
@@ -123,10 +172,6 @@ func TestPVSSDeleteFail(test *testing.T) {
 	encShares, pubPoly, err := EncShares(suite, H, X, secret, t)
 	require.Equal(test, err, nil)
 
-	// Corrupt some of the encrypted shares
-	encShares[0].S.V = suite.Point().Null()
-	encShares[5].S.V = suite.Point().Null()
-
 	// (2) Share decryption (trustees)
 	sH := make([]kyber.Point, n)
 	for i := 0; i < n; i++ {
@@ -137,8 +182,11 @@ func TestPVSSDeleteFail(test *testing.T) {
 	var E []*PubVerShare // good encrypted shares
 	var D []*PubVerShare // good decrypted shares
 
+	globalChallenge, err := computeGlobalChallenge(suite, n, pubPoly, encShares)
+	require.NoError(test, err)
+
 	for i := 0; i < n; i++ {
-		if ds, err := DecShare(suite, H, X[i], sH[i], x[i], encShares[i]); err == nil {
+		if ds, err := DecShare(suite, H, X[i], sH[i], x[i], globalChallenge, encShares[i]); err == nil {
 			K = append(K, X[i])
 			E = append(E, encShares[i])
 			D = append(D, ds)
@@ -148,10 +196,12 @@ func TestPVSSDeleteFail(test *testing.T) {
 	// Corrupt enough decrypted shares to make the secret unrecoverable
 	D[0].S.V = suite.Point().Null()
 	D[1].S.V = suite.Point().Null()
+	D[2].S.V = suite.Point().Null()
+	D[3].S.V = suite.Point().Null()
 
 	// (3) Check decrypted shares and recover secret if possible (dealer/3rd party)
 	_, err = RecoverSecret(suite, G, K, E, D, t, n)
-	require.Equal(test, err, errorTooFewShares) // this test is supposed to fail
+	require.Equal(test, err, ErrTooFewShares) // this test is supposed to fail
 }
 
 func TestPVSSBatch(test *testing.T) {
@@ -190,13 +240,13 @@ func TestPVSSBatch(test *testing.T) {
 	}
 
 	// Batch verification
-	X0, E0, err := VerifyEncShareBatch(suite, H, X, sH0, e0)
+	X0, E0, err := VerifyEncShareBatch(suite, H, X, sH0, p0, e0)
 	require.Equal(test, err, nil)
 
-	X1, E1, err := VerifyEncShareBatch(suite, H, X, sH1, e1)
+	X1, E1, err := VerifyEncShareBatch(suite, H, X, sH1, p1, e1)
 	require.Equal(test, err, nil)
 
-	X2, E2, err := VerifyEncShareBatch(suite, H, X, sH2, e2)
+	X2, E2, err := VerifyEncShareBatch(suite, H, X, sH2, p2, e2)
 	require.Equal(test, err, nil)
 
 	// Reorder (some) poly evals, keys, and shares
@@ -215,17 +265,25 @@ func TestPVSSBatch(test *testing.T) {
 	Z2 := []*PubVerShare{E0[2], E1[2], E2[2]}
 	Z3 := []*PubVerShare{E0[3], E1[3], E2[3]}
 
+	globalChallenges := make([]kyber.Scalar, 3)
+	globalChallenges[0], err = computeGlobalChallenge(suite, n, p0, e0)
+	require.NoError(test, err)
+	globalChallenges[1], err = computeGlobalChallenge(suite, n, p1, e1)
+	require.NoError(test, err)
+	globalChallenges[2], err = computeGlobalChallenge(suite, n, p2, e2)
+	require.NoError(test, err)
+
 	// (2) Share batch decryption (trustees)
-	KD0, ED0, DD0, err := DecShareBatch(suite, H, Y0, P0, x[0], Z0)
+	KD0, ED0, DD0, err := DecShareBatch(suite, H, Y0, P0, x[0], globalChallenges, Z0)
 	require.Equal(test, err, nil)
 
-	KD1, ED1, DD1, err := DecShareBatch(suite, H, Y1, P1, x[1], Z1)
+	KD1, ED1, DD1, err := DecShareBatch(suite, H, Y1, P1, x[1], globalChallenges, Z1)
 	require.Equal(test, err, nil)
 
-	KD2, ED2, DD2, err := DecShareBatch(suite, H, Y2, P2, x[2], Z2)
+	KD2, ED2, DD2, err := DecShareBatch(suite, H, Y2, P2, x[2], globalChallenges, Z2)
 	require.Equal(test, err, nil)
 
-	KD3, ED3, DD3, err := DecShareBatch(suite, H, Y3, P3, x[3], Z3)
+	KD3, ED3, DD3, err := DecShareBatch(suite, H, Y3, P3, x[3], globalChallenges, Z3)
 	require.Equal(test, err, nil)
 
 	// Re-establish order
