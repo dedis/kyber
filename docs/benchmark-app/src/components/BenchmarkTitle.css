@@ -1,0 +1,16 @@
+/* BenchmarkTitle.css */
+.benchmark-title {
+    text-align: center;
+    padding: 50px 0;
+}
+
+.benchmark-title h1 {
+    font-size: 48px;
+    color: #333;
+    transition: opacity 0.5s ease;
+}
+
+.benchmark-title.fade-out h1 {
+    opacity: 0;
+}
+  

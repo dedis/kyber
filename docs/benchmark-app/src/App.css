@@ -1,0 +1,74 @@
+.App {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.benchmark-title {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.benchmark-title h1 {
+  font-size: 36px;
+  font-weight: bold;
+}
+
+.benchmark-title p {
+  font-size: 18px;
+  margin-top: 10px;
+}
+
+.curve-selector {
+  margin-top: 50px;
+}
+
+.curve-selector h2 {
+  text-align: center;
+  font-size: 24px;
+  margin-bottom: 20px;
+}
+
+.curve-buttons {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 10px;
+}
+
+.curve-buttons button {
+  padding: 10px;
+  font-size: 16px;
+  background-color: lightblue;
+  color: black;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.curve-buttons button:hover {
+  background-color: #0056b3;
+}
+
+.selected-curve {
+  margin-top: 50px;
+}
+
+body {
+  background-color: #f0f8ff;
+  font-family: Arial, sans-serif;
+}
+
+.title-container {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  z-index: 1000; /* Ensure the title is above other content */
+}
+
+.fade-out {
+  opacity: 0;
+  transition: opacity 0.5s;
+}
