@@ -46,6 +46,8 @@ func H4Tag() []byte {
 // - msg is the actual message
 // - seed is the random seed to generate the random element (sigma) of the encryption
 // The suite must produce points which implements the `HashablePoint` interface.
+//
+//nolint:dupl // unavoidable
 func EncryptCCAonG1(s pairing.Suite, master kyber.Point, ID, msg []byte) (*Ciphertext, error) {
 	if len(msg) > s.Hash().Size() {
 		return nil, errors.New("plaintext too long for the hash function provided")
@@ -62,7 +64,7 @@ func EncryptCCAonG1(s pairing.Suite, master kyber.Point, ID, msg []byte) (*Ciphe
 	// 2. Derive random sigma
 	sigma := make([]byte, len(msg))
 	if _, err := rand.Read(sigma); err != nil {
-		return nil, fmt.Errorf("err reading rand sigma: %v", err)
+		return nil, fmt.Errorf("err reading rand sigma: %w", err)
 	}
 	// 3. Derive r from sigma and msg
 	r, err := h3(s, sigma, msg)
@@ -141,23 +143,25 @@ func DecryptCCAonG1(s pairing.Suite, private kyber.Point, c *Ciphertext) ([]byte
 // - msg is the actual message
 // - seed is the random seed to generate the random element (sigma) of the encryption
 // The suite must produce points which implements the `HashablePoint` interface.
+//
+//nolint:dupl // unavoidable
 func EncryptCCAonG2(s pairing.Suite, master kyber.Point, ID, msg []byte) (*Ciphertext, error) {
 	if len(msg) > s.Hash().Size() {
 		return nil, errors.New("plaintext too long for the hash function provided")
 	}
 
 	// 1. Compute Gid = e(Q_id, master)
-	hG2, ok := s.G1().Point().(kyber.HashablePoint)
+	hG1, ok := s.G1().Point().(kyber.HashablePoint)
 	if !ok {
 		return nil, errors.New("point needs to implement `kyber.HashablePoint`")
 	}
-	Qid := hG2.Hash(ID)
+	Qid := hG1.Hash(ID)
 	Gid := s.Pair(Qid, master)
 
 	// 2. Derive random sigma
 	sigma := make([]byte, len(msg))
 	if _, err := rand.Read(sigma); err != nil {
-		return nil, fmt.Errorf("err reading rand sigma: %v", err)
+		return nil, fmt.Errorf("err reading rand sigma: %w", err)
 	}
 	// 3. Derive r from sigma and msg
 	r, err := h3(s, sigma, msg)
@@ -231,10 +235,10 @@ func h3(s pairing.Suite, sigma, msg []byte) (kyber.Scalar, error) {
 	h := s.Hash()
 
 	if _, err := h.Write(H3Tag()); err != nil {
-		return nil, fmt.Errorf("err hashing h3 tag: %v", err)
+		return nil, fmt.Errorf("err hashing h3 tag: %w", err)
 	}
 	if _, err := h.Write(sigma); err != nil {
-		return nil, fmt.Errorf("err hashing sigma: %v", err)
+		return nil, fmt.Errorf("err hashing sigma: %w", err)
 	}
 	_, _ = h.Write(msg)
 	// we hash it a first time: buffer = hash("IBE-H3" || sigma || msg)
@@ -258,7 +262,7 @@ func h3(s pairing.Suite, sigma, msg []byte) (kyber.Scalar, error) {
 		// but we assume that toMask is a few bits, at most 8.
 		// For instance when using BLS12-381 toMask == 1.
 		if hashable.ByteOrder() == kyber.BigEndian {
-			hashed[0] = hashed[0] >> toMask
+			hashed[0] >>= toMask
 		} else {
 			hashed[len(hashed)-1] = hashed[len(hashed)-1] >> toMask
 		}
@@ -280,10 +284,10 @@ func h4(s pairing.Suite, sigma []byte, length int) ([]byte, error) {
 	h4 := s.Hash()
 
 	if _, err := h4.Write(H4Tag()); err != nil {
-		return nil, fmt.Errorf("err writing h4tag: %v", err)
+		return nil, fmt.Errorf("err writing h4tag: %w", err)
 	}
 	if _, err := h4.Write(sigma); err != nil {
-		return nil, fmt.Errorf("err writing sigma to h4: %v", err)
+		return nil, fmt.Errorf("err writing sigma to h4: %w", err)
 	}
 	h4sigma := h4.Sum(nil)[:length]
 
@@ -305,7 +309,7 @@ func gtToHash(s pairing.Suite, gt kyber.Point, length int) ([]byte, error) {
 	if _, err := hashReader.Read(b); err != nil {
 		return nil, errors.New("couldn't read from hash output")
 	}
-	return b[:], nil
+	return b, nil
 }
 
 func xor(a, b []byte) []byte {

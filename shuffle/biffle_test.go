@@ -9,19 +9,19 @@ import (
 	"go.dedis.ch/kyber/v4/xof/blake2xb"
 )
 
-func TestBiffle(t *testing.T) {
+func TestBiffle(_ *testing.T) {
 	rand := blake2xb.New(nil)
 	s := edwards25519.NewBlakeSHA256Ed25519WithRand(rand)
 	biffleTest(s, N)
 }
 
-func TestInvalidBiffle(t *testing.T) {
+func TestInvalidBiffle(_ *testing.T) {
 	rand := blake2xb.New(nil)
 	s := edwards25519.NewBlakeSHA256Ed25519WithRand(rand)
 	biffleInvalidTest(s)
 }
 
-func biffleTest(suite Suite, N int) {
+func biffleTest(suite Suite, n int) {
 	rand := suite.RandomStream()
 	h, c := setShuffleKeyPairs(rand, suite, 2)
 
@@ -35,8 +35,8 @@ func biffleTest(suite Suite, N int) {
 		Y[i].Add(Y[i], c[i])           // Encrypted client public key
 	}
 
-	// Repeat only the actual shuffle portion for benchmark purposes.
-	for i := 0; i < N; i++ {
+	// Repeat only the actual shuffle portion for test purposes.
+	for i := 0; i < n; i++ {
 
 		// Do a key-shuffle
 		Xbar, Ybar, prover := Biffle(suite, nil, h, X, Y, rand)
@@ -44,7 +44,6 @@ func biffleTest(suite Suite, N int) {
 		if err != nil {
 			panic("Biffle proof failed: " + err.Error())
 		}
-		//fmt.Printf("proof:\n%s\n",hex.Dump(prf))
 
 		// Check it
 		verifier := BiffleVerifier(suite, nil, h, X, Y, Xbar, Ybar)

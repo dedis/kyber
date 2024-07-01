@@ -163,8 +163,6 @@ func Sign(suite Suite, message []byte,
 			PH.Add(PH.Mul(s[i], linkBase), P.Mul(c[i], linkTag))
 		}
 		c[(i+1)%n] = signH1(suite, H1pre, PG, PH)
-		//fmt.Printf("s%d %s\n",i,s[i].String())
-		//fmt.Printf("c%d %s\n",(i+1)%n,c[(i+1)%n].String())
 	}
 	s[pi] = suite.Scalar()
 	s[pi].Mul(privateKey, c[pi]).Sub(u, s[pi]) // s_pi = u - x_pi c_pi

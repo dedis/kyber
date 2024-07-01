@@ -335,8 +335,6 @@ func TestVSSAggregatorVerifyResponseDuplicate(t *testing.T) {
 	dealer, verifiers := genAll()
 	v1 := verifiers[0]
 	v2 := verifiers[1]
-	//d1 := dealer.deals[0]
-	//d2 := dealer.deals[1]
 	encD1, _ := dealer.EncryptedDeal(0)
 	encD2, _ := dealer.EncryptedDeal(1)
 
@@ -369,7 +367,6 @@ func TestVSSAggregatorVerifyResponse(t *testing.T) {
 	dealer, verifiers := genAll()
 	v := verifiers[0]
 	deal := dealer.deals[0]
-	//goodSec := deal.SecShare.V
 	wrongSec, _ := genPair()
 	deal.SecShare.V = wrongSec
 	encD, _ := dealer.EncryptedDeal(0)
@@ -565,7 +562,8 @@ func TestVSSDHExchange(t *testing.T) {
 }
 
 func TestVSSContext(t *testing.T) {
-	c := context(suite, dealerPub, verifiersPub)
+	c, err := context(suite, dealerPub, verifiersPub)
+	assert.Nil(t, err)
 	assert.Len(t, c, keySize)
 }
 

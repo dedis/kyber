@@ -183,8 +183,6 @@ type DistKeyGenerator struct {
 	newPresent bool
 	// indicates whether the node is present in the old list
 	oldPresent bool
-	// already processed our own deal
-	processed bool
 	// public polynomial of the old group
 	olddpub *share.PubPoly
 }
@@ -252,19 +250,8 @@ func NewDistKeyHandler(c *Config) (*DistKeyGenerator, error) {
 		} else if c.Reader != nil && c.UserReaderOnly {
 			randomStream = random.New(c.Reader)
 		}
-		pickErr := func() (err error) {
-			defer func() {
-				if r := recover(); r != nil {
-					err = fmt.Errorf("error picking secret: %v", r)
-					return
-				}
-			}()
-			secretCoeff = c.Suite.Scalar().Pick(randomStream)
-			return nil
-		}()
-		if pickErr != nil {
-			return nil, pickErr
-		}
+		secretCoeff = c.Suite.Scalar().Pick(randomStream)
+
 		// in fresh dkg case, we consider the old nodes same a new nodes
 		c.OldNodes = c.NewNodes
 		oidx, oldPresent = findPub(c.OldNodes, pub)
@@ -283,7 +270,9 @@ func NewDistKeyHandler(c *Config) (*DistKeyGenerator, error) {
 	if isResharing && newPresent {
 		if c.PublicCoeffs == nil && c.Share == nil {
 			return nil, errors.New("dkg: can't receive new shares without the public polynomial")
-		} else if c.PublicCoeffs != nil {
+		}
+
+		if c.PublicCoeffs != nil {
 			olddpub = share.NewPubPoly(c.Suite, c.Suite.Point().Base(), c.PublicCoeffs)
 		} else if c.Share != nil {
 			// take the commits of the share, no need to duplicate information
@@ -386,18 +375,22 @@ func (d *DistKeyGenerator) Deals() (*DealBundle, error) {
 // missing deals. It returns an error if the node is not in the right state, or
 // if there is not enough valid shares, i.e. the dkg is failing already.
 func (d *DistKeyGenerator) ProcessDeals(bundles []*DealBundle) (*ResponseBundle, error) {
-
 	if d.canIssue && d.state != DealPhase {
 		// oldnode member is not in the right state
-		return nil, fmt.Errorf("processdeals can only be called after producing shares - state %s", d.state.String())
+		return nil, fmt.Errorf("processdeals can only be called "+
+			"after producing shares - state %s", d.state.String())
 	}
+
 	if d.canReceive && !d.canIssue && d.state != InitPhase {
 		// newnode member which is not in the old group is not in the riht state
-		return nil, fmt.Errorf("processdeals can only be called once after creating the dkg for a new member - state %s", d.state.String())
+		return nil, fmt.Errorf("processdeals can only be called once "+
+			"after creating the dkg for a new member - state %s", d.state.String())
 	}
 	if !d.canReceive {
 		// a node that is only in the old group should not process deals
 		d.state = ResponsePhase // he moves on to the next phase silently
+
+		//nolint:nilnil // protocol defined this way
 		return nil, nil
 	}
 
@@ -418,7 +411,7 @@ func (d *DistKeyGenerator) ProcessDeals(bundles []*DealBundle) (*ResponseBundle,
 			continue
 		}
 
-		if bytes.Compare(bundle.SessionID, d.c.Nonce) != 0 {
+		if !bytes.Equal(bundle.SessionID, d.c.Nonce) {
 			d.evicted = append(d.evicted, bundle.DealerIndex)
 			d.c.Error("Deal with invalid session ID")
 			continue
@@ -486,7 +479,7 @@ func (d *DistKeyGenerator) ProcessDeals(bundles []*DealBundle) (*ResponseBundle,
 				}
 			}
 			// share is valid -> store it
-			d.statuses.Set(bundle.DealerIndex, deal.ShareIndex, true)
+			d.statuses.Set(bundle.DealerIndex, deal.ShareIndex, Success)
 			d.validShares[bundle.DealerIndex] = share
 			d.c.Info("Valid deal processed received from dealer", bundle.DealerIndex)
 		}
@@ -500,7 +493,7 @@ func (d *DistKeyGenerator) ProcessDeals(bundles []*DealBundle) (*ResponseBundle,
 		if !found {
 			continue
 		}
-		d.statuses.Set(dealer.Index, uint32(nidx), true)
+		d.statuses.Set(dealer.Index, uint32(nidx), Success)
 	}
 
 	// producing response part
@@ -508,13 +501,13 @@ func (d *DistKeyGenerator) ProcessDeals(bundles []*DealBundle) (*ResponseBundle,
 	var myshares = d.statuses.StatusesForShare(uint32(d.nidx))
 	for _, node := range d.c.OldNodes {
 		// if the node is evicted, we don't even need to send a complaint or a
-		// response response since every honest node evicts him as well.
+		// response since every honest node evicts him as well.
 		// XXX Is that always true ? Should we send a complaint still ?
 		if contains(d.evicted, node.Index) {
 			continue
 		}
 
-		if myshares[node.Index] {
+		if myshares[node.Index] == Success {
 			if d.c.FastSync {
 				// we send success responses only in fast sync
 				responses = append(responses, Response{
@@ -559,7 +552,11 @@ func (d *DistKeyGenerator) ExpectedResponsesFastSync() int {
 // - the justification bundle if this node must produce at least one. If nil,
 // this node must still wait on the justification phase.
 // - error if the dkg must stop now, an unrecoverable failure.
-func (d *DistKeyGenerator) ProcessResponses(bundles []*ResponseBundle) (res *Result, jb *JustificationBundle, err error) {
+func (d *DistKeyGenerator) ProcessResponses(bundles []*ResponseBundle) (
+	res *Result,
+	jb *JustificationBundle,
+	err error) {
+
 	if !d.canReceive && d.state != DealPhase {
 		// if we are a old node that will leave
 		return nil, nil, fmt.Errorf("leaving node can process responses only after creating shares")
@@ -577,7 +574,7 @@ func (d *DistKeyGenerator) ProcessResponses(bundles []*ResponseBundle) (res *Res
 		// if we are not in fastsync, we expect only complaints
 		// if there is no complaints all is good
 		res, err = d.computeResult()
-		return
+		return res, jb, err
 	}
 
 	var validAuthors []Index
@@ -587,7 +584,7 @@ func (d *DistKeyGenerator) ProcessResponses(bundles []*ResponseBundle) (res *Res
 			continue
 		}
 		if d.canIssue && bundle.ShareIndex == uint32(d.nidx) {
-			// just in case we dont treat our own response
+			// just in case we don't treat our own response
 			continue
 		}
 		if !isIndexIncluded(d.c.NewNodes, bundle.ShareIndex) {
@@ -595,7 +592,7 @@ func (d *DistKeyGenerator) ProcessResponses(bundles []*ResponseBundle) (res *Res
 			continue
 		}
 
-		if bytes.Compare(bundle.SessionID, d.c.Nonce) != 0 {
+		if !bytes.Equal(bundle.SessionID, d.c.Nonce) {
 			d.c.Error("Response invalid session ID")
 			d.evictedHolders = append(d.evictedHolders, bundle.ShareIndex)
 			continue
@@ -623,6 +620,7 @@ func (d *DistKeyGenerator) ProcessResponses(bundles []*ResponseBundle) (res *Res
 			if response.Status == Complaint {
 				foundComplaint = true
 			}
+
 			validAuthors = append(validAuthors, bundle.ShareIndex)
 		}
 	}
@@ -656,10 +654,10 @@ func (d *DistKeyGenerator) ProcessResponses(bundles []*ResponseBundle) (res *Res
 		if d.canReceive {
 			res, err := d.computeResult()
 			return res, nil, err
-		} else {
-			// old nodes that are not present in the new group
-			return nil, nil, nil
 		}
+
+		// old nodes that are not present in the new group
+		return nil, nil, nil
 	}
 
 	// check if there are some node who received at least t complaints.
@@ -697,7 +695,7 @@ func (d *DistKeyGenerator) ProcessResponses(bundles []*ResponseBundle) (res *Res
 		d.c.Info(fmt.Sprintf("Producing justifications for node %d", shareIndex))
 		foundJustifs = true
 		// mark those shares as resolved in the statuses
-		d.statuses.Set(uint32(d.oidx), shareIndex, true)
+		d.statuses.Set(uint32(d.oidx), shareIndex, Success)
 	}
 	if !foundJustifs {
 		// no justifications required from us !
@@ -729,10 +727,13 @@ func (d *DistKeyGenerator) ProcessJustifications(bundles []*JustificationBundle)
 		// an old node leaving the group do not need to process justifications.
 		// Here we simply return nil to avoid requiring higher level library to
 		// think about which node should receive which packet
+		//
+		//nolint:nilnil // protocol defined this way
 		return nil, nil
 	}
 	if d.state != JustifPhase {
-		return nil, fmt.Errorf("node can only process justifications after processing responses - current state %s", d.state.String())
+		return nil, fmt.Errorf("node can only process justifications "+
+			"after processing responses - current state %s", d.state.String())
 	}
 
 	seen := make(map[uint32]bool)
@@ -762,7 +763,7 @@ func (d *DistKeyGenerator) ProcessJustifications(bundles []*JustificationBundle)
 			d.c.Error("Already evicted dealer - evicting dealer", bundle.DealerIndex)
 			continue
 		}
-		if bytes.Compare(bundle.SessionID, d.c.Nonce) != 0 {
+		if !bytes.Equal(bundle.SessionID, d.c.Nonce) {
 			d.evicted = append(d.evicted, bundle.DealerIndex)
 			d.c.Error("Justification bundle contains invalid session ID - evicting dealer", bundle.DealerIndex)
 			continue
@@ -810,7 +811,7 @@ func (d *DistKeyGenerator) ProcessJustifications(bundles []*JustificationBundle)
 				d.c.Info("Old share commit and public commit valid", true)
 			}
 			// valid share -> mark OK
-			d.statuses.Set(bundle.DealerIndex, justif.ShareIndex, true)
+			d.statuses.Set(bundle.DealerIndex, justif.ShareIndex, Success)
 			if justif.ShareIndex == uint32(d.nidx) {
 				// store the share if it's for us
 				d.c.Info("Saving our key share for", justif.ShareIndex)
@@ -857,23 +858,22 @@ func (d *DistKeyGenerator) computeResult() (*Result, error) {
 	d.state = FinishPhase
 	// add a full complaint row on the nodes that are evicted
 	for _, index := range d.evicted {
-		d.statuses.SetAll(index, false)
+		d.statuses.SetAll(index, Complaint)
 	}
 	// add all the shares and public polynomials together for the deals that are
 	// valid ( equivalently or all justified)
 	if d.isResharing {
 		// instead of adding, in this case, we interpolate all shares
 		return d.computeResharingResult()
-	} else {
-		return d.computeDKGResult()
 	}
+
+	return d.computeDKGResult()
 }
 
 func (d *DistKeyGenerator) computeResharingResult() (*Result, error) {
 	// only old nodes sends shares
 	shares := make([]*share.PriShare, 0, len(d.c.OldNodes))
 	coeffs := make(map[Index][]kyber.Point, len(d.c.OldNodes))
-	var validDealers []Index
 	for _, n := range d.c.OldNodes {
 		if !d.statuses.AllTrue(n.Index) {
 			// this dealer has some unjustified shares
@@ -897,7 +897,6 @@ func (d *DistKeyGenerator) computeResharingResult() (*Result, error) {
 			V: sh,
 			I: n.Index,
 		})
-		validDealers = append(validDealers, n.Index)
 	}
 
 	// the private polynomial is generated from the old nodes, thus inheriting
@@ -1131,28 +1130,32 @@ func GetNonce() []byte {
 }
 
 func (d *DistKeyGenerator) sign(p Packet) ([]byte, error) {
-	msg := p.Hash()
+	msg, err := p.Hash()
+	if err != nil {
+		return nil, err
+	}
+
 	priv := d.c.Longterm
 	return d.c.Auth.Sign(priv, msg)
 }
 
 func (d *DistKeyGenerator) Info(keyvals ...interface{}) {
-	d.c.Info(append([]interface{}{"generator"}, keyvals...))
+	d.c.Info("generator", keyvals)
 }
 
 func (d *DistKeyGenerator) Error(keyvals ...interface{}) {
-	d.c.Info(append([]interface{}{"generator"}, keyvals...))
+	d.c.Info("generator", keyvals)
 }
 
 func (c *Config) Info(keyvals ...interface{}) {
 	if c.Log != nil {
-		c.Log.Info(append([]interface{}{"dkg-log"}, keyvals...))
+		c.Log.Info("dkg-log", keyvals)
 	}
 }
 
 func (c *Config) Error(keyvals ...interface{}) {
 	if c.Log != nil {
-		c.Log.Error(append([]interface{}{"dkg-log"}, keyvals...))
+		c.Log.Error("dkg-log", keyvals)
 	}
 }
 
@@ -1166,17 +1169,17 @@ func (c *Config) CheckForDuplicates() error {
 		for _, n := range list {
 			if _, present := hashSet[n.Index]; present {
 				return fmt.Errorf("index %d", n.Index)
-			} else {
-				hashSet[n.Index] = true
 			}
+			hashSet[n.Index] = true
 		}
+
 		return nil
 	}
 	if err := checkDuplicate(c.OldNodes); err != nil {
-		return fmt.Errorf("found duplicate in old nodes list: %v", err)
+		return fmt.Errorf("found duplicate in old nodes list: %w", err)
 	}
 	if err := checkDuplicate(c.NewNodes); err != nil {
-		return fmt.Errorf("found duplicate in new nodes list: %v", err)
+		return fmt.Errorf("found duplicate in new nodes list: %w", err)
 	}
 	return nil
 }

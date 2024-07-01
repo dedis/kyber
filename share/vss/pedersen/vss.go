@@ -6,7 +6,6 @@ package vss
 
 import (
 	"bytes"
-	"crypto/cipher"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -29,8 +28,7 @@ type Suite interface {
 // Dealer encapsulates for creating and distributing the shares and for
 // replying to any Responses.
 type Dealer struct {
-	suite  Suite
-	reader cipher.Stream
+	suite Suite
 	// long is the longterm key of the Dealer
 	long          kyber.Scalar
 	pub           kyber.Point
@@ -81,7 +79,7 @@ type Response struct {
 	// Index of the verifier issuing this Response from the new set of nodes
 	Index uint32
 	// false = NO APPROVAL == Complaint , true = APPROVAL
-	Status bool
+	StatusApproved bool
 	// Signature over the whole packet
 	Signature []byte
 }
@@ -224,14 +222,15 @@ func (d *Dealer) EncryptedDeals() ([]*EncryptedDeal, error) {
 }
 
 // ProcessResponse analyzes the given Response. If it's a valid complaint, then
-// it returns a Justification. This Justification must be broadcasted to every
-// participants. If it's an invalid complaint, it returns an error about the
+// it returns a Justification. This Justification must be broadcast to every
+// participant. If it's an invalid complaint, it returns an error about the
 // complaint. The verifiers will also ignore an invalid Complaint.
 func (d *Dealer) ProcessResponse(r *Response) (*Justification, error) {
 	if err := d.verifyResponse(r); err != nil {
 		return nil, err
 	}
-	if r.Status == StatusApproval {
+	if r.StatusApproved {
+		//nolint:nilnil // Expected behavior
 		return nil, nil
 	}
 
@@ -367,12 +366,12 @@ func (v *Verifier) ProcessEncryptedDeal(e *EncryptedDeal) (*Response, error) {
 	}
 
 	r := &Response{
-		SessionID: sid,
-		Index:     uint32(v.index),
-		Status:    StatusApproval,
+		SessionID:      sid,
+		Index:          uint32(v.index),
+		StatusApproved: StatusApproval,
 	}
 	if err = v.VerifyDeal(d, true); err != nil {
-		r.Status = StatusComplaint
+		r.StatusApproved = StatusComplaint
 	}
 
 	if errors.Is(err, errDealAlreadyProcessed) {
@@ -501,11 +500,12 @@ func (v *Verifier) SetTimeout() {
 // that works on basis of approval only.
 func (v *Verifier) UnsafeSetResponseDKG(idx uint32, approval bool) {
 	r := &Response{
-		SessionID: v.Aggregator.sid,
-		Index:     uint32(idx),
-		Status:    approval,
+		SessionID:      v.Aggregator.sid,
+		Index:          uint32(idx),
+		StatusApproved: approval,
 	}
 
+	//nolint:errcheck // Unsafe function
 	v.Aggregator.addResponse(r)
 }
 
@@ -525,7 +525,14 @@ type Aggregator struct {
 	timeout   bool
 }
 
-func newAggregator(suite Suite, dealer kyber.Point, verifiers, commitments []kyber.Point, t int, sid []byte) *Aggregator {
+func newAggregator(
+	suite Suite,
+	dealer kyber.Point,
+	verifiers,
+	commitments []kyber.Point,
+	t int,
+	sid []byte,
+) *Aggregator {
 	agg := &Aggregator{
 		suite:     suite,
 		dealer:    dealer,
@@ -634,7 +641,7 @@ func (a *Aggregator) verifyJustification(j *Justification) error {
 	if !ok {
 		return errors.New("vss: no complaints received for this justification")
 	}
-	if r.Status != StatusComplaint {
+	if r.StatusApproved {
 		return errors.New("vss: justification received for an approval")
 	}
 
@@ -643,7 +650,7 @@ func (a *Aggregator) verifyJustification(j *Justification) error {
 		a.badDealer = true
 		return err
 	}
-	r.Status = StatusApproval
+	r.StatusApproved = StatusApproval
 	return nil
 }
 
@@ -686,10 +693,10 @@ func (a *Aggregator) DealCertified() bool {
 	for i := range a.verifiers {
 		if r, ok := a.responses[uint32(i)]; !ok {
 			absentVerifiers++
-		} else if r.Status == StatusComplaint {
-			isComplaint = true
-		} else if r.Status == StatusApproval {
+		} else if r.StatusApproved {
 			approvals++
+		} else {
+			isComplaint = true
 		}
 	}
 	enoughApprovals := approvals >= a.t
@@ -725,15 +732,6 @@ func validT(t int, verifiers []kyber.Point) bool {
 	return t >= 2 && t <= len(verifiers) && int(uint32(t)) == t
 }
 
-func deriveH(suite Suite, verifiers []kyber.Point) kyber.Point {
-	var b bytes.Buffer
-	for _, v := range verifiers {
-		_, _ = v.MarshalTo(&b)
-	}
-	base := suite.Point().Pick(suite.XOF(b.Bytes()))
-	return base
-}
-
 func findPub(verifiers []kyber.Point, idx uint32) (kyber.Point, bool) {
 	iidx := int(idx)
 	if iidx >= len(verifiers) {
@@ -744,18 +742,27 @@ func findPub(verifiers []kyber.Point, idx uint32) (kyber.Point, bool) {
 
 func sessionID(suite Suite, dealer kyber.Point, verifiers, commitments []kyber.Point, t int) ([]byte, error) {
 	h := suite.Hash()
-	_, _ = dealer.MarshalTo(h)
+	_, err := dealer.MarshalTo(h)
+	if err != nil {
+		return nil, err
+	}
 
 	for _, v := range verifiers {
-		_, _ = v.MarshalTo(h)
+		_, err = v.MarshalTo(h)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	for _, c := range commitments {
-		_, _ = c.MarshalTo(h)
+		_, err = c.MarshalTo(h)
+		if err != nil {
+			return nil, err
+		}
 	}
-	_ = binary.Write(h, binary.LittleEndian, uint32(t))
 
-	return h.Sum(nil), nil
+	err = binary.Write(h, binary.LittleEndian, uint32(t))
+	return h.Sum(nil), err
 }
 
 // Hash returns the Hash representation of the Response
@@ -764,7 +771,7 @@ func (r *Response) Hash(s Suite) []byte {
 	_, _ = h.Write([]byte("response"))
 	_, _ = h.Write(r.SessionID)
 	_ = binary.Write(h, binary.LittleEndian, r.Index)
-	_ = binary.Write(h, binary.LittleEndian, r.Status)
+	_ = binary.Write(h, binary.LittleEndian, r.StatusApproved)
 	return h.Sum(nil)
 }
 

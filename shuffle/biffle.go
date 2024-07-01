@@ -77,7 +77,7 @@ func Biffle(suite Suite, G, H kyber.Point,
 	points := bifflePoints(suite, G, H, X, Y, Xbar, Ybar)
 	choice := map[proof.Predicate]int{or: bit}
 	prover = or.Prover(suite, secrets, points, choice)
-	return
+	return Xbar, Ybar, prover
 }
 
 // BiffleVerifier returns a verifier of the biffle

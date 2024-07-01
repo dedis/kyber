@@ -1,7 +1,6 @@
 // Copyright 2013 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 package edwards25519
 
 import (
@@ -78,7 +77,7 @@ func load4(in []byte) int64 {
 }
 
 func feFromBytes(dst *fieldElement, src []byte) {
-	h0 := load4(src[:])
+	h0 := load4(src)
 	h1 := load3(src[4:]) << 6
 	h2 := load3(src[7:]) << 5
 	h3 := load3(src[10:]) << 3

@@ -149,10 +149,11 @@ func (p *extendedGroupElement) FromBytes(s []byte) bool {
 }
 
 func (p *extendedGroupElement) String() string {
+	sep := ",\n\t"
 	return "extendedGroupElement{\n\t" +
-		p.X.String() + ",\n\t" +
-		p.Y.String() + ",\n\t" +
-		p.Z.String() + ",\n\t" +
+		p.X.String() + sep +
+		p.Y.String() + sep +
+		p.Z.String() + sep +
 		p.T.String() + ",\n}"
 }
 
@@ -177,6 +178,7 @@ func (p *preComputedGroupElement) Zero() {
 	feZero(&p.xy2d)
 }
 
+//nolint:dupl // Extracting common parts makes little sense
 func (c *completedGroupElement) Add(p *extendedGroupElement, q *cachedGroupElement) {
 	var t0 fieldElement
 
@@ -193,6 +195,7 @@ func (c *completedGroupElement) Add(p *extendedGroupElement, q *cachedGroupEleme
 	feSub(&c.T, &t0, &c.T)
 }
 
+//nolint:dupl // Extracting common parts makes little sense
 func (c *completedGroupElement) Sub(p *extendedGroupElement, q *cachedGroupElement) {
 	var t0 fieldElement
 
@@ -209,6 +212,7 @@ func (c *completedGroupElement) Sub(p *extendedGroupElement, q *cachedGroupEleme
 	feAdd(&c.T, &t0, &c.T)
 }
 
+//nolint:dupl // Extracting common parts makes little sense
 func (c *completedGroupElement) MixedAdd(p *extendedGroupElement, q *preComputedGroupElement) {
 	var t0 fieldElement
 
@@ -224,6 +228,7 @@ func (c *completedGroupElement) MixedAdd(p *extendedGroupElement, q *preComputed
 	feSub(&c.T, &t0, &c.T)
 }
 
+//nolint:dupl // Extracting common parts makes little sense
 func (c *completedGroupElement) MixedSub(p *extendedGroupElement, q *preComputedGroupElement) {
 	var t0 fieldElement
 
@@ -287,8 +292,9 @@ func (r *cachedGroupElement) Neg(t *cachedGroupElement) {
 // each multiplier is either zero or an odd number between -15 and 15.
 // Assumes the target array r has been preinitialized with zeros
 // in case the input slice a is less than 32 bytes.
+//
+//nolint:gocognit
 func slide(r *[256]int8, a *[32]byte) {
-
 	// Explode the exponent a into a little-endian array, one bit per byte
 	for i := range a {
 		ai := int8(a[i])
@@ -305,12 +311,14 @@ func slide(r *[256]int8, a *[32]byte) {
 	// 1-bit encountered in a clump, and that first bit always remains 1.
 	for i := range r {
 		if r[i] != 0 {
+		innerLoop:
 			for b := 1; b <= 6 && i+b < 256; b++ {
 				if r[i+b] != 0 {
-					if r[i]+(r[i+b]<<uint(b)) <= 15 {
+					switch {
+					case r[i]+(r[i+b]<<uint(b)) <= 15:
 						r[i] += r[i+b] << uint(b)
 						r[i+b] = 0
-					} else if r[i]-(r[i+b]<<uint(b)) >= -15 {
+					case r[i]-(r[i+b]<<uint(b)) >= -15:
 						r[i] -= r[i+b] << uint(b)
 						for k := i + b; k < 256; k++ {
 							if r[k] == 0 {
@@ -319,8 +327,8 @@ func slide(r *[256]int8, a *[32]byte) {
 							}
 							r[k] = 0
 						}
-					} else {
-						break
+					default:
+						break innerLoop
 					}
 				}
 			}
@@ -354,11 +362,13 @@ func selectPreComputed(t *preComputedGroupElement, pos int32, b int32) {
 }
 
 // geScalarMultBase computes h = a*B, where
-//   a = a[0]+256*a[1]+...+256^31 a[31]
-//   B is the Ed25519 base point (x,4/5) with x positive.
+//
+//	a = a[0]+256*a[1]+...+256^31 a[31]
+//	B is the Ed25519 base point (x,4/5) with x positive.
 //
 // Preconditions:
-//   a[31] <= 127
+//
+//	a[31] <= 127
 func geScalarMultBase(h *extendedGroupElement, a *[32]byte) {
 	var e [64]int8
 
@@ -422,11 +432,13 @@ func selectCached(c *cachedGroupElement, Ai *[8]cachedGroupElement, b int32) {
 }
 
 // geScalarMult computes h = a*B, where
-//   a = a[0]+256*a[1]+...+256^31 a[31]
-//   B is the Ed25519 base point (x,4/5) with x positive.
+//
+//	a = a[0]+256*a[1]+...+256^31 a[31]
+//	B is the Ed25519 base point (x,4/5) with x positive.
 //
 // Preconditions:
-//   a[31] <= 127
+//
+//	a[31] <= 127
 func geScalarMult(h *extendedGroupElement, a *[32]byte,
 	A *extendedGroupElement) {
 

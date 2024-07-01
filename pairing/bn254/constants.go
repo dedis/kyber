@@ -1,3 +1,4 @@
+//nolint:lll
 package bn254
 
 import (
@@ -27,6 +28,8 @@ var p2 = [4]uint64{0x3c208c16d87cfd47, 0x97816a916871ca8d, 0xb85045b68181585d, 0
 var curveB = newGFp(3)
 
 // np is the negative inverse of p, mod 2^256.
+//
+//nolint:unused // maybe useful
 var np = [4]uint64{0x87d20782e4866389, 0x9ede7d651eca6ac9, 0xd8afcbd01833da80, 0xf57a22b791888c6b}
 
 // rN1 is R^-1 where R = 2^256 mod p.

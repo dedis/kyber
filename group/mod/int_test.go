@@ -28,6 +28,7 @@ func TestIntEndianness(t *testing.T) {
 	// Let's change endianness and check the result
 	i.BO = kyber.LittleEndian
 	buff3, err := i.MarshalBinary()
+	assert.Nil(t, err)
 	assert.NotEqual(t, buff2, buff3)
 
 	// let's try LittleEndian function

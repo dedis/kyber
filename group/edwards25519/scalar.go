@@ -1,7 +1,6 @@
 // Copyright 2013 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 package edwards25519
 
 import (
@@ -114,7 +113,7 @@ func (s *scalar) Div(a, b kyber.Scalar) kyber.Scalar {
 func (s *scalar) Inv(a kyber.Scalar) kyber.Scalar {
 	var res scalar
 	res.One()
-	ac := a.(*scalar)
+	ac := a.(*scalar) //nolint:errcheck // V4 may bring better error handling
 	// Modular inversion in a multiplicative group is a^(phi(m)-1) = a^-1 mod m
 	// Since m is prime, phi(m) = m - 1 => a^(m-2) = a^-1 mod m.
 	// The inverse is computed using the exponentation-and-square algorithm.
@@ -1932,6 +1931,8 @@ func scMul(s, a, b *[32]byte) {
 //
 //	s[0]+256*s[1]+...+256^31*s[31] = s mod l
 //	where l = 2^252 + 27742317777372353535851937790883648493.
+//
+//nolint:unused // May be used later
 func scReduce(out *[32]byte, s *[64]byte) {
 	s0 := 2097151 & load3(s[:])
 	s1 := 2097151 & (load4(s[2:]) >> 5)
@@ -2257,6 +2258,8 @@ func scReduce(out *[32]byte, s *[64]byte) {
 // for a reference.
 // The method accepts a buffer instead of calling `MarshalBinary` on the receiver since that
 // always returns values modulo `primeOrder`.
+//
+//nolint:lll // Url above
 func (s *scalar) IsCanonical(sb []byte) bool {
 	if len(sb) != 32 {
 		return false

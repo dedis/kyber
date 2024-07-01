@@ -9,6 +9,7 @@ package dleq
 
 import (
 	"errors"
+	"fmt"
 
 	"go.dedis.ch/kyber/v4"
 )
@@ -21,8 +22,8 @@ type Suite interface {
 	kyber.Random
 }
 
-var errorDifferentLengths = errors.New("inputs of different lengths")
-var errorInvalidProof = errors.New("invalid proof")
+var ErrDifferentLengths = errors.New("inputs of different lengths")
+var ErrInvalidProof = errors.New("invalid proof")
 
 // Proof represents a NIZK dlog-equality proof.
 type Proof struct {
@@ -37,7 +38,12 @@ type Proof struct {
 // and then computes the challenge c = H(xG,xH,vG,vH) and response r = v - cx.
 // Besides the proof, this function also returns the encrypted base points xG
 // and xH.
-func NewDLEQProof(suite Suite, G kyber.Point, H kyber.Point, x kyber.Scalar) (proof *Proof, xG kyber.Point, xH kyber.Point, err error) {
+func NewDLEQProof(
+	suite Suite,
+	G kyber.Point,
+	H kyber.Point,
+	x kyber.Scalar,
+) (proof *Proof, xG kyber.Point, xH kyber.Point, err error) {
 	// Encrypt base points with secret
 	xG = suite.Point().Mul(x, G)
 	xH = suite.Point().Mul(x, H)
@@ -48,12 +54,28 @@ func NewDLEQProof(suite Suite, G kyber.Point, H kyber.Point, x kyber.Scalar) (pr
 	vH := suite.Point().Mul(v, H)
 
 	// Challenge
-	h := suite.Hash()
-	xG.MarshalTo(h)
-	xH.MarshalTo(h)
-	vG.MarshalTo(h)
-	vH.MarshalTo(h)
-	cb := h.Sum(nil)
+	hSuite := suite.Hash()
+	_, err = xG.MarshalTo(hSuite)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	_, err = xH.MarshalTo(hSuite)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	_, err = vG.MarshalTo(hSuite)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	_, err = vH.MarshalTo(hSuite)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	cb := hSuite.Sum(nil)
 	c := suite.Scalar().Pick(suite.XOF(cb))
 
 	// Response
@@ -66,9 +88,14 @@ func NewDLEQProof(suite Suite, G kyber.Point, H kyber.Point, x kyber.Scalar) (pr
 // NewDLEQProofBatch computes lists of NIZK dlog-equality proofs and of
 // encrypted base points xG and xH. Note that the challenge is computed over all
 // input values.
-func NewDLEQProofBatch(suite Suite, G []kyber.Point, H []kyber.Point, secrets []kyber.Scalar) (proof []*Proof, xG []kyber.Point, xH []kyber.Point, err error) {
+func NewDLEQProofBatch(
+	suite Suite,
+	G []kyber.Point,
+	H []kyber.Point,
+	secrets []kyber.Scalar,
+) (proof []*Proof, xG []kyber.Point, xH []kyber.Point, err error) {
 	if len(G) != len(H) || len(H) != len(secrets) {
-		return nil, nil, nil, errorDifferentLengths
+		return nil, nil, nil, fmt.Errorf("invalid: %w", ErrDifferentLengths)
 	}
 
 	n := len(secrets)
@@ -91,20 +118,28 @@ func NewDLEQProofBatch(suite Suite, G []kyber.Point, H []kyber.Point, secrets []
 	}
 
 	// Collective challenge
-	h := suite.Hash()
+	hSuite := suite.Hash()
 	for _, x := range xG {
-		x.MarshalTo(h)
+		if _, err := x.MarshalTo(hSuite); err != nil {
+			return nil, nil, nil, err
+		}
 	}
 	for _, x := range xH {
-		x.MarshalTo(h)
+		if _, err := x.MarshalTo(hSuite); err != nil {
+			return nil, nil, nil, err
+		}
 	}
 	for _, x := range vG {
-		x.MarshalTo(h)
+		if _, err := x.MarshalTo(hSuite); err != nil {
+			return nil, nil, nil, err
+		}
 	}
 	for _, x := range vH {
-		x.MarshalTo(h)
+		if _, err := x.MarshalTo(hSuite); err != nil {
+			return nil, nil, nil, err
+		}
 	}
-	cb := h.Sum(nil)
+	cb := hSuite.Sum(nil)
 
 	c := suite.Scalar().Pick(suite.XOF(cb))
 
@@ -131,7 +166,7 @@ func (p *Proof) Verify(suite Suite, G kyber.Point, H kyber.Point, xG kyber.Point
 	a := suite.Point().Add(rG, cxG)
 	b := suite.Point().Add(rH, cxH)
 	if !(p.VG.Equal(a) && p.VH.Equal(b)) {
-		return errorInvalidProof
+		return fmt.Errorf("invalid. %w", ErrInvalidProof)
 	}
 	return nil
 }

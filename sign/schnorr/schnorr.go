@@ -28,25 +28,25 @@ type Suite interface {
 	kyber.Random
 }
 
-type SchnorrScheme struct {
+type Scheme struct {
 	s Suite
 }
 
 func NewScheme(s Suite) sign.Scheme {
-	return &SchnorrScheme{s}
+	return &Scheme{s}
 }
 
-func (s *SchnorrScheme) NewKeyPair(random cipher.Stream) (kyber.Scalar, kyber.Point) {
+func (s *Scheme) NewKeyPair(random cipher.Stream) (kyber.Scalar, kyber.Point) {
 	priv := s.s.Scalar().Pick(random)
 	pub := s.s.Point().Mul(priv, nil)
 	return priv, pub
 }
 
-func (s *SchnorrScheme) Sign(private kyber.Scalar, msg []byte) ([]byte, error) {
+func (s *Scheme) Sign(private kyber.Scalar, msg []byte) ([]byte, error) {
 	return Sign(s.s, private, msg)
 }
 
-func (s *SchnorrScheme) Verify(public kyber.Point, msg, sig []byte) error {
+func (s *Scheme) Verify(public kyber.Point, msg, sig []byte) error {
 	return Verify(s.s, public, msg, sig)
 }
 
@@ -109,10 +109,10 @@ func VerifyWithChecks(g kyber.Group, pub, msg, sig []byte) error {
 	}
 	if p, ok := R.(pointCanCheckCanonicalAndSmallOrder); ok {
 		if !p.IsCanonical(sig[:pointSize]) {
-			return fmt.Errorf("R is not canonical")
+			return fmt.Errorf("point R is not canonical")
 		}
 		if p.HasSmallOrder() {
-			return fmt.Errorf("R has small order")
+			return fmt.Errorf("point R has small order")
 		}
 	}
 	if s, ok := g.Scalar().(scalarCanCheckCanonical); ok && !s.IsCanonical(sig[pointSize:]) {
@@ -163,7 +163,7 @@ func VerifyWithChecks(g kyber.Group, pub, msg, sig []byte) error {
 func Verify(g kyber.Group, public kyber.Point, msg, sig []byte) error {
 	PBuf, err := public.MarshalBinary()
 	if err != nil {
-		return fmt.Errorf("error unmarshalling public key: %s", err)
+		return fmt.Errorf("error unmarshalling public key: %w", err)
 	}
 	return VerifyWithChecks(g, PBuf, msg, sig)
 }

@@ -59,7 +59,11 @@ func (x *xof) Reseed() {
 	} else {
 		x.key = x.key[0:128]
 	}
-	x.Read(x.key)
+	_, err := x.Read(x.key)
+	if err != nil {
+		panic("blake xof error: " + err.Error())
+	}
+
 	y := New(x.key)
 	// Steal the XOF implementation, and put it inside of x.
 	x.impl = y.(*xof).impl
@@ -67,7 +71,7 @@ func (x *xof) Reseed() {
 
 func (x *xof) Reset() {
 	x.impl.Reset()
-	x.impl.Write(x.seed)
+	_, _ = x.impl.Write(x.seed)
 }
 
 func (x *xof) XORKeyStream(dst, src []byte) {

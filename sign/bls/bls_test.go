@@ -222,6 +222,7 @@ func BenchmarkBLSVerifyAggregate(b *testing.B) {
 	sig2, err := scheme.Sign(private2, msg)
 	require.Nil(b, err)
 	sig, err := scheme.AggregateSignatures(sig1, sig2)
+	require.Nil(b, err)
 	key := scheme.AggregatePublicKeys(public1, public2)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -242,7 +243,7 @@ func BenchmarkBLSVerifyBatchVerify(b *testing.B) {
 		private, public := scheme.NewKeyPair(random.New())
 		privates[i] = private
 		publics[i] = public
-		msg := make([]byte, 64, 64)
+		msg := make([]byte, 64)
 		_, err := rand.Read(msg)
 		require.Nil(b, err)
 		msgs[i] = msg

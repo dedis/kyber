@@ -73,17 +73,17 @@ func (s *Suite) Pair(p1, p2 kyber.Point) kyber.Point {
 }
 
 // New implements the kyber.Encoding interface.
-func (s *Suite) New(t reflect.Type) interface{} {
+func (s *Suite) New(_ reflect.Type) interface{} {
 	panic("Suite.Encoding: deprecated in kyber")
 }
 
 // Read is the default implementation of kyber.Encoding interface Read.
-func (s *Suite) Read(r io.Reader, objs ...interface{}) error {
+func (s *Suite) Read(_ io.Reader, _ ...interface{}) error {
 	panic("Suite.Read(): deprecated in kyber")
 }
 
 // Write is the default implementation of kyber.Encoding interface Write.
-func (s *Suite) Write(w io.Writer, objs ...interface{}) error {
+func (s *Suite) Write(_ io.Writer, _ ...interface{}) error {
 	panic("Suite.Write(): deprecated in kyber")
 }
 

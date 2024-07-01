@@ -3,7 +3,6 @@ package dkg
 import (
 	"bytes"
 	"fmt"
-	"strings"
 	"time"
 )
 
@@ -79,15 +78,6 @@ type Protocol struct {
 	skipVerif bool
 }
 
-// XXX TO DELETE
-func printNodes(list []Node) string {
-	var arr []string
-	for _, node := range list {
-		arr = append(arr, fmt.Sprintf("[%d : %s]", node.Index, node.Public))
-	}
-	return strings.Join(arr, "\n")
-}
-
 func NewProtocol(c *Config, b Board, phaser Phaser, skipVerification bool) (*Protocol, error) {
 	dkg, err := NewDistKeyHandler(c)
 	if err != nil {
@@ -106,11 +96,11 @@ func NewProtocol(c *Config, b Board, phaser Phaser, skipVerification bool) (*Pro
 }
 
 func (p *Protocol) Info(keyvals ...interface{}) {
-	p.dkg.c.Info(append([]interface{}{"dkg-step"}, keyvals...))
+	p.dkg.c.Info("dkg-step", keyvals)
 }
 
 func (p *Protocol) Error(keyvals ...interface{}) {
-	p.dkg.c.Error(append([]interface{}{"dkg-step"}, keyvals...))
+	p.dkg.c.Error("dkg-step", keyvals)
 }
 
 func (p *Protocol) Start() {
@@ -126,6 +116,7 @@ func (p *Protocol) Start() {
 		select {
 		case newPhase := <-p.phaser.NextPhase():
 			switch newPhase {
+			case InitPhase:
 			case DealPhase:
 				if !p.sendDeals() {
 					return
@@ -201,6 +192,7 @@ func (p *Protocol) startFast() {
 		select {
 		case newPhase := <-p.phaser.NextPhase():
 			switch newPhase {
+			case InitPhase:
 			case DealPhase:
 				p.Info("phaser", "msg", "moving to sending deals phase")
 				if !p.sendDeals() {
@@ -368,7 +360,7 @@ func newSet() *set {
 }
 
 func (s *set) Push(p Packet) {
-	hash := p.Hash()
+	hash, _ := p.Hash()
 	idx := p.Index()
 	if s.isBad(idx) {
 		// already misbehaved before
@@ -376,7 +368,8 @@ func (s *set) Push(p Packet) {
 	}
 	prev, present := s.vals[idx]
 	if present {
-		if !bytes.Equal(prev.Hash(), hash) {
+		prevHash, _ := prev.Hash()
+		if !bytes.Equal(prevHash, hash) {
 			// bad behavior - we evict
 			delete(s.vals, idx)
 			s.bad = append(s.bad, idx)

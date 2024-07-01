@@ -1,3 +1,4 @@
+//nolint:dupl // unavoidable duplication between g1 and g2
 package circl
 
 import (
@@ -63,7 +64,7 @@ func (p *G2Elt) EmbedLen() int {
 	panic("bls12-381: unsupported operation")
 }
 
-func (p *G2Elt) Embed(data []byte, r cipher.Stream) kyber.Point {
+func (p *G2Elt) Embed(_ []byte, _ cipher.Stream) kyber.Point {
 	panic("bls12-381: unsupported operation")
 }
 

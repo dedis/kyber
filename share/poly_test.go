@@ -1,7 +1,6 @@
 package share
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
@@ -16,7 +15,7 @@ func TestSecretRecovery(test *testing.T) {
 	n := 6
 	t := 5
 	poly := NewPriPoly(g, t, nil, g.RandomStream())
-	fmt.Println("polynom has degree ", len(poly.coeffs)-1)
+	test.Log("polynom has degree ", len(poly.coeffs)-1)
 	shares := poly.Shares(n)
 
 	recovered, err := RecoverSecret(g, shares, t, n)
@@ -154,16 +153,15 @@ func TestBenchy(test *testing.T) {
 
 	now1 := time.Now()
 	_, err := RecoverCommit(g, pubShares, t, n)
-	//now2 := time.Now()
-	fmt.Println("time elapsed: ", time.Since(now1))
+	test.Log("time elapsed: ", time.Since(now1))
 	if err != nil {
 		test.Fatal(err)
 	}
 
 	now1 = time.Now()
-	RecoverPubPoly(g, pubShares, t, n)
+	_, _ = RecoverPubPoly(g, pubShares, t, n)
 
-	fmt.Println("time elapsed public poly: ", time.Since(now1))
+	test.Log("time elapsed public poly: ", time.Since(now1))
 }
 
 func TestPublicRecovery(test *testing.T) {

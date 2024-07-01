@@ -111,23 +111,39 @@ type DealBundle struct {
 }
 
 // Hash hashes the index, public coefficients and deals
-func (d *DealBundle) Hash() []byte {
+func (d *DealBundle) Hash() ([]byte, error) {
 	// first order the deals in a  stable order
 	sort.SliceStable(d.Deals, func(i, j int) bool {
 		return d.Deals[i].ShareIndex < d.Deals[j].ShareIndex
 	})
 	h := sha256.New()
-	binary.Write(h, binary.BigEndian, d.DealerIndex)
+	err := binary.Write(h, binary.BigEndian, d.DealerIndex)
+	if err != nil {
+		return nil, err
+	}
+
 	for _, c := range d.Public {
-		cbuff, _ := c.MarshalBinary()
-		h.Write(cbuff)
+		cbuff, err := c.MarshalBinary()
+		if err != nil {
+			return nil, err
+		}
+		_, err = h.Write(cbuff)
+		if err != nil {
+			return nil, err
+		}
 	}
 	for _, deal := range d.Deals {
-		binary.Write(h, binary.BigEndian, deal.ShareIndex)
-		h.Write(deal.EncryptedShare)
+		err = binary.Write(h, binary.BigEndian, deal.ShareIndex)
+		if err != nil {
+			return nil, err
+		}
+		_, err = h.Write(deal.EncryptedShare)
+		if err != nil {
+			return nil, err
+		}
 	}
-	h.Write(d.SessionID)
-	return h.Sum(nil)
+	_, err = h.Write(d.SessionID)
+	return h.Sum(nil), err
 }
 
 func (d *DealBundle) Index() Index {
@@ -143,7 +159,7 @@ func (d *DealBundle) Sig() []byte {
 type Response struct {
 	// Index of the Dealer for which this response is for
 	DealerIndex uint32
-	Status      bool
+	Status      Status
 }
 
 var _ Packet = (*ResponseBundle)(nil)
@@ -161,23 +177,33 @@ type ResponseBundle struct {
 }
 
 // Hash hashes the share index and responses
-func (r *ResponseBundle) Hash() []byte {
+func (b *ResponseBundle) Hash() ([]byte, error) {
 	// first order the response slice in a canonical order
-	sort.SliceStable(r.Responses, func(i, j int) bool {
-		return r.Responses[i].DealerIndex < r.Responses[j].DealerIndex
+	sort.SliceStable(b.Responses, func(i, j int) bool {
+		return b.Responses[i].DealerIndex < b.Responses[j].DealerIndex
 	})
 	h := sha256.New()
-	binary.Write(h, binary.BigEndian, r.ShareIndex)
-	for _, resp := range r.Responses {
-		binary.Write(h, binary.BigEndian, resp.DealerIndex)
-		if resp.Status {
-			binary.Write(h, binary.BigEndian, byte(1))
+	var err error
+	if err = binary.Write(h, binary.BigEndian, b.ShareIndex); err != nil {
+		return nil, err
+	}
+
+	for _, resp := range b.Responses {
+		if err = binary.Write(h, binary.BigEndian, resp.DealerIndex); err != nil {
+			return nil, err
+		}
+		if resp.Status == Success {
+			if err = binary.Write(h, binary.BigEndian, byte(1)); err != nil {
+				return nil, err
+			}
 		} else {
-			binary.Write(h, binary.BigEndian, byte(0))
+			if err = binary.Write(h, binary.BigEndian, byte(0)); err != nil {
+				return nil, err
+			}
 		}
 	}
-	h.Write(r.SessionID)
-	return h.Sum(nil)
+	_, err = h.Write(b.SessionID)
+	return h.Sum(nil), err
 }
 
 func (b *ResponseBundle) Index() Index {
@@ -216,20 +242,32 @@ type Justification struct {
 	Share      kyber.Scalar
 }
 
-func (j *JustificationBundle) Hash() []byte {
+func (j *JustificationBundle) Hash() ([]byte, error) {
 	// sort them in a canonical order
 	sort.SliceStable(j.Justifications, func(a, b int) bool {
 		return j.Justifications[a].ShareIndex < j.Justifications[b].ShareIndex
 	})
 	h := sha256.New()
-	binary.Write(h, binary.BigEndian, j.DealerIndex)
-	for _, just := range j.Justifications {
-		binary.Write(h, binary.BigEndian, just.ShareIndex)
-		sbuff, _ := just.Share.MarshalBinary()
-		h.Write(sbuff)
+	err := binary.Write(h, binary.BigEndian, j.DealerIndex)
+	if err != nil {
+		return nil, err
 	}
-	h.Write(j.SessionID)
-	return h.Sum(nil)
+	for _, just := range j.Justifications {
+		err := binary.Write(h, binary.BigEndian, just.ShareIndex)
+		if err != nil {
+			return nil, err
+		}
+		sbuff, err := just.Share.MarshalBinary()
+		if err != nil {
+			return nil, err
+		}
+		_, err = h.Write(sbuff)
+		if err != nil {
+			return nil, err
+		}
+	}
+	_, err = h.Write(j.SessionID)
+	return h.Sum(nil), err
 }
 
 func (j *JustificationBundle) Index() Index {
@@ -244,7 +282,7 @@ func (j *JustificationBundle) Sig() []byte {
 // implementation uses during the different phases. This interface allows to
 // verify a DKG packet without knowing its specific type.
 type Packet interface {
-	Hash() []byte
+	Hash() ([]byte, error)
 	Index() Index
 	Sig() []byte
 }
@@ -263,26 +301,37 @@ func VerifyPacketSignature(c *Config, p Packet) error {
 		return c.OldNodes
 	}
 	var ok bool
+	var err error
+
 	var hash []byte
 	var pub kyber.Point
 	var sig []byte
 	switch auth := p.(type) {
 	case *DealBundle:
-		hash = auth.Hash()
+		hash, err = auth.Hash()
+		if err != nil {
+			return err
+		}
 		pub, ok = findIndex(getDealers(), auth.DealerIndex)
 		if !ok {
 			return errors.New("no nodes with this public key")
 		}
 		sig = auth.Signature
 	case *ResponseBundle:
-		hash = auth.Hash()
+		hash, err = auth.Hash()
+		if err != nil {
+			return err
+		}
 		pub, ok = findIndex(c.NewNodes, auth.ShareIndex)
 		if !ok {
 			return errors.New("no nodes with this public key")
 		}
 		sig = auth.Signature
 	case *JustificationBundle:
-		hash = auth.Hash()
+		hash, err = auth.Hash()
+		if err != nil {
+			return err
+		}
 		pub, ok = findIndex(getDealers(), auth.DealerIndex)
 		if !ok {
 			return errors.New("no nodes with this public key")
@@ -292,6 +341,8 @@ func VerifyPacketSignature(c *Config, p Packet) error {
 		return errors.New("unknown packet type")
 	}
 
-	err := c.Auth.Verify(pub, hash, sig)
-	return err
+	if err := c.Auth.Verify(pub, hash, sig); err != nil {
+		return fmt.Errorf("invalid signature: %w", err)
+	}
+	return nil
 }

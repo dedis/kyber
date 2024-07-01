@@ -30,140 +30,140 @@ func isPrime(i *big.Int) bool {
 	return i.ProbablyPrime(numMRTests)
 }
 
-func (p *residuePoint) String() string { return p.Int.String() }
+func (P *residuePoint) String() string { return P.Int.String() }
 
-func (p *residuePoint) Equal(p2 kyber.Point) bool {
-	return p.Int.Cmp(&p2.(*residuePoint).Int) == 0
+func (P *residuePoint) Equal(p2 kyber.Point) bool {
+	return P.Int.Cmp(&p2.(*residuePoint).Int) == 0
 }
 
-func (p *residuePoint) Null() kyber.Point {
-	p.Int.SetInt64(1)
-	return p
+func (P *residuePoint) Null() kyber.Point {
+	P.Int.SetInt64(1)
+	return P
 }
 
-func (p *residuePoint) Base() kyber.Point {
-	p.Int.Set(p.g.G)
-	return p
+func (P *residuePoint) Base() kyber.Point {
+	P.Int.Set(P.g.G)
+	return P
 }
 
-func (p *residuePoint) Set(p2 kyber.Point) kyber.Point {
-	p.g = p2.(*residuePoint).g
-	p.Int = p2.(*residuePoint).Int
-	return p
+func (P *residuePoint) Set(P2 kyber.Point) kyber.Point {
+	P.g = P2.(*residuePoint).g
+	P.Int = P2.(*residuePoint).Int
+	return P
 }
 
-func (p *residuePoint) Clone() kyber.Point {
-	return &residuePoint{g: p.g, Int: p.Int}
+func (P *residuePoint) Clone() kyber.Point {
+	return &residuePoint{g: P.g, Int: P.Int}
 }
 
-func (p *residuePoint) Valid() bool {
-	return p.Int.Sign() > 0 && p.Int.Cmp(p.g.P) < 0 &&
-		new(big.Int).Exp(&p.Int, p.g.Q, p.g.P).Cmp(one) == 0
+func (P *residuePoint) Valid() bool {
+	return P.Int.Sign() > 0 && P.Int.Cmp(P.g.P) < 0 &&
+		new(big.Int).Exp(&P.Int, P.g.Q, P.g.P).Cmp(one) == 0
 }
 
-func (p *residuePoint) EmbedLen() int {
+func (P *residuePoint) EmbedLen() int {
 	// Reserve at least 8 most-significant bits for randomness,
 	// and the least-significant 16 bits for embedded data length.
-	return (p.g.P.BitLen() - 8 - 16) / 8
+	return (P.g.P.BitLen() - 8 - 16) / 8
 }
 
-func (p *residuePoint) Pick(rand cipher.Stream) kyber.Point {
-	return p.Embed(nil, rand)
+func (P *residuePoint) Pick(rand cipher.Stream) kyber.Point {
+	return P.Embed(nil, rand)
 }
 
 // Embed the given data with some pseudo-random bits.
 // This will only work efficiently for quadratic residue groups!
-func (p *residuePoint) Embed(data []byte, rand cipher.Stream) kyber.Point {
+func (P *residuePoint) Embed(data []byte, rand cipher.Stream) kyber.Point {
 
-	l := p.g.PointLen()
-	dl := p.EmbedLen()
+	l := P.g.PointLen()
+	dl := P.EmbedLen()
 	if dl > len(data) {
 		dl = len(data)
 	}
 
 	for {
-		b := random.Bits(uint(p.g.P.BitLen()), false, rand)
+		b := random.Bits(uint(P.g.P.BitLen()), false, rand)
 		if data != nil {
 			b[l-1] = byte(dl) // Encode length in low 16 bits
 			b[l-2] = byte(dl >> 8)
 			copy(b[l-dl-2:l-2], data) // Copy in embedded data
 		}
-		p.Int.SetBytes(b)
-		if p.Valid() {
-			return p
+		P.Int.SetBytes(b)
+		if P.Valid() {
+			return P
 		}
 	}
 }
 
 // Extract embedded data from a Residue group element
-func (p *residuePoint) Data() ([]byte, error) {
-	b := p.Int.Bytes()
-	l := p.g.PointLen()
+func (P *residuePoint) Data() ([]byte, error) {
+	b := P.Int.Bytes()
+	l := P.g.PointLen()
 	if len(b) < l { // pad leading zero bytes if necessary
 		b = append(make([]byte, l-len(b)), b...)
 	}
 	dl := int(b[l-2])<<8 + int(b[l-1])
-	if dl > p.EmbedLen() {
+	if dl > P.EmbedLen() {
 		return nil, errors.New("invalid embedded data length")
 	}
 	return b[l-dl-2 : l-2], nil
 }
 
-func (p *residuePoint) Add(a, b kyber.Point) kyber.Point {
-	p.Int.Mul(&a.(*residuePoint).Int, &b.(*residuePoint).Int)
-	p.Int.Mod(&p.Int, p.g.P)
-	return p
+func (P *residuePoint) Add(A, B kyber.Point) kyber.Point {
+	P.Int.Mul(&A.(*residuePoint).Int, &B.(*residuePoint).Int)
+	P.Int.Mod(&P.Int, P.g.P)
+	return P
 }
 
-func (p *residuePoint) Sub(a, b kyber.Point) kyber.Point {
-	binv := new(big.Int).ModInverse(&b.(*residuePoint).Int, p.g.P)
-	p.Int.Mul(&a.(*residuePoint).Int, binv)
-	p.Int.Mod(&p.Int, p.g.P)
-	return p
+func (P *residuePoint) Sub(A, B kyber.Point) kyber.Point {
+	binv := new(big.Int).ModInverse(&B.(*residuePoint).Int, P.g.P)
+	P.Int.Mul(&A.(*residuePoint).Int, binv)
+	P.Int.Mod(&P.Int, P.g.P)
+	return P
 }
 
-func (p *residuePoint) Neg(a kyber.Point) kyber.Point {
-	p.Int.ModInverse(&a.(*residuePoint).Int, p.g.P)
-	return p
+func (P *residuePoint) Neg(A kyber.Point) kyber.Point {
+	P.Int.ModInverse(&A.(*residuePoint).Int, P.g.P)
+	return P
 }
 
-func (p *residuePoint) Mul(s kyber.Scalar, b kyber.Point) kyber.Point {
-	if b == nil {
-		return p.Base().Mul(s, p)
+func (P *residuePoint) Mul(s kyber.Scalar, B kyber.Point) kyber.Point {
+	if B == nil {
+		return P.Base().Mul(s, P)
 	}
 	// to protect against golang/go#22830
 	var tmp big.Int
-	tmp.Exp(&b.(*residuePoint).Int, &s.(*mod.Int).V, p.g.P)
-	p.Int = tmp
-	return p
+	tmp.Exp(&B.(*residuePoint).Int, &s.(*mod.Int).V, P.g.P)
+	P.Int = tmp
+	return P
 }
 
-func (p *residuePoint) MarshalSize() int {
-	return (p.g.P.BitLen() + 7) / 8
+func (P *residuePoint) MarshalSize() int {
+	return (P.g.P.BitLen() + 7) / 8
 }
 
-func (p *residuePoint) MarshalBinary() ([]byte, error) {
-	b := p.Int.Bytes() // may be shorter than len(buf)
-	if pre := p.MarshalSize() - len(b); pre != 0 {
+func (P *residuePoint) MarshalBinary() ([]byte, error) {
+	b := P.Int.Bytes() // may be shorter than len(buf)
+	if pre := P.MarshalSize() - len(b); pre != 0 {
 		return append(make([]byte, pre), b...), nil
 	}
 	return b, nil
 }
 
-func (p *residuePoint) UnmarshalBinary(data []byte) error {
-	p.Int.SetBytes(data)
-	if !p.Valid() {
+func (P *residuePoint) UnmarshalBinary(data []byte) error {
+	P.Int.SetBytes(data)
+	if !P.Valid() {
 		return errors.New("invalid Residue group element")
 	}
 	return nil
 }
 
-func (p *residuePoint) MarshalTo(w io.Writer) (int, error) {
-	return marshalling.PointMarshalTo(p, w)
+func (P *residuePoint) MarshalTo(w io.Writer) (int, error) {
+	return marshalling.PointMarshalTo(P, w)
 }
 
-func (p *residuePoint) UnmarshalFrom(r io.Reader) (int, error) {
-	return marshalling.PointUnmarshalFrom(p, r)
+func (P *residuePoint) UnmarshalFrom(r io.Reader) (int, error) {
+	return marshalling.PointUnmarshalFrom(P, r)
 }
 
 /*
@@ -254,11 +254,11 @@ func (g *ResidueGroup) Valid() bool {
 }
 
 // SetParams explicitly initializes a ResidueGroup with given parameters.
-func (g *ResidueGroup) SetParams(P, Q, R, G *big.Int) {
-	g.P = P
-	g.Q = Q
-	g.R = R
-	g.G = G
+func (g *ResidueGroup) SetParams(p, q, r, g1 *big.Int) {
+	g.P = p
+	g.Q = q
+	g.R = r
+	g.G = g1
 	if !g.Valid() {
 		panic("SetParams: bad Residue group parameters")
 	}
@@ -271,10 +271,8 @@ func (g *ResidueGroup) QuadraticResidueGroup(bitlen uint, rand cipher.Stream) {
 	g.R = two
 
 	// pick primes p,q such that p = 2q+1
-	fmt.Printf("Generating %d-bit QR group", bitlen)
 	for i := 0; ; i++ {
 		if i > 1000 {
-			print(".")
 			i = 0
 		}
 
@@ -282,23 +280,18 @@ func (g *ResidueGroup) QuadraticResidueGroup(bitlen uint, rand cipher.Stream) {
 		b := random.Bits(bitlen-1, true, rand)
 		b[len(b)-1] |= 1 // must be odd
 		g.Q = new(big.Int).SetBytes(b)
-		//println("q?",hex.EncodeToString(g.Q.Bytes()))
 		if !isPrime(g.Q) {
 			continue
 		}
 
-		// Does the corresponding P come out prime too?
+		// TODO:Does the corresponding P come out prime too?
 		g.P = new(big.Int)
 		g.P.Mul(g.Q, two)
 		g.P.Add(g.P, one)
-		//println("p?",hex.EncodeToString(g.P.Bytes()))
 		if uint(g.P.BitLen()) == bitlen && isPrime(g.P) {
 			break
 		}
 	}
-	println()
-	println("p", g.P.String())
-	println("q", g.Q.String())
 
 	// pick standard generator G
 	h := new(big.Int).Set(two)
@@ -310,5 +303,4 @@ func (g *ResidueGroup) QuadraticResidueGroup(bitlen uint, rand cipher.Stream) {
 		}
 		h.Add(h, one)
 	}
-	println("g", g.G.String())
 }

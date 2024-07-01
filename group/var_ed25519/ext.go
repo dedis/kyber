@@ -17,7 +17,8 @@ type extPoint struct {
 }
 
 func (P *extPoint) initXY(x, y *big.Int, c kyber.Group) {
-	P.c = c.(*ExtendedCurve)
+	P.c = c.(*ExtendedCurve) //nolint:errcheck // V4 may bring better error handling
+
 	P.X.Init(x, &P.c.P)
 	P.Y.Init(y, &P.c.P)
 	P.Z.Init64(1, &P.c.P)
@@ -31,7 +32,6 @@ func (P *extPoint) getXY() (x, y *mod.Int) {
 
 func (P *extPoint) String() string {
 	P.normalize()
-	//return P.c.pointString(&P.X,&P.Y)
 	buf, _ := P.MarshalBinary()
 	return hex.EncodeToString(buf)
 }
@@ -69,31 +69,31 @@ func (P *extPoint) UnmarshalFrom(r io.Reader) (int, error) {
 //		iff
 //	(X1*Z2,Y1*Z2) == (X2*Z1,Y2*Z1)
 func (P *extPoint) Equal(CP2 kyber.Point) bool {
-	P2 := CP2.(*extPoint)
+	p2 := CP2.(*extPoint) //nolint:errcheck // V4 may bring better error handling
 	var t1, t2 mod.Int
-	xeq := t1.Mul(&P.X, &P2.Z).Equal(t2.Mul(&P2.X, &P.Z))
-	yeq := t1.Mul(&P.Y, &P2.Z).Equal(t2.Mul(&P2.Y, &P.Z))
+	xeq := t1.Mul(&P.X, &p2.Z).Equal(t2.Mul(&p2.X, &P.Z))
+	yeq := t1.Mul(&P.Y, &p2.Z).Equal(t2.Mul(&p2.Y, &P.Z))
 	return xeq && yeq
 }
 
 func (P *extPoint) Set(CP2 kyber.Point) kyber.Point {
-	P2 := CP2.(*extPoint)
-	P.c = P2.c
-	P.X.Set(&P2.X)
-	P.Y.Set(&P2.Y)
-	P.Z.Set(&P2.Z)
-	P.T.Set(&P2.T)
+	p2 := CP2.(*extPoint) //nolint:errcheck // V4 may bring better error handling
+	P.c = p2.c
+	P.X.Set(&p2.X)
+	P.Y.Set(&p2.Y)
+	P.Z.Set(&p2.Z)
+	P.T.Set(&p2.T)
 	return P
 }
 
 func (P *extPoint) Clone() kyber.Point {
-	P2 := extPoint{}
-	P2.c = P.c
-	P2.X.Set(&P.X)
-	P2.Y.Set(&P.Y)
-	P2.Z.Set(&P.Z)
-	P2.T.Set(&P.T)
-	return &P2
+	p2 := extPoint{}
+	p2.c = P.c
+	p2.X.Set(&P.X)
+	p2.Y.Set(&P.Y)
+	p2.Z.Set(&P.Z)
+	p2.T.Set(&P.T)
+	return &p2
 }
 
 func (P *extPoint) Null() kyber.Point {
@@ -120,6 +120,8 @@ func (P *extPoint) normalize() {
 }
 
 // Check the validity of the T coordinate
+//
+//nolint:unused // may be useful
 func (P *extPoint) checkT() {
 	var t1, t2 mod.Int
 	if !t1.Mul(&P.X, &P.Y).Equal(t2.Mul(&P.Z, &P.T)) {
@@ -144,11 +146,13 @@ func (P *extPoint) Data() ([]byte, error) {
 }
 
 // Add two points using optimized extended coordinate addition formulas.
+//
+//nolint:dupl //Doesn't make sense to extract part of Add(), Sub(), double()
 func (P *extPoint) Add(CP1, CP2 kyber.Point) kyber.Point {
-	P1 := CP1.(*extPoint)
-	P2 := CP2.(*extPoint)
-	X1, Y1, Z1, T1 := &P1.X, &P1.Y, &P1.Z, &P1.T
-	X2, Y2, Z2, T2 := &P2.X, &P2.Y, &P2.Z, &P2.T
+	p1 := CP1.(*extPoint) //nolint:errcheck // V4 may bring better error handling
+	p2 := CP2.(*extPoint) //nolint:errcheck // V4 may bring better error handling
+	X1, Y1, Z1, T1 := &p1.X, &p1.Y, &p1.Z, &p1.T
+	X2, Y2, Z2, T2 := &p2.X, &p2.Y, &p2.Z, &p2.T
 	X3, Y3, Z3, T3 := &P.X, &P.Y, &P.Z, &P.T
 	var A, B, C, D, E, F, G, H mod.Int
 
@@ -168,11 +172,13 @@ func (P *extPoint) Add(CP1, CP2 kyber.Point) kyber.Point {
 }
 
 // Subtract points.
+//
+//nolint:dupl //Doesn't make sense to extract part of Add(), Sub(), double()
 func (P *extPoint) Sub(CP1, CP2 kyber.Point) kyber.Point {
-	P1 := CP1.(*extPoint)
-	P2 := CP2.(*extPoint)
-	X1, Y1, Z1, T1 := &P1.X, &P1.Y, &P1.Z, &P1.T
-	X2, Y2, Z2, T2 := &P2.X, &P2.Y, &P2.Z, &P2.T
+	p1 := CP1.(*extPoint) //nolint:errcheck // V4 may bring better error handling
+	p2 := CP2.(*extPoint) //nolint:errcheck // V4 may bring better error handling
+	X1, Y1, Z1, T1 := &p1.X, &p1.Y, &p1.Z, &p1.T
+	X2, Y2, Z2, T2 := &p2.X, &p2.Y, &p2.Z, &p2.T
 	X3, Y3, Z3, T3 := &P.X, &P.Y, &P.Z, &P.T
 	var A, B, C, D, E, F, G, H mod.Int
 
@@ -194,7 +200,7 @@ func (P *extPoint) Sub(CP1, CP2 kyber.Point) kyber.Point {
 // Find the negative of point A.
 // For Edwards curves, the negative of (x,y) is (-x,y).
 func (P *extPoint) Neg(CA kyber.Point) kyber.Point {
-	A := CA.(*extPoint)
+	A := CA.(*extPoint) //nolint:errcheck // V4 may bring better error handling
 	P.c = A.c
 	P.X.Neg(&A.X)
 	P.Y.Set(&A.Y)
@@ -280,7 +286,7 @@ type ExtendedCurve struct {
 func (c *ExtendedCurve) Point() kyber.Point {
 	P := new(extPoint)
 	P.c = c
-	//P.Set(&c.null)
+
 	return P
 }
 

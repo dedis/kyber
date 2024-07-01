@@ -16,7 +16,7 @@ type projPoint struct {
 }
 
 func (P *projPoint) initXY(x, y *big.Int, c kyber.Group) {
-	P.c = c.(*ProjectiveCurve)
+	P.c = c.(*ProjectiveCurve) //nolint:errcheck // V4 may bring better error handling
 	P.X.Init(x, &P.c.P)
 	P.Y.Init(y, &P.c.P)
 	P.Z.Init64(1, &P.c.P)
@@ -61,7 +61,7 @@ func (P *projPoint) UnmarshalFrom(r io.Reader) (int, error) {
 //		iff
 //	(X1*Z2,Y1*Z2) == (X2*Z1,Y2*Z1)
 func (P *projPoint) Equal(CP2 kyber.Point) bool {
-	P2 := CP2.(*projPoint)
+	P2 := CP2.(*projPoint) //nolint:errcheck // V4 may bring better error handling
 	var t1, t2 mod.Int
 	xeq := t1.Mul(&P.X, &P2.Z).Equal(t2.Mul(&P2.X, &P.Z))
 	yeq := t1.Mul(&P.Y, &P2.Z).Equal(t2.Mul(&P2.Y, &P.Z))
@@ -69,7 +69,7 @@ func (P *projPoint) Equal(CP2 kyber.Point) bool {
 }
 
 func (P *projPoint) Set(CP2 kyber.Point) kyber.Point {
-	P2 := CP2.(*projPoint)
+	P2 := CP2.(*projPoint) //nolint:errcheck // V4 may bring better error handling
 	P.c = P2.c
 	P.X.Set(&P2.X)
 	P.Y.Set(&P2.Y)
@@ -128,9 +128,11 @@ func (P *projPoint) Data() ([]byte, error) {
 //
 //	http://eprint.iacr.org/2008/013.pdf
 //	https://hyperelliptic.org/EFD/g1p/auto-twisted-projective.html
+//
+//nolint:dupl //Doesn't make sense to extract part of Add(), Sub()
 func (P *projPoint) Add(CP1, CP2 kyber.Point) kyber.Point {
-	P1 := CP1.(*projPoint)
-	P2 := CP2.(*projPoint)
+	P1 := CP1.(*projPoint) //nolint:errcheck // V4 may bring better error handling
+	P2 := CP2.(*projPoint) //nolint:errcheck // V4 may bring better error handling
 	X1, Y1, Z1 := &P1.X, &P1.Y, &P1.Z
 	X2, Y2, Z2 := &P2.X, &P2.Y, &P2.Z
 	var A, B, C, D, E, F, G, X3, Y3, Z3 mod.Int
@@ -155,9 +157,11 @@ func (P *projPoint) Add(CP1, CP2 kyber.Point) kyber.Point {
 }
 
 // Subtract points so that their scalars subtract homomorphically
+//
+//nolint:dupl //Doesn't make sense to extract part of Add(), Sub(), double()
 func (P *projPoint) Sub(CP1, CP2 kyber.Point) kyber.Point {
-	P1 := CP1.(*projPoint)
-	P2 := CP2.(*projPoint)
+	P1 := CP1.(*projPoint) //nolint:errcheck // V4 may bring better error handling
+	P2 := CP2.(*projPoint) //nolint:errcheck // V4 may bring better error handling
 	X1, Y1, Z1 := &P1.X, &P1.Y, &P1.Z
 	X2, Y2, Z2 := &P2.X, &P2.Y, &P2.Z
 	var A, B, C, D, E, F, G, X3, Y3, Z3 mod.Int
@@ -184,7 +188,7 @@ func (P *projPoint) Sub(CP1, CP2 kyber.Point) kyber.Point {
 // Find the negative of point A.
 // For Edwards curves, the negative of (x,y) is (-x,y).
 func (P *projPoint) Neg(CA kyber.Point) kyber.Point {
-	A := CA.(*projPoint)
+	A := CA.(*projPoint) //nolint:errcheck // V4 may bring better error handling
 	P.c = A.c
 	P.X.Neg(&A.X)
 	P.Y.Set(&A.Y)
@@ -248,7 +252,7 @@ type ProjectiveCurve struct {
 func (c *ProjectiveCurve) Point() kyber.Point {
 	P := new(projPoint)
 	P.c = c
-	//P.Set(&c.null)
+
 	return P
 }
 

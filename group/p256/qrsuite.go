@@ -37,11 +37,11 @@ func (s QrSuite) RandomStream() cipher.Stream {
 }
 
 func (s *QrSuite) Read(r io.Reader, objs ...interface{}) error {
-	return fixbuf.Read(r, s, objs)
+	return fixbuf.Read(r, s, objs...)
 }
 
 func (s *QrSuite) Write(w io.Writer, objs ...interface{}) error {
-	return fixbuf.Write(w, objs)
+	return fixbuf.Write(w, objs...)
 }
 
 // New implements the kyber.encoding interface
@@ -56,7 +56,9 @@ func (s *QrSuite) New(t reflect.Type) interface{} {
 // This group size should be used only for testing and experimentation.
 // 512-bit DSA-style groups are no longer considered secure.
 func NewBlakeSHA256QR512() *QrSuite {
+	//nolint:lll
 	p, _ := new(big.Int).SetString("10198267722357351868598076141027380280417188309231803909918464305012113541414604537422741096561285049775792035177041672305646773132014126091142862443826263", 10)
+	//nolint:lll
 	q, _ := new(big.Int).SetString("5099133861178675934299038070513690140208594154615901954959232152506056770707302268711370548280642524887896017588520836152823386566007063045571431221913131", 10)
 	r := new(big.Int).SetInt64(2)
 	g := new(big.Int).SetInt64(4)

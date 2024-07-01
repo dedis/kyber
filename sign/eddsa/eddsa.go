@@ -5,14 +5,26 @@ package eddsa
 import (
 	"crypto/cipher"
 	"crypto/sha512"
-	"errors"
 	"fmt"
-
 	"go.dedis.ch/kyber/v4"
 	"go.dedis.ch/kyber/v4/group/edwards25519"
 )
 
 var group = new(edwards25519.Curve)
+var ErrPKMarshalling = fmt.Errorf("error unmarshalling public key")
+var ErrPKInvalid = fmt.Errorf("invalid public key")
+var ErrPKSmallOrder = fmt.Errorf("public key has small order")
+var ErrPKNotCanonical = fmt.Errorf("public key is not canonical")
+
+var ErrEdDSAWrongLength = fmt.Errorf("wrong length for decoding EdDSA private")
+var ErrSchnorrInvalidScalar = fmt.Errorf("schnorr: s invalid scalar")
+var ErrSignatureLength = fmt.Errorf("signature length invalid")
+var ErrSignatureNotCanonical = fmt.Errorf("signature is not canonical")
+var ErrSignatureRecNotEqual = fmt.Errorf("reconstructed S is not equal to signature")
+
+var ErrPointRSmallOrder = fmt.Errorf("point R has small order")
+var ErrPointRNotCanonical = fmt.Errorf("point R is not canonical")
+var ErrPointRInvalid = fmt.Errorf("point R invalid")
 
 // EdDSA is a structure holding the data necessary to make a series of
 // EdDSA signatures.
@@ -61,7 +73,7 @@ func (e *EdDSA) MarshalBinary() ([]byte, error) {
 // UnmarshalBinary transforms a slice of bytes into a EdDSA signature.
 func (e *EdDSA) UnmarshalBinary(buff []byte) error {
 	if len(buff) != 64 {
-		return errors.New("wrong length for decoding EdDSA private")
+		return fmt.Errorf("error: %w", ErrEdDSAWrongLength)
 	}
 
 	secret, _, prefix := group.NewKeyAndSeedWithInput(buff[:32])
@@ -76,8 +88,12 @@ func (e *EdDSA) UnmarshalBinary(buff []byte) error {
 // Sign will return a EdDSA signature of the message msg using Ed25519.
 func (e *EdDSA) Sign(msg []byte) ([]byte, error) {
 	hash := sha512.New()
-	_, _ = hash.Write(e.prefix)
-	_, _ = hash.Write(msg)
+	if _, err := hash.Write(e.prefix); err != nil {
+		return nil, err
+	}
+	if _, err := hash.Write(msg); err != nil {
+		return nil, err
+	}
 
 	// deterministic random secret and its commit
 	r := group.Scalar().SetBytes(hash.Sum(nil))
@@ -95,9 +111,15 @@ func (e *EdDSA) Sign(msg []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	_, _ = hash.Write(Rbuff)
-	_, _ = hash.Write(Abuff)
-	_, _ = hash.Write(msg)
+	if _, err := hash.Write(Rbuff); err != nil {
+		return nil, err
+	}
+	if _, err := hash.Write(Abuff); err != nil {
+		return nil, err
+	}
+	if _, err := hash.Write(msg); err != nil {
+		return nil, err
+	}
 
 	h := group.Scalar().SetBytes(hash.Sum(nil))
 
@@ -126,7 +148,7 @@ func (e *EdDSA) Sign(msg []byte) ([]byte, error) {
 // does not have a small order.
 func VerifyWithChecks(pub, msg, sig []byte) error {
 	if len(sig) != 64 {
-		return fmt.Errorf("signature length invalid, expect 64 but got %v", len(sig))
+		return fmt.Errorf("error: %w: expect 64 but got %v", ErrSignatureLength, len(sig))
 	}
 
 	type scalarCanCheckCanonical interface {
@@ -134,7 +156,7 @@ func VerifyWithChecks(pub, msg, sig []byte) error {
 	}
 
 	if !group.Scalar().(scalarCanCheckCanonical).IsCanonical(sig[32:]) {
-		return fmt.Errorf("signature is not canonical")
+		return fmt.Errorf("error: %w", ErrSignatureNotCanonical)
 	}
 
 	type pointCanCheckCanonicalAndSmallOrder interface {
@@ -144,36 +166,42 @@ func VerifyWithChecks(pub, msg, sig []byte) error {
 
 	R := group.Point()
 	if !R.(pointCanCheckCanonicalAndSmallOrder).IsCanonical(sig[:32]) {
-		return fmt.Errorf("R is not canonical")
+		return fmt.Errorf("error: %w", ErrPointRNotCanonical)
 	}
 	if err := R.UnmarshalBinary(sig[:32]); err != nil {
-		return fmt.Errorf("got R invalid point: %s", err)
+		return fmt.Errorf("error: %w: %w", ErrPointRInvalid, err)
 	}
 	if R.(pointCanCheckCanonicalAndSmallOrder).HasSmallOrder() {
-		return fmt.Errorf("R has small order")
+		return fmt.Errorf("error: %w", ErrPointRSmallOrder)
 	}
 
 	s := group.Scalar()
 	if err := s.UnmarshalBinary(sig[32:]); err != nil {
-		return fmt.Errorf("schnorr: s invalid scalar %s", err)
+		return fmt.Errorf("error: %w: %w", ErrSchnorrInvalidScalar, err)
 	}
 
 	public := group.Point()
 	if !public.(pointCanCheckCanonicalAndSmallOrder).IsCanonical(pub) {
-		return fmt.Errorf("public key is not canonical")
+		return fmt.Errorf("error: %w", ErrPKNotCanonical)
 	}
 	if err := public.UnmarshalBinary(pub); err != nil {
-		return fmt.Errorf("invalid public key: %s", err)
+		return fmt.Errorf("error: %w: %w", ErrPKInvalid, err)
 	}
 	if public.(pointCanCheckCanonicalAndSmallOrder).HasSmallOrder() {
-		return fmt.Errorf("public key has small order")
+		return fmt.Errorf("error: %w", ErrPKSmallOrder)
 	}
 
 	// reconstruct h = H(R || Public || Msg)
 	hash := sha512.New()
-	_, _ = hash.Write(sig[:32])
-	_, _ = hash.Write(pub)
-	_, _ = hash.Write(msg)
+	if _, err := hash.Write(sig[:32]); err != nil {
+		return err
+	}
+	if _, err := hash.Write(pub); err != nil {
+		return err
+	}
+	if _, err := hash.Write(msg); err != nil {
+		return err
+	}
 
 	h := group.Scalar().SetBytes(hash.Sum(nil))
 	// reconstruct S == k*A + R
@@ -182,7 +210,7 @@ func VerifyWithChecks(pub, msg, sig []byte) error {
 	RhA := group.Point().Add(R, hA)
 
 	if !RhA.Equal(S) {
-		return errors.New("reconstructed S is not equal to signature")
+		return fmt.Errorf("error: %w", ErrSignatureRecNotEqual)
 	}
 	return nil
 }
@@ -192,7 +220,7 @@ func VerifyWithChecks(pub, msg, sig []byte) error {
 func Verify(public kyber.Point, msg, sig []byte) error {
 	PBuf, err := public.MarshalBinary()
 	if err != nil {
-		return fmt.Errorf("error unmarshalling public key: %s", err)
+		return fmt.Errorf("error: %w: %w", ErrPKMarshalling, err)
 	}
 	return VerifyWithChecks(PBuf, msg, sig)
 }

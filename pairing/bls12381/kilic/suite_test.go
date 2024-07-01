@@ -69,7 +69,7 @@ func TestVerifySigOnG2(t *testing.T) {
 	}
 }
 
-func TestImplementInterfaces(t *testing.T) {
+func TestImplementInterfaces(_ *testing.T) {
 	var _ kyber.Point = &G1Elt{}
 	var _ kyber.Point = &G2Elt{}
 	var _ kyber.Point = &GTElt{}

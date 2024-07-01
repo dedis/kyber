@@ -458,7 +458,6 @@ func TestSelfEvictionShareHolder(t *testing.T) {
 	}
 	require.True(t, len(responses) > 0)
 
-	results = nil
 	for _, node := range newTns {
 		_, _, err := node.dkg.ProcessResponses(responses)
 		require.True(t, contains(node.dkg.evictedHolders, newIndexToEvict))
@@ -622,7 +621,7 @@ func TestDKGThreshold(t *testing.T) {
 	results := RunDKG(t, tns, conf, dm, rm, jm)
 	var filtered = results[:0]
 	for _, n := range tns {
-		if 0 == n.Index {
+		if n.Index == 0 {
 			// node 0 is excluded by all others since he didn't even provide a
 			// deal at the first phase,i.e. it didn't even provide a public
 			// polynomial at the first phase.
@@ -717,7 +716,7 @@ func TestDKGResharingFast(t *testing.T) {
 			skipNew = n.Index
 		}
 	}
-	fmt.Println("skipping old index: ", list[p].Index, "public key", skipKey, "newIdx", skipNew)
+	t.Log("skipping old index: ", list[p].Index, "public key", skipKey, "newIdx", skipNew)
 
 	newConf := &Config{
 		Suite:        suite,
@@ -1048,7 +1047,7 @@ func TestDKGTooManyComplaints(t *testing.T) {
 	results := RunDKG(t, tns, conf, dm, nil, nil)
 	var filtered = results[:0]
 	for _, n := range tns {
-		if 0 == n.Index {
+		if n.Index == 0 {
 			// node 0 is excluded by all others since he didn't even provide a
 			// deal at the first phase,i.e. it didn't even provide a public
 			// polynomial at the first phase.

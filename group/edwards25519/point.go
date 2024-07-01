@@ -185,8 +185,8 @@ func (P *point) Data() ([]byte, error) {
 }
 
 func (P *point) Add(P1, P2 kyber.Point) kyber.Point {
-	E1 := P1.(*point)
-	E2 := P2.(*point)
+	E1 := P1.(*point) //nolint:errcheck // V4 may bring better error handling
+	E2 := P2.(*point) //nolint:errcheck // V4 may bring better error handling
 
 	var t2 cachedGroupElement
 	var r completedGroupElement
@@ -199,8 +199,8 @@ func (P *point) Add(P1, P2 kyber.Point) kyber.Point {
 }
 
 func (P *point) Sub(P1, P2 kyber.Point) kyber.Point {
-	E1 := P1.(*point)
-	E2 := P2.(*point)
+	E1 := P1.(*point) //nolint:errcheck // V4 may bring better error handling
+	E2 := P2.(*point) //nolint:errcheck // V4 may bring better error handling
 
 	var t2 cachedGroupElement
 	var r completedGroupElement
@@ -245,6 +245,8 @@ func (P *point) Mul(s kyber.Scalar, A kyber.Point) kyber.Point {
 //
 // This is the same code as in
 // https://github.com/jedisct1/libsodium/blob/4744636721d2e420f8bbe2d563f31b1f5e682229/src/libsodium/crypto_core/ed25519/ref10/ed25519_ref10.c#L1170
+//
+//nolint:lll // Url above
 func (P *point) HasSmallOrder() bool {
 	s, err := P.MarshalBinary()
 	if err != nil {
@@ -281,6 +283,8 @@ func (P *point) HasSmallOrder() bool {
 //
 // The method accepts a buffer instead of calling `MarshalBinary` on the receiver
 // because that always returns a value modulo `prime`.
+//
+//nolint:lll // Url above
 func (P *point) IsCanonical(s []byte) bool {
 	if len(s) != 32 {
 		return false
@@ -479,6 +483,8 @@ func byteXor(dst, b1, b2 []byte) ([]byte, error) {
 // curve25519Elligator2 implements a map from fieldElement to a point on Curve25519
 // as defined in section G.2.1. of [RFC9380]
 // [RFC9380]: https://datatracker.ietf.org/doc/html/rfc9380#ell2-opt
+//
+//nolint:funlen
 func curve25519Elligator2(u fieldElement) (xn, xd, yn, yd fieldElement) {
 	// Some const needed
 	var one fieldElement
@@ -526,7 +532,7 @@ func curve25519Elligator2(u fieldElement) (xn, xd, yn, yd fieldElement) {
 	feSquare(&tv2, &y11)    // tv2 = y11^2
 	feMul(&tv2, &tv2, &gxd) // tv2 = tv2 * gxd
 
-	//y1 = y11 if e1 == 1 else y12
+	// y1 = y11 if e1 == 1 else y12
 	if tv2 == gx1 {
 		e1 = 1
 	}

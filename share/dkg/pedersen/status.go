@@ -6,18 +6,20 @@ import (
 	"strings"
 )
 
+type Status int32
+
 const (
-	Success   = true
-	Complaint = false
+	Success   Status = 0
+	Complaint Status = 1
 )
 
-type BitSet map[uint32]bool
+type BitSet map[uint32]Status
 type StatusMatrix map[uint32]BitSet
 
-func NewStatusMatrix(dealers []Node, shareHolders []Node, status bool) *StatusMatrix {
+func NewStatusMatrix(dealers []Node, shareHolders []Node, status Status) *StatusMatrix {
 	statuses := make(map[uint32]BitSet)
 	for _, dealer := range dealers {
-		bitset := make(map[uint32]bool)
+		bitset := make(map[uint32]Status)
 		for _, holder := range shareHolders {
 			bitset[holder.Index] = status
 		}
@@ -44,11 +46,11 @@ func (s *StatusMatrix) StatusesOfDealer(dealerIndex uint32) BitSet {
 }
 
 // can panic if indexes are not from the original list of nodes
-func (s *StatusMatrix) Set(dealer, share uint32, status bool) {
+func (s *StatusMatrix) Set(dealer, share uint32, status Status) {
 	(*s)[dealer][share] = status
 }
 
-func (s *StatusMatrix) SetAll(dealer uint32, status bool) {
+func (s *StatusMatrix) SetAll(dealer uint32, status Status) {
 	for share := range (*s)[dealer] {
 		(*s)[dealer][share] = status
 	}
@@ -73,7 +75,7 @@ func (s *StatusMatrix) CompleteSuccess() bool {
 }
 
 // can panic if indexes are not from the original list of nodes
-func (s *StatusMatrix) Get(dealer, share uint32) bool {
+func (s *StatusMatrix) Get(dealer, share uint32) Status {
 	return (*s)[dealer][share]
 }
 
@@ -96,7 +98,7 @@ func (s *StatusMatrix) String() string {
 		for _, shareIndex := range sharesIdx {
 			status := (*s)[uint32(dealerIndex)][uint32(shareIndex)]
 			var st string
-			if status {
+			if status == Success {
 				st = fmt.Sprintf(" %d: ok", shareIndex)
 			} else {
 				st = fmt.Sprintf(" %d: no", shareIndex)
@@ -106,16 +108,6 @@ func (s *StatusMatrix) String() string {
 		str += fmt.Sprintf("dealer %d: [ %s ]\n", dealerIndex, strings.Join(statuses, ","))
 	}
 	return str
-}
-
-func findMaxIndex(list []Node) int {
-	m := 0
-	for _, n := range list {
-		if n.Index > uint32(m) {
-			m = int(n.Index)
-		}
-	}
-	return m
 }
 
 func (b BitSet) LengthComplaints() int {

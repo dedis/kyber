@@ -9,6 +9,7 @@ func HashG1(msg, dst []byte) kyber.Point {
 	return mapToCurve(hashToBase(msg, dst))
 }
 
+//nolint:funlen
 func mapToCurve(t *gfP) kyber.Point {
 	one := *newGFp(1)
 

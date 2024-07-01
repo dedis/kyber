@@ -178,7 +178,12 @@ type DistKeyGenerator struct {
 // the longterm secret key, the list of participants, and the
 // threshold t parameter. It returns an error if the secret key's
 // commitment can't be found in the list of participants.
-func NewDistKeyGenerator(suite Suite, longterm kyber.Scalar, participants []kyber.Point, t int) (*DistKeyGenerator, error) {
+func NewDistKeyGenerator(
+	suite Suite,
+	longterm kyber.Scalar,
+	participants []kyber.Point,
+	t int,
+) (*DistKeyGenerator, error) {
 	pub := suite.Point().Mul(longterm, nil)
 	// find our index
 	var found bool
@@ -314,6 +319,7 @@ func (d *DistKeyGenerator) ProcessResponse(resp *Response) (*Justification, erro
 	}
 
 	if resp.Index != uint32(d.index) {
+		//nolint:nilnil // Expected behavior
 		return nil, nil
 	}
 
@@ -322,6 +328,7 @@ func (d *DistKeyGenerator) ProcessResponse(resp *Response) (*Justification, erro
 		return nil, err
 	}
 	if j == nil {
+		//nolint:nilnil // Expected behavior
 		return nil, nil
 	}
 	// a justification for our own deal, are we cheating !?
@@ -367,7 +374,7 @@ func (d *DistKeyGenerator) Certified() bool {
 // the distributed public key with SecretCommits() and ProcessSecretCommits().
 func (d *DistKeyGenerator) QUAL() []int {
 	var good []int
-	d.qualIter(func(i uint32, v *vss.Verifier) bool {
+	d.qualIter(func(i uint32, _ *vss.Verifier) bool {
 		good = append(good, int(i))
 		return true
 	})
@@ -376,7 +383,7 @@ func (d *DistKeyGenerator) QUAL() []int {
 
 func (d *DistKeyGenerator) isInQUAL(idx uint32) bool {
 	var found bool
-	d.qualIter(func(i uint32, v *vss.Verifier) bool {
+	d.qualIter(func(i uint32, _ *vss.Verifier) bool {
 		if i == idx {
 			found = true
 			return false
@@ -466,6 +473,8 @@ func (d *DistKeyGenerator) ProcessSecretCommits(sc *SecretCommits) (*ComplaintCo
 	}
 	// commitments are fine
 	d.commitments[sc.Index] = poly
+
+	//nolint:nilnil // Expected behavior
 	return nil, nil
 }
 
@@ -495,7 +504,7 @@ func (d *DistKeyGenerator) ProcessComplaintCommits(cc *ComplaintCommits) (*Recon
 	// the verification should pass for the deal, and not with the secret
 	// commits. Verification 4) in DKG Rabin's paper.
 	if err := v.VerifyDeal(cc.Deal, false); err != nil {
-		return nil, fmt.Errorf("dkg: verifying deal: %s", err)
+		return nil, fmt.Errorf("dkg: verifying deal: %w", err)
 	}
 
 	secretCommits, ok := d.commitments[cc.DealerIndex]
@@ -593,7 +602,7 @@ func (d *DistKeyGenerator) ProcessReconstructCommits(rs *ReconstructCommits) err
 func (d *DistKeyGenerator) Finished() bool {
 	var ret = true
 	var nb = 0
-	d.qualIter(func(idx uint32, v *vss.Verifier) bool {
+	d.qualIter(func(idx uint32, _ *vss.Verifier) bool {
 		nb++
 		// ALL QUAL members should have their commitments by now either given or
 		// reconstructed.

@@ -22,8 +22,8 @@ import (
 )
 
 // Some error definitions
-var errorGroups = errors.New("non-matching groups")
-var errorCoeffs = errors.New("different number of coefficients")
+var errGroups = errors.New("non-matching groups")
+var errCoeffs = errors.New("different number of coefficients")
 
 // PriShare represents a private share.
 type PriShare struct {
@@ -104,10 +104,10 @@ func (p *PriPoly) Shares(n int) []*PriShare {
 // as a new polynomial.
 func (p *PriPoly) Add(q *PriPoly) (*PriPoly, error) {
 	if p.g.String() != q.g.String() {
-		return nil, errorGroups
+		return nil, errGroups
 	}
 	if p.Threshold() != q.Threshold() {
-		return nil, errorCoeffs
+		return nil, errCoeffs
 	}
 	coeffs := make([]kyber.Scalar, p.Threshold())
 	for i := range coeffs {
@@ -229,7 +229,7 @@ func xyScalar(g kyber.Group, shares []*PriShare, t, n int) (map[int]kyber.Scalar
 	x := make(map[int]kyber.Scalar)
 	y := make(map[int]kyber.Scalar)
 	for _, s := range sorted {
-		if s == nil || s.V == nil || s.I < 0 {
+		if s == nil || s.V == nil {
 			continue
 		}
 		idx := int(s.I)
@@ -263,7 +263,6 @@ func RecoverPriPoly(g kyber.Group, shares []*PriShare, t, n int) (*PriPoly, erro
 
 	var accPoly *PriPoly
 	var err error
-	//den := g.Scalar()
 	// Notations follow the Wikipedia article on Lagrange interpolation
 	// https://en.wikipedia.org/wiki/Lagrange_polynomial
 	for j := range x {
@@ -363,11 +362,11 @@ func (p *PubPoly) Shares(n int) []*PubShare {
 // base point and thus should not be used in further computations.
 func (p *PubPoly) Add(q *PubPoly) (*PubPoly, error) {
 	if p.g.String() != q.g.String() {
-		return nil, errorGroups
+		return nil, errGroups
 	}
 
 	if p.Threshold() != q.Threshold() {
-		return nil, errorCoeffs
+		return nil, errCoeffs
 	}
 
 	commits := make([]kyber.Point, p.Threshold())
@@ -430,7 +429,7 @@ func xyCommit(g kyber.Group, shares []*PubShare, t, n int) (map[int]kyber.Scalar
 	y := make(map[int]kyber.Point)
 
 	for _, s := range sorted {
-		if s == nil || s.V == nil || s.I < 0 {
+		if s == nil || s.V == nil {
 			continue
 		}
 		idx := int(s.I)
