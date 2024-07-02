@@ -7,9 +7,10 @@ import (
 	"testing/quick"
 
 	"github.com/stretchr/testify/assert"
-	"go.dedis.ch/kyber/v3/group/edwards25519"
-	"go.dedis.ch/kyber/v3/sign/eddsa"
-	"go.dedis.ch/kyber/v3/util/key"
+	"github.com/stretchr/testify/require"
+	"go.dedis.ch/kyber/v4/group/edwards25519"
+	"go.dedis.ch/kyber/v4/sign/eddsa"
+	"go.dedis.ch/kyber/v4/util/key"
 )
 
 func TestSchnorrSignature(t *testing.T) {
@@ -71,11 +72,11 @@ type quickstream struct {
 	rand *rand.Rand
 }
 
-func (s *quickstream) XORKeyStream(dst, src []byte) {
+func (s *quickstream) XORKeyStream(dst, _ []byte) {
 	s.rand.Read(dst)
 }
 
-func (s *quickstream) Generate(rand *rand.Rand, size int) reflect.Value {
+func (s *quickstream) Generate(rand *rand.Rand, _ int) reflect.Value {
 	return reflect.ValueOf(&quickstream{rand: rand})
 }
 
@@ -99,10 +100,10 @@ func TestQuickSchnorrSignature(t *testing.T) {
 
 func TestSchnorrMalleability(t *testing.T) {
 	/* l = 2^252+27742317777372353535851937790883648493, prime order of the base point */
-	var L []uint16 = []uint16{0xed, 0xd3, 0xf5, 0x5c, 0x1a, 0x63, 0x12, 0x58, 0xd6, 0x9c, 0xf7,
+	L := []uint16{0xed, 0xd3, 0xf5, 0x5c, 0x1a, 0x63, 0x12, 0x58, 0xd6, 0x9c, 0xf7,
 		0xa2, 0xde, 0xf9, 0xde, 0x14, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10}
-	var c uint16 = 0
+	var c uint16
 
 	msg := []byte("Hello Schnorr")
 	suite := edwards25519.NewBlakeSHA256Ed25519()
@@ -124,4 +125,20 @@ func TestSchnorrMalleability(t *testing.T) {
 
 	err = Verify(suite, kp.Public, msg, s)
 	assert.Error(t, err, "schnorr signature malleable")
+}
+
+func FuzzSchnorr(f *testing.F) {
+	suite := edwards25519.NewBlakeSHA256Ed25519()
+	kp := key.NewKeyPair(suite)
+
+	f.Fuzz(func(t *testing.T, msg []byte) {
+		if (len(msg) < 1) || (len(msg) > 1000) {
+			t.Skip("msg must have byte length between 1 and 1000")
+		}
+		s, err := Sign(suite, kp.Private, msg)
+		require.NoError(t, err, "Couldn't sign msg: %s: %v", msg, err)
+
+		err = Verify(suite, kp.Public, msg, s)
+		require.NoError(t, err, "Couldn't verify signature: \n%+v\nfor msg:'%s'. Error:\n%v", s, msg, err)
+	})
 }

@@ -3,8 +3,8 @@ package examples
 import (
 	"fmt"
 
-	"go.dedis.ch/kyber/v3/group/edwards25519"
-	"go.dedis.ch/kyber/v3/xof/blake2xb"
+	"go.dedis.ch/kyber/v4/group/edwards25519"
+	"go.dedis.ch/kyber/v4/xof/blake2xb"
 )
 
 /*

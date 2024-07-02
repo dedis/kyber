@@ -1,7 +1,6 @@
 // Copyright 2013 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 package edwards25519
 
 import (
@@ -12,10 +11,10 @@ import (
 	"io"
 	"math/big"
 
-	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/kyber/v3/group/internal/marshalling"
-	"go.dedis.ch/kyber/v3/group/mod"
-	"go.dedis.ch/kyber/v3/util/random"
+	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v4/group/internal/marshalling"
+	"go.dedis.ch/kyber/v4/group/mod"
+	"go.dedis.ch/kyber/v4/util/random"
 )
 
 // This code is a port of the public domain, "ref10" implementation of ed25519
@@ -24,6 +23,7 @@ import (
 // The scalars are GF(2^252 + 27742317777372353535851937790883648493).
 
 var marshalScalarID = [8]byte{'e', 'd', '.', 's', 'c', 'a', 'l', 'a'}
+var defaultEndianess = kyber.LittleEndian
 
 type scalar struct {
 	v [32]byte
@@ -60,7 +60,7 @@ func (s *scalar) SetInt64(v int64) kyber.Scalar {
 }
 
 func (s *scalar) toInt() *mod.Int {
-	return mod.NewIntBytes(s.v[:], primeOrder, mod.LittleEndian)
+	return mod.NewIntBytes(s.v[:], primeOrder, defaultEndianess)
 }
 
 // Set to the additive identity (0)
@@ -113,7 +113,7 @@ func (s *scalar) Div(a, b kyber.Scalar) kyber.Scalar {
 func (s *scalar) Inv(a kyber.Scalar) kyber.Scalar {
 	var res scalar
 	res.One()
-	ac := a.(*scalar)
+	ac := a.(*scalar) //nolint:errcheck // V4 may bring better error handling
 	// Modular inversion in a multiplicative group is a^(phi(m)-1) = a^-1 mod m
 	// Since m is prime, phi(m) = m - 1 => a^(m-2) = a^-1 mod m.
 	// The inverse is computed using the exponentation-and-square algorithm.
@@ -140,7 +140,17 @@ func (s *scalar) Pick(rand cipher.Stream) kyber.Scalar {
 
 // SetBytes s to b, interpreted as a little endian integer.
 func (s *scalar) SetBytes(b []byte) kyber.Scalar {
-	return s.setInt(mod.NewIntBytes(b, primeOrder, mod.LittleEndian))
+	return s.setInt(mod.NewIntBytes(b, primeOrder, defaultEndianess))
+}
+
+// ByteOrder return the byte representation type (big or little endian)
+func (s *scalar) ByteOrder() kyber.ByteOrder {
+	return defaultEndianess
+}
+
+// GroupOrder returns the order of the underlying group
+func (s *scalar) GroupOrder() *big.Int {
+	return big.NewInt(0).SetBytes(primeOrder.Bytes())
 }
 
 // String returns the string representation of this scalar (fixed length of 32 bytes, little endian).
@@ -195,13 +205,15 @@ func newScalarInt(i *big.Int) *scalar {
 }
 
 // Input:
-//   a[0]+256*a[1]+...+256^31*a[31] = a
-//   b[0]+256*b[1]+...+256^31*b[31] = b
-//   c[0]+256*c[1]+...+256^31*c[31] = c
+//
+//	a[0]+256*a[1]+...+256^31*a[31] = a
+//	b[0]+256*b[1]+...+256^31*b[31] = b
+//	c[0]+256*c[1]+...+256^31*c[31] = c
 //
 // Output:
-//   s[0]+256*s[1]+...+256^31*s[31] = (ab+c) mod l
-//   where l = 2^252 + 27742317777372353535851937790883648493.
+//
+//	s[0]+256*s[1]+...+256^31*s[31] = (ab+c) mod l
+//	where l = 2^252 + 27742317777372353535851937790883648493.
 func scMulAdd(s, a, b, c *[32]byte) {
 	a0 := 2097151 & load3(a[:])
 	a1 := 2097151 & (load4(a[2:]) >> 5)
@@ -630,13 +642,14 @@ func scMulAdd(s, a, b, c *[32]byte) {
 // Hacky scAdd cobbled together rather sub-optimally from scMulAdd.
 //
 // Input:
-//   a[0]+256*a[1]+...+256^31*a[31] = a
-//   c[0]+256*c[1]+...+256^31*c[31] = c
+//
+//	a[0]+256*a[1]+...+256^31*a[31] = a
+//	c[0]+256*c[1]+...+256^31*c[31] = c
 //
 // Output:
-//   s[0]+256*s[1]+...+256^31*s[31] = (a+c) mod l
-//   where l = 2^252 + 27742317777372353535851937790883648493.
 //
+//	s[0]+256*s[1]+...+256^31*s[31] = (a+c) mod l
+//	where l = 2^252 + 27742317777372353535851937790883648493.
 func scAdd(s, a, c *[32]byte) {
 	a0 := 2097151 & load3(a[:])
 	a1 := 2097151 & (load4(a[2:]) >> 5)
@@ -1053,13 +1066,14 @@ func scAdd(s, a, c *[32]byte) {
 // Hacky scSub cobbled together rather sub-optimally from scMulAdd.
 //
 // Input:
-//   a[0]+256*a[1]+...+256^31*a[31] = a
-//   c[0]+256*c[1]+...+256^31*c[31] = c
+//
+//	a[0]+256*a[1]+...+256^31*a[31] = a
+//	c[0]+256*c[1]+...+256^31*c[31] = c
 //
 // Output:
-//   s[0]+256*s[1]+...+256^31*s[31] = (a-c) mod l
-//   where l = 2^252 + 27742317777372353535851937790883648493.
 //
+//	s[0]+256*s[1]+...+256^31*s[31] = (a-c) mod l
+//	where l = 2^252 + 27742317777372353535851937790883648493.
 func scSub(s, a, c *[32]byte) {
 	a0 := 2097151 & load3(a[:])
 	a1 := 2097151 & (load4(a[2:]) >> 5)
@@ -1476,12 +1490,14 @@ func scSub(s, a, c *[32]byte) {
 // Hacky scMul cobbled together rather sub-optimally from scMulAdd.
 //
 // Input:
-//   a[0]+256*a[1]+...+256^31*a[31] = a
-//   b[0]+256*b[1]+...+256^31*b[31] = b
+//
+//	a[0]+256*a[1]+...+256^31*a[31] = a
+//	b[0]+256*b[1]+...+256^31*b[31] = b
 //
 // Output:
-//   s[0]+256*s[1]+...+256^31*s[31] = (ab) mod l
-//   where l = 2^252 + 27742317777372353535851937790883648493.
+//
+//	s[0]+256*s[1]+...+256^31*s[31] = (ab) mod l
+//	where l = 2^252 + 27742317777372353535851937790883648493.
 func scMul(s, a, b *[32]byte) {
 	a0 := 2097151 & load3(a[:])
 	a1 := 2097151 & (load4(a[2:]) >> 5)
@@ -1908,11 +1924,15 @@ func scMul(s, a, b *[32]byte) {
 }
 
 // Input:
-//   s[0]+256*s[1]+...+256^63*s[63] = s
+//
+//	s[0]+256*s[1]+...+256^63*s[63] = s
 //
 // Output:
-//   s[0]+256*s[1]+...+256^31*s[31] = s mod l
-//   where l = 2^252 + 27742317777372353535851937790883648493.
+//
+//	s[0]+256*s[1]+...+256^31*s[31] = s mod l
+//	where l = 2^252 + 27742317777372353535851937790883648493.
+//
+//nolint:unused // May be used later
 func scReduce(out *[32]byte, s *[64]byte) {
 	s0 := 2097151 & load3(s[:])
 	s1 := 2097151 & (load4(s[2:]) >> 5)
@@ -2238,6 +2258,8 @@ func scReduce(out *[32]byte, s *[64]byte) {
 // for a reference.
 // The method accepts a buffer instead of calling `MarshalBinary` on the receiver since that
 // always returns values modulo `primeOrder`.
+//
+//nolint:lll // Url above
 func (s *scalar) IsCanonical(sb []byte) bool {
 	if len(sb) != 32 {
 		return false

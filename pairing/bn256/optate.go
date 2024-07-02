@@ -46,7 +46,7 @@ func lineFunctionAdd(r, p *twistPoint, q *curvePoint, r2 *gfP2) (a, b, c *gfP2, 
 	b = (&gfP2{}).Neg(L1)
 	b.MulScalar(b, &q.x).Add(b, b)
 
-	return
+	return a, b, c, rOut
 }
 
 func lineFunctionDouble(r *twistPoint, q *curvePoint) (a, b, c *gfP2, rOut *twistPoint) {
@@ -88,7 +88,7 @@ func lineFunctionDouble(r *twistPoint, q *curvePoint) (a, b, c *gfP2, rOut *twis
 	c = (&gfP2{}).Mul(&rOut.z, &r.t)
 	c.Add(c, c).MulScalar(c, &q.y)
 
-	return
+	return a, b, c, rOut
 }
 
 func mulLine(ret *gfP12, a, b, c *gfP2) {
@@ -112,7 +112,12 @@ func mulLine(ret *gfP12, a, b, c *gfP2) {
 }
 
 // sixuPlus2NAF is 6u+2 in non-adjacent form.
-var sixuPlus2NAF = []int8{0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, -1, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, -1, 0, 1, 0, 0, 0, 1, 0, -1, 0, 0, 0, -1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, -1, 0, -1, 0, 0, 0, 0, 1, 0, 0, 0, 1}
+var sixuPlus2NAF = []int8{
+	0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, -1, 0, 1, 0,
+	1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, -1, 0, 1, 0, 0, 0, 1, 0, -1,
+	0, 0, 0, -1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, -1, 0, -1, 0, 0, 0,
+	0, 1, 0, 0, 0, 1,
+}
 
 // miller implements the Miller loop for calculating the Optimal Ate pairing.
 // See algorithm 1 from http://cryptojedi.org/papers/dclxvi-20100714.pdf
@@ -196,9 +201,8 @@ func miller(q *twistPoint, p *curvePoint) *gfP12 {
 	r = newR
 
 	r2.Square(&minusQ2.y)
-	a, b, c, newR = lineFunctionAdd(r, minusQ2, bAffine, r2)
+	a, b, c, _ = lineFunctionAdd(r, minusQ2, bAffine, r2)
 	mulLine(ret, a, b, c)
-	r = newR
 
 	return ret
 }

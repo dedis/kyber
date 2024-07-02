@@ -6,11 +6,11 @@ import (
 	"strconv"
 	"testing"
 
-	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/kyber/v3/group/curve25519"
-	"go.dedis.ch/kyber/v3/group/edwards25519"
-	"go.dedis.ch/kyber/v3/group/nist"
-	"go.dedis.ch/kyber/v3/xof/blake2xb"
+	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v4/group/edwards25519"
+	"go.dedis.ch/kyber/v4/group/p256"
+	"go.dedis.ch/kyber/v4/group/var_ed25519"
+	"go.dedis.ch/kyber/v4/xof/blake2xb"
 )
 
 func TestRep(t *testing.T) {
@@ -256,10 +256,10 @@ func BenchmarkProof(b *testing.B) {
 		Suite
 	}{
 		{edwards25519.NewBlakeSHA256Ed25519()},
-		{curve25519.NewBlakeSHA256Curve25519(false)},
-		{curve25519.NewBlakeSHA256Curve25519(true)},
-		{nist.NewBlakeSHA256P256()},
-		{nist.NewBlakeSHA256QR512()},
+		{var_ed25519.NewBlakeSHA256Ed25519(false)},
+		{var_ed25519.NewBlakeSHA256Ed25519(true)},
+		{p256.NewBlakeSHA256P256()},
+		{p256.NewBlakeSHA256QR512()},
 	}
 
 	for _, suite := range suites {

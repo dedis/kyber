@@ -5,7 +5,7 @@ import (
 	"crypto/cipher"
 	"hash"
 
-	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v4"
 
 	"golang.org/x/crypto/hkdf"
 )
@@ -43,14 +43,25 @@ func newAEAD(fn func() hash.Hash, preSharedKey kyber.Point, context []byte) (cip
 const keySize = 128
 
 // context returns the context slice to be used when encrypting a share
-func context(suite Suite, dealer kyber.Point, verifiers []kyber.Point) []byte {
+func context(suite Suite, dealer kyber.Point, verifiers []kyber.Point) ([]byte, error) {
 	h := suite.XOF([]byte("vss-dealer"))
-	_, _ = dealer.MarshalTo(h)
-	_, _ = h.Write([]byte("vss-verifiers"))
-	for _, v := range verifiers {
-		_, _ = v.MarshalTo(h)
+	_, err := dealer.MarshalTo(h)
+	if err != nil {
+		return nil, err
 	}
+	_, err = h.Write([]byte("vss-verifiers"))
+	if err != nil {
+		return nil, err
+	}
+
+	for _, v := range verifiers {
+		_, err = v.MarshalTo(h)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	sum := make([]byte, keySize)
-	h.Read(sum)
-	return sum
+	_, err = h.Read(sum)
+	return sum, err
 }

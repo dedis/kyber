@@ -8,7 +8,7 @@ package proof
 import (
 	"errors"
 
-	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v4"
 )
 
 // Suite defines the functionalities needed for this package to operate
@@ -175,7 +175,7 @@ func (rp *repPred) String() string {
 	return rp.precString(precNone)
 }
 
-func (rp *repPred) precString(prec int) string {
+func (rp *repPred) precString(_ int) string {
 	s := rp.P + "="
 	for i := range rp.T {
 		if i > 0 {
@@ -220,7 +220,10 @@ func (rp *repPred) commit(prf *proof, w kyber.Scalar, pv []kyber.Scalar) error {
 		// we encounter each variable
 		if v[s] == nil {
 			v[s] = prf.s.Scalar()
-			prf.pc.PriRand(v[s])
+			err := prf.pc.PriRand(v[s])
+			if err != nil {
+				return err
+			}
 		}
 		P.Mul(v[s], prf.pval[t.B])
 		V.Add(V, P)
@@ -366,8 +369,6 @@ func (ap *andPred) commit(prf *proof, w kyber.Scalar, pv []kyber.Scalar) error {
 
 	// Create per-predicate prover state
 	v := prf.makeScalars(pv)
-	//pp := proverPred{w,v,nil}
-	//prf.pp[ap] = pp
 
 	// Recursively generate commitments
 	for i := 0; i < len(sub); i++ {
@@ -381,7 +382,6 @@ func (ap *andPred) commit(prf *proof, w kyber.Scalar, pv []kyber.Scalar) error {
 
 func (ap *andPred) respond(prf *proof, c kyber.Scalar, pr []kyber.Scalar) error {
 	sub := []Predicate(*ap)
-	//pp := prf.pp[ap]
 
 	// Recursively compute responses in all sub-predicates
 	r := prf.makeScalars(pr)
@@ -484,7 +484,8 @@ func (op *orPred) commit(prf *proof, w kyber.Scalar, pv []kyber.Scalar) error {
 	prf.pp[op] = pp
 
 	// Choose pre-challenges for our subs.
-	if w == nil {
+	switch {
+	case w == nil:
 		// We're on a proof-obligated branch;
 		// choose random pre-challenges for only non-obligated subs.
 		choice, ok := prf.choice[op]
@@ -495,10 +496,13 @@ func (op *orPred) commit(prf *proof, w kyber.Scalar, pv []kyber.Scalar) error {
 		for i := 0; i < len(sub); i++ {
 			if i != choice {
 				wi[i] = prf.s.Scalar()
-				prf.pc.PriRand(wi[i])
+				err := prf.pc.PriRand(wi[i])
+				if err != nil {
+					return err
+				}
 			} // else wi[i] == nil for proof-obligated sub
 		}
-	} else {
+	default:
 		// Since w != nil, we're in a non-obligated branch,
 		// so choose random pre-challenges for all subs
 		// such that they add up to the master pre-challenge w.
@@ -506,17 +510,25 @@ func (op *orPred) commit(prf *proof, w kyber.Scalar, pv []kyber.Scalar) error {
 		wl := prf.s.Scalar().Set(w)
 		for i := 0; i < last; i++ { // choose all but last
 			wi[i] = prf.s.Scalar()
-			prf.pc.PriRand(wi[i])
+			err := prf.pc.PriRand(wi[i])
+			if err != nil {
+				return err
+			}
 			wl.Sub(wl, wi[i])
 		}
+
 		wi[last] = wl
 	}
 
+	return commitmentProducer(prf, wi, sub)
+}
+
+func commitmentProducer(prf *proof, wi []kyber.Scalar, sub []Predicate) error {
 	// Now recursively choose commitments within each sub
 	for i := 0; i < len(sub); i++ {
 		// Fresh variable-blinding secrets for each pre-commitment
-		if e := sub[i].commit(prf, wi[i], nil); e != nil {
-			return e
+		if err := sub[i].commit(prf, wi[i], nil); err != nil {
+			return err
 		}
 	}
 
@@ -561,7 +573,7 @@ func (op *orPred) respond(prf *proof, c kyber.Scalar, pr []kyber.Scalar) error {
 }
 
 // Get from the verifier all the commitments needed for this predicate
-func (op *orPred) getCommits(prf *proof, pr []kyber.Scalar) error {
+func (op *orPred) getCommits(prf *proof, _ []kyber.Scalar) error {
 	sub := []Predicate(*op)
 	for i := range sub {
 		if e := sub[i].getCommits(prf, nil); e != nil {

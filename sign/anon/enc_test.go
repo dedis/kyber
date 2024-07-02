@@ -5,9 +5,9 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/kyber/v3/group/edwards25519"
-	"go.dedis.ch/kyber/v3/xof/blake2xb"
+	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v4/group/edwards25519"
+	"go.dedis.ch/kyber/v4/xof/blake2xb"
 )
 
 func ExampleEncrypt_one() {
@@ -24,7 +24,10 @@ func ExampleEncrypt_one() {
 
 	// Encrypt a message with the public key
 	M := []byte("Hello World!")
-	C := Encrypt(suite, M, Set(X))
+	C, err := Encrypt(suite, M, Set(X))
+	if err != nil {
+		panic(err.Error())
+	}
 	fmt.Printf("Encryption of '%s':\n%s", string(M), hex.Dump(C))
 
 	// Decrypt the ciphertext with the private key
@@ -67,7 +70,10 @@ func ExampleEncrypt_anonSet() {
 
 	// Encrypt a message with all the public keys
 	M := []byte("Hello World!") // message to encrypt
-	C := Encrypt(suite, M, Set(X))
+	C, err := Encrypt(suite, M, Set(X))
+	if err != nil {
+		panic(err.Error())
+	}
 	fmt.Printf("Encryption of '%s':\n%s", string(M), hex.Dump(C))
 
 	// Decrypt the ciphertext with the known private key

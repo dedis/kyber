@@ -4,10 +4,13 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"go.dedis.ch/kyber/v3"
-	kproof "go.dedis.ch/kyber/v3/proof"
-	"go.dedis.ch/kyber/v3/shuffle"
+	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v4/group/edwards25519"
+	kproof "go.dedis.ch/kyber/v4/proof"
+	"go.dedis.ch/kyber/v4/shuffle"
 )
+
+var suite = edwards25519.NewBlakeSHA256Ed25519()
 
 // This example illustrates how to use the Neff shuffle protocol with simple,
 // single pairs.

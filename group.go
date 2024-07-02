@@ -2,6 +2,17 @@ package kyber
 
 import (
 	"crypto/cipher"
+	"math/big"
+)
+
+// ByteOrder denotes the endianness of the operation.
+type ByteOrder bool
+
+const (
+	// LittleEndian endianness
+	LittleEndian ByteOrder = true
+	// BigEndian endianness
+	BigEndian ByteOrder = false
 )
 
 // Scalar represents a scalar value by which
@@ -56,6 +67,12 @@ type Scalar interface {
 	// The endianess of the byte-slice is determined by the
 	// implementation.
 	SetBytes([]byte) Scalar
+
+	// ByteOrder return the byte representation type (big or little endian)
+	ByteOrder() ByteOrder
+
+	// GroupOrder returns the order of the underlying group
+	GroupOrder() *big.Int
 }
 
 // Point represents an element of a public-key cryptographic Group.
@@ -162,4 +179,15 @@ type Group interface {
 
 	PointLen() int // Max length of point in bytes
 	Point() Point  // Create new point
+}
+
+// SubGroupElement allows to verify if a Point is in the correct group or not.
+// For curves which don't have a prime order, we need to only consider the
+// points lying in the subgroup of prime order. That check returns true if the
+// point is correct or not. If the curve forms already a prime order// group,
+// then this method should be implemented as a nop returning true, to be able to
+// use the Schnorr signature scheme for example.
+type SubGroupElement interface {
+	Point
+	IsInCorrectGroup() bool
 }

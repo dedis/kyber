@@ -32,7 +32,6 @@ type Verifier func(ctx VerifierContext) error
 // More sophisticated Sigma protocols requiring more than 3 steps,
 // such as the Neff shuffle, may also use this interface;
 // in this case the prover simply calls PubRand() multiple times.
-//
 type ProverContext interface {
 	Put(message interface{}) error        // Send message to verifier
 	PubRand(message ...interface{}) error // Get public randomness

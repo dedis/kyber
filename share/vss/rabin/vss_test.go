@@ -6,9 +6,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/kyber/v3/group/edwards25519"
-	"go.dedis.ch/kyber/v3/sign/schnorr"
+	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v4/group/edwards25519"
+	"go.dedis.ch/kyber/v4/sign/schnorr"
 	"go.dedis.ch/protobuf"
 )
 
@@ -245,7 +245,7 @@ func TestVSSVerifierReceiveDeal(t *testing.T) {
 
 	// wrong index
 	goodIdx := d.SecShare.I
-	d.SecShare.I = (goodIdx - 1) % nbVerifiers
+	d.SecShare.I = (goodIdx - 1) % uint32(nbVerifiers)
 	encD, _ = dealer.EncryptedDeal(0)
 	resp, err = v.ProcessEncryptedDeal(encD)
 	assert.Error(t, err)
@@ -335,8 +335,6 @@ func TestVSSAggregatorVerifyResponseDuplicate(t *testing.T) {
 	dealer, verifiers := genAll()
 	v1 := verifiers[0]
 	v2 := verifiers[1]
-	//d1 := dealer.deals[0]
-	//d2 := dealer.deals[1]
 	encD1, _ := dealer.EncryptedDeal(0)
 	encD2, _ := dealer.EncryptedDeal(1)
 
@@ -369,7 +367,6 @@ func TestVSSAggregatorVerifyResponse(t *testing.T) {
 	dealer, verifiers := genAll()
 	v := verifiers[0]
 	deal := dealer.deals[0]
-	//goodSec := deal.SecShare.V
 	wrongSec, _ := genPair()
 	deal.SecShare.V = wrongSec
 	encD, _ := dealer.EncryptedDeal(0)
@@ -443,9 +440,7 @@ func TestVSSAggregatorVerifyDeal(t *testing.T) {
 	deal.RndShare.I = goodI
 
 	// index not in bounds
-	deal.SecShare.I = -1
-	assert.Error(t, aggr.VerifyDeal(deal, false))
-	deal.SecShare.I = len(verifiersPub)
+	deal.SecShare.I = uint32(len(verifiersPub))
 	assert.Error(t, aggr.VerifyDeal(deal, false))
 
 	// shares invalid in respect to the commitments
@@ -567,7 +562,8 @@ func TestVSSDHExchange(t *testing.T) {
 }
 
 func TestVSSContext(t *testing.T) {
-	c := context(suite, dealerPub, verifiersPub)
+	c, err := context(suite, dealerPub, verifiersPub)
+	assert.Nil(t, err)
 	assert.Len(t, c, keySize)
 }
 

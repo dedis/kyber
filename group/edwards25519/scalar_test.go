@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/kyber/v3/util/random"
+	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v4/util/random"
 )
 
 // SimpleCTScalar implements the scalar operations only using `ScMulAdd` by
@@ -70,21 +70,21 @@ func newFactoredScalar() kyber.Scalar {
 func (s *factoredScalar) Add(s1, s2 kyber.Scalar) kyber.Scalar {
 	sf1 := s1.(*factoredScalar)
 	sf2 := s2.(*factoredScalar)
-	scAddFact(&s.v, &sf1.v, &sf2.v)
+	scAddFact(&sf1.v, &sf2.v)
 	return s
 }
 
 func (s *factoredScalar) Mul(s1, s2 kyber.Scalar) kyber.Scalar {
 	sf1 := s1.(*factoredScalar)
 	sf2 := s2.(*factoredScalar)
-	scMulFact(&s.v, &sf1.v, &sf2.v)
+	scMulFact(&sf1.v, &sf2.v)
 	return s
 }
 
 func (s *factoredScalar) Sub(s1, s2 kyber.Scalar) kyber.Scalar {
 	sf1 := s1.(*factoredScalar)
 	sf2 := s2.(*factoredScalar)
-	scSubFact(&s.v, &sf1.v, &sf2.v)
+	scSubFact(&sf1.v, &sf2.v)
 	return s
 }
 
@@ -123,14 +123,14 @@ func TestSetBytesLE(t *testing.T) {
 	}
 }
 
-func testSimple(t *testing.T, new func() kyber.Scalar) {
-	s1 := new()
-	s2 := new()
-	s3 := new()
+func testSimple(t *testing.T, f func() kyber.Scalar) {
+	s1 := f()
+	s2 := f()
+	s3 := f()
 	s1.SetInt64(2)
 	s2.Pick(random.New())
 
-	s22 := new().Add(s2, s2)
+	s22 := f().Add(s2, s2)
 
 	if !s3.Mul(s1, s2).Equal(s22) {
 		t.Fail()
@@ -138,11 +138,11 @@ func testSimple(t *testing.T, new func() kyber.Scalar) {
 
 }
 
-func benchScalarAdd(b *testing.B, new func() kyber.Scalar) {
+func benchScalarAdd(b *testing.B, f func() kyber.Scalar) {
 	var seed = tSuite.XOF([]byte("hello world"))
-	s1 := new()
-	s2 := new()
-	s3 := new()
+	s1 := f()
+	s2 := f()
+	s3 := f()
 	s1.Pick(seed)
 	s2.Pick(seed)
 
@@ -151,11 +151,11 @@ func benchScalarAdd(b *testing.B, new func() kyber.Scalar) {
 	}
 }
 
-func benchScalarMul(b *testing.B, new func() kyber.Scalar) {
+func benchScalarMul(b *testing.B, f func() kyber.Scalar) {
 	var seed = tSuite.XOF([]byte("hello world"))
-	s1 := new()
-	s2 := new()
-	s3 := new()
+	s1 := f()
+	s2 := f()
+	s3 := f()
 	s1.Pick(seed)
 	s2.Pick(seed)
 
@@ -164,11 +164,11 @@ func benchScalarMul(b *testing.B, new func() kyber.Scalar) {
 	}
 }
 
-func benchScalarSub(b *testing.B, new func() kyber.Scalar) {
+func benchScalarSub(b *testing.B, f func() kyber.Scalar) {
 	var seed = tSuite.XOF([]byte("hello world"))
-	s1 := new()
-	s2 := new()
-	s3 := new()
+	s1 := f()
+	s2 := f()
+	s3 := f()
 	s1.Pick(seed)
 	s2.Pick(seed)
 
@@ -226,11 +226,9 @@ func doReduction(limbs [24]int64, i int) {
 }
 
 func scReduceLimbs(limbs [24]int64) {
-	//for i in 0..23 {
 	for i := 0; i < 23; i++ {
 		doCarryCentered(limbs, i)
 	}
-	//for i in (0..23).filter(|x| x % 2 == 1) {
 	for i := 1; i < 23; i += 2 {
 		doCarryCentered(limbs, i)
 	}
@@ -242,12 +240,10 @@ func scReduceLimbs(limbs [24]int64) {
 	doReduction(limbs, 19)
 	doReduction(limbs, 18)
 
-	//for i in (6..18).filter(|x| x % 2 == 0) {
 	for i := 6; i < 18; i += 2 {
 		doCarryCentered(limbs, i)
 	}
 
-	//  for i in (6..16).filter(|x| x % 2 == 1) {
 	for i := 7; i < 16; i += 2 {
 		doCarryCentered(limbs, i)
 	}
@@ -258,31 +254,27 @@ func scReduceLimbs(limbs [24]int64) {
 	doReduction(limbs, 13)
 	doReduction(limbs, 12)
 
-	//for i in (0..12).filter(|x| x % 2 == 0) {
 	for i := 0; i < 12; i += 2 {
 		doCarryCentered(limbs, i)
 	}
-	//for i in (0..12).filter(|x| x % 2 == 1) {
 	for i := 1; i < 12; i += 2 {
 		doCarryCentered(limbs, i)
 	}
 
 	doReduction(limbs, 12)
 
-	//for i in 0..12 {
 	for i := 0; i < 12; i++ {
 		doCarryUncentered(limbs, i)
 	}
 
 	doReduction(limbs, 12)
 
-	//for i in 0..11 {
 	for i := 0; i < 11; i++ {
 		doCarryUncentered(limbs, i)
 	}
 }
 
-func scAddFact(s, a, c *[32]byte) {
+func scAddFact(a, c *[32]byte) {
 	a0 := 2097151 & load3(a[:])
 	a1 := 2097151 & (load4(a[2:]) >> 5)
 	a2 := 2097151 & (load3(a[5:]) >> 2)
@@ -337,7 +329,7 @@ func scAddFact(s, a, c *[32]byte) {
 	scReduceLimbs(limbs)
 }
 
-func scMulFact(s, a, b *[32]byte) {
+func scMulFact(a, b *[32]byte) {
 	a0 := 2097151 & load3(a[:])
 	a1 := 2097151 & (load4(a[2:]) >> 5)
 	a2 := 2097151 & (load3(a[5:]) >> 2)
@@ -404,7 +396,7 @@ func scMulFact(s, a, b *[32]byte) {
 	scReduceLimbs(limbs)
 }
 
-func scSubFact(s, a, c *[32]byte) {
+func scSubFact(a, c *[32]byte) {
 	a0 := 2097151 & load3(a[:])
 	a1 := 2097151 & (load4(a[2:]) >> 5)
 	a2 := 2097151 & (load3(a[5:]) >> 2)

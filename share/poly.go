@@ -18,16 +18,16 @@ import (
 	"sort"
 	"strings"
 
-	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v4"
 )
 
 // Some error definitions
-var errorGroups = errors.New("non-matching groups")
-var errorCoeffs = errors.New("different number of coefficients")
+var errGroups = errors.New("non-matching groups")
+var errCoeffs = errors.New("different number of coefficients")
 
 // PriShare represents a private share.
 type PriShare struct {
-	I int          // Index of the private share
+	I uint32       // Index of the private share
 	V kyber.Scalar // Value of the private share
 }
 
@@ -81,7 +81,7 @@ func (p *PriPoly) Secret() kyber.Scalar {
 }
 
 // Eval computes the private share v = p(i).
-func (p *PriPoly) Eval(i int) *PriShare {
+func (p *PriPoly) Eval(i uint32) *PriShare {
 	xi := p.g.Scalar().SetInt64(1 + int64(i))
 	v := p.g.Scalar().Zero()
 	for j := p.Threshold() - 1; j >= 0; j-- {
@@ -95,7 +95,7 @@ func (p *PriPoly) Eval(i int) *PriShare {
 func (p *PriPoly) Shares(n int) []*PriShare {
 	shares := make([]*PriShare, n)
 	for i := range shares {
-		shares[i] = p.Eval(i)
+		shares[i] = p.Eval(uint32(i))
 	}
 	return shares
 }
@@ -104,10 +104,10 @@ func (p *PriPoly) Shares(n int) []*PriShare {
 // as a new polynomial.
 func (p *PriPoly) Add(q *PriPoly) (*PriPoly, error) {
 	if p.g.String() != q.g.String() {
-		return nil, errorGroups
+		return nil, errGroups
 	}
 	if p.Threshold() != q.Threshold() {
-		return nil, errorCoeffs
+		return nil, errCoeffs
 	}
 	coeffs := make([]kyber.Scalar, p.Threshold())
 	for i := range coeffs {
@@ -229,10 +229,10 @@ func xyScalar(g kyber.Group, shares []*PriShare, t, n int) (map[int]kyber.Scalar
 	x := make(map[int]kyber.Scalar)
 	y := make(map[int]kyber.Scalar)
 	for _, s := range sorted {
-		if s == nil || s.V == nil || s.I < 0 {
+		if s == nil || s.V == nil {
 			continue
 		}
-		idx := s.I
+		idx := int(s.I)
 		x[idx] = g.Scalar().SetInt64(int64(idx + 1))
 		y[idx] = s.V
 		if len(x) == t {
@@ -263,7 +263,6 @@ func RecoverPriPoly(g kyber.Group, shares []*PriShare, t, n int) (*PriPoly, erro
 
 	var accPoly *PriPoly
 	var err error
-	//den := g.Scalar()
 	// Notations follow the Wikipedia article on Lagrange interpolation
 	// https://en.wikipedia.org/wiki/Lagrange_polynomial
 	for j := range x {
@@ -296,7 +295,7 @@ func (p *PriPoly) String() string {
 
 // PubShare represents a public share.
 type PubShare struct {
-	I int         // Index of the public share
+	I uint32      // Index of the public share
 	V kyber.Point // Value of the public share
 }
 
@@ -332,11 +331,11 @@ func (p *PubPoly) Threshold() int {
 
 // Commit returns the secret commitment p(0), i.e., the constant term of the polynomial.
 func (p *PubPoly) Commit() kyber.Point {
-	return p.commits[0]
+	return p.commits[0].Clone()
 }
 
 // Eval computes the public share v = p(i).
-func (p *PubPoly) Eval(i int) *PubShare {
+func (p *PubPoly) Eval(i uint32) *PubShare {
 	xi := p.g.Scalar().SetInt64(1 + int64(i)) // x-coordinate of this share
 	v := p.g.Point().Null()
 	for j := p.Threshold() - 1; j >= 0; j-- {
@@ -350,7 +349,7 @@ func (p *PubPoly) Eval(i int) *PubShare {
 func (p *PubPoly) Shares(n int) []*PubShare {
 	shares := make([]*PubShare, n)
 	for i := range shares {
-		shares[i] = p.Eval(i)
+		shares[i] = p.Eval(uint32(i))
 	}
 	return shares
 }
@@ -363,11 +362,11 @@ func (p *PubPoly) Shares(n int) []*PubShare {
 // base point and thus should not be used in further computations.
 func (p *PubPoly) Add(q *PubPoly) (*PubPoly, error) {
 	if p.g.String() != q.g.String() {
-		return nil, errorGroups
+		return nil, errGroups
 	}
 
 	if p.Threshold() != q.Threshold() {
-		return nil, errorCoeffs
+		return nil, errCoeffs
 	}
 
 	commits := make([]kyber.Point, p.Threshold())
@@ -379,7 +378,7 @@ func (p *PubPoly) Add(q *PubPoly) (*PubPoly, error) {
 }
 
 // Equal checks equality of two public commitment polynomials p and q. If p and
-// q are trivially unequal (e.g., due to mismatching cryptographic groups),
+// q are trivially unequal (e.g., due to mismatching cryptographic groups, or threshold issues),
 // this routine returns in variable time. Otherwise it runs in constant time
 // regardless of whether it eventually returns true or false.
 func (p *PubPoly) Equal(q *PubPoly) bool {
@@ -387,6 +386,11 @@ func (p *PubPoly) Equal(q *PubPoly) bool {
 		return false
 	}
 	b := 1
+
+	if len(p.commits) < p.Threshold() || len(q.commits) < p.Threshold() || p.Threshold() != q.Threshold() {
+		return false
+	}
+
 	for i := 0; i < p.Threshold(); i++ {
 		pb, _ := p.commits[i].MarshalBinary()
 		qb, _ := q.commits[i].MarshalBinary()
@@ -425,10 +429,10 @@ func xyCommit(g kyber.Group, shares []*PubShare, t, n int) (map[int]kyber.Scalar
 	y := make(map[int]kyber.Point)
 
 	for _, s := range sorted {
-		if s == nil || s.V == nil || s.I < 0 {
+		if s == nil || s.V == nil {
 			continue
 		}
-		idx := s.I
+		idx := int(s.I)
 		x[idx] = g.Scalar().SetInt64(int64(idx + 1))
 		y[idx] = s.V
 		if len(x) == t {

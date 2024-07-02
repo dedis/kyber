@@ -50,4 +50,4 @@ The basis for this package is [Cloudflare's bn256 implementation](https://github
 which itself is an improved version of the [official bn256 package](https://golang.org/x/crypto/bn256).
 The package at hand maintains compatibility to Cloudflare's library. The biggest difference is the replacement of their
 [public API](https://github.com/cloudflare/bn256/blob/master/bn256.go) by a new
-one that is compatible to Kyber's scalar, point, group, and suite interfaces.
+one that is compatible to Kyber's scalar, point, group, and suite interfaces. *Last update 05.2024*

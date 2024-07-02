@@ -4,9 +4,9 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/kyber/v3/group/edwards25519"
-	"go.dedis.ch/kyber/v3/xof/blake2xb"
+	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v4/group/edwards25519"
+	"go.dedis.ch/kyber/v4/xof/blake2xb"
 )
 
 // This example shows how to build classic ElGamal-style digital signatures
@@ -75,7 +75,6 @@ func Example_hashProve1() {
 // This example implementation is less space-efficient, however,
 // because it uses the generic HashProver for Fiat-Shamir noninteractivity
 // instead of Liu/Wei/Wong's customized hash-ring structure.
-//
 func Example_hashProve2() {
 
 	// Crypto setup

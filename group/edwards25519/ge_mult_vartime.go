@@ -1,11 +1,13 @@
 package edwards25519
 
 // geScalarMultVartime computes h = a*B, where
-//   a = a[0]+256*a[1]+...+256^31 a[31]
-//   B is the Ed25519 base point (x,4/5) with x positive.
+//
+//	a = a[0]+256*a[1]+...+256^31 a[31]
+//	B is the Ed25519 base point (x,4/5) with x positive.
 //
 // Preconditions:
-//   a[31] <= 127
+//
+//	a[31] <= 127
 func geScalarMultVartime(h *extendedGroupElement, a *[32]byte,
 	A *extendedGroupElement) {
 

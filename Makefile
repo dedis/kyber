@@ -11,7 +11,6 @@ lint: tidy
 	#golangci-lint run
 	#staticcheck go list ./...
 
-
 vet: tidy
 	go vet ./...
 

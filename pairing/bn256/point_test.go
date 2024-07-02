@@ -3,8 +3,9 @@ package bn256
 import (
 	"bytes"
 	"encoding/hex"
-	"go.dedis.ch/kyber/v3/util/random"
 	"testing"
+
+	"go.dedis.ch/kyber/v4/util/random"
 )
 
 func TestPointG1_HashToPoint(t *testing.T) {

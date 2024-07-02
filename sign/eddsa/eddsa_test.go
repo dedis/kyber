@@ -11,8 +11,8 @@ import (
 	"strings"
 	"testing"
 
-	"go.dedis.ch/kyber/v3/group/edwards25519"
-	"go.dedis.ch/kyber/v3/util/random"
+	"go.dedis.ch/kyber/v4/group/edwards25519"
+	"go.dedis.ch/kyber/v4/util/random"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -106,10 +106,10 @@ func TestEdDSASigning(t *testing.T) {
 // Test signature malleability
 func TestEdDSAVerifyMalleability(t *testing.T) {
 	/* l = 2^252+27742317777372353535851937790883648493, prime order of the base point */
-	var L []uint16 = []uint16{0xed, 0xd3, 0xf5, 0x5c, 0x1a, 0x63, 0x12, 0x58, 0xd6, 0x9c, 0xf7,
+	L := []uint16{0xed, 0xd3, 0xf5, 0x5c, 0x1a, 0x63, 0x12, 0x58, 0xd6, 0x9c, 0xf7,
 		0xa2, 0xde, 0xf9, 0xde, 0x14, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10}
-	var c uint16 = 0
+	var c uint16
 
 	suite := edwards25519.NewBlakeSHA256Ed25519()
 	randomStream := suite.RandomStream()
@@ -129,7 +129,7 @@ func TestEdDSAVerifyMalleability(t *testing.T) {
 	}
 
 	err = Verify(ed.Public, msg, sig)
-	require.EqualError(t, err, "signature is not canonical")
+	require.ErrorIs(t, err, ErrSignatureNotCanonical)
 
 	// Additional malleability test from golang/crypto
 	// https://github.com/golang/crypto/blob/master/ed25519/ed25519_test.go#L167
@@ -148,12 +148,12 @@ func TestEdDSAVerifyMalleability(t *testing.T) {
 		0xb1, 0x08, 0xc3, 0xbd, 0xae, 0x36, 0x9e, 0xf5, 0x49, 0xfa}
 
 	err = VerifyWithChecks(publicKey, msg2, sig2)
-	require.EqualError(t, err, "signature is not canonical")
+	require.ErrorIs(t, err, ErrSignatureNotCanonical)
 }
 
 // Test non-canonical R
 func TestEdDSAVerifyNonCanonicalR(t *testing.T) {
-	var nonCanonicalR []byte = []byte{0xef, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+	nonCanonicalR := []byte{0xef, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
 		0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
 		0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}
 
@@ -171,12 +171,12 @@ func TestEdDSAVerifyNonCanonicalR(t *testing.T) {
 		sig[i] = nonCanonicalR[i]
 	}
 	err = Verify(ed.Public, msg, sig)
-	require.EqualError(t, err, "R is not canonical")
+	require.ErrorIs(t, err, ErrPointRNotCanonical)
 }
 
 // Test non-canonical keys
 func TestEdDSAVerifyNonCanonicalPK(t *testing.T) {
-	var nonCanonicalPk []byte = []byte{0xef, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+	nonCanonicalPk := []byte{0xef, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
 		0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
 		0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}
 
@@ -191,12 +191,12 @@ func TestEdDSAVerifyNonCanonicalPK(t *testing.T) {
 	require.Nil(t, Verify(ed.Public, msg, sig))
 
 	err = VerifyWithChecks(nonCanonicalPk, msg, sig)
-	require.EqualError(t, err, "public key is not canonical")
+	require.ErrorIs(t, err, ErrPKNotCanonical)
 }
 
 // Test for small order R
 func TestEdDSAVerifySmallOrderR(t *testing.T) {
-	var smallOrderR []byte = []byte{0xc7, 0x17, 0x6a, 0x70, 0x3d, 0x4d, 0xd8, 0x4f, 0xba, 0x3c, 0x0b,
+	smallOrderR := []byte{0xc7, 0x17, 0x6a, 0x70, 0x3d, 0x4d, 0xd8, 0x4f, 0xba, 0x3c, 0x0b,
 		0x76, 0x0d, 0x10, 0x67, 0x0f, 0x2a, 0x20, 0x53, 0xfa, 0x2c, 0x39,
 		0xcc, 0xc6, 0x4e, 0xc7, 0xfd, 0x77, 0x92, 0xac, 0x03, 0x7a}
 
@@ -215,12 +215,12 @@ func TestEdDSAVerifySmallOrderR(t *testing.T) {
 	}
 
 	err = Verify(ed.Public, msg, sig)
-	require.EqualError(t, err, "R has small order")
+	require.ErrorIs(t, err, ErrPointRSmallOrder)
 }
 
 // Test for small order public key
 func TestEdDSAVerifySmallOrderPK(t *testing.T) {
-	var smallOrderPk []byte = []byte{0xc7, 0x17, 0x6a, 0x70, 0x3d, 0x4d, 0xd8, 0x4f, 0xba, 0x3c, 0x0b,
+	smallOrderPk := []byte{0xc7, 0x17, 0x6a, 0x70, 0x3d, 0x4d, 0xd8, 0x4f, 0xba, 0x3c, 0x0b,
 		0x76, 0x0d, 0x10, 0x67, 0x0f, 0x2a, 0x20, 0x53, 0xfa, 0x2c, 0x39,
 		0xcc, 0xc6, 0x4e, 0xc7, 0xfd, 0x77, 0x92, 0xac, 0x03, 0x7a}
 
@@ -238,11 +238,14 @@ func TestEdDSAVerifySmallOrderPK(t *testing.T) {
 	require.Nil(t, err)
 
 	err = Verify(ed.Public, msg, sig)
-	require.EqualError(t, err, "public key has small order")
+	require.ErrorIs(t, err, ErrPKSmallOrder)
 }
 
 // Test the property of a EdDSA signature
 func TestEdDSASigningRandom(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping slow tests in -short mode")
+	}
 	suite := edwards25519.NewBlakeSHA256Ed25519()
 
 	for i := 0.0; i < 10000; i++ {
@@ -271,7 +274,7 @@ func ConstantStream(buff []byte) cipher.Stream {
 }
 
 // XORKexStream implements the cipher.Stream interface
-func (cs *constantStream) XORKeyStream(dst, src []byte) {
+func (cs *constantStream) XORKeyStream(dst, _ []byte) {
 	copy(dst, cs.seed)
 }
 
@@ -333,7 +336,7 @@ func TestGolden(t *testing.T) {
 		sig2, err := ed.Sign(msg)
 		assert.Nil(t, err)
 
-		if !bytes.Equal(sig, sig2[:]) {
+		if !bytes.Equal(sig, sig2) {
 			t.Errorf("different signature result on line %d: %x vs %x", lineNo, sig, sig2)
 		}
 

@@ -4,26 +4,23 @@ import (
 	"crypto/subtle"
 	"errors"
 
-	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/kyber/v3/util/key"
+	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v4/util/key"
 )
 
-func header(suite Suite, X kyber.Point, x kyber.Scalar,
-	Xb, xb []byte, anonymitySet Set) []byte {
-
-	//fmt.Printf("Xb %s\nxb %s\n",
-	//		hex.EncodeToString(Xb),hex.EncodeToString(xb))
+func header(suite Suite, _ kyber.Point, x kyber.Scalar,
+	xb1, xb2 []byte, anonymitySet Set) []byte {
 
 	// Encrypt the master scalar key with each public key in the set
 	S := suite.Point()
-	hdr := Xb
+	hdr := xb1
 	for i := range anonymitySet {
 		Y := anonymitySet[i]
 		S.Mul(x, Y) // compute DH shared secret
 		seed, _ := S.MarshalBinary()
 		xof := suite.XOF(seed)
-		xc := make([]byte, len(xb))
-		xof.XORKeyStream(xc, xb)
+		xc := make([]byte, len(xb2))
+		xof.XORKeyStream(xc, xb2)
 		hdr = append(hdr, xc...)
 	}
 	return hdr
@@ -44,7 +41,13 @@ func encryptKey(suite Suite, anonymitySet Set) (k, c []byte) {
 
 // Decrypt and verify a key encrypted via encryptKey.
 // On success, returns the key and the length of the decrypted header.
-func decryptKey(suite Suite, ciphertext []byte, anonymitySet Set, mine int, privateKey kyber.Scalar) ([]byte, int, error) {
+func decryptKey(
+	suite Suite,
+	ciphertext []byte,
+	anonymitySet Set,
+	mine int,
+	privateKey kyber.Scalar,
+) ([]byte, int, error) {
 	// Decode the (supposed) ephemeral public key from the front
 	X := suite.Point()
 	var Xb []byte
@@ -118,7 +121,7 @@ const macSize = 16
 // If the provided set contains only one public key,
 // this reduces to conventional single-receiver public-key encryption.
 func Encrypt(suite Suite, message []byte,
-	anonymitySet Set) []byte {
+	anonymitySet Set) ([]byte, error) {
 
 	xb, hdr := encryptKey(suite, anonymitySet)
 	xof := suite.XOF(xb)
@@ -136,9 +139,12 @@ func Encrypt(suite Suite, message []byte,
 
 	xof.XORKeyStream(ctx, message)
 	xof = suite.XOF(ctx)
-	xof.Read(mac)
+	_, err := xof.Read(mac)
+	if err != nil {
+		return nil, err
+	}
 
-	return ciphertext
+	return ciphertext, nil
 }
 
 // Decrypt a message encrypted for a particular anonymity set.
@@ -156,7 +162,6 @@ func Encrypt(suite Suite, message []byte,
 // As a side-effect, this verification also ensures plaintext-awareness:
 // that is, it is infeasible for a sender to construct any ciphertext
 // that will be accepted by the receiver without knowing the plaintext.
-//
 func Decrypt(suite Suite, ciphertext []byte, anonymitySet Set, mine int, privateKey kyber.Scalar) ([]byte, error) {
 	// Decrypt and check the encrypted key-header.
 	xb, hdrlen, err := decryptKey(suite, ciphertext, anonymitySet,

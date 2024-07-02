@@ -8,7 +8,7 @@ import (
 	"errors"
 	"strings"
 
-	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v4"
 )
 
 // Suite is the sum of all suites mix-ins in Kyber.
@@ -25,7 +25,6 @@ var suites = map[string]Suite{}
 var requireConstTime = false
 
 // register is called by suites to make themselves known to Kyber.
-//
 func register(s Suite) {
 	suites[strings.ToLower(s.String())] = s
 }
@@ -38,7 +37,10 @@ var ErrUnknownSuite = errors.New("unknown suite")
 func Find(name string) (Suite, error) {
 	if s, ok := suites[strings.ToLower(name)]; ok {
 		if requireConstTime && strings.ToLower(s.String()) != "ed25519" {
-			return nil, errors.New("requested suite exists but is not implemented with constant time algorithms as required by suites.RequireConstantTime")
+			return nil, errors.New(
+				"requested suite exists but is not implemented " +
+					"with constant time algorithms as required by " +
+					"suites.RequireConstantTime")
 		}
 		return s, nil
 	}
