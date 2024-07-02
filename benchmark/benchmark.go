@@ -112,7 +112,9 @@ func benchmarkSign(sigType string) map[string]interface{} {
 		// Generate keys
 		for _, i := range keys {
 			results["keygen"][fmt.Sprintf("%d", i)] = testing.Benchmark(func(b *testing.B) {
-				anon.BenchGenKeys(edwards25519.NewBlakeSHA256Ed25519(), i)
+				for j := 0; j < b.N; j++ {
+					anon.BenchGenKeys(edwards25519.NewBlakeSHA256Ed25519(), i)
+				}
 			})
 		}
 		benchPubEd25519, benchPriEd25519 := anon.BenchGenKeys(edwards25519.NewBlakeSHA256Ed25519(), keys[len(keys)-1])

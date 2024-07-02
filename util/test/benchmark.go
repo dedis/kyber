@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	"go.dedis.ch/kyber/v4"
 	"go.dedis.ch/kyber/v4/pairing/bn256"
 	"go.dedis.ch/kyber/v4/sign"
@@ -24,8 +25,11 @@ func PrepareBLS(numSigs int) (suite *bn256.Suite, scheme sign.AggregatableScheme
 		private, public := scheme.NewKeyPair(random.New())
 		publics[i] = public
 		privates[i] = private
-		msg := make([]byte, 64, 64)
-		rand.Read(msg)
+		msg := make([]byte, 64)
+		_, err := rand.Read(msg)
+		if err != nil {
+			panic(err)
+		}
 		msgs[i] = msg
 		sig, err := scheme.Sign(private, msg)
 		if err != nil {
@@ -33,7 +37,7 @@ func PrepareBLS(numSigs int) (suite *bn256.Suite, scheme sign.AggregatableScheme
 		}
 		sigs[i] = sig
 	}
-	return
+	return suite, scheme, publics, privates, msgs, sigs
 }
 
 func BenchCreateKeys(b *testing.B, scheme sign.AggregatableScheme, n int) {
@@ -49,15 +53,18 @@ func BenchSign(b *testing.B, scheme sign.AggregatableScheme, msg []byte, private
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		for _, private := range privates {
-			scheme.Sign(private, msg)
+			_, err := scheme.Sign(private, msg)
+			require.NoError(b, err)
 		}
 	}
 }
 
-func BLSBenchVerify(b *testing.B, sigs [][]byte, scheme sign.AggregatableScheme, suite *bn256.Suite, publics []kyber.Point, msgs [][]byte) {
+func BLSBenchVerify(b *testing.B, sigs [][]byte, scheme sign.AggregatableScheme,
+	suite *bn256.Suite, publics []kyber.Point, msgs [][]byte) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		aggregateSig, _ := scheme.AggregateSignatures(sigs...)
-		bls.BatchVerify(suite, publics, msgs, aggregateSig)
+		err := bls.BatchVerify(suite, publics, msgs, aggregateSig)
+		require.NoError(b, err)
 	}
 }
