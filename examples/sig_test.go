@@ -7,8 +7,8 @@ import (
 	"errors"
 	"fmt"
 
-	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/kyber/v3/group/edwards25519"
+	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v4/group/edwards25519"
 )
 
 type Suite interface {
@@ -23,7 +23,7 @@ type basicSig struct {
 	R kyber.Scalar // response
 }
 
-// Returns a secret that depends on on a message and a point
+// Returns a secret that depends on a message and a point
 func hashSchnorr(suite Suite, message []byte, p kyber.Point) kyber.Scalar {
 	pb, _ := p.MarshalBinary()
 	c := suite.XOF(pb)
@@ -34,7 +34,7 @@ func hashSchnorr(suite Suite, message []byte, p kyber.Point) kyber.Scalar {
 // This simplified implementation of Schnorr Signatures is based on
 // crypto/anon/sig.go
 // The ring structure is removed and
-// The anonimity set is reduced to one public key = no anonimity
+// The anonymity set is reduced to one public key = no anonymity
 func SchnorrSign(suite Suite, random cipher.Stream, message []byte,
 	privateKey kyber.Scalar) []byte {
 

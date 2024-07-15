@@ -5,14 +5,14 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/kyber/v3/pairing"
-	"go.dedis.ch/kyber/v3/util/key"
+	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v4/pairing/bn256"
+	"go.dedis.ch/kyber/v4/util/key"
 )
 
 const n = 17
 
-var suite = pairing.NewSuiteBn256()
+var suite = bn256.NewSuiteBn256()
 var publics []kyber.Point
 
 func init() {
@@ -25,7 +25,7 @@ func init() {
 }
 
 func TestMask_CreateMask(t *testing.T) {
-	mask, err := NewMask(suite, publics, nil)
+	mask, err := NewMask(publics, nil)
 	require.NoError(t, err)
 
 	require.Equal(t, len(publics), len(mask.Publics()))
@@ -34,19 +34,19 @@ func TestMask_CreateMask(t *testing.T) {
 	require.Equal(t, n/8+1, mask.Len())
 	require.Equal(t, uint8(0), mask.Mask()[0])
 
-	mask, err = NewMask(suite, publics, publics[2])
+	mask, err = NewMask(publics, publics[2])
 	require.NoError(t, err)
 
 	require.Equal(t, len(publics), len(mask.Publics()))
 	require.Equal(t, 1, mask.CountEnabled())
 	require.Equal(t, uint8(0x4), mask.Mask()[0])
 
-	mask, err = NewMask(suite, publics, suite.G1().Point())
+	_, err = NewMask(publics, suite.G1().Point())
 	require.Error(t, err)
 }
 
 func TestMask_SetBit(t *testing.T) {
-	mask, err := NewMask(suite, publics, publics[2])
+	mask, err := NewMask(publics, publics[2])
 	require.NoError(t, err)
 
 	err = mask.SetBit(1, true)
@@ -72,7 +72,7 @@ func TestMask_SetBit(t *testing.T) {
 }
 
 func TestMask_SetAndMerge(t *testing.T) {
-	mask, err := NewMask(suite, publics, publics[2])
+	mask, err := NewMask(publics, publics[2])
 	require.NoError(t, err)
 
 	err = mask.SetMask([]byte{})
@@ -90,7 +90,7 @@ func TestMask_SetAndMerge(t *testing.T) {
 }
 
 func TestMask_PositionalQueries(t *testing.T) {
-	mask, err := NewMask(suite, publics, publics[2])
+	mask, err := NewMask(publics, publics[2])
 	require.NoError(t, err)
 
 	for i := 0; i < 10000; i++ {

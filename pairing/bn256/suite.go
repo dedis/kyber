@@ -24,9 +24,9 @@ import (
 	"reflect"
 
 	"go.dedis.ch/fixbuf"
-	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/kyber/v3/util/random"
-	"go.dedis.ch/kyber/v3/xof/blake2xb"
+	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v4/util/random"
+	"go.dedis.ch/kyber/v4/xof/blake2xb"
 )
 
 // Suite implements the pairing.Suite interface for the BN256 bilinear pairing.
@@ -98,6 +98,10 @@ func (s *Suite) Pair(p1 kyber.Point, p2 kyber.Point) kyber.Point {
 	return s.GT().Point().(*pointGT).Pair(p1, p2)
 }
 
+func (s *Suite) ValidatePairing(p1, p2, inv1, inv2 kyber.Point) bool {
+	return s.Pair(p1, p2).Equal(s.Pair(inv1, inv2))
+}
+
 // Not used other than for reflect.TypeOf()
 var aScalar kyber.Scalar
 var aPoint kyber.Point
@@ -147,7 +151,7 @@ func (c *commonSuite) Read(r io.Reader, objs ...interface{}) error {
 
 // Write is the default implementation of kyber.Encoding interface Write.
 func (c *commonSuite) Write(w io.Writer, objs ...interface{}) error {
-	return fixbuf.Write(w, objs)
+	return fixbuf.Write(w, objs...)
 }
 
 // Hash returns a newly instantiated sha256 hash function.

@@ -4,9 +4,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/kyber/v3/group/edwards25519"
-	"go.dedis.ch/kyber/v3/util/random"
+	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v4/group/edwards25519"
+	"go.dedis.ch/kyber/v4/util/random"
 )
 
 var rng = random.New()
@@ -57,5 +57,5 @@ func TestDLEQLengths(t *testing.T) {
 	// Remove an element to make the test fail
 	x = append(x[:5], x[6:]...)
 	_, _, _, err := NewDLEQProofBatch(suite, g, h, x)
-	require.Equal(t, err, errorDifferentLengths)
+	require.ErrorIs(t, err, ErrDifferentLengths)
 }

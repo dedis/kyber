@@ -19,10 +19,10 @@ import (
 	"crypto/sha512"
 	"errors"
 
-	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/kyber/v3/share"
-	"go.dedis.ch/kyber/v3/sign/eddsa"
-	"go.dedis.ch/kyber/v3/sign/schnorr"
+	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v4/share"
+	"go.dedis.ch/kyber/v4/sign/eddsa"
+	"go.dedis.ch/kyber/v4/sign/schnorr"
 )
 
 // Suite represents the functionalities needed by the dss package
@@ -74,7 +74,7 @@ type PartialSig struct {
 // threshold. It returns an error if the public key of the secret can't be found
 // in the list of participants.
 func NewDSS(suite Suite, secret kyber.Scalar, participants []kyber.Point,
-	long, random DistKeyShare, msg []byte, T int) (*DSS, error) {
+	long, random DistKeyShare, msg []byte, t int) (*DSS, error) {
 	public := suite.Point().Mul(secret, nil)
 	var i int
 	var found bool
@@ -99,7 +99,7 @@ func NewDSS(suite Suite, secret kyber.Scalar, participants []kyber.Point,
 		random:       random,
 		randomPoly:   share.NewPubPoly(suite, suite.Point().Base(), random.Commitments()),
 		msg:          msg,
-		T:            T,
+		T:            t,
 		partialsIdx:  make(map[int]bool),
 		sessionID:    sessionID(suite, long, random),
 	}, nil
@@ -118,7 +118,7 @@ func (d *DSS) PartialSig() (*PartialSig, error) {
 	ps := &PartialSig{
 		Partial: &share.PriShare{
 			V: right.Add(right, beta),
-			I: d.index,
+			I: uint32(d.index),
 		},
 		SessionID: d.sessionID,
 	}
@@ -138,7 +138,7 @@ func (d *DSS) PartialSig() (*PartialSig, error) {
 // received by the same peer. To know whether the distributed signature can be
 // computed after this call, one can use the `EnoughPartialSigs` method.
 func (d *DSS) ProcessPartialSig(ps *PartialSig) error {
-	public, ok := findPub(d.participants, ps.Partial.I)
+	public, ok := findPub(d.participants, int(ps.Partial.I))
 	if !ok {
 		return errors.New("dss: partial signature with invalid index")
 	}
@@ -152,7 +152,7 @@ func (d *DSS) ProcessPartialSig(ps *PartialSig) error {
 		return errors.New("dss: session id do not match")
 	}
 
-	if _, ok := d.partialsIdx[ps.Partial.I]; ok {
+	if _, ok := d.partialsIdx[int(ps.Partial.I)]; ok {
 		return errors.New("dss: partial signature already received from peer")
 	}
 
@@ -166,7 +166,7 @@ func (d *DSS) ProcessPartialSig(ps *PartialSig) error {
 	if !left.Equal(right) {
 		return errors.New("dss: partial signature not valid")
 	}
-	d.partialsIdx[ps.Partial.I] = true
+	d.partialsIdx[int(ps.Partial.I)] = true
 	d.partials = append(d.partials, ps.Partial)
 	return nil
 }

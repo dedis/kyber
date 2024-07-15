@@ -8,7 +8,7 @@ import (
 	"io"
 	"strings"
 
-	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v4"
 )
 
 // ReadHexPoint reads a point from r in hex representation.
@@ -23,7 +23,7 @@ func ReadHexPoint(group kyber.Group, r io.Reader) (kyber.Point, error) {
 }
 
 // WriteHexPoint writes a point in hex representation to w.
-func WriteHexPoint(group kyber.Group, w io.Writer, point kyber.Point) error {
+func WriteHexPoint(w io.Writer, point kyber.Point) error {
 	buf, err := point.MarshalBinary()
 	if err != nil {
 		return err
@@ -41,12 +41,17 @@ func ReadHexScalar(group kyber.Group, r io.Reader) (kyber.Scalar, error) {
 	if err != nil {
 		return nil, err
 	}
-	s.UnmarshalBinary(buf)
+
+	err = s.UnmarshalBinary(buf)
+	if err != nil {
+		return nil, err
+	}
+
 	return s, nil
 }
 
 // WriteHexScalar converts a scalar key to a hex-string
-func WriteHexScalar(group kyber.Group, w io.Writer, scalar kyber.Scalar) error {
+func WriteHexScalar(_ kyber.Group, w io.Writer, scalar kyber.Scalar) error {
 	buf, err := scalar.MarshalBinary()
 	if err != nil {
 		return err
@@ -57,7 +62,7 @@ func WriteHexScalar(group kyber.Group, w io.Writer, scalar kyber.Scalar) error {
 }
 
 // PointToStringHex converts a point to a hexadecimal representation
-func PointToStringHex(group kyber.Group, point kyber.Point) (string, error) {
+func PointToStringHex(_ kyber.Group, point kyber.Point) (string, error) {
 	pbuf, err := point.MarshalBinary()
 	return hex.EncodeToString(pbuf), err
 }
@@ -68,7 +73,7 @@ func StringHexToPoint(group kyber.Group, s string) (kyber.Point, error) {
 }
 
 // ScalarToStringHex encodes a scalar to hexadecimal.
-func ScalarToStringHex(group kyber.Group, scalar kyber.Scalar) (string, error) {
+func ScalarToStringHex(_ kyber.Group, scalar kyber.Scalar) (string, error) {
 	sbuf, err := scalar.MarshalBinary()
 	return hex.EncodeToString(sbuf), err
 }

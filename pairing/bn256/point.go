@@ -8,13 +8,15 @@ import (
 	"io"
 	"math/big"
 
-	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/kyber/v3/group/mod"
+	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v4/group/mod"
 )
 
 var marshalPointID1 = [8]byte{'b', 'n', '2', '5', '6', '.', 'g', '1'}
 var marshalPointID2 = [8]byte{'b', 'n', '2', '5', '6', '.', 'g', '2'}
 var marshalPointIDT = [8]byte{'b', 'n', '2', '5', '6', '.', 'g', 't'}
+
+var ErrTypeCast = errors.New("invalid type cast")
 
 type pointG1 struct {
 	g *curvePoint
@@ -146,7 +148,10 @@ func (p *pointG1) Mul(s kyber.Scalar, q kyber.Point) kyber.Point {
 
 func (p *pointG1) MarshalBinary() ([]byte, error) {
 	// Clone is required as we change the point
-	p = p.Clone().(*pointG1)
+	p, ok := p.Clone().(*pointG1)
+	if !ok {
+		return nil, ErrTypeCast
+	}
 
 	n := p.ElementSize()
 	// Take a copy so that p is not written to, so calls to MarshalBinary
@@ -335,7 +340,7 @@ func (p *pointG2) EmbedLen() int {
 	panic("bn256.G2: unsupported operation")
 }
 
-func (p *pointG2) Embed(data []byte, rand cipher.Stream) kyber.Point {
+func (p *pointG2) Embed(_ []byte, _ cipher.Stream) kyber.Point {
 	panic("bn256.G2: unsupported operation")
 }
 
@@ -373,8 +378,10 @@ func (p *pointG2) Mul(s kyber.Scalar, q kyber.Point) kyber.Point {
 
 func (p *pointG2) MarshalBinary() ([]byte, error) {
 	// Clone is required as we change the point during the operation
-	p = p.Clone().(*pointG2)
-
+	p, ok := p.Clone().(*pointG2)
+	if !ok {
+		return nil, ErrTypeCast
+	}
 	n := p.ElementSize()
 	if p.g == nil {
 		p.g = &twistPoint{}
@@ -517,7 +524,7 @@ func (p *pointGT) EmbedLen() int {
 	panic("bn256.GT: unsupported operation")
 }
 
-func (p *pointGT) Embed(data []byte, rand cipher.Stream) kyber.Point {
+func (p *pointGT) Embed(_ []byte, _ cipher.Stream) kyber.Point {
 	panic("bn256.GT: unsupported operation")
 }
 

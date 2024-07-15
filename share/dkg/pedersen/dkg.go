@@ -1,31 +1,26 @@
-// Package dkg implements a general distributed key generation (DKG) framework.
-// This package serves two functionalities: (1) to run a fresh new DKG from
-// scratch and (2) to reshare old shares to a potentially distinct new set of
-// nodes (the "resharing" protocol). The former protocol is described in "A
-// threshold cryptosystem without a trusted party" by Torben Pryds Pedersen.
-// https://dl.acm.org/citation.cfm?id=1754929. The latter protocol is
-// implemented in "Verifiable Secret Redistribution for Threshold Signing
-// Schemes", by T. Wong et
-// al.(https://www.cs.cmu.edu/~wing/publications/Wong-Wing02b.pdf)
-// For an example how to use it please have a look at examples/dkg_test.go
 package dkg
 
 import (
+	"bytes"
 	"crypto/rand"
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"io"
 
-	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/kyber/v3/util/random"
-
-	"go.dedis.ch/kyber/v3/share"
-	vss "go.dedis.ch/kyber/v3/share/vss/pedersen"
-	"go.dedis.ch/kyber/v3/sign/schnorr"
+	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v4/encrypt/ecies"
+	"go.dedis.ch/kyber/v4/share"
+	"go.dedis.ch/kyber/v4/sign"
+	"go.dedis.ch/kyber/v4/util/random"
 )
 
-// Suite wraps the functionalities needed by the dkg package
-type Suite vss.Suite
+type Suite interface {
+	kyber.Group
+	kyber.HashFactory
+	kyber.XOFFactory
+	kyber.Random
+}
 
 // Config holds all required information to run a fresh DKG protocol or a
 // resharing protocol. In the case of a new fresh DKG protocol, one must fill
@@ -47,7 +42,7 @@ type Config struct {
 	// new shares to a new group, the group member's public key must be inside this
 	// list and in the Share field. Keys can be disjoint or not with respect to the
 	// NewNodes list.
-	OldNodes []kyber.Point
+	OldNodes []Node
 
 	// PublicCoeffs are the coefficients of the distributed polynomial needed
 	// during the resharing protocol. The first coefficient is the key. It is
@@ -58,7 +53,7 @@ type Config struct {
 	// will be in possession of new shares after the protocol has been run. To be a
 	// receiver of a new share, one's public key must be inside this list. Keys
 	// can be disjoint or not with respect to the OldNodes list.
-	NewNodes []kyber.Point
+	NewNodes []Node
 
 	// Share to refresh. It must be nil for a new node wishing to
 	// join or create a group. To be able to issue new fresh shares to a new group,
@@ -83,15 +78,71 @@ type Config struct {
 	// the number of deals required is less than what it is supposed to be.
 	OldThreshold int
 
-	// Reader is an optional field that can hold a user-specified entropy source.
-	// If it is set, Reader's data will be combined with random data from crypto/rand
-	// to create a random stream which will pick the dkg's secret coefficient. Otherwise,
-	// the random stream will only use crypto/rand's entropy.
+	// Reader is an optional field that can hold a user-specified entropy
+	// source.  If it is set, Reader's data will be combined with random data
+	// from crypto/rand to create a random stream which will pick the dkg's
+	// secret coefficient. Otherwise, the random stream will only use
+	// crypto/rand's entropy.
 	Reader io.Reader
 
-	// When UserReaderOnly it set to true, only the user-specified entropy source
-	// Reader will be used. This should only be used in tests, allowing reproducibility.
+	// When UserReaderOnly is set to true, only the user-specified entropy
+	// source Reader will be used. This should only be used in tests, allowing
+	// reproducibility.
 	UserReaderOnly bool
+
+	// FastSync is a mode where nodes sends pre-emptively responses indicating
+	// that the shares they received are good. If a share is invalid, a
+	// complaint is still sent as usual. This has two consequences:
+	//  - In the event all shares are good, nodes don't need to wait for the
+	//  timeout; they can already finish the protocol at the point.
+	//  - However, it requires nodes to send more messages on the network. We
+	//  pass from a O(f) where f is the number of faults to a O(n^2). Note that
+	//  the responses messages are small.
+	FastSync bool
+
+	// Nonce is required to avoid replay attacks from previous runs of a DKG /
+	// resharing. The required property of the Nonce is that it must be unique
+	// accross runs. A Nonce must be of length 32 bytes. User can get a secure
+	// nonce by calling `GetNonce()`.
+	Nonce []byte
+
+	// Auth is the scheme to use to authentify the packets sent and received
+	// during the protocol.
+	Auth sign.Scheme
+
+	// Log enables the DKG logic and protocol to log important events (mostly
+	// errors).  from participants. Errors don't mean the protocol should be
+	// stopped, so logging is the best way to communicate information to the
+	// application layer. It can be nil.
+	Log Logger
+}
+
+// Phase is a type that represents the different stages of the DKG protocol.
+type Phase int
+
+const (
+	InitPhase Phase = iota
+	DealPhase
+	ResponsePhase
+	JustifPhase
+	FinishPhase
+)
+
+func (p Phase) String() string {
+	switch p {
+	case InitPhase:
+		return "init"
+	case DealPhase:
+		return "deal"
+	case ResponsePhase:
+		return "response"
+	case JustifPhase:
+		return "justification"
+	case FinishPhase:
+		return "finished"
+	default:
+		return "unknown"
+	}
 }
 
 // DistKeyGenerator is the struct that runs the DKG protocol.
@@ -100,18 +151,24 @@ type DistKeyGenerator struct {
 	c     *Config
 	suite Suite
 
-	long   kyber.Scalar
-	pub    kyber.Point
-	dpub   *share.PubPoly
-	dealer *vss.Dealer
-	// verifiers indexed by dealer index
-	verifiers map[uint32]*vss.Verifier
-	// performs the part of the response verification for old nodes
-	oldAggregators map[uint32]*vss.Aggregator
+	long     kyber.Scalar
+	pub      kyber.Point
+	dpriv    *share.PriPoly
+	dpub     *share.PubPoly
+	statuses *StatusMatrix
+	// the valid shares we received
+	validShares map[uint32]kyber.Scalar
+	// all public polynomials we have seen
+	allPublics map[uint32]*share.PubPoly
+	// list of dealers that clearly gave invalid deals / responses / justifs
+	evicted []uint32
+	// list of share holders that misbehaved during the response phase
+	evictedHolders []Index
+	state          Phase
 	// index in the old list of nodes
-	oidx int
+	oidx Index
 	// index in the new list of nodes
-	nidx int
+	nidx Index
 	// old threshold used in the previous DKG
 	oldT int
 	// new threshold to use in this round
@@ -126,10 +183,8 @@ type DistKeyGenerator struct {
 	newPresent bool
 	// indicates whether the node is present in the old list
 	oldPresent bool
-	// already processed our own deal
-	processed bool
-	// did the timeout / period / already occured or not
-	timeout bool
+	// public polynomial of the old group
+	olddpub *share.PubPoly
 }
 
 // NewDistKeyHandler takes a Config and returns a DistKeyGenerator that is able
@@ -137,6 +192,12 @@ type DistKeyGenerator struct {
 func NewDistKeyHandler(c *Config) (*DistKeyGenerator, error) {
 	if len(c.NewNodes) == 0 && len(c.OldNodes) == 0 {
 		return nil, errors.New("dkg: can't run with empty node list")
+	}
+	if len(c.Nonce) != NonceLength {
+		return nil, errors.New("dkg: invalid nonce length")
+	}
+	if c.Auth == nil {
+		return nil, errors.New("dkg: need authentication scheme")
 	}
 
 	var isResharing bool
@@ -165,19 +226,23 @@ func NewDistKeyHandler(c *Config) (*DistKeyGenerator, error) {
 	if c.Threshold != 0 {
 		newThreshold = c.Threshold
 	} else {
-		newThreshold = vss.MinimumT(len(c.NewNodes))
+		newThreshold = MinimumT(len(c.NewNodes))
+	}
+	if !newPresent {
+		// if we are not in the new list of nodes, then we definitely can't
+		// receive anything
+		canReceive = false
 	}
 
-	var dealer *vss.Dealer
 	var err error
 	var canIssue bool
-	if c.Share != nil {
-		// resharing case
-		secretCoeff := c.Share.Share.V
-		dealer, err = vss.NewDealer(c.Suite, c.Longterm, secretCoeff, c.NewNodes, newThreshold)
-		canIssue = true
-	} else if !isResharing && newPresent {
-		// fresh DKG case
+	var secretCoeff kyber.Scalar
+	var dpriv *share.PriPoly
+	var dpub *share.PubPoly
+	var olddpub *share.PubPoly
+	var oldThreshold int
+	if !isResharing && newPresent {
+		// fresk DKG present
 		randomStream := random.New()
 		// if the user provided a reader, use it alone or combined with crypto/rand
 		if c.Reader != nil && !c.UserReaderOnly {
@@ -185,559 +250,654 @@ func NewDistKeyHandler(c *Config) (*DistKeyGenerator, error) {
 		} else if c.Reader != nil && c.UserReaderOnly {
 			randomStream = random.New(c.Reader)
 		}
-		secretCoeff := c.Suite.Scalar().Pick(randomStream)
-		dealer, err = vss.NewDealer(c.Suite, c.Longterm, secretCoeff, c.NewNodes, newThreshold)
-		canIssue = true
+		secretCoeff = c.Suite.Scalar().Pick(randomStream)
+
+		// in fresh dkg case, we consider the old nodes same a new nodes
 		c.OldNodes = c.NewNodes
 		oidx, oldPresent = findPub(c.OldNodes, pub)
+		canIssue = true
+	} else if c.Share != nil {
+		// resharing case
+		secretCoeff = c.Share.Share.V
+		canIssue = true
 	}
-
-	if err != nil {
+	if err := c.CheckForDuplicates(); err != nil {
 		return nil, err
 	}
-
-	var dpub *share.PubPoly
-	var oldThreshold int
-	if !newPresent {
-		// if we are not in the new list of nodes, then we definitely can't
-		// receive anything
-		canReceive = false
-	} else if isResharing && newPresent {
+	dpriv = share.NewPriPoly(c.Suite, c.Threshold, secretCoeff, c.Suite.RandomStream())
+	dpub = dpriv.Commit(c.Suite.Point().Base())
+	// resharing case and we are included in the new list of nodes
+	if isResharing && newPresent {
 		if c.PublicCoeffs == nil && c.Share == nil {
 			return nil, errors.New("dkg: can't receive new shares without the public polynomial")
-		} else if c.PublicCoeffs != nil {
-			dpub = share.NewPubPoly(c.Suite, c.Suite.Point().Base(), c.PublicCoeffs)
+		}
+
+		if c.PublicCoeffs != nil {
+			olddpub = share.NewPubPoly(c.Suite, c.Suite.Point().Base(), c.PublicCoeffs)
 		} else if c.Share != nil {
 			// take the commits of the share, no need to duplicate information
 			c.PublicCoeffs = c.Share.Commits
-			dpub = share.NewPubPoly(c.Suite, c.Suite.Point().Base(), c.PublicCoeffs)
+			olddpub = share.NewPubPoly(c.Suite, c.Suite.Point().Base(), c.PublicCoeffs)
 		}
 		// oldThreshold is only useful in the context of a new share holder, to
 		// make sure there are enough correct deals from the old nodes.
 		canReceive = true
 		oldThreshold = len(c.PublicCoeffs)
 	}
-	dkg := &DistKeyGenerator{
-		dealer:         dealer,
-		oldAggregators: make(map[uint32]*vss.Aggregator),
-		suite:          c.Suite,
-		long:           c.Longterm,
-		pub:            pub,
-		canReceive:     canReceive,
-		canIssue:       canIssue,
-		isResharing:    isResharing,
-		dpub:           dpub,
-		oidx:           oidx,
-		nidx:           nidx,
-		c:              c,
-		oldT:           oldThreshold,
-		newT:           newThreshold,
-		newPresent:     newPresent,
-		oldPresent:     oldPresent,
+	var statuses *StatusMatrix
+	if c.FastSync {
+		// in fast sync mode, we set every shares to complaint by default and
+		// expect everyone to send success for correct shares
+		statuses = NewStatusMatrix(c.OldNodes, c.NewNodes, Complaint)
+	} else {
+		// in normal mode, every shares of other nodes is expected to be
+		// correct, unless honest nodes send a complaint
+		statuses = NewStatusMatrix(c.OldNodes, c.NewNodes, Success)
+		if canReceive {
+			// we set the statuses of the shares we expect to receive as complaint
+			// by default, so if we miss one share or there's an invalid share,
+			// it'll generate a complaint
+			for _, node := range c.OldNodes {
+				statuses.Set(node.Index, uint32(nidx), Complaint)
+			}
+		}
 	}
-	if newPresent {
-		err = dkg.initVerifiers(c)
+	dkg := &DistKeyGenerator{
+		state:       InitPhase,
+		suite:       c.Suite,
+		long:        c.Longterm,
+		pub:         pub,
+		canReceive:  canReceive,
+		canIssue:    canIssue,
+		isResharing: isResharing,
+		dpriv:       dpriv,
+		dpub:        dpub,
+		olddpub:     olddpub,
+		oidx:        oidx,
+		nidx:        nidx,
+		c:           c,
+		oldT:        oldThreshold,
+		newT:        newThreshold,
+		newPresent:  newPresent,
+		oldPresent:  oldPresent,
+		statuses:    statuses,
+		validShares: make(map[uint32]kyber.Scalar),
+		allPublics:  make(map[uint32]*share.PubPoly),
 	}
 	return dkg, err
 }
 
-// NewDistKeyGenerator returns a dist key generator ready to create a fresh
-// distributed key with the regular DKG protocol.
-func NewDistKeyGenerator(suite Suite, longterm kyber.Scalar, participants []kyber.Point, t int) (*DistKeyGenerator, error) {
-	c := &Config{
-		Suite:     suite,
-		Longterm:  longterm,
-		NewNodes:  participants,
-		Threshold: t,
-	}
-	return NewDistKeyHandler(c)
-}
-
-// Deals returns all the deals that must be broadcasted to all participants in
-// the new list. The deal corresponding to this DKG is already added to this DKG
-// and is ommitted from the returned map. To know which participant a deal
-// belongs to, loop over the keys as indices in the list of new participants:
-//
-//	for i,dd := range distDeals {
-//	   sendTo(participants[i],dd)
-//	}
-//
-// If this method cannot process its own Deal, that indicates a
-// severe problem with the configuration or implementation and
-// results in a panic.
-func (d *DistKeyGenerator) Deals() (map[int]*Deal, error) {
+func (d *DistKeyGenerator) Deals() (*DealBundle, error) {
 	if !d.canIssue {
-		// We do not hold a share, so we cannot make a deal, so
-		// return an empty map and no error. This makes callers not
-		// need to care if they are in a resharing context or not.
-		return nil, nil
+		return nil, fmt.Errorf("new members can't issue deals")
 	}
-	deals, err := d.dealer.EncryptedDeals()
-	if err != nil {
-		return nil, err
+	if d.state != InitPhase {
+		return nil, fmt.Errorf("dkg not in the initial state, can't produce deals: %d", d.state)
 	}
-	dd := make(map[int]*Deal)
-	for i := range d.c.NewNodes {
-		distd := &Deal{
-			Index: uint32(d.oidx),
-			Deal:  deals[i],
+	deals := make([]Deal, 0, len(d.c.NewNodes))
+	for _, node := range d.c.NewNodes {
+		// compute share
+		si := d.dpriv.Eval(node.Index).V
+
+		if d.canReceive && uint32(d.nidx) == node.Index {
+			d.validShares[d.oidx] = si
+			d.allPublics[d.oidx] = d.dpub
+			// we set our own share as true, because we are not malicious!
+			d.statuses.Set(d.oidx, d.nidx, Success)
+			// we don't send our own share - useless
+			continue
 		}
-		// sign the deal
-		buff, err := distd.MarshalBinary()
+		msg, _ := si.MarshalBinary()
+		cipher, err := ecies.Encrypt(d.c.Suite, node.Public, msg, sha256.New)
 		if err != nil {
 			return nil, err
 		}
-		distd.Signature, err = schnorr.Sign(d.suite, d.long, buff)
-		if err != nil {
-			return nil, err
-		}
-
-		// if there is a resharing in progress, nodes that stay must send their
-		// deals to the old nodes, otherwise old nodes won't get responses from
-		// staying nodes and won't be certified.
-		if i == int(d.nidx) && d.newPresent && !d.isResharing {
-			if d.processed {
-				continue
-			}
-			d.processed = true
-			if resp, err := d.ProcessDeal(distd); err != nil {
-				panic("dkg: cannot process own deal: " + err.Error())
-			} else if resp.Response.Status != vss.StatusApproval {
-				panic("dkg: own deal gave a complaint")
-			}
-			continue
-		}
-		dd[i] = distd
-	}
-	return dd, nil
-}
-
-// ProcessDeal takes a Deal created by Deals() and stores and verifies it. It
-// returns a Response to broadcast to every other participant, including the old
-// participants. It returns an error in case the deal has already been stored,
-// or if the deal is incorrect (see vss.Verifier.ProcessEncryptedDeal).
-func (d *DistKeyGenerator) ProcessDeal(dd *Deal) (*Response, error) {
-	if !d.newPresent {
-		return nil, errors.New("dkg: unexpected deal for unlisted dealer in new list")
-	}
-	var pub kyber.Point
-	var ok bool
-	if d.isResharing {
-		pub, ok = getPub(d.c.OldNodes, dd.Index)
-	} else {
-		pub, ok = getPub(d.c.NewNodes, dd.Index)
-	}
-	// public key of the dealer
-	if !ok {
-		return nil, errors.New("dkg: dist deal out of bounds index")
-	}
-
-	// verify signature
-	buff, err := dd.MarshalBinary()
-	if err != nil {
-		return nil, err
-	}
-	if err := schnorr.Verify(d.suite, pub, buff, dd.Signature); err != nil {
-		return nil, err
-	}
-
-	ver, ok := d.verifiers[dd.Index]
-	if !ok {
-		return nil, fmt.Errorf("missing verifiers")
-	}
-
-	resp, err := ver.ProcessEncryptedDeal(dd.Deal)
-	if err != nil {
-		return nil, err
-	}
-
-	reject := func() (*Response, error) {
-		idx, present := findPub(d.c.NewNodes, pub)
-		if present {
-			// the dealer is present in both list, so we set its own response
-			// (as a verifier) to a complaint since he won't do it himself
-			d.verifiers[uint32(dd.Index)].UnsafeSetResponseDKG(uint32(idx), vss.StatusComplaint)
-		}
-		// indicate to VSS that this dkg's new status is complaint for this
-		// deal
-		d.verifiers[uint32(dd.Index)].UnsafeSetResponseDKG(uint32(d.nidx), vss.StatusComplaint)
-		resp.Status = vss.StatusComplaint
-		s, err := schnorr.Sign(d.suite, d.long, resp.Hash(d.suite))
-		if err != nil {
-			return nil, err
-		}
-		resp.Signature = s
-		return &Response{
-			Index:    dd.Index,
-			Response: resp,
-		}, nil
-	}
-
-	if d.isResharing && d.canReceive {
-		// verify share integrity wrt to the dist. secret
-		dealCommits := ver.Commits()
-		// Check that the received committed share is equal to the one we
-		// generate from the known public polynomial
-		expectedPubShare := d.dpub.Eval(int(dd.Index))
-		if !expectedPubShare.V.Equal(dealCommits[0]) {
-			return reject()
-		}
-	}
-
-	// If the dealer in the old list is also present in the new list, then set
-	// his response to approval since he won't issue his own response for his
-	// own deal.
-	// In the case of resharing the dealer will issue his own response in order
-	// for the old comities to get responses and be certified, which is why we
-	// don't add it manually there.
-	newIdx, found := findPub(d.c.NewNodes, pub)
-	if found && !d.isResharing {
-		d.verifiers[dd.Index].UnsafeSetResponseDKG(uint32(newIdx), vss.StatusApproval)
-	}
-
-	return &Response{
-		Index:    dd.Index,
-		Response: resp,
-	}, nil
-}
-
-// ProcessResponse takes a response from every other peer.  If the response
-// designates the deal of another participant than this dkg, this dkg stores it
-// and returns nil with a possible error regarding the validity of the response.
-// If the response designates a deal this dkg has issued, then the dkg will process
-// the response, and returns a justification.
-func (d *DistKeyGenerator) ProcessResponse(resp *Response) (*Justification, error) {
-	if d.isResharing && d.canIssue && !d.newPresent {
-		return d.processResharingResponse(resp)
-	}
-	v, ok := d.verifiers[resp.Index]
-	if !ok {
-		return nil, fmt.Errorf("dkg: responses received for unknown dealer %d", resp.Index)
-	}
-
-	if err := v.ProcessResponse(resp.Response); err != nil {
-		return nil, err
-	}
-
-	myIdx := uint32(d.oidx)
-	if !d.canIssue || resp.Index != myIdx {
-		// no justification if we dont issue deals or the deal's not from us
-		return nil, nil
-	}
-
-	j, err := d.dealer.ProcessResponse(resp.Response)
-	if err != nil {
-		return nil, err
-	}
-	if j == nil {
-		return nil, nil
-	}
-	if err := v.ProcessJustification(j); err != nil {
-		return nil, err
-	}
-
-	return &Justification{
-		Index:         uint32(d.oidx),
-		Justification: j,
-	}, nil
-}
-
-// special case when an node that is present in the old list but not in the
-// new,i.e. leaving the group. This node does not have any verifiers since it
-// can't receive shares. This function makes some check on the response and
-// returns a justification if the response is invalid.
-func (d *DistKeyGenerator) processResharingResponse(resp *Response) (*Justification, error) {
-	agg, present := d.oldAggregators[resp.Index]
-	if !present {
-		agg = vss.NewEmptyAggregator(d.suite, d.c.NewNodes)
-		d.oldAggregators[resp.Index] = agg
-	}
-
-	err := agg.ProcessResponse(resp.Response)
-	if int(resp.Index) != d.oidx {
-		return nil, err
-	}
-
-	if resp.Response.Status == vss.StatusApproval {
-		return nil, nil
-	}
-
-	// status is complaint and it is about our deal
-	deal, err := d.dealer.PlaintextDeal(int(resp.Response.Index))
-	if err != nil {
-		return nil, errors.New("dkg: resharing response can't get deal. BUG - REPORT")
-	}
-	j := &Justification{
-		Index: uint32(d.oidx),
-		Justification: &vss.Justification{
-			SessionID: d.dealer.SessionID(),
-			Index:     resp.Response.Index, // good index because of signature check
-			Deal:      deal,
-		},
-	}
-	return j, nil
-}
-
-// ProcessJustification takes a justification and validates it. It returns an
-// error in case the justification is wrong.
-func (d *DistKeyGenerator) ProcessJustification(j *Justification) error {
-	v, ok := d.verifiers[j.Index]
-	if !ok {
-		return errors.New("dkg: Justification received but no deal for it")
-	}
-	return v.ProcessJustification(j.Justification)
-}
-
-// SetTimeout triggers the timeout on all verifiers, and thus makes sure
-// all verifiers have either responded, or have a StatusComplaint response.
-func (d *DistKeyGenerator) SetTimeout() {
-	d.timeout = true
-	for _, v := range d.verifiers {
-		v.SetTimeout()
-	}
-}
-
-// ThresholdCertified returns true if a THRESHOLD of deals are certified. To know the
-// list of correct receiver, one can call d.QUAL()
-// NOTE:
-// This method should only be used after a certain timeout - mimicking the
-// synchronous assumption of the Pedersen's protocol. One can call
-// `Certified()` to check if the DKG is finished and stops it pre-emptively
-// if all deals are correct.  If called *before* the timeout, there may be
-// inconsistencies in the shares produced. For example, node 1 could have
-// aggregated shares from 1, 2, 3 and node 2 could have aggregated shares from
-// 2, 3 and 4.
-func (d *DistKeyGenerator) ThresholdCertified() bool {
-	if d.isResharing {
-		// in resharing case, we have two threshold. Here we want the number of
-		// deals to be at least what the old threshold was. (and for each deal,
-		// we want the number of approval to be a least what the new threshold
-		// is).
-		return len(d.QUAL()) >= d.c.OldThreshold
-	}
-	// in dkg case, the threshold is symmetric -> # verifiers = # dealers
-	return len(d.QUAL()) >= d.c.Threshold
-}
-
-// Certified returns true if *all* deals are certified. This method should
-// be called before the timeout occurs, as to pre-emptively stop the DKG
-// protocol if it is already finished before the timeout.
-func (d *DistKeyGenerator) Certified() bool {
-	var good []int
-	if d.isResharing && d.canIssue && !d.newPresent {
-		d.oldQualIter(func(i uint32, v *vss.Aggregator) bool {
-			if len(v.MissingResponses()) > 0 {
-				return false
-			}
-			good = append(good, int(i))
-			return true
-		})
-	} else {
-		d.qualIter(func(i uint32, v *vss.Verifier) bool {
-			if len(v.MissingResponses()) > 0 {
-				return false
-			}
-			good = append(good, int(i))
-			return true
+		deals = append(deals, Deal{
+			ShareIndex:     node.Index,
+			EncryptedShare: cipher,
 		})
 	}
-	return len(good) >= len(d.c.OldNodes)
+	d.state = DealPhase
+	_, commits := d.dpub.Info()
+	bundle := &DealBundle{
+		DealerIndex: uint32(d.oidx),
+		Deals:       deals,
+		Public:      commits,
+		SessionID:   d.c.Nonce,
+	}
+	var err error
+	bundle.Signature, err = d.sign(bundle)
+	return bundle, err
 }
 
-// QualifiedShares returns the set of shares holder index that are considered
-// valid. In particular, it computes the list of common share holders that
-// replied with an approval (or with a complaint later on justified) for each
-// deal received. These indexes represent the new share holders with valid (or
-// justified) shares from certified deals.  Detailled explanation:
-// To compute this list, we consider the scenario where a share holder replied
-// to one share but not the other, as invalid, as the library is not currently
-// equipped to deal with that scenario.
-// 1.  If there is a valid complaint non-justified for a deal, the deal is deemed
-// invalid
-// 2. if there are no response from a share holder, the share holder is
-// removed from the list.
-func (d *DistKeyGenerator) QualifiedShares() []int {
-	var invalidSh = make(map[int]bool)
-	var invalidDeals = make(map[int]bool)
-	// compute list of invalid deals according to 1.
-	for dealerIndex, verifier := range d.verifiers {
-		responses := verifier.Responses()
-		if len(responses) == 0 {
-			// don't analyzes "empty" deals - i.e. dealers that never sent
-			// their deal in the first place.
-			invalidDeals[int(dealerIndex)] = true
-		}
-		for holderIndex := range d.c.NewNodes {
-			resp, ok := responses[uint32(holderIndex)]
-			if ok && resp.Status == vss.StatusComplaint {
-				// 1. rule
-				invalidDeals[int(dealerIndex)] = true
-				break
-			}
-		}
+// ProcessDeals process the deals from all the nodes. Each deal for this node is
+// decrypted and stored. It returns a response bundle if there is any invalid or
+// missing deals. It returns an error if the node is not in the right state, or
+// if there is not enough valid shares, i.e. the dkg is failing already.
+func (d *DistKeyGenerator) ProcessDeals(bundles []*DealBundle) (*ResponseBundle, error) {
+	if d.canIssue && d.state != DealPhase {
+		// oldnode member is not in the right state
+		return nil, fmt.Errorf("processdeals can only be called "+
+			"after producing shares - state %s", d.state.String())
 	}
 
-	// compute list of invalid share holders for valid deals
-	for dealerIndex, verifier := range d.verifiers {
-		// skip analyze of invalid deals
-		if _, present := invalidDeals[int(dealerIndex)]; present {
-			continue
-		}
-		responses := verifier.Responses()
-		for holderIndex := range d.c.NewNodes {
-			_, ok := responses[uint32(holderIndex)]
-			if !ok {
-				// 2. rule - absent response
-				invalidSh[holderIndex] = true
-			}
-		}
-	}
-
-	var validHolders []int
-	for i := range d.c.NewNodes {
-		if _, included := invalidSh[i]; included {
-			continue
-		}
-		validHolders = append(validHolders, i)
-	}
-	return validHolders
-}
-
-// ExpectedDeals returns the number of deals that this node will
-// receive from the other participants.
-func (d *DistKeyGenerator) ExpectedDeals() int {
-	switch {
-	case d.newPresent && d.oldPresent:
-		return len(d.c.OldNodes) - 1
-	case d.newPresent && !d.oldPresent:
-		return len(d.c.OldNodes)
-	default:
-		return 0
-	}
-}
-
-// QUAL returns the index in the list of participants that forms the QUALIFIED
-// set, i.e. the list of Certified deals.
-// It does NOT take into account any malicious share holder which share may have
-// been revealed, due to invalid complaint.
-func (d *DistKeyGenerator) QUAL() []int {
-	var good []int
-	if d.isResharing && d.canIssue && !d.newPresent {
-		d.oldQualIter(func(i uint32, v *vss.Aggregator) bool {
-			good = append(good, int(i))
-			return true
-		})
-		return good
-	}
-	d.qualIter(func(i uint32, v *vss.Verifier) bool {
-		good = append(good, int(i))
-		return true
-	})
-	return good
-}
-
-func (d *DistKeyGenerator) isInQUAL(idx uint32) bool {
-	var found bool
-	d.qualIter(func(i uint32, v *vss.Verifier) bool {
-		if i == idx {
-			found = true
-			return false
-		}
-		return true
-	})
-	return found
-}
-
-func (d *DistKeyGenerator) qualIter(fn func(idx uint32, v *vss.Verifier) bool) {
-	for i, v := range d.verifiers {
-		if v.DealCertified() {
-			if !fn(i, v) {
-				break
-			}
-		}
-	}
-}
-
-func (d *DistKeyGenerator) oldQualIter(fn func(idx uint32, v *vss.Aggregator) bool) {
-	for i, v := range d.oldAggregators {
-		if v.DealCertified() {
-			if !fn(i, v) {
-				break
-			}
-		}
-	}
-}
-
-// DistKeyShare generates the distributed key relative to this receiver.
-// It throws an error if something is wrong such as not enough deals received.
-// The shared secret can be computed when all deals have been sent and
-// basically consists of a public point and a share. The public point is the sum
-// of all aggregated individual public commits of each individual secrets.
-// The share is evaluated from the global Private Polynomial, basically SUM of
-// fj(i) for a receiver i.
-func (d *DistKeyGenerator) DistKeyShare() (*DistKeyShare, error) {
-	if !d.ThresholdCertified() {
-		return nil, errors.New("dkg: distributed key not certified")
+	if d.canReceive && !d.canIssue && d.state != InitPhase {
+		// newnode member which is not in the old group is not in the riht state
+		return nil, fmt.Errorf("processdeals can only be called once "+
+			"after creating the dkg for a new member - state %s", d.state.String())
 	}
 	if !d.canReceive {
-		return nil, errors.New("dkg: should not expect to compute any dist. share")
+		// a node that is only in the old group should not process deals
+		d.state = ResponsePhase // he moves on to the next phase silently
+
+		//nolint:nilnil // protocol defined this way
+		return nil, nil
 	}
 
-	if d.isResharing {
-		return d.resharingKey()
-	}
-
-	return d.dkgKey()
-}
-
-func (d *DistKeyGenerator) dkgKey() (*DistKeyShare, error) {
-	sh := d.suite.Scalar().Zero()
-	var pub *share.PubPoly
-	var err error
-	d.qualIter(func(i uint32, v *vss.Verifier) bool {
-		// share of dist. secret = sum of all share received.
-		deal := v.Deal()
-		s := deal.SecShare.V
-		sh = sh.Add(sh, s)
-		// Dist. public key = sum of all revealed commitments
-		poly := share.NewPubPoly(d.suite, d.suite.Point().Base(), deal.Commitments)
-		if pub == nil {
-			// first polynomial we see (instead of generating n empty commits)
-			pub = poly
-			return true
+	seenIndex := make(map[uint32]bool)
+	for _, bundle := range bundles {
+		if bundle == nil {
+			d.c.Error("found nil Deal bundle")
+			continue
 		}
-		pub, err = pub.Add(poly)
-		return err == nil
-	})
+		if d.canIssue && bundle.DealerIndex == uint32(d.oidx) {
+			// dont look at our own deal
+			// Note that's why we are not checking if we are evicted at the end of this function and return an error
+			// because we're supposing we are honest and we don't look at our own deal
+			continue
+		}
+		if !isIndexIncluded(d.c.OldNodes, bundle.DealerIndex) {
+			d.c.Error(fmt.Sprintf("dealer %d not in OldNodes", bundle.DealerIndex))
+			continue
+		}
 
-	if err != nil {
-		return nil, err
+		if !bytes.Equal(bundle.SessionID, d.c.Nonce) {
+			d.evicted = append(d.evicted, bundle.DealerIndex)
+			d.c.Error("Deal with invalid session ID")
+			continue
+		}
+
+		if bundle.Public == nil || len(bundle.Public) != d.c.Threshold {
+			// invalid public polynomial is clearly cheating
+			// so we evict him from the list
+			// since we assume broadcast channel, every honest player will evict
+			// this party as well
+			d.evicted = append(d.evicted, bundle.DealerIndex)
+			d.c.Error("Deal with nil public key or invalid threshold")
+			continue
+		}
+		pubPoly := share.NewPubPoly(d.c.Suite, d.c.Suite.Point().Base(), bundle.Public)
+		if seenIndex[bundle.DealerIndex] {
+			// already saw a bundle from the same dealer - clear sign of
+			// cheating so we evict him from the list
+			d.evicted = append(d.evicted, bundle.DealerIndex)
+			d.c.Error("Deal bundle already seen")
+			continue
+		}
+		seenIndex[bundle.DealerIndex] = true
+		d.allPublics[bundle.DealerIndex] = pubPoly
+		for _, deal := range bundle.Deals {
+			if !isIndexIncluded(d.c.NewNodes, deal.ShareIndex) {
+				// invalid index for share holder is a clear sign of cheating
+				// so we evict him from the list
+				// and we don't even need to look at the rest
+				d.evicted = append(d.evicted, bundle.DealerIndex)
+				d.c.Error("Deal share holder evicted normally")
+				break
+			}
+			if deal.ShareIndex != uint32(d.nidx) {
+				// we dont look at other's shares
+				continue
+			}
+			shareBuff, err := ecies.Decrypt(d.c.Suite, d.long, deal.EncryptedShare, sha256.New)
+			if err != nil {
+				d.c.Error("Deal share decryption invalid")
+				continue
+			}
+			share := d.c.Suite.Scalar()
+			if err := share.UnmarshalBinary(shareBuff); err != nil {
+				d.c.Error("Deal share unmarshalling invalid")
+				continue
+			}
+			// check if share is valid w.r.t. public commitment
+			comm := pubPoly.Eval(d.nidx).V
+			commShare := d.c.Suite.Point().Mul(share, nil)
+			if !comm.Equal(commShare) {
+				d.c.Error("Deal share invalid wrt public poly")
+				// invalid share - will issue complaint
+				continue
+			}
+
+			if d.isResharing {
+				// check that the evaluation this public polynomial at 0,
+				// corresponds to the commitment of the previous the dealer's index
+				oldShareCommit := d.olddpub.Eval(bundle.DealerIndex).V
+				publicCommit := pubPoly.Commit()
+				if !oldShareCommit.Equal(publicCommit) {
+					// inconsistent share from old member
+					continue
+				}
+			}
+			// share is valid -> store it
+			d.statuses.Set(bundle.DealerIndex, deal.ShareIndex, Success)
+			d.validShares[bundle.DealerIndex] = share
+			d.c.Info("Valid deal processed received from dealer", bundle.DealerIndex)
+		}
 	}
-	_, commits := pub.Info()
 
-	return &DistKeyShare{
-		Commits: commits,
-		Share: &share.PriShare{
-			I: int(d.nidx),
-			V: sh,
-		},
-		PrivatePoly: d.dealer.PrivatePoly().Coefficients(),
-	}, nil
+	// we set to true the status of each node that are present in both list
+	// for their respective index -> we assume the share a honest node creates is
+	// correct for himself - that he won't create an invalid share for himself
+	for _, dealer := range d.c.OldNodes {
+		nidx, found := findPub(d.c.NewNodes, dealer.Public)
+		if !found {
+			continue
+		}
+		d.statuses.Set(dealer.Index, uint32(nidx), Success)
+	}
 
+	// producing response part
+	var responses []Response
+	var myshares = d.statuses.StatusesForShare(uint32(d.nidx))
+	for _, node := range d.c.OldNodes {
+		// if the node is evicted, we don't even need to send a complaint or a
+		// response since every honest node evicts him as well.
+		// XXX Is that always true ? Should we send a complaint still ?
+		if contains(d.evicted, node.Index) {
+			continue
+		}
+
+		if myshares[node.Index] == Success {
+			if d.c.FastSync {
+				// we send success responses only in fast sync
+				responses = append(responses, Response{
+					DealerIndex: node.Index,
+					Status:      Success,
+				})
+			}
+		} else {
+			// dealer i did not give a successful share (or absent etc)
+			responses = append(responses, Response{
+				DealerIndex: uint32(node.Index),
+				Status:      Complaint,
+			})
+			d.c.Info(fmt.Sprintf("Complaint towards node %d", node.Index))
+		}
+	}
+	var bundle *ResponseBundle
+	if len(responses) > 0 {
+		bundle = &ResponseBundle{
+			ShareIndex: uint32(d.nidx),
+			Responses:  responses,
+			SessionID:  d.c.Nonce,
+		}
+		sig, err := d.sign(bundle)
+		if err != nil {
+			return nil, err
+		}
+		bundle.Signature = sig
+	}
+	d.state = ResponsePhase
+	d.c.Info(fmt.Sprintf("sending back %d responses", len(responses)))
+	return bundle, nil
 }
 
-func (d *DistKeyGenerator) resharingKey() (*DistKeyShare, error) {
+func (d *DistKeyGenerator) ExpectedResponsesFastSync() int {
+	return len(d.c.NewNodes)
+}
+
+// ProcessResponses takes the response from all nodes if any and returns a
+// triplet:
+// - the result if there is no complaint. If not nil, the DKG is finished.
+// - the justification bundle if this node must produce at least one. If nil,
+// this node must still wait on the justification phase.
+// - error if the dkg must stop now, an unrecoverable failure.
+func (d *DistKeyGenerator) ProcessResponses(bundles []*ResponseBundle) (
+	res *Result,
+	jb *JustificationBundle,
+	err error) {
+
+	if !d.canReceive && d.state != DealPhase {
+		// if we are a old node that will leave
+		return nil, nil, fmt.Errorf("leaving node can process responses only after creating shares")
+	} else if d.state != ResponsePhase {
+		return nil, nil, fmt.Errorf("can only process responses after processing shares - current state %s", d.state)
+	}
+
+	defer func() {
+		if err == nil {
+			err = d.checkIfEvicted(ResponsePhase)
+		}
+	}()
+
+	if !d.c.FastSync && len(bundles) == 0 && d.canReceive && d.statuses.CompleteSuccess() {
+		// if we are not in fastsync, we expect only complaints
+		// if there is no complaints all is good
+		res, err = d.computeResult()
+		return res, jb, err
+	}
+
+	var validAuthors []Index
+	var foundComplaint bool
+	for _, bundle := range bundles {
+		if bundle == nil {
+			continue
+		}
+		if d.canIssue && bundle.ShareIndex == uint32(d.nidx) {
+			// just in case we don't treat our own response
+			continue
+		}
+		if !isIndexIncluded(d.c.NewNodes, bundle.ShareIndex) {
+			d.c.Error("Response author already evicted")
+			continue
+		}
+
+		if !bytes.Equal(bundle.SessionID, d.c.Nonce) {
+			d.c.Error("Response invalid session ID")
+			d.evictedHolders = append(d.evictedHolders, bundle.ShareIndex)
+			continue
+		}
+
+		for _, response := range bundle.Responses {
+			if !isIndexIncluded(d.c.OldNodes, response.DealerIndex) {
+				// the index of the dealer doesn't exist - clear violation
+				// so we evict
+				d.evictedHolders = append(d.evictedHolders, bundle.ShareIndex)
+				d.c.Error("Response dealer index already evicted")
+				continue
+			}
+
+			if !d.c.FastSync && response.Status == Success {
+				// we should only receive complaint if we are not in fast sync
+				// mode - clear violation
+				// so we evict
+				d.evictedHolders = append(d.evictedHolders, bundle.ShareIndex)
+				d.c.Error("Response success but in regular mode")
+				continue
+			}
+
+			d.statuses.Set(response.DealerIndex, bundle.ShareIndex, response.Status)
+			if response.Status == Complaint {
+				foundComplaint = true
+			}
+
+			validAuthors = append(validAuthors, bundle.ShareIndex)
+		}
+	}
+
+	// In case of fast sync, we want to make sure all share holders have sent a
+	// valid response (success or complaint). All share holders that did not
+	// will be evicted from the final group. Since we are using a broadcast
+	// channel, if a node is honest, its response will be received by all honest
+	// nodes.
+	if d.c.FastSync {
+		// we only need to look at the nodes that did not sent any response,
+		// since the invalid one are already markes as evicted
+		allSent := append(validAuthors, d.evictedHolders...)
+		for _, n := range d.c.NewNodes {
+			if d.canReceive && d.nidx == n.Index {
+				continue // we dont evict ourself
+			}
+			if !contains(allSent, n.Index) {
+				d.c.Error(fmt.Sprintf("Response not seen from node %d (eviction)", n.Index))
+				d.evictedHolders = append(d.evictedHolders, n.Index)
+			}
+		}
+	}
+
+	// there is no complaint in the responses received and the status matrix
+	// is all filled with success that means we can finish the protocol -
+	// regardless of the mode chosen (fast sync or not).
+	if !foundComplaint && d.statuses.CompleteSuccess() {
+		d.c.Info("msg", "DKG successful")
+		d.state = FinishPhase
+		if d.canReceive {
+			res, err := d.computeResult()
+			return res, nil, err
+		}
+
+		// old nodes that are not present in the new group
+		return nil, nil, nil
+	}
+
+	// check if there are some node who received at least t complaints.
+	// In that case, they must be evicted already since their polynomial can
+	// now be reconstructed so any observer can sign in its place.
+	for _, n := range d.c.OldNodes {
+		complaints := d.statuses.StatusesOfDealer(n.Index).LengthComplaints()
+		if complaints >= d.c.Threshold {
+			d.evicted = append(d.evicted, n.Index)
+			d.c.Error(fmt.Sprintf("Response phase eviction of node %d", n.Index))
+		}
+	}
+
+	d.state = JustifPhase
+
+	if !d.canIssue {
+		// new node that is expecting some justifications
+		return nil, nil, nil
+	}
+
+	// check if there are justifications this node needs to produce
+	var myrow = d.statuses.StatusesOfDealer(uint32(d.oidx))
+	var justifications []Justification
+	var foundJustifs bool
+	for shareIndex, status := range myrow {
+		if status != Complaint {
+			continue
+		}
+		// create justifications for the requested share
+		var sh = d.dpriv.Eval(shareIndex).V
+		justifications = append(justifications, Justification{
+			ShareIndex: shareIndex,
+			Share:      sh,
+		})
+		d.c.Info(fmt.Sprintf("Producing justifications for node %d", shareIndex))
+		foundJustifs = true
+		// mark those shares as resolved in the statuses
+		d.statuses.Set(uint32(d.oidx), shareIndex, Success)
+	}
+	if !foundJustifs {
+		// no justifications required from us !
+		return nil, nil, nil
+	}
+
+	var bundle = &JustificationBundle{
+		DealerIndex:    uint32(d.oidx),
+		Justifications: justifications,
+		SessionID:      d.c.Nonce,
+	}
+
+	signature, err := d.sign(bundle)
+	if err != nil {
+		return nil, nil, err
+	}
+	bundle.Signature = signature
+	d.c.Info(fmt.Sprintf("%d justifications returned", len(justifications)))
+	return nil, bundle, nil
+}
+
+// ProcessJustifications takes the justifications of the nodes and returns the
+// results if there is enough QUALified nodes, or an error otherwise. Note that
+// this method returns "nil,nil" if this node is a node only present in the old
+// group of the dkg: indeed a node leaving the group don't need to process
+// justifications, and can simply leave the protocol.
+func (d *DistKeyGenerator) ProcessJustifications(bundles []*JustificationBundle) (*Result, error) {
+	if !d.canReceive {
+		// an old node leaving the group do not need to process justifications.
+		// Here we simply return nil to avoid requiring higher level library to
+		// think about which node should receive which packet
+		//
+		//nolint:nilnil // protocol defined this way
+		return nil, nil
+	}
+	if d.state != JustifPhase {
+		return nil, fmt.Errorf("node can only process justifications "+
+			"after processing responses - current state %s", d.state.String())
+	}
+
+	seen := make(map[uint32]bool)
+	for _, bundle := range bundles {
+		if bundle == nil {
+			continue
+		}
+		if seen[bundle.DealerIndex] {
+			// bundle contains duplicate - clear violation
+			// so we evict
+			d.evicted = append(d.evicted, bundle.DealerIndex)
+			d.c.Error("Justification bundle contains duplicate - evicting dealer", bundle.DealerIndex)
+			continue
+		}
+		if d.canIssue && bundle.DealerIndex == uint32(d.oidx) {
+			// we dont treat our own justifications
+			d.c.Info("Skipping own justification", true)
+			continue
+		}
+		if !isIndexIncluded(d.c.OldNodes, bundle.DealerIndex) {
+			// index is invalid
+			d.c.Error("Invalid index - evicting dealer", bundle.DealerIndex)
+			continue
+		}
+		if contains(d.evicted, bundle.DealerIndex) {
+			// already evicted node
+			d.c.Error("Already evicted dealer - evicting dealer", bundle.DealerIndex)
+			continue
+		}
+		if !bytes.Equal(bundle.SessionID, d.c.Nonce) {
+			d.evicted = append(d.evicted, bundle.DealerIndex)
+			d.c.Error("Justification bundle contains invalid session ID - evicting dealer", bundle.DealerIndex)
+			continue
+		}
+		d.c.Info("ProcessJustifications - basic sanity checks done", true)
+
+		seen[bundle.DealerIndex] = true
+		for _, justif := range bundle.Justifications {
+			if !isIndexIncluded(d.c.NewNodes, justif.ShareIndex) {
+				// invalid index - clear violation
+				// so we evict
+				d.evicted = append(d.evicted, bundle.DealerIndex)
+				d.c.Error("Invalid index in justifications - evicting dealer", bundle.DealerIndex)
+				continue
+			}
+			pubPoly, ok := d.allPublics[bundle.DealerIndex]
+			if !ok {
+				// dealer hasn't given any public polynomial at the first phase
+				// so we evict directly - no need to look at its justifications
+				d.evicted = append(d.evicted, bundle.DealerIndex)
+				d.c.Error("Public polynomial missing - evicting dealer", bundle.DealerIndex)
+				break
+			}
+			// compare commit and public poly
+			commit := d.c.Suite.Point().Mul(justif.Share, nil)
+			expected := pubPoly.Eval(justif.ShareIndex).V
+			if !commit.Equal(expected) {
+				// invalid justification - evict
+				d.evicted = append(d.evicted, bundle.DealerIndex)
+				d.c.Error("New share commit invalid - evicting dealer", bundle.DealerIndex)
+				continue
+			}
+			if d.isResharing {
+				// check that the evaluation this public polynomial at 0,
+				// corresponds to the commitment of the previous the dealer's index
+				oldShareCommit := d.olddpub.Eval(bundle.DealerIndex).V
+				publicCommit := pubPoly.Commit()
+				if !oldShareCommit.Equal(publicCommit) {
+					// inconsistent share from old member
+					d.evicted = append(d.evicted, bundle.DealerIndex)
+
+					d.c.Error("Old share commit not equal to public commit - evicting dealer", bundle.DealerIndex)
+					continue
+				}
+				d.c.Info("Old share commit and public commit valid", true)
+			}
+			// valid share -> mark OK
+			d.statuses.Set(bundle.DealerIndex, justif.ShareIndex, Success)
+			if justif.ShareIndex == uint32(d.nidx) {
+				// store the share if it's for us
+				d.c.Info("Saving our key share for", justif.ShareIndex)
+				d.validShares[bundle.DealerIndex] = justif.Share
+			}
+		}
+	}
+
+	// check if we are evicted or not
+	if err := d.checkIfEvicted(JustifPhase); err != nil {
+		return nil, fmt.Errorf("evicted at justification: %w", err)
+	}
+
+	// check if there is enough dealer entries marked as all success
+	var allGood int
+	for _, n := range d.c.OldNodes {
+		if contains(d.evicted, n.Index) {
+			continue
+		}
+		if !d.statuses.AllTrue(n.Index) {
+			// this dealer has some unjustified shares
+			continue
+		}
+		allGood++
+	}
+	targetThreshold := d.c.Threshold
+	if d.isResharing {
+		// we need enough old QUAL dealers, more than the threshold the old
+		// group uses
+		targetThreshold = d.c.OldThreshold
+	}
+	if allGood < targetThreshold {
+		// that should not happen in the threat model but we still returns the
+		// fatal error here so DKG do not finish
+		d.state = FinishPhase
+		return nil, fmt.Errorf("process-justifications: only %d/%d valid deals - dkg abort", allGood, targetThreshold)
+	}
+
+	// otherwise it's all good - let's compute the result
+	return d.computeResult()
+}
+
+func (d *DistKeyGenerator) computeResult() (*Result, error) {
+	d.state = FinishPhase
+	// add a full complaint row on the nodes that are evicted
+	for _, index := range d.evicted {
+		d.statuses.SetAll(index, Complaint)
+	}
+	// add all the shares and public polynomials together for the deals that are
+	// valid ( equivalently or all justified)
+	if d.isResharing {
+		// instead of adding, in this case, we interpolate all shares
+		return d.computeResharingResult()
+	}
+
+	return d.computeDKGResult()
+}
+
+func (d *DistKeyGenerator) computeResharingResult() (*Result, error) {
 	// only old nodes sends shares
-	shares := make([]*share.PriShare, len(d.c.OldNodes))
-	coeffs := make([][]kyber.Point, len(d.c.OldNodes))
-	d.qualIter(func(i uint32, v *vss.Verifier) bool {
-		deal := v.Deal()
-		coeffs[int(i)] = deal.Commitments
+	shares := make([]*share.PriShare, 0, len(d.c.OldNodes))
+	coeffs := make(map[Index][]kyber.Point, len(d.c.OldNodes))
+	for _, n := range d.c.OldNodes {
+		if !d.statuses.AllTrue(n.Index) {
+			// this dealer has some unjustified shares
+			// no need to check for th e evicted list since the status matrix
+			// has been set previously to complaint for those
+			continue
+		}
+		pub, ok := d.allPublics[n.Index]
+		if !ok {
+			return nil, fmt.Errorf("BUG: nidx %d: public polynomial not found from dealer %d", d.nidx, n.Index)
+		}
+		_, commitments := pub.Info()
+		coeffs[n.Index] = commitments
+
+		sh, ok := d.validShares[n.Index]
+		if !ok {
+			return nil, fmt.Errorf("BUG: nidx %d private share not found from dealer %d", d.nidx, n.Index)
+		}
 		// share of dist. secret. Invertion of rows/column
-		deal.SecShare.I = int(i)
-		shares[int(i)] = deal.SecShare
-		return true
-	})
+		shares = append(shares, &share.PriShare{
+			V: sh,
+			I: n.Index,
+		})
+	}
 
 	// the private polynomial is generated from the old nodes, thus inheriting
 	// the old threshold condition
@@ -746,7 +906,7 @@ func (d *DistKeyGenerator) resharingKey() (*DistKeyShare, error) {
 		return nil, err
 	}
 	privateShare := &share.PriShare{
-		I: int(d.nidx),
+		I: d.nidx,
 		V: priPoly.Secret(),
 	}
 
@@ -756,13 +916,13 @@ func (d *DistKeyGenerator) resharingKey() (*DistKeyShare, error) {
 	// will be held by the new nodes.
 	finalCoeffs := make([]kyber.Point, d.newT)
 	for i := 0; i < d.newT; i++ {
-		tmpCoeffs := make([]*share.PubShare, len(coeffs))
+		tmpCoeffs := make([]*share.PubShare, 0, len(coeffs))
 		// take all i-th coefficients
 		for j := range coeffs {
 			if coeffs[j] == nil {
 				continue
 			}
-			tmpCoeffs[j] = &share.PubShare{I: j, V: coeffs[j][i]}
+			tmpCoeffs = append(tmpCoeffs, &share.PubShare{I: j, V: coeffs[j][i]})
 		}
 
 		// using the old threshold / length because there are at most
@@ -781,83 +941,245 @@ func (d *DistKeyGenerator) resharingKey() (*DistKeyShare, error) {
 	if !pubPoly.Check(privateShare) {
 		return nil, errors.New("dkg: share do not correspond to public polynomial ><")
 	}
-	return &DistKeyShare{
-		Commits:     finalCoeffs,
-		Share:       privateShare,
-		PrivatePoly: priPoly.Coefficients(),
-	}, nil
-}
 
-// Verifiers returns the verifiers keeping state of each deals
-func (d *DistKeyGenerator) Verifiers() map[uint32]*vss.Verifier {
-	return d.verifiers
-}
-
-func (d *DistKeyGenerator) initVerifiers(c *Config) error {
-	var alreadyTaken = make(map[string]bool)
-	verifierList := c.NewNodes
-	dealerList := c.OldNodes
-	verifiers := make(map[uint32]*vss.Verifier)
-	for i, pub := range dealerList {
-		if _, exists := alreadyTaken[pub.String()]; exists {
-			return errors.New("duplicate public key in NewNodes list")
+	// To compute the QUAL in the resharing case, we take each new nodes whose
+	// column in the status matrix contains true for all valid dealers.
+	// That means:
+	// 1. we only look for valid deals
+	// 2. we only take new nodes, i.e. new participants, that correctly ran the
+	// protocol (i.e. absent nodes will not be counted)
+	var qual []Node
+	for _, newNode := range d.c.NewNodes {
+		var invalid bool
+		// look if this node is also a dealer which have been misbehaving
+		for _, oldNode := range d.c.OldNodes {
+			if d.statuses.AllTrue(oldNode.Index) {
+				// it's a valid dealer as well
+				continue
+			}
+			if oldNode.Public.Equal(newNode.Public) {
+				// it's an invalid dealer, so we evict him
+				invalid = true
+				break
+			}
 		}
-		alreadyTaken[pub.String()] = true
-		ver, err := vss.NewVerifier(c.Suite, c.Longterm, pub, verifierList)
-		if err != nil {
-			return err
+		// we also check if he has been misbehaving during the response phase
+		// only
+		if !invalid && !contains(d.evictedHolders, newNode.Index) {
+			qual = append(qual, newNode)
 		}
-		// set that the number of approval for this deal must be at the given
-		// threshold regarding the new nodes. (see config.
-		ver.SetThreshold(c.Threshold)
-		verifiers[uint32(i)] = ver
-	}
-	d.verifiers = verifiers
-	return nil
-}
-
-// Renew adds the new distributed key share g (with secret 0) to the distributed key share d.
-func (d *DistKeyShare) Renew(suite Suite, g *DistKeyShare) (*DistKeyShare, error) {
-	// Check G(0) = 0*G.
-	if !g.Public().Equal(suite.Point().Base().Mul(suite.Scalar().Zero(), nil)) {
-		return nil, errors.New("wrong renewal function")
 	}
 
-	// Check whether they have the same index
-	if d.Share.I != g.Share.I {
-		return nil, errors.New("not the same party")
+	if len(qual) < d.c.Threshold {
+		return nil, fmt.Errorf("dkg: too many uncompliant new participants %d/%d", len(qual), d.c.Threshold)
 	}
-
-	newShare := suite.Scalar().Add(d.Share.V, g.Share.V)
-	newCommits := make([]kyber.Point, len(d.Commits))
-	for i := range newCommits {
-		newCommits[i] = suite.Point().Add(d.Commits[i], g.Commits[i])
-	}
-	return &DistKeyShare{
-		Commits: newCommits,
-		Share: &share.PriShare{
-			I: d.Share.I,
-			V: newShare,
+	return &Result{
+		QUAL: qual,
+		Key: &DistKeyShare{
+			Commits: finalCoeffs,
+			Share:   privateShare,
 		},
 	}, nil
 }
 
-func getPub(list []kyber.Point, i uint32) (kyber.Point, bool) {
-	if i >= uint32(len(list)) {
-		return nil, false
+func (d *DistKeyGenerator) computeDKGResult() (*Result, error) {
+	finalShare := d.c.Suite.Scalar().Zero()
+	var err error
+	var finalPub *share.PubPoly
+	var nodes []Node
+	for _, n := range d.c.OldNodes {
+		if !d.statuses.AllTrue(n.Index) {
+			// this dealer has some unjustified shares
+			// no need to check the evicted list since the status matrix
+			// has been set previously to complaint for those
+			continue
+		}
+
+		// however we do need to check for evicted share holders since in this
+		// case (DKG) both are the same.
+		if contains(d.evictedHolders, n.Index) {
+			continue
+		}
+
+		sh, ok := d.validShares[n.Index]
+		if !ok {
+			return nil, fmt.Errorf("BUG: private share not found from dealer %d", n.Index)
+		}
+		pub, ok := d.allPublics[n.Index]
+		if !ok {
+			return nil, fmt.Errorf("BUG: idx %d public polynomial not found from dealer %d", d.nidx, n.Index)
+		}
+		finalShare = finalShare.Add(finalShare, sh)
+		if finalPub == nil {
+			finalPub = pub
+		} else {
+			finalPub, err = finalPub.Add(pub)
+			if err != nil {
+				return nil, err
+			}
+		}
+		nodes = append(nodes, n)
 	}
-	return list[i], true
+	if finalPub == nil {
+		return nil, fmt.Errorf("BUG: final public polynomial is nil")
+	}
+	_, commits := finalPub.Info()
+	return &Result{
+		QUAL: nodes,
+		Key: &DistKeyShare{
+			Commits: commits,
+			Share: &share.PriShare{
+				I: d.nidx,
+				V: finalShare,
+			},
+		},
+	}, nil
 }
 
-func findPub(list []kyber.Point, toFind kyber.Point) (int, bool) {
-	for i, p := range list {
-		if p.Equal(toFind) {
-			return i, true
+var ErrEvicted = errors.New("our node is evicted from list of qualified participants")
+
+// checkIfEvicted returns an error if this node is in one of the two eviction list. This is useful to detect
+// our own misbehaviour or lack of connectivity: for example if this node can receive messages from others but is
+// not able to send, everyone will send a complaint about this node, and thus it is going to be evicted.
+// This method checks if you are and returns an error from the DKG to stop it. Once evicted a node's messages are
+// not processed anymore and it is left out of the protocol.
+func (d *DistKeyGenerator) checkIfEvicted(phase Phase) error {
+	var arr []Index
+	var indexToUse Index
+
+	// For DKG -> for all phases look at evicted dealers since both lists are the same anyway
+	// For resharing ->  only at response phase we evict some new share holders
+	// 			otherwise, it's only dealers we evict (since deal and justif are made by dealers)
+	if d.isResharing && phase == ResponsePhase {
+		if !d.canReceive {
+			// we can't be evicted as an old node leaving the group here
+			return nil
+		}
+		arr = d.evictedHolders
+		indexToUse = d.nidx
+	} else {
+		if !d.canIssue {
+			// we can't be evicted as a new node in this setting
+			return nil
+		}
+		arr = d.evicted
+		indexToUse = d.oidx
+	}
+	for _, idx := range arr {
+		if indexToUse == idx {
+			return ErrEvicted
+		}
+	}
+	return nil
+}
+
+func findPub(list []Node, toFind kyber.Point) (Index, bool) {
+	for _, n := range list {
+		if n.Public.Equal(toFind) {
+			return n.Index, true
 		}
 	}
 	return 0, false
 }
 
-func checksDealCertified(i uint32, v *vss.Verifier) bool {
-	return v.DealCertified()
+func findIndex(list []Node, index Index) (kyber.Point, bool) {
+	for _, n := range list {
+		if n.Index == index {
+			return n.Public, true
+		}
+	}
+	return nil, false
+}
+
+func MinimumT(n int) int {
+	return (n >> 1) + 1
+}
+
+func isIndexIncluded(list []Node, index uint32) bool {
+	for _, n := range list {
+		if n.Index == index {
+			return true
+		}
+	}
+	return false
+}
+
+func contains(nodes []Index, node Index) bool {
+	for _, idx := range nodes {
+		if node == idx {
+			return true
+		}
+	}
+	return false
+}
+
+// NonceLength is the length of the nonce
+const NonceLength = 32
+
+// GetNonce returns a suitable nonce to feed in the DKG config.
+func GetNonce() []byte {
+	var nonce [NonceLength]byte
+	n, err := rand.Read(nonce[:])
+	if n != NonceLength {
+		panic("could not read enough random bytes for nonce")
+	}
+	if err != nil {
+		panic(err)
+	}
+	return nonce[:]
+}
+
+func (d *DistKeyGenerator) sign(p Packet) ([]byte, error) {
+	msg, err := p.Hash()
+	if err != nil {
+		return nil, err
+	}
+
+	priv := d.c.Longterm
+	return d.c.Auth.Sign(priv, msg)
+}
+
+func (d *DistKeyGenerator) Info(keyvals ...interface{}) {
+	d.c.Info("generator", keyvals)
+}
+
+func (d *DistKeyGenerator) Error(keyvals ...interface{}) {
+	d.c.Info("generator", keyvals)
+}
+
+func (c *Config) Info(keyvals ...interface{}) {
+	if c.Log != nil {
+		c.Log.Info("dkg-log", keyvals)
+	}
+}
+
+func (c *Config) Error(keyvals ...interface{}) {
+	if c.Log != nil {
+		c.Log.Error("dkg-log", keyvals)
+	}
+}
+
+// CheckForDuplicates looks at the lits of node indices in the OldNodes and
+// NewNodes list. It returns an error if there is a duplicate in either list.
+// NOTE: It only looks at indices because it is plausible that one party may
+// have multiple indices for the protocol, i.e. a higher "weight".
+func (c *Config) CheckForDuplicates() error {
+	checkDuplicate := func(list []Node) error {
+		hashSet := make(map[Index]bool)
+		for _, n := range list {
+			if _, present := hashSet[n.Index]; present {
+				return fmt.Errorf("index %d", n.Index)
+			}
+			hashSet[n.Index] = true
+		}
+
+		return nil
+	}
+	if err := checkDuplicate(c.OldNodes); err != nil {
+		return fmt.Errorf("found duplicate in old nodes list: %w", err)
+	}
+	if err := checkDuplicate(c.NewNodes); err != nil {
+		return fmt.Errorf("found duplicate in new nodes list: %w", err)
+	}
+	return nil
 }

@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"go.dedis.ch/kyber/v3/group/edwards25519"
+	"go.dedis.ch/kyber/v4/group/edwards25519"
 )
 
 var s = edwards25519.NewBlakeSHA256Ed25519()
@@ -21,8 +21,8 @@ func ErrFatal(err error) {
 func TestPubHexStream(t *testing.T) {
 	b := &bytes.Buffer{}
 	p := s.Point().Pick(s.RandomStream())
-	ErrFatal(WriteHexPoint(s, b, p))
-	ErrFatal(WriteHexPoint(s, b, p))
+	ErrFatal(WriteHexPoint(b, p))
+	ErrFatal(WriteHexPoint(b, p))
 	p2, err := ReadHexPoint(s, b)
 	ErrFatal(err)
 	require.Equal(t, p.String(), p2.String())
@@ -73,7 +73,7 @@ type MockEmptyReader struct {
 func (m *MockFailingReader) Read(p []byte) (n int, err error) {
 	return copy(p, m.data), io.EOF
 }
-func (m *MockEmptyReader) Read(p []byte) (n int, err error) {
+func (m *MockEmptyReader) Read(_ []byte) (n int, err error) {
 	return 0, nil
 }
 

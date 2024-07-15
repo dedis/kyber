@@ -36,10 +36,10 @@ type Marshaling interface {
 // will have different constraints, of course. Two implementations are
 // available:
 //
-//   1. The protobuf encoding using the variable length Google Protobuf encoding
-//      scheme. The library is available at https://go.dedis.ch/protobuf
-//   2. The fixbuf encoding, a fixed length binary encoding of arbitrary
-//      structures. The library is available at https://go.dedis.ch/fixbuf.
+//  1. The protobuf encoding using the variable length Google Protobuf encoding
+//     scheme. The library is available at https://go.dedis.ch/protobuf
+//  2. The fixbuf encoding, a fixed length binary encoding of arbitrary
+//     structures. The library is available at https://go.dedis.ch/fixbuf.
 type Encoding interface {
 	// Encode and write objects to an io.Writer.
 	Write(w io.Writer, objs ...interface{}) error

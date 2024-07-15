@@ -16,15 +16,22 @@ package edwards25519
 
 import (
 	"crypto/cipher"
+	"crypto/sha512"
 	"encoding/hex"
 	"errors"
+	"fmt"
+	"hash"
 	"io"
+	"math"
+	"math/big"
 
-	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/kyber/v3/group/internal/marshalling"
+	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v4/group/internal/marshalling"
+	"golang.org/x/crypto/sha3"
 )
 
 var marshalPointID = [8]byte{'e', 'd', '.', 'p', 'o', 'i', 'n', 't'}
+var longDomainSeparator = "H2C-OVERSIZE-DST-"
 
 type point struct {
 	ge      extendedGroupElement
@@ -178,8 +185,8 @@ func (P *point) Data() ([]byte, error) {
 }
 
 func (P *point) Add(P1, P2 kyber.Point) kyber.Point {
-	E1 := P1.(*point)
-	E2 := P2.(*point)
+	E1 := P1.(*point) //nolint:errcheck // V4 may bring better error handling
+	E2 := P2.(*point) //nolint:errcheck // V4 may bring better error handling
 
 	var t2 cachedGroupElement
 	var r completedGroupElement
@@ -192,8 +199,8 @@ func (P *point) Add(P1, P2 kyber.Point) kyber.Point {
 }
 
 func (P *point) Sub(P1, P2 kyber.Point) kyber.Point {
-	E1 := P1.(*point)
-	E2 := P2.(*point)
+	E1 := P1.(*point) //nolint:errcheck // V4 may bring better error handling
+	E2 := P2.(*point) //nolint:errcheck // V4 may bring better error handling
 
 	var t2 cachedGroupElement
 	var r completedGroupElement
@@ -238,6 +245,8 @@ func (P *point) Mul(s kyber.Scalar, A kyber.Point) kyber.Point {
 //
 // This is the same code as in
 // https://github.com/jedisct1/libsodium/blob/4744636721d2e420f8bbe2d563f31b1f5e682229/src/libsodium/crypto_core/ed25519/ref10/ed25519_ref10.c#L1170
+//
+//nolint:lll // Url above
 func (P *point) HasSmallOrder() bool {
 	s, err := P.MarshalBinary()
 	if err != nil {
@@ -274,6 +283,8 @@ func (P *point) HasSmallOrder() bool {
 //
 // The method accepts a buffer instead of calling `MarshalBinary` on the receiver
 // because that always returns a value modulo `prime`.
+//
+//nolint:lll // Url above
 func (P *point) IsCanonical(s []byte) bool {
 	if len(s) != 32 {
 		return false
@@ -289,4 +300,321 @@ func (P *point) IsCanonical(s []byte) bool {
 	d := byte((0xed - 1 - uint16(s[0])) >> 8)
 
 	return 1-(c&d&1) == 1
+}
+
+func (P *point) Hash(m []byte, dst string) kyber.Point {
+	u := hashToField(m, dst, 2)
+	q0 := mapToCurveElligator2Ed25519(u[0])
+	q1 := mapToCurveElligator2Ed25519(u[1])
+	P.Add(q0, q1)
+
+	// Clear cofactor
+	P.Mul(cofactorScalar, P)
+
+	return P
+}
+
+func hashToField(m []byte, dst string, count int) []fieldElement {
+	// L param in RFC9380 section 5
+	// https://datatracker.ietf.org/doc/html/rfc9380#name-hashing-to-a-finite-field
+	l := 48
+	byteLen := count * l
+	uniformBytes, _ := expandMessageXMD(sha512.New(), m, dst, byteLen)
+
+	u := make([]fieldElement, count)
+	for i := 0; i < count; i++ {
+		elmOffset := l * i
+		tv := big.NewInt(0).SetBytes(uniformBytes[elmOffset : elmOffset+l])
+		tv = tv.Mod(tv, prime)
+		fe := fieldElement{}
+		feFromBn(&fe, tv)
+		u[i] = fe
+	}
+
+	return u
+}
+
+func expandMessageXMD(h hash.Hash, m []byte, domainSeparator string, byteLen int) ([]byte, error) {
+	r := float64(byteLen) / float64(h.Size()>>3)
+	ell := int(math.Ceil(r))
+	if ell > 255 || ell < 0 || byteLen > 65535 || len(domainSeparator) == 0 {
+		return nil, errors.New("invalid parameters")
+	}
+
+	if len(domainSeparator) > 255 {
+		h.Reset()
+		h.Write([]byte(longDomainSeparator))
+		h.Write([]byte(domainSeparator))
+
+		domainSeparator = string(h.Sum(nil))
+	}
+
+	padDom, err := i2OSP(len(domainSeparator), 1)
+	if err != nil {
+		return nil, err
+	}
+
+	dstPrime := append([]byte(domainSeparator), padDom...)
+	byteLenStr, _ := i2OSP(byteLen, 2)
+	zeroPad, _ := i2OSP(0, 1)
+	zPad, _ := i2OSP(0, h.BlockSize())
+
+	// mPrime = Z_pad || msg || l_i_b_str || I2OSP(0, 1) || DST_prim
+	mPrime := make([]byte, 0, len(zPad)+len(m)+len(byteLenStr)+len(zeroPad)+len(dstPrime))
+	mPrime = append(mPrime, zPad...)
+	mPrime = append(mPrime, m...)
+	mPrime = append(mPrime, byteLenStr...)
+	mPrime = append(mPrime, zeroPad...)
+	mPrime = append(mPrime, dstPrime...)
+
+	// b0 = H(msg_prime)
+	h.Reset()
+	h.Write([]byte(mPrime))
+	b0 := h.Sum(nil)
+
+	// b_1 = H(b_0 || I2OSP(1, 1) || DST_prime)
+	h.Reset()
+	h.Write(b0)
+	onePad, _ := i2OSP(1, 1)
+	h.Write([]byte(onePad))
+	h.Write([]byte(dstPrime))
+	b1 := h.Sum(nil)
+
+	bFinal := make([]byte, 0, len(b1)*(ell+1))
+	bFinal = append(bFinal, b1...)
+	bPred := b1
+	for i := 2; i <= ell; i++ {
+		x, err := byteXor(bPred, b0, bPred)
+		if err != nil {
+			return nil, err
+		}
+		ithPad, _ := i2OSP(i, 1)
+
+		h.Reset()
+		h.Write(x)
+		h.Write(ithPad)
+		h.Write(dstPrime)
+
+		bPred = h.Sum(nil)
+		bFinal = append(bFinal, bPred...)
+	}
+
+	return bFinal[:byteLen], nil
+}
+
+func expandMessageXOF(h sha3.ShakeHash, m []byte, domainSeparator string, byteLen int) ([]byte, error) {
+	if byteLen > 65535 || len(domainSeparator) == 0 {
+		return nil, errors.New("invalid parameters")
+	}
+
+	if len(domainSeparator) > 255 {
+		outputSize := h.Size()
+
+		h.Reset()
+		h.Write([]byte(longDomainSeparator))
+		h.Write([]byte(domainSeparator))
+
+		dst := make([]byte, outputSize)
+		n, err := h.Read(dst)
+		if err != nil {
+			return nil, err
+		}
+
+		if n != outputSize {
+			return nil, fmt.Errorf("read %d byte instead of expected %d from xof", n, byteLen)
+		}
+
+		domainSeparator = string(dst)
+	}
+
+	dstPad, err := i2OSP(len(domainSeparator), 1)
+	if err != nil {
+		return nil, err
+	}
+
+	lenPad, err := i2OSP(byteLen, 2)
+	if err != nil {
+		return nil, err
+	}
+
+	dstPrime := append([]byte(domainSeparator), dstPad...)
+
+	h.Reset()
+	h.Write(m)
+	h.Write(lenPad)
+	h.Write(dstPrime)
+
+	uniformBytes := make([]byte, byteLen)
+	n, err := h.Read(uniformBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	if n != byteLen {
+		return nil, fmt.Errorf("read %d byte instead of expected %d from xof", n, byteLen)
+	}
+
+	return uniformBytes, nil
+}
+
+func i2OSP(x int, xLen int) ([]byte, error) {
+	b := big.NewInt(int64(x))
+	s := b.Bytes()
+	if len(s) > xLen {
+		return nil, fmt.Errorf("input %d superior to max length %d", len(s), xLen)
+	}
+
+	pad := make([]byte, (xLen - len(s)))
+	return append(pad, s...), nil
+}
+
+func byteXor(dst, b1, b2 []byte) ([]byte, error) {
+	if !(len(dst) == len(b1) && len(b2) == len(b1)) {
+		return nil, errors.New("incompatible lengths")
+	}
+
+	for i := 0; i < len(dst); i++ {
+		dst[i] = b1[i] ^ b2[i]
+	}
+
+	return dst, nil
+}
+
+// curve25519Elligator2 implements a map from fieldElement to a point on Curve25519
+// as defined in section G.2.1. of [RFC9380]
+// [RFC9380]: https://datatracker.ietf.org/doc/html/rfc9380#ell2-opt
+//
+//nolint:funlen
+func curve25519Elligator2(u fieldElement) (xn, xd, yn, yd fieldElement) {
+	// Some const needed
+	var one fieldElement
+	feOne(&one)
+
+	j := fieldElement{486662, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+
+	// c1 = (q + 3) / 8
+	// c2 = 2^c1
+	// c3 = sqrt(-1)
+	// c4 = (q - 5) / 8
+	// Computed with sagemath
+	c2 := fieldElement{34513073, 25610706, 9377949, 3500415, 12389472, 33281959, 41962654, 31548777, 326685, 11406482}
+	c3 := fieldElement{34513072, 25610706, 9377949, 3500415, 12389472, 33281959, 41962654, 31548777, 326685, 11406482}
+	c4, _ := new(big.Int).SetString("7237005577332262213973186563042994240829374041602535252466099000494570602493", 10)
+
+	// Temporary variables
+	var tv1, tv2, tv3, x1n, gxd, gx1, gx2 fieldElement
+	var y, y1, y2, y11, y12, y21, y22, x2n fieldElement
+	var e1, e2, e3, e4 int32
+
+	feSquare2(&tv1, &u)     // tv1 = 2 * u^2
+	feAdd(&xd, &one, &tv1)  // xd = 1 + tv1
+	feNeg(&x1n, &j)         // x1n = -J
+	feSquare(&tv2, &xd)     // tv2 = xd^2
+	feMul(&gxd, &tv2, &xd)  // gxd = tv2 * xd
+	feMul(&gx1, &j, &tv1)   // gx1 = J * tv1
+	feMul(&gx1, &gx1, &x1n) // gx1 = gx1 * x1n
+	feAdd(&gx1, &gx1, &tv2) // gx1 = gx1 + tv2
+	feMul(&gx1, &gx1, &x1n) // gx1 = gx1 * x1n
+	feSquare(&tv3, &gxd)    // tv3 = gxd^2
+	feSquare(&tv2, &tv3)    // tv2 = tv3^2
+	feMul(&tv3, &tv3, &gxd) // tv3 = tv3 * gxd
+	feMul(&tv3, &tv3, &gx1) // tv3 = tv3 * gx1
+	feMul(&tv2, &tv2, &tv3) // tv2 = tv2 * tv3
+
+	// compute y11 = tv2 ^ c4
+	tv2Big := big.NewInt(0)
+	feToBn(tv2Big, &tv2)
+	y11Big := big.NewInt(0).Exp(tv2Big, c4, prime)
+	feFromBn(&y11, y11Big)
+
+	feMul(&y11, &y11, &tv3) // y11 = y11 * tv3
+	feMul(&y12, &y11, &c3)  // y12 = y11 * c3
+	feSquare(&tv2, &y11)    // tv2 = y11^2
+	feMul(&tv2, &tv2, &gxd) // tv2 = tv2 * gxd
+
+	// y1 = y11 if e1 == 1 else y12
+	if tv2 == gx1 {
+		e1 = 1
+	}
+	feCopy(&y1, &y12)
+	feCMove(&y1, &y11, e1)
+
+	feMul(&x2n, &x1n, &tv1) // x2n = x1n * tv1
+	feMul(&y21, &y11, &u)   // y21 = y11 * u
+	feMul(&y21, &y21, &c2)  // y21 = y21 * c2
+	feMul(&y22, &y21, &c3)  // y22 = y21 * c3
+	feMul(&gx2, &gx1, &tv1) // gx2 = gx1 * tv1
+	feSquare(&tv2, &y21)    // tv2 = y21^2
+	feMul(&tv2, &tv2, &gxd) // tv2 = tv2 * gxd
+
+	// y2 = y21 if e == 1 else y22
+	if tv2 == gx2 {
+		e2 = 1
+	}
+	feCopy(&y2, &y22)
+	feCMove(&y2, &y21, e2)
+
+	feSquare(&tv2, &y1)     // tv2 = y1^2
+	feMul(&tv2, &tv2, &gxd) // tv2 = tv2 * gxd
+
+	// xn = x1n if e3 == 1 else x2n
+	if tv2 == gx1 {
+		e3 = 1
+	}
+	feCopy(&xn, &x2n)
+	feCMove(&xn, &x1n, e3)
+
+	// y = y1 if e4 == 1 else y2
+	feCopy(&y, &y2)
+	feCMove(&y, &y1, e3)
+	e4 = int32(feIsNegative(&y))
+
+	var yNeg fieldElement
+	feNeg(&yNeg, &y)          // yNeg = -y
+	feCMove(&y, &yNeg, e3^e4) // y = yNeg if e3 XOR e4 == 1 else y
+
+	return xn, xd, y, one
+}
+
+// mapToCurveElligator2Ed25519 implements a map from fieldElement to a point on ed25519
+// as defined in section G.2.2. of [RFC9380]
+// [RFC9380]: https://datatracker.ietf.org/doc/html/rfc9380#ell2-opt
+func mapToCurveElligator2Ed25519(u fieldElement) kyber.Point {
+	var xn, xd, yn, yd fieldElement
+	var zero, one, tv1 fieldElement
+	var e int32
+	feOne(&one)
+
+	// c = sqrt(-486664)
+	// computed using sagemath
+	c := fieldElement{-12222970, -8312128, -11511410, 9067497, -15300785, -241793, 25456130, 14121551, -12187136, 3972024}
+
+	xMn, xMd, yMn, yMd := curve25519Elligator2(u)
+
+	feMul(&xn, &xMn, &yMd) // xn = xMn * yMd
+	feMul(&xn, &xn, &c)    // xn = xn * c
+	feMul(&xd, &xMd, &yMn) // xd = xMd * yMn
+	feSub(&yn, &xMn, &xMd) // yn = xMn - xMd
+	feAdd(&yd, &xMn, &xMd) // yd = xMn + xMd
+	feMul(&tv1, &xd, &yd)  // tv1 = xd * yd
+	if tv1 == zero {
+		e = 1
+	}
+
+	feCMove(&xn, &zero, e) // xn = 0 if e == 1 else xn
+	feCMove(&xd, &one, e)  // xd = 1 if e == 1 else xd
+	feCMove(&yn, &one, e)  // yn = 1 if e == 1 else yn
+	feCMove(&yd, &one, e)  // yd = 1 if e == 1 else yd
+
+	p := completedGroupElement{
+		X: xn,
+		Y: yn,
+		Z: xd,
+		T: yd,
+	}
+
+	q := new(point)
+	p.ToExtended(&q.ge)
+
+	return q
 }

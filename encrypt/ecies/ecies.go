@@ -9,8 +9,8 @@ import (
 	"errors"
 	"hash"
 
-	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/kyber/v3/util/random"
+	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v4/util/random"
 	"golang.org/x/crypto/hkdf"
 )
 
@@ -36,13 +36,13 @@ func Encrypt(group kyber.Group, public kyber.Point, message []byte, hash func() 
 	// ephemeral key for every ECIES encryption and thus have a fresh
 	// HKDF-derived key for AES-GCM, the nonce for AES-GCM can be an arbitrary
 	// (even static) value. We derive it here simply via HKDF as well.)
-	len := 32 + 12
-	buf, err := deriveKey(hash, dh, len)
+	keyNonceLen := 32 + 12
+	buf, err := deriveKey(hash, dh, keyNonceLen)
 	if err != nil {
 		return nil, err
 	}
 	key := buf[:32]
-	nonce := buf[32:len]
+	nonce := buf[32:keyNonceLen]
 
 	// Encrypt message using AES-GCM
 	aes, err := aes.NewCipher(key)
@@ -82,19 +82,22 @@ func Decrypt(group kyber.Group, private kyber.Scalar, ctx []byte, hash func() ha
 	// Reconstruct the ephemeral elliptic curve point
 	R := group.Point()
 	l := group.PointLen()
+	if len(ctx) < l {
+		return nil, errors.New("invalid ecies cipher")
+	}
 	if err := R.UnmarshalBinary(ctx[:l]); err != nil {
 		return nil, err
 	}
 
 	// Compute shared DH key and derive the symmetric key and nonce via HKDF
 	dh := group.Point().Mul(private, R)
-	len := 32 + 12
-	buf, err := deriveKey(hash, dh, len)
+	keyNonceLen := 32 + 12
+	buf, err := deriveKey(hash, dh, keyNonceLen)
 	if err != nil {
 		return nil, err
 	}
 	key := buf[:32]
-	nonce := buf[32:len]
+	nonce := buf[32:keyNonceLen]
 
 	// Decrypt message using AES-GCM
 	aes, err := aes.NewCipher(key)
@@ -108,18 +111,18 @@ func Decrypt(group kyber.Group, private kyber.Scalar, ctx []byte, hash func() ha
 	return aesgcm.Open(nil, nonce, ctx[l:], nil)
 }
 
-func deriveKey(hash func() hash.Hash, dh kyber.Point, len int) ([]byte, error) {
+func deriveKey(hash func() hash.Hash, dh kyber.Point, l int) ([]byte, error) {
 	dhb, err := dh.MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
 	hkdf := hkdf.New(hash, dhb, nil, nil)
-	key := make([]byte, len, len)
+	key := make([]byte, l)
 	n, err := hkdf.Read(key)
 	if err != nil {
 		return nil, err
 	}
-	if n < len {
+	if n < l {
 		return nil, errors.New("ecies: hkdf-derived key too short")
 	}
 	return key, nil

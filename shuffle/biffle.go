@@ -3,9 +3,9 @@ package shuffle
 import (
 	"crypto/cipher"
 
-	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/kyber/v3/proof"
-	"go.dedis.ch/kyber/v3/util/random"
+	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v4/proof"
+	"go.dedis.ch/kyber/v4/util/random"
 )
 
 func bifflePred() proof.Predicate {
@@ -77,7 +77,7 @@ func Biffle(suite Suite, G, H kyber.Point,
 	points := bifflePoints(suite, G, H, X, Y, Xbar, Ybar)
 	choice := map[proof.Predicate]int{or: bit}
 	prover = or.Prover(suite, secrets, points, choice)
-	return
+	return Xbar, Ybar, prover
 }
 
 // BiffleVerifier returns a verifier of the biffle

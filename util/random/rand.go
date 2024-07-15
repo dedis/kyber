@@ -10,7 +10,7 @@ import (
 	"io"
 	"math/big"
 
-	"go.dedis.ch/kyber/v3/xof/blake2xb"
+	"go.dedis.ch/kyber/v4/xof/blake2xb"
 )
 
 // Bits chooses a uniform random BigInt with a given maximum BitLen.
@@ -65,20 +65,20 @@ func (r *randstream) XORKeyStream(dst, src []byte) {
 
 	// try to read readerBytes bytes from all readers and write them in a buffer
 	var b bytes.Buffer
-	var nerr int
+	var errors []string
 	buff := make([]byte, readerBytes)
 	for _, reader := range r.Readers {
 		n, err := io.ReadFull(reader, buff)
 		if err != nil {
-			nerr++
+			errors = append(errors, err.Error())
 		}
 		b.Write(buff[:n])
 	}
 
 	// we are ok with few sources being insecure (i.e., providing less than
 	// readerBytes bytes), but not all of them
-	if nerr == len(r.Readers) {
-		panic("all readers failed")
+	if len(errors) == len(r.Readers) {
+		panic(errors)
 	}
 
 	// create the XOF output, with hash of collected data as seed
