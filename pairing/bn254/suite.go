@@ -132,10 +132,13 @@ func (s *Suite) Pair(p1 kyber.Point, p2 kyber.Point) kyber.Point {
 	return s.GT().Point().(*pointGT).Pair(p1, p2)
 }
 
+// NB: Not safe for concurrent calls
 func (s *Suite) ValidatePairing(p1, p2, inv1, inv2 kyber.Point) bool {
-	p2.(*pointG2).g.MakeAffine()
-	inv2.(*pointG2).g.MakeAffine()
-	return s.Pair(p1, p2).Equal(s.Pair(inv1, inv2))
+	p2Norm := p2.Clone()
+	inv2Norm := inv2.Clone()
+	p2Norm.(*pointG2).g.MakeAffine()
+	inv2Norm.(*pointG2).g.MakeAffine()
+	return s.Pair(p1, p2Norm).Equal(s.Pair(inv1, inv2Norm))
 }
 
 // Not used other than for reflect.TypeOf()
