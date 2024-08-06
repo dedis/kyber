@@ -276,11 +276,6 @@ issues:
     - path: "group/edwards25519/scalar.go"
       linters:
         - ineffassign
-    - path: "pairing|group"
-      linters:
-        - revive
-        - stylecheck
-      text: "var-naming: don't use an underscore in package name|ST1003: should not use underscores in package names"
     - path: "pairing/(circl_bls12381|bn254)/."
       linters:
         - errcheck #TODO: proper error handling
