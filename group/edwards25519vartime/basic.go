@@ -1,7 +1,7 @@
 //go:build experimental
 // +build experimental
 
-package var_ed25519
+package edwards25519vartime
 
 import (
 	"crypto/cipher"

@@ -7,8 +7,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.dedis.ch/kyber/v4"
 	"go.dedis.ch/kyber/v4/group/edwards25519"
+	"go.dedis.ch/kyber/v4/group/edwards25519vartime"
 	"go.dedis.ch/kyber/v4/group/p256"
-	"go.dedis.ch/kyber/v4/group/var_ed25519"
 	"go.dedis.ch/kyber/v4/util/random"
 )
 
@@ -54,8 +54,8 @@ func BenchmarkECIES(b *testing.B) {
 		kyber.Group
 	}{
 		{edwards25519.NewBlakeSHA256Ed25519()},
-		{var_ed25519.NewBlakeSHA256Ed25519(false)},
-		{var_ed25519.NewBlakeSHA256Ed25519(true)},
+		{edwards25519vartime.NewBlakeSHA256Ed25519(false)},
+		{edwards25519vartime.NewBlakeSHA256Ed25519(true)},
 		{p256.NewBlakeSHA256P256()},
 		{p256.NewBlakeSHA256QR512()},
 	}

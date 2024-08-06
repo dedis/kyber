@@ -8,8 +8,8 @@ import (
 
 	"go.dedis.ch/kyber/v4"
 	"go.dedis.ch/kyber/v4/group/edwards25519"
+	"go.dedis.ch/kyber/v4/group/edwards25519vartime"
 	"go.dedis.ch/kyber/v4/group/p256"
-	"go.dedis.ch/kyber/v4/group/var_ed25519"
 	"go.dedis.ch/kyber/v4/xof/blake2xb"
 )
 
@@ -256,8 +256,8 @@ func BenchmarkProof(b *testing.B) {
 		Suite
 	}{
 		{edwards25519.NewBlakeSHA256Ed25519()},
-		{var_ed25519.NewBlakeSHA256Ed25519(false)},
-		{var_ed25519.NewBlakeSHA256Ed25519(true)},
+		{edwards25519vartime.NewBlakeSHA256Ed25519(false)},
+		{edwards25519vartime.NewBlakeSHA256Ed25519(true)},
 		{p256.NewBlakeSHA256P256()},
 		{p256.NewBlakeSHA256QR512()},
 	}
