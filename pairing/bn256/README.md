@@ -21,7 +21,7 @@ https://moderncrypto.org/mail-archive/curves/2016/000740.html.
 We strongly recommend using the `BLS12-381` curve that still provide ~128-bit security and is not vulnerable to these improved attacks.
 
 #### Modulo bias in Hash()
-A modulo bias was found in [hashToPoint()](https://github.com/dedis/kyber/blob/9ac80102d756a21f318685e230e33791c44b5e2e/pairing/bn256/point.go#L239), for reason of backward compatibility we did not fix it. This problem was raised in issue [#439](https://github.com/dedis/kyber/issues/439).
+A modulo bias was found in [hashToPoint()](https://github.com/dedis/kyber/blob/9ac80102d756a21f318685e230e33791c44b5e2e/pairing/bn256/point.go#L239), for reason of backward compatibility we did not fix it. This problem was raised in issue [#439](https://github.com/dedis/kyber/issues/439). If backward compatibility is not a problem, and this is really the curve you want to use, a potential workaround is also suggested in the linked issue. Otherwise `BLS12-381` also provides `Hash()` as defined in [RFC9380](https://datatracker.ietf.org/doc/rfc9380/).
 
 ### Benchmarks
 ---
