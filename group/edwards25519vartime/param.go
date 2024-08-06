@@ -1,4 +1,4 @@
-// Package var_ed25519 contains several implementations of Twisted Edwards Curves,
+// Package edwards25519vartime contains several implementations of Twisted Edwards Curves,
 // from general and unoptimized to highly specialized and optimized.
 //
 // Twisted Edwards curves are elliptic curves satisfying the equation:
@@ -10,7 +10,7 @@
 // are isomorphic to curves having c == 1.
 //
 // For details see Bernstein et al, "Twisted Edwards Curves", http://eprint.iacr.org/2008/013.pdf
-package var_ed25519
+package edwards25519vartime
 
 import (
 	"math/big"
@@ -74,7 +74,7 @@ func Param1174() *Param {
 func ParamEd25519() *Param {
 	var p Param
 	var qs big.Int
-	p.Name = "var_ed25519"
+	p.Name = "edwards25519vartime"
 	p.P.SetBit(zero, 255, 1).Sub(&p.P, big.NewInt(19))
 	qs.SetString("27742317777372353535851937790883648493", 10)
 	p.Q.SetBit(zero, 252, 1).Add(&p.Q, &qs)
