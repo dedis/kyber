@@ -12,6 +12,7 @@ package bdn
 import (
 	"crypto/cipher"
 	"errors"
+	"fmt"
 	"math/big"
 
 	"go.dedis.ch/kyber/v4"
@@ -129,23 +130,27 @@ func (scheme *Scheme) Verify(x kyber.Point, msg, sig []byte) error {
 // AggregateSignatures aggregates the signatures using a coefficient for each
 // one of them where c = H(pk) and H: keyGroup -> R with R = {1, ..., 2^128}
 func (scheme *Scheme) AggregateSignatures(sigs [][]byte, mask *sign.Mask) (kyber.Point, error) {
-	if len(sigs) != mask.CountEnabled() {
-		return nil, errors.New("length of signatures and public keys must match")
-	}
-
-	coefs, err := hashPointToR(mask.Publics())
+	publics := mask.Publics()
+	coefs, err := hashPointToR(publics)
 	if err != nil {
 		return nil, err
 	}
-
 	agg := scheme.sigGroup.Point()
-	for i, buf := range sigs {
-		peerIndex := mask.IndexOfNthEnabled(i)
-		if peerIndex < 0 {
-			// this should never happen as we check the lenths at the beginning
-			// an error here is probably a bug in the mask
-			return nil, errors.New("couldn't find the index")
+	for i := range publics {
+		if enabled, err := mask.GetBit(i); err != nil {
+			// this should never happen because of the loop boundary
+			// an error here is probably a bug in the mask implementation
+			return nil, fmt.Errorf("couldn't find the index %d: %w", i, err)
+		} else if !enabled {
+			continue
 		}
+
+		if len(sigs) == 0 {
+			return nil, errors.New("length of signatures and public keys must match")
+		}
+
+		buf := sigs[0]
+		sigs = sigs[1:]
 
 		sig := scheme.sigGroup.Point()
 		err = sig.UnmarshalBinary(buf)
@@ -153,10 +158,14 @@ func (scheme *Scheme) AggregateSignatures(sigs [][]byte, mask *sign.Mask) (kyber
 			return nil, err
 		}
 
-		sigC := sig.Clone().Mul(coefs[peerIndex], sig)
+		sigC := sig.Clone().Mul(coefs[i], sig)
 		// c+1 because R is in the range [1, 2^128] and not [0, 2^128-1]
 		sigC = sigC.Add(sigC, sig)
 		agg = agg.Add(agg, sigC)
+	}
+
+	if len(sigs) > 0 {
+		return nil, errors.New("length of signatures and public keys must match")
 	}
 
 	return agg, nil
@@ -166,22 +175,23 @@ func (scheme *Scheme) AggregateSignatures(sigs [][]byte, mask *sign.Mask) (kyber
 // AggregateSignatures for signatures) using the hash function
 // H: keyGroup -> R with R = {1, ..., 2^128}.
 func (scheme *Scheme) AggregatePublicKeys(mask *sign.Mask) (kyber.Point, error) {
-	coefs, err := hashPointToR(mask.Publics())
+	publics := mask.Publics()
+	coefs, err := hashPointToR(publics)
 	if err != nil {
 		return nil, err
 	}
 
 	agg := scheme.keyGroup.Point()
-	for i := 0; i < mask.CountEnabled(); i++ {
-		peerIndex := mask.IndexOfNthEnabled(i)
-		if peerIndex < 0 {
+	for i, pub := range publics {
+		if enabled, err := mask.GetBit(i); err != nil {
 			// this should never happen because of the loop boundary
 			// an error here is probably a bug in the mask implementation
-			return nil, errors.New("couldn't find the index")
+			return nil, fmt.Errorf("couldn't find the index %d: %w", i, err)
+		} else if !enabled {
+			continue
 		}
 
-		pub := mask.Publics()[peerIndex]
-		pubC := pub.Clone().Mul(coefs[peerIndex], pub)
+		pubC := pub.Clone().Mul(coefs[i], pub)
 		pubC = pubC.Add(pubC, pub)
 		agg = agg.Add(agg, pubC)
 	}

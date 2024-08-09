@@ -58,6 +58,17 @@ func (m *Mask) SetMask(mask []byte) error {
 	return nil
 }
 
+// GetBit returns true if the given bit is set.
+func (m *Mask) GetBit(i int) (bool, error) {
+	if i >= len(m.publics) || i < 0 {
+		return false, errors.New("index out of range")
+	}
+
+	byteIndex := i / 8
+	mask := byte(1) << uint(i&7)
+	return m.mask[byteIndex]&mask != 0, nil
+}
+
 // SetBit turns on or off the bit at the given index.
 func (m *Mask) SetBit(i int, enable bool) error {
 	if i >= len(m.publics) || i < 0 {
