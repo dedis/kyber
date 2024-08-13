@@ -32,23 +32,16 @@ var modulus128 = new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 128), big.NewI
 // We also use the entire roster so that the coefficient will vary for the same
 // public key used in different roster
 func hashPointToR(pubs []kyber.Point) ([]kyber.Scalar, error) {
-	peers := make([][]byte, len(pubs))
-	for i, pub := range pubs {
-		peer, err := pub.MarshalBinary()
-		if err != nil {
-			return nil, err
-		}
-
-		peers[i] = peer
-	}
-
 	h, err := blake2s.NewXOF(blake2s.OutputLengthUnknown, nil)
 	if err != nil {
 		return nil, err
 	}
-
-	for _, peer := range peers {
-		_, err := h.Write(peer)
+	for _, pub := range pubs {
+		peer, err := pub.MarshalBinary()
+		if err != nil {
+			return nil, err
+		}
+		_, err = h.Write(peer)
 		if err != nil {
 			return nil, err
 		}
