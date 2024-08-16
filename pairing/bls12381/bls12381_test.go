@@ -19,6 +19,8 @@ import (
 	"go.dedis.ch/kyber/v4/pairing"
 	circl "go.dedis.ch/kyber/v4/pairing/bls12381/circl"
 	kilic "go.dedis.ch/kyber/v4/pairing/bls12381/kilic"
+	"go.dedis.ch/kyber/v4/sign"
+	"go.dedis.ch/kyber/v4/sign/bdn"
 	"go.dedis.ch/kyber/v4/sign/bls"
 	"go.dedis.ch/kyber/v4/sign/tbls"
 	"go.dedis.ch/kyber/v4/util/random"
@@ -665,14 +667,14 @@ var (
 var result interface{}
 
 func BenchmarkKilic(b *testing.B) {
-	BLSBenchmark(b, "kilic")
+	BDNBenchmark(b, "kilic")
 }
 
 func BenchmarkCircl(b *testing.B) {
-	BLSBenchmark(b, "circl")
+	BDNBenchmark(b, "circl")
 }
 
-func BLSBenchmark(b *testing.B, curveOption string) {
+func BDNBenchmark(b *testing.B, curveOption string) {
 	b.Logf("----------------------")
 	b.Logf("Payload to sign: %d bytes\n", dataSize)
 	b.Logf("Numbers of signatures: %v\n", numSigs)
@@ -700,8 +702,8 @@ func BLSBenchmark(b *testing.B, curveOption string) {
 		panic(fmt.Errorf("invalid curve option: %s", curveOption))
 	}
 
-	schemeOnG1 := bls.NewSchemeOnG1(suite)
-	schemeOnG2 := bls.NewSchemeOnG2(suite)
+	schemeOnG1 := bdn.NewSchemeOnG1(suite)
+	schemeOnG2 := bdn.NewSchemeOnG2(suite)
 
 	maxN := 1
 	for _, s := range numSigs {
@@ -730,23 +732,39 @@ func BLSBenchmark(b *testing.B, curveOption string) {
 		}
 	}
 
+	// Prepare masks for aggregation
+	maskG1, err := sign.NewMask(pubKeysOnG1, pubKeysOnG1[0])
+	if err != nil {
+		panic(err)
+	}
+	maskG2, err := sign.NewMask(pubKeysOnG2, pubKeysOnG2[0])
+	if err != nil {
+		panic(err)
+	}
 	for _, n := range numSigs {
+
 		// Benchmark aggregation of public keys
 		b.Run(fmt.Sprintf("AggregatePublicKeys-G1 on %d signs", n), func(bb *testing.B) {
 			for j := 0; j < bb.N; j++ {
-				result = schemeOnG1.AggregatePublicKeys(pubKeysOnG1[:n]...)
+				result, err = schemeOnG1.AggregatePublicKeys(maskG1)
+				if err != nil {
+					panic(err)
+				}
 			}
 		})
 		b.Run(fmt.Sprintf("AggregatePublicKeys-G2 on %d signs", n), func(bb *testing.B) {
 			for j := 0; j < bb.N; j++ {
-				result = schemeOnG2.AggregatePublicKeys(pubKeysOnG2[:n]...)
+				result, err = schemeOnG2.AggregatePublicKeys(maskG2)
+				if err != nil {
+					panic(err)
+				}
 			}
 		})
 
 		// Benchmark aggregation of signatures
 		b.Run(fmt.Sprintf("AggregateSign-G1 on %d signs", n), func(bb *testing.B) {
 			for j := 0; j < bb.N; j++ {
-				result, err = schemeOnG1.AggregateSignatures(sigsOnG1[:n]...)
+				result, err = schemeOnG1.AggregateSignatures(sigsOnG1[:n], maskG1)
 				if err != nil {
 					panic(err)
 				}
@@ -754,7 +772,7 @@ func BLSBenchmark(b *testing.B, curveOption string) {
 		})
 		b.Run(fmt.Sprintf("AggregateSign-G1 on %d signs", n), func(bb *testing.B) {
 			for j := 0; j < bb.N; j++ {
-				result, err = schemeOnG2.AggregateSignatures(sigsOnG2[:n]...)
+				result, err = schemeOnG2.AggregateSignatures(sigsOnG2[:n], maskG2)
 				if err != nil {
 					panic(err)
 				}
