@@ -674,6 +674,7 @@ func BenchmarkCircl(b *testing.B) {
 	BDNBenchmark(b, "circl")
 }
 
+//nolint: gocyclo,cyclop // breaking this down doesn't make sense
 func BDNBenchmark(b *testing.B, curveOption string) {
 	b.Logf("----------------------")
 	b.Logf("Payload to sign: %d bytes\n", dataSize)
