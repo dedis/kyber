@@ -12,9 +12,9 @@ import (
 	"go.dedis.ch/kyber/v4/util/random"
 )
 
-func PrepareBLS(numSigs int) (suite *bn256.Suite, scheme sign.Scheme,
+func PrepareBLS(numSigs int) (scheme sign.Scheme,
 	publics []kyber.Point, privates []kyber.Scalar, msgs [][]byte, sigs [][]byte) {
-	suite = bn256.NewSuite()
+	suite := bn256.NewSuite()
 	scheme = bls.NewSchemeOnG1(suite)
 
 	publics = make([]kyber.Point, numSigs)
@@ -37,7 +37,7 @@ func PrepareBLS(numSigs int) (suite *bn256.Suite, scheme sign.Scheme,
 		}
 		sigs[i] = sig
 	}
-	return suite, scheme, publics, privates, msgs, sigs
+	return scheme, publics, privates, msgs, sigs
 }
 
 func BenchCreateKeys(b *testing.B, scheme sign.Scheme, n int) {
@@ -60,7 +60,7 @@ func BenchSign(b *testing.B, scheme sign.Scheme, msg []byte, privates []kyber.Sc
 }
 
 func BLSBenchVerify(b *testing.B, sigs [][]byte, scheme sign.Scheme,
-	suite *bn256.Suite, publics []kyber.Point, msgs [][]byte) {
+	publics []kyber.Point, msgs [][]byte) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		for _, p := range publics {
