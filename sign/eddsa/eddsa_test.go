@@ -361,7 +361,7 @@ func TestWycheProof(t *testing.T) {
 	jsonByte, err := io.ReadAll(jsonFile)
 	require.NoError(t, err)
 
-	var wycheproofTestData wycheproof.WycheProofTestV1
+	var wycheproofTestData wycheproof.TestV1
 	err = json.Unmarshal(jsonByte, &wycheproofTestData)
 	require.NoError(t, err)
 

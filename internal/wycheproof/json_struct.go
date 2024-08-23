@@ -1,6 +1,6 @@
 package wycheproof
 
-type WycheProofTestV1 struct {
+type TestV1 struct {
 	Algorithm        string   `json:"algorithm"`
 	Schema           string   `json:"schema"`
 	GeneratorVersion string   `json:"generatorVersion"`
@@ -90,7 +90,7 @@ type TestGroupV1 struct {
 	PkPem string         `json:"publicKeyPem"`
 	PkJwk PublicKeyJwkV1 `json:"publicKeyJwk"`
 
-	Tests []TestV1 `json:"tests"`
+	Tests []Test `json:"tests"`
 }
 
 type PublicKeyV1 struct {
@@ -107,8 +107,8 @@ type PublicKeyJwkV1 struct {
 	X   string `json:"x"`
 }
 
-type TestV1 struct {
-	TcId    int      `json:"tcId"`
+type Test struct {
+	TcID    int      `json:"tcId"`
 	Comment string   `json:"comment"`
 	Flags   []string `json:"flags"`
 	Msg     string   `json:"msg"`
