@@ -351,7 +351,7 @@ func TestGolden(t *testing.T) {
 	}
 }
 
-// Test vectors from: https://github.com/C2SP/wycheproof/blob/master/testvectors_v1/ed25519_test.json
+// Test vectors from: https://github.com/C2SP/wycheproof/blob/0d2dab394df1eb05b0865977f7633d010a98bccd/testvectors_v1/ed25519_test.json
 func TestWycheProof(t *testing.T) {
 	// Open Json and parse content
 	jsonFile, err := os.Open("testdata/ed25519_test.json")
