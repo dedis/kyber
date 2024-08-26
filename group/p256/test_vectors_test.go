@@ -1,7 +1,7 @@
 package p256
 
 // Data from: http://point-at-infinity.org/ecc/nisttv
-var BasePointScalarMult = []struct {
+var basePointScalarMult = []struct {
 	K string
 	X string
 	Y string
