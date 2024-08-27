@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v4/pairing/bls12381/kilic"
 	"go.dedis.ch/kyber/v4/pairing/bn256"
 	"go.dedis.ch/kyber/v4/sign"
 	"go.dedis.ch/kyber/v4/sign/bls"
@@ -158,6 +159,46 @@ func Benchmark_BDN_AggregateSigs(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		AggregateSignatures(suite, [][]byte{sig1, sig2}, mask)
+	}
+}
+
+func Benchmark_BDN_BLS12381_AggregateVerify(b *testing.B) {
+	suite := kilic.NewBLS12381Suite()
+	schemeOnG2 := NewSchemeOnG2(suite)
+
+	rng := random.New()
+	pubKeys := make([]kyber.Point, 3000)
+	privKeys := make([]kyber.Scalar, 3000)
+	for i := range pubKeys {
+		privKeys[i], pubKeys[i] = schemeOnG2.NewKeyPair(rng)
+	}
+
+	baseMask, err := sign.NewMask(pubKeys, nil)
+	require.NoError(b, err)
+	mask, err := NewCachedMask(baseMask)
+	require.NoError(b, err)
+	for i := range pubKeys {
+		require.NoError(b, mask.SetBit(i, true))
+	}
+
+	msg := []byte("Hello many times Boneh-Lynn-Shacham")
+	sigs := make([][]byte, len(privKeys))
+	for i, k := range privKeys {
+		s, err := schemeOnG2.Sign(k, msg)
+		require.NoError(b, err)
+		sigs[i] = s
+	}
+
+	sig, err := schemeOnG2.AggregateSignatures(sigs, mask)
+	require.NoError(b, err)
+	sigb, err := sig.MarshalBinary()
+	require.NoError(b, err)
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		pk, err := schemeOnG2.AggregatePublicKeys(mask)
+		require.NoError(b, err)
+		require.NoError(b, schemeOnG2.Verify(pk, msg, sigb))
 	}
 }
 
