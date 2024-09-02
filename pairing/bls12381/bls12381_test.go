@@ -734,22 +734,27 @@ func BDNBenchmark(b *testing.B, curveOption string) {
 	}
 
 	// Prepare masks for aggregation
-	maskG1, err := sign.NewMask(pubKeysOnG1, pubKeysOnG1[0])
+	maskG1, err := sign.NewMask(pubKeysOnG1, nil)
 	if err != nil {
 		panic(err)
 	}
-	maskG2, err := sign.NewMask(pubKeysOnG2, pubKeysOnG2[0])
+	maskG2, err := sign.NewMask(pubKeysOnG2, nil)
 	if err != nil {
 		panic(err)
 	}
+
 	for _, n := range numSigs {
+		for i := 0; i < n; i++ {
+			maskG1.SetBit(i, true)
+			maskG2.SetBit(i, true)
+		}
 
 		// Benchmark aggregation of public keys
 		b.Run(fmt.Sprintf("AggregatePublicKeys-G1 on %d signs", n), func(bb *testing.B) {
 			for j := 0; j < bb.N; j++ {
 				result, err = schemeOnG1.AggregatePublicKeys(maskG1)
 				if err != nil {
-					panic(err)
+					require.NoError(b, err)
 				}
 			}
 		})
@@ -771,7 +776,7 @@ func BDNBenchmark(b *testing.B, curveOption string) {
 				}
 			}
 		})
-		b.Run(fmt.Sprintf("AggregateSign-G1 on %d signs", n), func(bb *testing.B) {
+		b.Run(fmt.Sprintf("AggregateSign-G2 on %d signs", n), func(bb *testing.B) {
 			for j := 0; j < bb.N; j++ {
 				result, err = schemeOnG2.AggregateSignatures(sigsOnG2[:n], maskG2)
 				if err != nil {
