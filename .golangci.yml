@@ -96,6 +96,7 @@ linters-settings:
     excludes:
       - G107 # variables in URLs
       - G404 # use of weak random generator
+      - G115 # Disable for now due to the *many* warnings
 
   gocritic:
     disabled-checks:

@@ -363,13 +363,13 @@ func (i *Int) UnmarshalFrom(r io.Reader) (int, error) {
 // BigEndian encodes the value of this Int into a big-endian byte-slice
 // at least min bytes but no more than max bytes long.
 // Panics if max != 0 and the Int cannot be represented in max bytes.
-func (i *Int) BigEndian(min, max int) []byte {
+func (i *Int) BigEndian(minBytes, maxBytes int) []byte {
 	act := i.MarshalSize()
 	pad, ofs := act, 0
-	if pad < min {
-		pad, ofs = min, min-act
+	if pad < minBytes {
+		pad, ofs = minBytes, minBytes-act
 	}
-	if max != 0 && pad > max {
+	if maxBytes != 0 && pad > maxBytes {
 		panic("Int not representable in max bytes")
 	}
 	buf := make([]byte, pad)
@@ -392,7 +392,7 @@ func (i *Int) SetBytes(a []byte) kyber.Scalar {
 // LittleEndian encodes the value of this Int into a little-endian byte-slice
 // at least min bytes but no more than max bytes long.
 // Panics if max != 0 and the Int cannot be represented in max bytes.
-func (i *Int) LittleEndian(min, max int) []byte {
+func (i *Int) LittleEndian(minByte, maxBytes int) []byte {
 	act := i.MarshalSize()
 	vBytes := i.V.Bytes()
 	vSize := len(vBytes)
@@ -400,10 +400,10 @@ func (i *Int) LittleEndian(min, max int) []byte {
 		act = vSize
 	}
 	pad := act
-	if pad < min {
-		pad = min
+	if pad < minByte {
+		pad = minByte
 	}
-	if max != 0 && pad > max {
+	if maxBytes != 0 && pad > maxBytes {
 		panic("Int not representable in max bytes")
 	}
 	buf := make([]byte, pad)

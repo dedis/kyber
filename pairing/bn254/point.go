@@ -289,10 +289,11 @@ func mapToPoint(domain []byte, u *gfP) kyber.Point {
 // Borrowed from: https://github.com/kilic/bls12-381/blob/master/hash_to_field.go
 func expandMsgXmdKeccak256(domain, msg []byte, outLen int) []byte {
 	h := sha3.NewLegacyKeccak256()
-	domainLen := uint8(len(domain))
-	if domainLen > 255 {
+	if len(domain) > 255 {
 		panic("invalid domain length")
 	}
+	domainLen := uint8(len(domain))
+
 	// DST_prime = DST || I2OSP(len(DST), 1)
 	// b_0 = H(Z_pad || msg || l_i_b_str || I2OSP(0, 1) || DST_prime)
 	_, _ = h.Write(make([]byte, h.BlockSize()))
