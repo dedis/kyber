@@ -7,6 +7,7 @@ import (
 	"go.dedis.ch/kyber/v4/sign"
 )
 
+//nolint:interfacebloat
 type Mask interface {
 	GetBit(i int) (bool, error)
 	SetBit(i int, enable bool) error
