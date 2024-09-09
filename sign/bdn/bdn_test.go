@@ -10,7 +10,6 @@ import (
 	"go.dedis.ch/kyber/v4"
 	"go.dedis.ch/kyber/v4/pairing/bls12381/kilic"
 	"go.dedis.ch/kyber/v4/pairing/bn256"
-	"go.dedis.ch/kyber/v4/sign"
 	"go.dedis.ch/kyber/v4/sign/bls"
 	"go.dedis.ch/kyber/v4/util/random"
 )
@@ -33,7 +32,7 @@ func TestBDN_HashPointToR_BN256(t *testing.T) {
 	require.Equal(t, "933f6013eb3f654f9489d6d45ad04eaf", coefs[2].String())
 	require.Equal(t, 16, coefs[0].MarshalSize())
 
-	mask, _ := sign.NewMask([]kyber.Point{p1, p2, p3}, nil)
+	mask, _ := NewMask([]kyber.Point{p1, p2, p3}, nil)
 	mask.SetBit(0, true)
 	mask.SetBit(1, true)
 	mask.SetBit(2, true)
@@ -57,7 +56,7 @@ func TestBDN_AggregateSignatures(t *testing.T) {
 	sig2, err := Sign(suite, private2, msg)
 	require.NoError(t, err)
 
-	mask, _ := sign.NewMask([]kyber.Point{public1, public2}, nil)
+	mask, _ := NewMask([]kyber.Point{public1, public2}, nil)
 	mask.SetBit(0, true)
 	mask.SetBit(1, true)
 
@@ -95,7 +94,7 @@ func TestBDN_SubsetSignature(t *testing.T) {
 	sig2, err := Sign(suite, private2, msg)
 	require.NoError(t, err)
 
-	mask, _ := sign.NewMask([]kyber.Point{public1, public3, public2}, nil)
+	mask, _ := NewMask([]kyber.Point{public1, public3, public2}, nil)
 	mask.SetBit(0, true)
 	mask.SetBit(2, true)
 
@@ -134,7 +133,7 @@ func TestBDN_RogueAttack(t *testing.T) {
 	require.NoError(t, scheme.Verify(agg, msg, sig))
 
 	// New scheme that should detect
-	mask, _ := sign.NewMask(pubs, nil)
+	mask, _ := NewMask(pubs, nil)
 	mask.SetBit(0, true)
 	mask.SetBit(1, true)
 	agg, err = AggregatePublicKeys(suite, mask)
@@ -152,7 +151,7 @@ func Benchmark_BDN_AggregateSigs(b *testing.B) {
 	sig2, err := Sign(suite, private2, msg)
 	require.Nil(b, err)
 
-	mask, _ := sign.NewMask([]kyber.Point{public1, public2}, nil)
+	mask, _ := NewMask([]kyber.Point{public1, public2}, nil)
 	mask.SetBit(0, true)
 	mask.SetBit(1, false)
 
@@ -173,9 +172,7 @@ func Benchmark_BDN_BLS12381_AggregateVerify(b *testing.B) {
 		privKeys[i], pubKeys[i] = schemeOnG2.NewKeyPair(rng)
 	}
 
-	baseMask, err := sign.NewMask(pubKeys, nil)
-	require.NoError(b, err)
-	mask, err := NewCachedMask(baseMask)
+	mask, err := NewMask(pubKeys, nil)
 	require.NoError(b, err)
 	for i := range pubKeys {
 		require.NoError(b, mask.SetBit(i, true))
@@ -246,7 +243,7 @@ func TestBDNFixtures(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, sig3Exp, sig3)
 
-	mask, _ := sign.NewMask([]kyber.Point{public1, public2, public3}, nil)
+	mask, _ := NewMask([]kyber.Point{public1, public2, public3}, nil)
 	mask.SetBit(0, true)
 	mask.SetBit(1, false)
 	mask.SetBit(2, true)

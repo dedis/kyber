@@ -1,4 +1,4 @@
-package sign
+package bdn
 
 import (
 	"crypto/rand"
@@ -6,13 +6,11 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"go.dedis.ch/kyber/v4"
-	"go.dedis.ch/kyber/v4/pairing/bn256"
 	"go.dedis.ch/kyber/v4/util/key"
 )
 
 const n = 17
 
-var suite = bn256.NewSuiteBn256()
 var publics []kyber.Point
 
 func init() {

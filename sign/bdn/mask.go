@@ -1,113 +1,215 @@
 package bdn
 
 import (
+	"errors"
 	"fmt"
+	"slices"
 
 	"go.dedis.ch/kyber/v4"
-	"go.dedis.ch/kyber/v4/sign"
 )
 
-//nolint:interfacebloat
-type Mask interface {
-	GetBit(i int) (bool, error)
-	SetBit(i int, enable bool) error
-
-	IndexOfNthEnabled(nth int) int
-	NthEnabledAtIndex(idx int) int
-
-	Publics() []kyber.Point
-	Participants() []kyber.Point
-
-	CountEnabled() int
-	CountTotal() int
-
-	Len() int
-	Mask() []byte
-	SetMask(mask []byte) error
-	Merge(mask []byte) error
-}
-
-var _ Mask = (*sign.Mask)(nil)
-
-// We need to rename this, otherwise we have a public field named Mask (when we embed it) which
-// conflicts with the function named Mask. It also makes it private, which is nice.
-type maskI = Mask
-
-type CachedMask struct {
-	maskI
-	coefs   []kyber.Scalar
-	pubKeyC []kyber.Point
-	// We could call Mask.Publics() instead of keeping these here, but that function copies the
-	// slice and this field lets us avoid that copy.
+// Mask is a bitmask of the participation to a collective signature.
+type Mask struct {
+	mask    []byte
 	publics []kyber.Point
+
+	// Coefficients used when aggregating signatures.
+	publicCoefs []kyber.Scalar
+	// Terms used to aggregate public keys
+	publicTerms []kyber.Point
 }
 
-// Convert the passed mask (likely a *sign.Mask) into a BDN-specific mask with pre-computed terms.
+// NewMask creates a new mask from a list of public keys. If a key is provided, it
+// will set the bit of the key to 1 or return an error if it is not found.
 //
-// This cached mask will:
-//
-//  1. Pre-compute coefficients for signature aggregation. Once the CachedMask has been instantiated,
-//     distinct sets of signatures can be aggregated without any BLAKE2S hashing.
-//  2. Pre-computes the terms for public key aggregation. Once the CachedMask has been instantiated,
-//     distinct sets of public keys can be aggregated by simply summing the cached terms, ~2 orders
-//     of magnitude faster than aggregating from scratch.
-func NewCachedMask(mask Mask) (*CachedMask, error) {
-	return newCachedMask(mask, true)
-}
+// The returned Mask will will contain pre-computed terms and coefficients for all provided public
+// keys, so it should be re-used for optimal performance (e.g., by creating a "base" mask and
+// cloning it whenever aggregating signstures and/or public keys).
+func NewMask(publics []kyber.Point, myKey kyber.Point) (*Mask, error) {
+	m := &Mask{
+		publics: publics,
+	}
+	m.mask = make([]byte, m.Len())
 
-func newCachedMask(mask Mask, precomputePubC bool) (*CachedMask, error) {
-	if m, ok := mask.(*CachedMask); ok {
-		return m, nil
+	if myKey != nil {
+		for i, key := range publics {
+			if key.Equal(myKey) {
+				err := m.SetBit(i, true)
+				return m, err
+			}
+		}
+
+		return nil, errors.New("key not found")
 	}
 
-	publics := mask.Publics()
-	coefs, err := hashPointToR(publics)
+	var err error
+	m.publicCoefs, err = hashPointToR(publics)
 	if err != nil {
 		return nil, fmt.Errorf("failed to hash public keys: %w", err)
 	}
 
-	cm := &CachedMask{
-		maskI:   mask,
-		coefs:   coefs,
-		publics: publics,
+	m.publicTerms = make([]kyber.Point, len(publics))
+	for i, pub := range publics {
+		pubC := pub.Clone().Mul(m.publicCoefs[i], pub)
+		m.publicTerms[i] = pubC.Add(pubC, pub)
 	}
 
-	if precomputePubC {
-		pubKeyC := make([]kyber.Point, len(publics))
-		for i := range publics {
-			pubKeyC[i] = cm.getOrComputePubC(i)
+	return m, nil
+}
+
+// Mask returns the bitmask as a byte array.
+func (m *Mask) Mask() []byte {
+	clone := make([]byte, len(m.mask))
+	copy(clone, m.mask)
+	return clone
+}
+
+// Len returns the length of the byte array necessary to store the bitmask.
+func (m *Mask) Len() int {
+	return (len(m.publics) + 7) / 8
+}
+
+// SetMask replaces the current mask by the new one if the length matches.
+func (m *Mask) SetMask(mask []byte) error {
+	if m.Len() != len(mask) {
+		return fmt.Errorf("mismatching mask lengths")
+	}
+
+	m.mask = mask
+	return nil
+}
+
+// GetBit returns true if the given bit is set.
+func (m *Mask) GetBit(i int) (bool, error) {
+	if i >= len(m.publics) || i < 0 {
+		return false, errors.New("index out of range")
+	}
+
+	byteIndex := i / 8
+	mask := byte(1) << uint(i&7)
+	return m.mask[byteIndex]&mask != 0, nil
+}
+
+// SetBit turns on or off the bit at the given index.
+func (m *Mask) SetBit(i int, enable bool) error {
+	if i >= len(m.publics) || i < 0 {
+		return errors.New("index out of range")
+	}
+
+	byteIndex := i / 8
+	mask := byte(1) << uint(i&7)
+	if enable {
+		m.mask[byteIndex] |= mask
+	} else {
+		m.mask[byteIndex] &^= mask
+	}
+	return nil
+}
+
+// forEachBitEnabled is a helper to iterate over the bits set to 1 in the mask
+// and to return the result of the callback only if it is positive.
+func (m *Mask) forEachBitEnabled(f func(i, j, n int) int) int {
+	n := 0
+	for i, b := range m.mask {
+		for j := uint(0); j < 8; j++ {
+			mm := byte(1) << (j & 7)
+
+			if b&mm != 0 {
+				if res := f(i, int(j), n); res >= 0 {
+					return res
+				}
+
+				n++
+			}
 		}
-		cm.pubKeyC = pubKeyC
 	}
 
-	return cm, err
+	return -1
 }
 
-// Clone copies the BDN mask while keeping the precomputed coefficients, etc.
-func (cm *CachedMask) Clone() *CachedMask {
-	newMask, err := sign.NewMask(cm.publics, nil)
-	if err != nil {
-		// Not possible given that we didn't pass our own key.
-		panic(fmt.Sprintf("failed to create mask: %s", err))
-	}
-	if err := newMask.SetMask(cm.Mask()); err != nil {
-		// Not possible given that we're using the same sized mask.
-		panic(fmt.Sprintf("failed to create mask: %s", err))
-	}
-	return &CachedMask{
-		maskI:   newMask,
-		coefs:   cm.coefs,
-		pubKeyC: cm.pubKeyC,
-		publics: cm.publics,
-	}
+// IndexOfNthEnabled returns the index of the nth enabled bit or -1 if out of bounds.
+func (m *Mask) IndexOfNthEnabled(nth int) int {
+	return m.forEachBitEnabled(func(i, j, n int) int {
+		if n == nth {
+			return i*8 + int(j)
+		}
+
+		return -1
+	})
 }
 
-func (cm *CachedMask) getOrComputePubC(i int) kyber.Point {
-	if cm.pubKeyC == nil {
-		// NOTE: don't cache here as we may be sharing this mask between threads.
-		pub := cm.publics[i]
-		pubC := pub.Clone().Mul(cm.coefs[i], pub)
-		return pubC.Add(pubC, pub)
+// NthEnabledAtIndex returns the sum of bits set to 1 until the given index. In other
+// words, it returns how many bits are enabled before the given index.
+func (m *Mask) NthEnabledAtIndex(idx int) int {
+	return m.forEachBitEnabled(func(i, j, n int) int {
+		if i*8+int(j) == idx {
+			return n
+		}
+
+		return -1
+	})
+}
+
+// Publics returns a copy of the list of public keys.
+func (m *Mask) Publics() []kyber.Point {
+	pubs := make([]kyber.Point, len(m.publics))
+	copy(pubs, m.publics)
+	return pubs
+}
+
+// Participants returns the list of public keys participating.
+func (m *Mask) Participants() []kyber.Point {
+	pp := []kyber.Point{}
+	for i, p := range m.publics {
+		byteIndex := i / 8
+		mask := byte(1) << uint(i&7)
+		if (m.mask[byteIndex] & mask) != 0 {
+			pp = append(pp, p)
+		}
 	}
-	return cm.pubKeyC[i]
+
+	return pp
+}
+
+// CountEnabled returns the number of bit set to 1
+func (m *Mask) CountEnabled() int {
+	count := 0
+	for i := range m.publics {
+		byteIndex := i / 8
+		mask := byte(1) << uint(i&7)
+		if (m.mask[byteIndex] & mask) != 0 {
+			count++
+		}
+	}
+	return count
+}
+
+// CountTotal returns the number of potential participants
+func (m *Mask) CountTotal() int {
+	return len(m.publics)
+}
+
+// Merge merges the given mask to the current one only if
+// the length matches
+func (m *Mask) Merge(mask []byte) error {
+	if len(m.mask) != len(mask) {
+		return errors.New("mismatching mask length")
+	}
+
+	for i := range m.mask {
+		m.mask[i] |= mask[i]
+	}
+
+	return nil
+}
+
+// Clone copies the mask while keeping the precomputed coefficients, etc. This method is thread safe
+// and does not modify the original mask. Modifications to the new Mask will not affect the original.
+func (m *Mask) Clone() *Mask {
+	return &Mask{
+		mask:        slices.Clone(m.mask),
+		publics:     m.publics,
+		publicCoefs: m.publicCoefs,
+		publicTerms: m.publicTerms,
+	}
 }

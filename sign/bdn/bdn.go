@@ -122,13 +122,9 @@ func (scheme *Scheme) Verify(x kyber.Point, msg, sig []byte) error {
 
 // AggregateSignatures aggregates the signatures using a coefficient for each
 // one of them where c = H(pk) and H: keyGroup -> R with R = {1, ..., 2^128}
-func (scheme *Scheme) AggregateSignatures(sigs [][]byte, mask Mask) (kyber.Point, error) {
-	bdnMask, err := newCachedMask(mask, false)
-	if err != nil {
-		return nil, err
-	}
+func (scheme *Scheme) AggregateSignatures(sigs [][]byte, mask *Mask) (kyber.Point, error) {
 	agg := scheme.sigGroup.Point()
-	for i := range bdnMask.publics {
+	for i := range mask.publics {
 		if enabled, err := mask.GetBit(i); err != nil {
 			// this should never happen because of the loop boundary
 			// an error here is probably a bug in the mask implementation
@@ -145,12 +141,12 @@ func (scheme *Scheme) AggregateSignatures(sigs [][]byte, mask Mask) (kyber.Point
 		sigs = sigs[1:]
 
 		sig := scheme.sigGroup.Point()
-		err = sig.UnmarshalBinary(buf)
+		err := sig.UnmarshalBinary(buf)
 		if err != nil {
 			return nil, err
 		}
 
-		sigC := sig.Clone().Mul(bdnMask.coefs[i], sig)
+		sigC := sig.Clone().Mul(mask.publicCoefs[i], sig)
 		// c+1 because R is in the range [1, 2^128] and not [0, 2^128-1]
 		sigC = sigC.Add(sigC, sig)
 		agg = agg.Add(agg, sigC)
@@ -166,14 +162,9 @@ func (scheme *Scheme) AggregateSignatures(sigs [][]byte, mask Mask) (kyber.Point
 // AggregatePublicKeys aggregates a set of public keys (similarly to
 // AggregateSignatures for signatures) using the hash function
 // H: keyGroup -> R with R = {1, ..., 2^128}.
-func (scheme *Scheme) AggregatePublicKeys(mask Mask) (kyber.Point, error) {
-	bdnMask, err := newCachedMask(mask, false)
-	if err != nil {
-		return nil, err
-	}
-
+func (scheme *Scheme) AggregatePublicKeys(mask *Mask) (kyber.Point, error) {
 	agg := scheme.keyGroup.Point()
-	for i := range bdnMask.publics {
+	for i := range mask.publics {
 		if enabled, err := mask.GetBit(i); err != nil {
 			// this should never happen because of the loop boundary
 			// an error here is probably a bug in the mask implementation
@@ -182,7 +173,7 @@ func (scheme *Scheme) AggregatePublicKeys(mask Mask) (kyber.Point, error) {
 			continue
 		}
 
-		agg = agg.Add(agg, bdnMask.getOrComputePubC(i))
+		agg = agg.Add(agg, mask.publicTerms[i])
 	}
 
 	return agg, nil
@@ -216,7 +207,7 @@ func Verify(suite pairing.Suite, x kyber.Point, msg, sig []byte) error {
 // AggregateSignatures aggregates the signatures using a coefficient for each
 // one of them where c = H(pk) and H: G2 -> R with R = {1, ..., 2^128}
 // Deprecated: use the new scheme methods instead.
-func AggregateSignatures(suite pairing.Suite, sigs [][]byte, mask Mask) (kyber.Point, error) {
+func AggregateSignatures(suite pairing.Suite, sigs [][]byte, mask *Mask) (kyber.Point, error) {
 	return NewSchemeOnG1(suite).AggregateSignatures(sigs, mask)
 }
 
@@ -224,6 +215,6 @@ func AggregateSignatures(suite pairing.Suite, sigs [][]byte, mask Mask) (kyber.P
 // AggregateSignatures for signatures) using the hash function
 // H: G2 -> R with R = {1, ..., 2^128}.
 // Deprecated: use the new scheme methods instead.
-func AggregatePublicKeys(suite pairing.Suite, mask Mask) (kyber.Point, error) {
+func AggregatePublicKeys(suite pairing.Suite, mask *Mask) (kyber.Point, error) {
 	return NewSchemeOnG1(suite).AggregatePublicKeys(mask)
 }
