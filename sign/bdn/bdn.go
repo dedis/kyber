@@ -30,7 +30,7 @@ var modulus128 = new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 128), big.NewI
 // other words, find m' where H(m) == H(m')
 // We also use the entire roster so that the coefficient will vary for the same
 // public key used in different roster
-func hashPointToR(pubs []kyber.Point) ([]kyber.Scalar, error) {
+func hashPointToR(pubs []kyber.Point) ([][]byte, error) {
 	peers := make([][]byte, len(pubs))
 	for i, pub := range pubs {
 		peer, err := pub.MarshalBinary()
@@ -59,9 +59,12 @@ func hashPointToR(pubs []kyber.Point) ([]kyber.Scalar, error) {
 		return nil, err
 	}
 
-	coefs := make([]kyber.Scalar, len(pubs))
+	coefs := make([][]byte, len(pubs))
 	for i := range coefs {
-		coefs[i] = mod.NewIntBytes(out[i*16:(i+1)*16], modulus128, kyber.LittleEndian)
+		coefs[i], err = mod.NewIntBytes(out[i*16:(i+1)*16], modulus128, kyber.LittleEndian).MarshalBinary()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return coefs, nil
@@ -153,7 +156,15 @@ func (scheme *Scheme) AggregateSignatures(sigs [][]byte, mask *sign.Mask) (kyber
 			return nil, err
 		}
 
-		sigC := sig.Clone().Mul(coefs[peerIndex], sig)
+		// Prepare Scalar
+		coefScalar := scheme.sigGroup.Scalar()
+		data := coefs[peerIndex]
+		if coefScalar.ByteOrder() != kyber.LittleEndian {
+			data = reverse(nil, data)
+		}
+		coefScalar.SetBytes(data)
+
+		sigC := sig.Clone().Mul(coefScalar, sig)
 		// c+1 because R is in the range [1, 2^128] and not [0, 2^128-1]
 		sigC = sigC.Add(sigC, sig)
 		agg = agg.Add(agg, sigC)
@@ -180,13 +191,37 @@ func (scheme *Scheme) AggregatePublicKeys(mask *sign.Mask) (kyber.Point, error) 
 			return nil, errors.New("couldn't find the index")
 		}
 
+		// Prepare Scalar
+		coefScalar := scheme.keyGroup.Scalar()
+		data := coefs[peerIndex]
+		if coefScalar.ByteOrder() != kyber.LittleEndian {
+			data = reverse(nil, data)
+		}
+		coefScalar.SetBytes(data)
+
 		pub := mask.Publics()[peerIndex]
-		pubC := pub.Clone().Mul(coefs[peerIndex], pub)
+		pubC := pub.Clone().Mul(coefScalar, pub)
 		pubC = pubC.Add(pubC, pub)
 		agg = agg.Add(agg, pubC)
 	}
 
 	return agg, nil
+}
+
+// reverse copies src into dst in byte-reversed order and returns dst,
+// such that src[0] goes into dst[len-1] and vice versa.
+// dst and src may be the same slice but otherwise must not overlap.
+func reverse(dst, src []byte) []byte {
+	if dst == nil {
+		dst = make([]byte, len(src))
+	}
+	l := len(dst)
+	for i, j := 0, l-1; i < (l+1)/2; {
+		dst[i], dst[j] = src[j], src[i]
+		i++
+		j--
+	}
+	return dst
 }
 
 // v1 API Deprecated ----------------------------------
