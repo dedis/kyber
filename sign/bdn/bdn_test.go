@@ -1,6 +1,7 @@
 package bdn
 
 import (
+	"encoding/hex"
 	"fmt"
 	"testing"
 
@@ -25,10 +26,10 @@ func TestBDN_HashPointToR_BN256(t *testing.T) {
 	coefs, err := hashPointToR([]kyber.Point{p1, p2, p3})
 
 	require.NoError(t, err)
-	require.Equal(t, "35b5b395f58aba3b192fb7e1e5f2abd3", coefs[0].String())
-	require.Equal(t, "14dcc79d46b09b93075266e47cd4b19e", coefs[1].String())
-	require.Equal(t, "933f6013eb3f654f9489d6d45ad04eaf", coefs[2].String())
-	require.Equal(t, 16, coefs[0].MarshalSize())
+	require.Equal(t, "d3abf2e5e1b72f193bba8af595b3b535", hex.EncodeToString(coefs[0]))
+	require.Equal(t, "9eb1d47ce4665207939bb0469dc7dc14", hex.EncodeToString(coefs[1]))
+	require.Equal(t, "af4ed05ad4d689944f653feb13603f93", hex.EncodeToString(coefs[2]))
+	require.Equal(t, 16, len(coefs[0]))
 
 	mask, _ := sign.NewMask([]kyber.Point{p1, p2, p3}, nil)
 	mask.SetBit(0, true)
