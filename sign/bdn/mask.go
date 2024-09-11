@@ -22,9 +22,9 @@ type Mask struct {
 // NewMask creates a new mask from a list of public keys. If a key is provided, it
 // will set the bit of the key to 1 or return an error if it is not found.
 //
-// The returned Mask will will contain pre-computed terms and coefficients for all provided public
+// The returned Mask will contain pre-computed terms and coefficients for all provided public
 // keys, so it should be re-used for optimal performance (e.g., by creating a "base" mask and
-// cloning it whenever aggregating signstures and/or public keys).
+// cloning it whenever aggregating signatures and/or public keys).
 func NewMask(publics []kyber.Point, myKey kyber.Point) (*Mask, error) {
 	m := &Mask{
 		publics: publics,
