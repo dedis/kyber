@@ -10,9 +10,15 @@ import (
 
 // Mask is a bitmask of the participation to a collective signature.
 type Mask struct {
-	mask    []byte
-	publics []kyber.Point
+	// The bitmask indicating which public keys are enabled/disabled for aggregation. This is
+	// the only mutable field.
+	mask []byte
 
+	// The following fields are immutable and should not be changed after the mask is created.
+	// They may be shared between multiple masks.
+
+	// Public keys for aggregation & signature verification.
+	publics []kyber.Point
 	// Coefficients used when aggregating signatures.
 	publicCoefs []kyber.Scalar
 	// Terms used to aggregate public keys
