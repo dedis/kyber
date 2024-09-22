@@ -23,7 +23,7 @@ func init() {
 }
 
 func TestMask_CreateMask(t *testing.T) {
-	mask, err := NewMask(publics, nil)
+	mask, err := NewMask(suite, publics, nil)
 	require.NoError(t, err)
 
 	require.Equal(t, len(publics), len(mask.Publics()))
@@ -32,19 +32,19 @@ func TestMask_CreateMask(t *testing.T) {
 	require.Equal(t, n/8+1, mask.Len())
 	require.Equal(t, uint8(0), mask.Mask()[0])
 
-	mask, err = NewMask(publics, publics[2])
+	mask, err = NewMask(suite, publics, publics[2])
 	require.NoError(t, err)
 
 	require.Equal(t, len(publics), len(mask.Publics()))
 	require.Equal(t, 1, mask.CountEnabled())
 	require.Equal(t, uint8(0x4), mask.Mask()[0])
 
-	_, err = NewMask(publics, suite.G1().Point())
+	_, err = NewMask(suite, publics, suite.G1().Point())
 	require.Error(t, err)
 }
 
 func TestMask_SetBit(t *testing.T) {
-	mask, err := NewMask(publics, publics[2])
+	mask, err := NewMask(suite, publics, publics[2])
 	require.NoError(t, err)
 
 	// Make sure the mask is initially as we'd expect.
@@ -111,7 +111,7 @@ func TestMask_SetBit(t *testing.T) {
 }
 
 func TestMask_SetAndMerge(t *testing.T) {
-	mask, err := NewMask(publics, publics[2])
+	mask, err := NewMask(suite, publics, publics[2])
 	require.NoError(t, err)
 
 	err = mask.SetMask([]byte{})
@@ -129,7 +129,7 @@ func TestMask_SetAndMerge(t *testing.T) {
 }
 
 func TestMask_PositionalQueries(t *testing.T) {
-	mask, err := NewMask(publics, publics[2])
+	mask, err := NewMask(suite, publics, publics[2])
 	require.NoError(t, err)
 
 	for i := 0; i < 10000; i++ {

@@ -31,7 +31,7 @@ type Mask struct {
 // The returned Mask will contain pre-computed terms and coefficients for all provided public
 // keys, so it should be re-used for optimal performance (e.g., by creating a "base" mask and
 // cloning it whenever aggregating signatures and/or public keys).
-func NewMask(publics []kyber.Point, myKey kyber.Point) (*Mask, error) {
+func NewMask(group kyber.Group, publics []kyber.Point, myKey kyber.Point) (*Mask, error) {
 	m := &Mask{
 		publics: publics,
 	}
@@ -49,7 +49,7 @@ func NewMask(publics []kyber.Point, myKey kyber.Point) (*Mask, error) {
 	}
 
 	var err error
-	m.publicCoefs, err = hashPointToR(publics)
+	m.publicCoefs, err = hashPointToR(group, publics)
 	if err != nil {
 		return nil, fmt.Errorf("failed to hash public keys: %w", err)
 	}
