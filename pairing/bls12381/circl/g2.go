@@ -97,5 +97,7 @@ func (p *G2Elt) Mul(s kyber.Scalar, q kyber.Point) kyber.Point {
 
 func (p *G2Elt) IsInCorrectGroup() bool { return p.inner.IsOnG2() }
 
-func (p *G2Elt) Hash(msg []byte) kyber.Point       { p.inner.Hash(msg, nil); return p }
+var domainG2 = []byte("BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RO_NUL_")
+
+func (p *G2Elt) Hash(msg []byte) kyber.Point       { p.inner.Hash(msg, domainG2); return p }
 func (p *G2Elt) Hash2(msg, dst []byte) kyber.Point { p.inner.Hash(msg, dst); return p }
