@@ -87,7 +87,7 @@ func (s *scheme) Verify(X kyber.Point, msg, sig []byte) error {
 	HM := hashable.Hash(msg)
 	sigPoint := s.sigGroup.Point()
 	if err := sigPoint.UnmarshalBinary(sig); err != nil {
-		return err
+		return fmt.Errorf("bls: unmarshalling signature point: %w", err)
 	}
 	if !s.pairing(X, HM, sigPoint) {
 		return errors.New("bls: invalid signature")
