@@ -13,25 +13,20 @@ import (
 	"crypto/cipher"
 	"errors"
 	"fmt"
-	"math/big"
+	"slices"
 
 	"go.dedis.ch/kyber/v4"
-	"go.dedis.ch/kyber/v4/group/mod"
 	"go.dedis.ch/kyber/v4/pairing"
 	"go.dedis.ch/kyber/v4/sign"
 	"go.dedis.ch/kyber/v4/sign/bls"
 	"golang.org/x/crypto/blake2s"
 )
 
-// modulus128 can be provided to the big integer implementation to create numbers
-// over 128 bits
-var modulus128 = new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 128), big.NewInt(1))
-
 // For the choice of H, we're mostly worried about the second preimage attack. In
 // other words, find m' where H(m) == H(m')
 // We also use the entire roster so that the coefficient will vary for the same
 // public key used in different roster
-func hashPointToR(pubs []kyber.Point) ([]kyber.Scalar, error) {
+func hashPointToR(group kyber.Group, pubs []kyber.Point) ([]kyber.Scalar, error) {
 	h, err := blake2s.NewXOF(blake2s.OutputLengthUnknown, nil)
 	if err != nil {
 		return nil, err
@@ -55,7 +50,13 @@ func hashPointToR(pubs []kyber.Point) ([]kyber.Scalar, error) {
 
 	coefs := make([]kyber.Scalar, len(pubs))
 	for i := range coefs {
-		coefs[i] = mod.NewIntBytes(out[i*16:(i+1)*16], modulus128, kyber.LittleEndian)
+		scalar := group.Scalar()
+		bytes := out[i*16 : (i+1)*16]
+		if scalar.ByteOrder() != kyber.LittleEndian {
+			slices.Reverse(bytes)
+		}
+		scalar.SetBytes(bytes)
+		coefs[i] = scalar
 	}
 
 	return coefs, nil

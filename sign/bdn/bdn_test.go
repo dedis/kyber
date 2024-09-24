@@ -24,15 +24,14 @@ func TestBDN_HashPointToR_BN256(t *testing.T) {
 	p2 := suite.Point().Mul(two, suite.Point().Base())
 	p3 := suite.Point().Mul(three, suite.Point().Base())
 
-	coefs, err := hashPointToR([]kyber.Point{p1, p2, p3})
+	coefs, err := hashPointToR(suite, []kyber.Point{p1, p2, p3})
 
 	require.NoError(t, err)
 	require.Equal(t, "35b5b395f58aba3b192fb7e1e5f2abd3", coefs[0].String())
 	require.Equal(t, "14dcc79d46b09b93075266e47cd4b19e", coefs[1].String())
 	require.Equal(t, "933f6013eb3f654f9489d6d45ad04eaf", coefs[2].String())
-	require.Equal(t, 16, coefs[0].MarshalSize())
 
-	mask, _ := NewMask([]kyber.Point{p1, p2, p3}, nil)
+	mask, _ := NewMask(suite, []kyber.Point{p1, p2, p3}, nil)
 	mask.SetBit(0, true)
 	mask.SetBit(1, true)
 	mask.SetBit(2, true)
@@ -48,7 +47,6 @@ func TestBDN_HashPointToR_BN256(t *testing.T) {
 
 func TestBDN_AggregateSignatures(t *testing.T) {
 	msg := []byte("Hello Boneh-Lynn-Shacham")
-	suite := bn256.NewSuite()
 	private1, public1 := NewKeyPair(suite, random.New())
 	private2, public2 := NewKeyPair(suite, random.New())
 	sig1, err := Sign(suite, private1, msg)
@@ -56,7 +54,7 @@ func TestBDN_AggregateSignatures(t *testing.T) {
 	sig2, err := Sign(suite, private2, msg)
 	require.NoError(t, err)
 
-	mask, _ := NewMask([]kyber.Point{public1, public2}, nil)
+	mask, _ := NewMask(suite, []kyber.Point{public1, public2}, nil)
 	mask.SetBit(0, true)
 	mask.SetBit(1, true)
 
@@ -85,7 +83,6 @@ func TestBDN_AggregateSignatures(t *testing.T) {
 
 func TestBDN_SubsetSignature(t *testing.T) {
 	msg := []byte("Hello Boneh-Lynn-Shacham")
-	suite := bn256.NewSuite()
 	private1, public1 := NewKeyPair(suite, random.New())
 	private2, public2 := NewKeyPair(suite, random.New())
 	_, public3 := NewKeyPair(suite, random.New())
@@ -94,7 +91,7 @@ func TestBDN_SubsetSignature(t *testing.T) {
 	sig2, err := Sign(suite, private2, msg)
 	require.NoError(t, err)
 
-	mask, _ := NewMask([]kyber.Point{public1, public3, public2}, nil)
+	mask, _ := NewMask(suite, []kyber.Point{public1, public3, public2}, nil)
 	mask.SetBit(0, true)
 	mask.SetBit(2, true)
 
@@ -113,7 +110,6 @@ func TestBDN_SubsetSignature(t *testing.T) {
 
 func TestBDN_RogueAttack(t *testing.T) {
 	msg := []byte("Hello Boneh-Lynn-Shacham")
-	suite := bn256.NewSuite()
 	scheme := bls.NewSchemeOnG1(suite)
 	// honest
 	_, public1 := scheme.NewKeyPair(random.New())
@@ -133,7 +129,7 @@ func TestBDN_RogueAttack(t *testing.T) {
 	require.NoError(t, scheme.Verify(agg, msg, sig))
 
 	// New scheme that should detect
-	mask, _ := NewMask(pubs, nil)
+	mask, _ := NewMask(suite, pubs, nil)
 	mask.SetBit(0, true)
 	mask.SetBit(1, true)
 	agg, err = AggregatePublicKeys(suite, mask)
@@ -142,7 +138,6 @@ func TestBDN_RogueAttack(t *testing.T) {
 }
 
 func Benchmark_BDN_AggregateSigs(b *testing.B) {
-	suite := bn256.NewSuite()
 	private1, public1 := NewKeyPair(suite, random.New())
 	private2, public2 := NewKeyPair(suite, random.New())
 	msg := []byte("Hello many times Boneh-Lynn-Shacham")
@@ -151,7 +146,7 @@ func Benchmark_BDN_AggregateSigs(b *testing.B) {
 	sig2, err := Sign(suite, private2, msg)
 	require.Nil(b, err)
 
-	mask, _ := NewMask([]kyber.Point{public1, public2}, nil)
+	mask, _ := NewMask(suite, []kyber.Point{public1, public2}, nil)
 	mask.SetBit(0, true)
 	mask.SetBit(1, false)
 
@@ -172,7 +167,7 @@ func Benchmark_BDN_BLS12381_AggregateVerify(b *testing.B) {
 		privKeys[i], pubKeys[i] = schemeOnG2.NewKeyPair(rng)
 	}
 
-	mask, err := NewMask(pubKeys, nil)
+	mask, err := NewMask(suite.G1(), pubKeys, nil)
 	require.NoError(b, err)
 	for i := range pubKeys {
 		require.NoError(b, mask.SetBit(i, true))
@@ -210,7 +205,6 @@ func unmarshalHex[T encoding.BinaryUnmarshaler](t *testing.T, into T, s string) 
 // This tests exists to make sure we don't accidentally make breaking changes to signature
 // aggregation by using checking against known aggregated signatures and keys.
 func TestBDNFixtures(t *testing.T) {
-	suite := bn256.NewSuite()
 	schemeOnG1 := NewSchemeOnG1(suite)
 
 	public1 := unmarshalHex(t, suite.G2().Point(), "1a30714035c7a161e286e54c191b8c68345bd8239c74925a26290e8e1ae97ed6657958a17dca12c943fadceb11b824402389ff427179e0f10194da3c1b771c6083797d2b5915ea78123cbdb99ea6389d6d6b67dcb512a2b552c373094ee5693524e3ebb4a176f7efa7285c25c80081d8cb598745978f1a63b886c09a316b1493")
@@ -243,7 +237,7 @@ func TestBDNFixtures(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, sig3Exp, sig3)
 
-	mask, _ := NewMask([]kyber.Point{public1, public2, public3}, nil)
+	mask, _ := NewMask(suite, []kyber.Point{public1, public2, public3}, nil)
 	mask.SetBit(0, true)
 	mask.SetBit(1, false)
 	mask.SetBit(2, true)
