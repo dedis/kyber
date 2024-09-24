@@ -185,8 +185,8 @@ func (P *point) Data() ([]byte, error) {
 }
 
 func (P *point) Add(P1, P2 kyber.Point) kyber.Point {
-	E1 := P1.(*point) //nolint:errcheck // V4 may bring better error handling
-	E2 := P2.(*point) //nolint:errcheck // V4 may bring better error handling
+	E1 := P1.(*point) //nolint:errcheck // Design pattern to emulate generics
+	E2 := P2.(*point) //nolint:errcheck // Design pattern to emulate generics
 
 	var t2 cachedGroupElement
 	var r completedGroupElement
@@ -199,8 +199,8 @@ func (P *point) Add(P1, P2 kyber.Point) kyber.Point {
 }
 
 func (P *point) Sub(P1, P2 kyber.Point) kyber.Point {
-	E1 := P1.(*point) //nolint:errcheck // V4 may bring better error handling
-	E2 := P2.(*point) //nolint:errcheck // V4 may bring better error handling
+	E1 := P1.(*point) //nolint:errcheck // Design pattern to emulate generics
+	E2 := P2.(*point) //nolint:errcheck // Design pattern to emulate generics
 
 	var t2 cachedGroupElement
 	var r completedGroupElement
