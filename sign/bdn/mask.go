@@ -1,21 +1,36 @@
-// Package sign contains useful tools for the different signing algorithms.
-package sign
+package bdn
 
 import (
 	"errors"
 	"fmt"
+	"slices"
 
 	"go.dedis.ch/kyber/v4"
 )
 
 // Mask is a bitmask of the participation to a collective signature.
 type Mask struct {
-	mask    []byte
+	// The bitmask indicating which public keys are enabled/disabled for aggregation. This is
+	// the only mutable field.
+	mask []byte
+
+	// The following fields are immutable and should not be changed after the mask is created.
+	// They may be shared between multiple masks.
+
+	// Public keys for aggregation & signature verification.
 	publics []kyber.Point
+	// Coefficients used when aggregating signatures.
+	publicCoefs []kyber.Scalar
+	// Terms used to aggregate public keys
+	publicTerms []kyber.Point
 }
 
 // NewMask creates a new mask from a list of public keys. If a key is provided, it
 // will set the bit of the key to 1 or return an error if it is not found.
+//
+// The returned Mask will contain pre-computed terms and coefficients for all provided public
+// keys, so it should be re-used for optimal performance (e.g., by creating a "base" mask and
+// cloning it whenever aggregating signatures and/or public keys).
 func NewMask(publics []kyber.Point, myKey kyber.Point) (*Mask, error) {
 	m := &Mask{
 		publics: publics,
@@ -31,6 +46,18 @@ func NewMask(publics []kyber.Point, myKey kyber.Point) (*Mask, error) {
 		}
 
 		return nil, errors.New("key not found")
+	}
+
+	var err error
+	m.publicCoefs, err = hashPointToR(publics)
+	if err != nil {
+		return nil, fmt.Errorf("failed to hash public keys: %w", err)
+	}
+
+	m.publicTerms = make([]kyber.Point, len(publics))
+	for i, pub := range publics {
+		pubC := pub.Clone().Mul(m.publicCoefs[i], pub)
+		m.publicTerms[i] = pubC.Add(pubC, pub)
 	}
 
 	return m, nil
@@ -56,6 +83,17 @@ func (m *Mask) SetMask(mask []byte) error {
 
 	m.mask = mask
 	return nil
+}
+
+// GetBit returns true if the given bit is set.
+func (m *Mask) GetBit(i int) (bool, error) {
+	if i >= len(m.publics) || i < 0 {
+		return false, errors.New("index out of range")
+	}
+
+	byteIndex := i / 8
+	mask := byte(1) << uint(i&7)
+	return m.mask[byteIndex]&mask != 0, nil
 }
 
 // SetBit turns on or off the bit at the given index.
@@ -169,4 +207,15 @@ func (m *Mask) Merge(mask []byte) error {
 	}
 
 	return nil
+}
+
+// Clone copies the mask while keeping the precomputed coefficients, etc. This method is thread safe
+// and does not modify the original mask. Modifications to the new Mask will not affect the original.
+func (m *Mask) Clone() *Mask {
+	return &Mask{
+		mask:        slices.Clone(m.mask),
+		publics:     m.publics,
+		publicCoefs: m.publicCoefs,
+		publicTerms: m.publicTerms,
+	}
 }
