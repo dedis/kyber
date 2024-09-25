@@ -146,7 +146,7 @@ func benchmarkSign(sigType string) map[string]interface{} {
 		// Signing
 		for _, i := range keys {
 			results["sign"][fmt.Sprintf("%d", i)] = testing.Benchmark(func(b *testing.B) {
-				_, scheme, _, privates, _, _ := test.PrepareBLS(i)
+				scheme, _, privates, _, _ := test.PrepareBLS(i)
 				test.BenchSign(b, scheme, benchMessage, privates)
 			})
 		}
@@ -154,8 +154,8 @@ func benchmarkSign(sigType string) map[string]interface{} {
 		// Verification
 		for _, i := range keys {
 			results["verify"][fmt.Sprintf("%d", i)] = testing.Benchmark(func(b *testing.B) {
-				suite, scheme, publics, _, msgs, sigs := test.PrepareBLS(i)
-				test.BLSBenchVerify(b, sigs, scheme, suite, publics, msgs)
+				scheme, publics, _, msgs, sigs := test.PrepareBLS(i)
+				test.BLSBenchVerify(b, sigs, scheme, publics, msgs)
 			})
 		}
 	}
