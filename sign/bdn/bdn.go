@@ -63,7 +63,7 @@ func hashPointToR(group kyber.Group, pubs []kyber.Point) ([]kyber.Scalar, error)
 }
 
 type Scheme struct {
-	blsScheme sign.AggregatableScheme
+	blsScheme sign.Scheme
 	sigGroup  kyber.Group
 	keyGroup  kyber.Group
 	pairing   func(signature, public, hashedPoint kyber.Point) bool

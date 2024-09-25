@@ -124,15 +124,11 @@ func TestBDN_RogueAttack(t *testing.T) {
 	sig, err := Sign(suite, private2, msg)
 	require.NoError(t, err)
 
-	// Old scheme not resistant to the attack
-	agg := scheme.AggregatePublicKeys(pubs...)
-	require.NoError(t, scheme.Verify(agg, msg, sig))
-
 	// New scheme that should detect
 	mask, _ := NewMask(suite, pubs, nil)
 	mask.SetBit(0, true)
 	mask.SetBit(1, true)
-	agg, err = AggregatePublicKeys(suite, mask)
+	agg, err := AggregatePublicKeys(suite, mask)
 	require.NoError(t, err)
 	require.Error(t, Verify(suite, agg, msg, sig))
 }
