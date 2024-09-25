@@ -2,18 +2,18 @@
 // was introduced in the paper "Short Signatures from the Weil Pairing". BLS
 // requires pairing-based cryptography.
 //
-// Deprecated: This version is vulnerable to rogue public-key attack and the
-// new version of the protocol should be used to make sure a signature
+// When using aggregated signatures, this version is vulnerable to rogue
+// public-key attack.
+// The `sign/bdn` package should be used to make sure a signature
 // aggregate cannot be verified by a forged key. You can find the protocol
 // in kyber/sign/bdn. Note that only the aggregation is broken against the
-// attack and a later version will merge bls and asmbls.
+// attack and for that reason, the code performing aggregation was removed.
 //
 // See the paper: https://crypto.stanford.edu/~dabo/pubs/papers/BLSmultisig.html
 package bls
 
 import (
 	"crypto/cipher"
-	"crypto/sha256"
 	"errors"
 	"fmt"
 
