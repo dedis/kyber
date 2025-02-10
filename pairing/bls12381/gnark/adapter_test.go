@@ -19,10 +19,12 @@ func TestAdapter_SuiteBLS12381(t *testing.T) {
 	pubhex := suite.Point()
 	err = pubhex.UnmarshalBinary(pubkey)
 	require.Nil(t, err)
+	require.True(t, pair.Public.Equal(pubhex))
 
 	privhex := suite.Scalar()
 	err = privhex.UnmarshalBinary(privkey)
 	require.Nil(t, err)
+	require.True(t, pair.Private.Equal(privhex))
 
 	require.Equal(t, "gnark.adapter", suite.String())
 }
