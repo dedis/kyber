@@ -16,7 +16,7 @@ type projPoint struct {
 }
 
 func (P *projPoint) initXY(x, y *big.Int, c kyber.Group) {
-	P.c = c.(*ProjectiveCurve) //nolint:errcheck // V4 may bring better error handling
+	P.c = c.(*ProjectiveCurve) //nolint:errcheck // Design pattern to emulate generics
 	P.X.Init(x, &P.c.P)
 	P.Y.Init(y, &P.c.P)
 	P.Z.Init64(1, &P.c.P)
@@ -61,7 +61,7 @@ func (P *projPoint) UnmarshalFrom(r io.Reader) (int, error) {
 //		iff
 //	(X1*Z2,Y1*Z2) == (X2*Z1,Y2*Z1)
 func (P *projPoint) Equal(CP2 kyber.Point) bool {
-	P2 := CP2.(*projPoint) //nolint:errcheck // V4 may bring better error handling
+	P2 := CP2.(*projPoint) //nolint:errcheck // Design pattern to emulate generics
 	var t1, t2 mod.Int
 	xeq := t1.Mul(&P.X, &P2.Z).Equal(t2.Mul(&P2.X, &P.Z))
 	yeq := t1.Mul(&P.Y, &P2.Z).Equal(t2.Mul(&P2.Y, &P.Z))
@@ -69,7 +69,7 @@ func (P *projPoint) Equal(CP2 kyber.Point) bool {
 }
 
 func (P *projPoint) Set(CP2 kyber.Point) kyber.Point {
-	P2 := CP2.(*projPoint) //nolint:errcheck // V4 may bring better error handling
+	P2 := CP2.(*projPoint) //nolint:errcheck // Design pattern to emulate generics
 	P.c = P2.c
 	P.X.Set(&P2.X)
 	P.Y.Set(&P2.Y)
@@ -131,8 +131,8 @@ func (P *projPoint) Data() ([]byte, error) {
 //
 //nolint:dupl //Doesn't make sense to extract part of Add(), Sub()
 func (P *projPoint) Add(CP1, CP2 kyber.Point) kyber.Point {
-	P1 := CP1.(*projPoint) //nolint:errcheck // V4 may bring better error handling
-	P2 := CP2.(*projPoint) //nolint:errcheck // V4 may bring better error handling
+	P1 := CP1.(*projPoint) //nolint:errcheck // Design pattern to emulate generics
+	P2 := CP2.(*projPoint) //nolint:errcheck // Design pattern to emulate generics
 	X1, Y1, Z1 := &P1.X, &P1.Y, &P1.Z
 	X2, Y2, Z2 := &P2.X, &P2.Y, &P2.Z
 	var A, B, C, D, E, F, G, X3, Y3, Z3 mod.Int
@@ -160,8 +160,8 @@ func (P *projPoint) Add(CP1, CP2 kyber.Point) kyber.Point {
 //
 //nolint:dupl //Doesn't make sense to extract part of Add(), Sub(), double()
 func (P *projPoint) Sub(CP1, CP2 kyber.Point) kyber.Point {
-	P1 := CP1.(*projPoint) //nolint:errcheck // V4 may bring better error handling
-	P2 := CP2.(*projPoint) //nolint:errcheck // V4 may bring better error handling
+	P1 := CP1.(*projPoint) //nolint:errcheck // Design pattern to emulate generics
+	P2 := CP2.(*projPoint) //nolint:errcheck // Design pattern to emulate generics
 	X1, Y1, Z1 := &P1.X, &P1.Y, &P1.Z
 	X2, Y2, Z2 := &P2.X, &P2.Y, &P2.Z
 	var A, B, C, D, E, F, G, X3, Y3, Z3 mod.Int
@@ -188,7 +188,7 @@ func (P *projPoint) Sub(CP1, CP2 kyber.Point) kyber.Point {
 // Find the negative of point A.
 // For Edwards curves, the negative of (x,y) is (-x,y).
 func (P *projPoint) Neg(CA kyber.Point) kyber.Point {
-	A := CA.(*projPoint) //nolint:errcheck // V4 may bring better error handling
+	A := CA.(*projPoint) //nolint:errcheck // Design pattern to emulate generics
 	P.c = A.c
 	P.X.Neg(&A.X)
 	P.Y.Set(&A.Y)

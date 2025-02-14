@@ -13,8 +13,9 @@ import (
 // used as a point from the group G1.
 type SuiteBn256 struct {
 	*Suite
-	kyber.Group
 }
+
+var _ kyber.Group = (*SuiteBn256)(nil)
 
 // NewSuiteBn256 makes a new BN256 suite
 func NewSuiteBn256() *SuiteBn256 {

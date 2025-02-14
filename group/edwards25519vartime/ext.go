@@ -17,7 +17,7 @@ type extPoint struct {
 }
 
 func (P *extPoint) initXY(x, y *big.Int, c kyber.Group) {
-	P.c = c.(*ExtendedCurve) //nolint:errcheck // V4 may bring better error handling
+	P.c = c.(*ExtendedCurve) //nolint:errcheck // Design pattern to emulate generics
 
 	P.X.Init(x, &P.c.P)
 	P.Y.Init(y, &P.c.P)
@@ -69,7 +69,7 @@ func (P *extPoint) UnmarshalFrom(r io.Reader) (int, error) {
 //		iff
 //	(X1*Z2,Y1*Z2) == (X2*Z1,Y2*Z1)
 func (P *extPoint) Equal(CP2 kyber.Point) bool {
-	p2 := CP2.(*extPoint) //nolint:errcheck // V4 may bring better error handling
+	p2 := CP2.(*extPoint) //nolint:errcheck // Design pattern to emulate generics
 	var t1, t2 mod.Int
 	xeq := t1.Mul(&P.X, &p2.Z).Equal(t2.Mul(&p2.X, &P.Z))
 	yeq := t1.Mul(&P.Y, &p2.Z).Equal(t2.Mul(&p2.Y, &P.Z))
@@ -77,7 +77,7 @@ func (P *extPoint) Equal(CP2 kyber.Point) bool {
 }
 
 func (P *extPoint) Set(CP2 kyber.Point) kyber.Point {
-	p2 := CP2.(*extPoint) //nolint:errcheck // V4 may bring better error handling
+	p2 := CP2.(*extPoint) //nolint:errcheck // Design pattern to emulate generics
 	P.c = p2.c
 	P.X.Set(&p2.X)
 	P.Y.Set(&p2.Y)
@@ -149,8 +149,8 @@ func (P *extPoint) Data() ([]byte, error) {
 //
 //nolint:dupl //Doesn't make sense to extract part of Add(), Sub(), double()
 func (P *extPoint) Add(CP1, CP2 kyber.Point) kyber.Point {
-	p1 := CP1.(*extPoint) //nolint:errcheck // V4 may bring better error handling
-	p2 := CP2.(*extPoint) //nolint:errcheck // V4 may bring better error handling
+	p1 := CP1.(*extPoint) //nolint:errcheck // Design pattern to emulate generics
+	p2 := CP2.(*extPoint) //nolint:errcheck // Design pattern to emulate generics
 	X1, Y1, Z1, T1 := &p1.X, &p1.Y, &p1.Z, &p1.T
 	X2, Y2, Z2, T2 := &p2.X, &p2.Y, &p2.Z, &p2.T
 	X3, Y3, Z3, T3 := &P.X, &P.Y, &P.Z, &P.T
@@ -175,8 +175,8 @@ func (P *extPoint) Add(CP1, CP2 kyber.Point) kyber.Point {
 //
 //nolint:dupl //Doesn't make sense to extract part of Add(), Sub(), double()
 func (P *extPoint) Sub(CP1, CP2 kyber.Point) kyber.Point {
-	p1 := CP1.(*extPoint) //nolint:errcheck // V4 may bring better error handling
-	p2 := CP2.(*extPoint) //nolint:errcheck // V4 may bring better error handling
+	p1 := CP1.(*extPoint) //nolint:errcheck // Design pattern to emulate generics
+	p2 := CP2.(*extPoint) //nolint:errcheck // Design pattern to emulate generics
 	X1, Y1, Z1, T1 := &p1.X, &p1.Y, &p1.Z, &p1.T
 	X2, Y2, Z2, T2 := &p2.X, &p2.Y, &p2.Z, &p2.T
 	X3, Y3, Z3, T3 := &P.X, &P.Y, &P.Z, &P.T
@@ -200,7 +200,7 @@ func (P *extPoint) Sub(CP1, CP2 kyber.Point) kyber.Point {
 // Find the negative of point A.
 // For Edwards curves, the negative of (x,y) is (-x,y).
 func (P *extPoint) Neg(CA kyber.Point) kyber.Point {
-	A := CA.(*extPoint) //nolint:errcheck // V4 may bring better error handling
+	A := CA.(*extPoint) //nolint:errcheck // Design pattern to emulate generics
 	P.c = A.c
 	P.X.Neg(&A.X)
 	P.Y.Set(&A.Y)

@@ -23,7 +23,7 @@ func (P *curvePoint) String() string {
 }
 
 func (P *curvePoint) Equal(P2 kyber.Point) bool {
-	cp2 := P2.(*curvePoint) //nolint:errcheck // V4 may bring better error handling
+	cp2 := P2.(*curvePoint) //nolint:errcheck // Design pattern to emulate generics
 
 	// Make sure both coordinates are normalized.
 	// Apparently Go's elliptic curve code doesn't always ensure this.
@@ -134,17 +134,17 @@ func (P *curvePoint) Data() ([]byte, error) {
 }
 
 func (P *curvePoint) Add(A, B kyber.Point) kyber.Point {
-	ca := A.(*curvePoint) //nolint:errcheck // V4 may bring better error handling
-	cb := B.(*curvePoint) //nolint:errcheck // V4 may bring better error handling
+	ca := A.(*curvePoint) //nolint:errcheck // Design pattern to emulate generics
+	cb := B.(*curvePoint) //nolint:errcheck // Design pattern to emulate generics
 	P.x, P.y = P.c.Add(ca.x, ca.y, cb.x, cb.y)
 	return P
 }
 
 func (P *curvePoint) Sub(A, B kyber.Point) kyber.Point {
-	ca := A.(*curvePoint) //nolint:errcheck // V4 may bring better error handling
-	cb := B.(*curvePoint) //nolint:errcheck // V4 may bring better error handling
+	ca := A.(*curvePoint) //nolint:errcheck // Design pattern to emulate generics
+	cb := B.(*curvePoint) //nolint:errcheck // Design pattern to emulate generics
 
-	cbn := P.c.Point().Neg(cb).(*curvePoint) //nolint:errcheck // V4 may bring better error handling
+	cbn := P.c.Point().Neg(cb).(*curvePoint) //nolint:errcheck // Design pattern to emulate generics
 	P.x, P.y = P.c.Add(ca.x, ca.y, cbn.x, cbn.y)
 	return P
 }
@@ -156,9 +156,9 @@ func (P *curvePoint) Neg(A kyber.Point) kyber.Point {
 }
 
 func (P *curvePoint) Mul(s kyber.Scalar, B kyber.Point) kyber.Point {
-	cs := s.(*mod.Int) //nolint:errcheck // V4 may bring better error handling
+	cs := s.(*mod.Int) //nolint:errcheck // Design pattern to emulate generics
 	if B != nil {
-		cb := B.(*curvePoint) //nolint:errcheck // V4 may bring better error handling
+		cb := B.(*curvePoint) //nolint:errcheck // Design pattern to emulate generics
 		P.x, P.y = P.c.ScalarMult(cb.x, cb.y, cs.V.Bytes())
 	} else {
 		P.x, P.y = P.c.ScalarBaseMult(cs.V.Bytes())
