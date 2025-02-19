@@ -297,10 +297,10 @@ func testEncodingDecoding(t *testing.T, g kyber.Group, ptmp kyber.Point, stmp ky
 		buf.Reset()
 		s := g.Scalar().Pick(rand)
 		if _, err := s.MarshalTo(buf); err != nil {
-			t.Errorf("encoding of secret fails: " + err.Error())
+			t.Errorf("encoding of secret fails: %s", err.Error())
 		}
 		if _, err := stmp.UnmarshalFrom(buf); err != nil {
-			t.Errorf("decoding of secret fails: " + err.Error())
+			t.Errorf("decoding of secret fails: %s", err.Error())
 		}
 		if !stmp.Equal(s) {
 			t.Errorf("decoding produces different secret than encoded")
@@ -309,10 +309,10 @@ func testEncodingDecoding(t *testing.T, g kyber.Group, ptmp kyber.Point, stmp ky
 		buf.Reset()
 		p := g.Point().Pick(rand)
 		if _, err := p.MarshalTo(buf); err != nil {
-			t.Errorf("encoding of point fails: " + err.Error())
+			t.Errorf("encoding of point fails: %s", err.Error())
 		}
 		if _, err := ptmp.UnmarshalFrom(buf); err != nil {
-			t.Errorf("decoding of point fails: " + err.Error())
+			t.Errorf("decoding of point fails: %s", err.Error())
 		}
 		if !ptmp.Equal(p) {
 			t.Errorf("decoding produces different point than encoded")

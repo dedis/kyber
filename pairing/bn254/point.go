@@ -235,31 +235,31 @@ func mapToPoint(domain []byte, u *gfP) kyber.Point {
 	tv1 := &gfP{}
 	tv1.Set(u)
 	gfpMul(tv1, tv1, tv1)
-	gfpMul(tv1, tv1, c1)
+	gfpMul(tv1, tv1, c1) // tv1 = u^2 * g(Z)
 	tv2 := &gfP{}
-	gfpAdd(tv2, newGFp(1), tv1)
+	gfpAdd(tv2, newGFp(1), tv1) // tv2 = 1 + tv1
 	negTv1 := &gfP{}
 	gfpNeg(negTv1, tv1)
-	gfpAdd(tv1, newGFp(1), negTv1)
+	gfpAdd(tv1, newGFp(1), negTv1) // tv1 = 1 - tv1
 	tv3 := &gfP{}
 	gfpMul(tv3, tv1, tv2)
-	tv3.Invert(tv3)
+	tv3.Invert(tv3) // tv3 = inv0(tv1 * tv2)
 	tv5 := &gfP{}
 	gfpMul(tv5, u, tv1)
 	gfpMul(tv5, tv5, tv3)
-	gfpMul(tv5, tv5, c3)
+	gfpMul(tv5, tv5, c3) // tv5 = u * tv1 * tv3 * tv4
 	x1 := &gfP{}
-	gfpSub(x1, c2, tv5)
+	gfpSub(x1, c2, tv5) // x1 = -Z / 2 - tv5
 	x2 := &gfP{}
-	gfpAdd(x2, c2, tv5)
+	gfpAdd(x2, c2, tv5) // x2 = -Z / 2 + tv5
 	tv7 := &gfP{}
-	gfpMul(tv7, tv2, tv2)
+	gfpMul(tv7, tv2, tv2) // tv7 = tv2^2
 	tv8 := &gfP{}
-	gfpMul(tv8, tv7, tv3)
+	gfpMul(tv8, tv7, tv3) // tv8 = tv2^2 * tv3
 	x3 := &gfP{}
-	gfpMul(x3, tv8, tv8)
-	gfpMul(x3, c4, x3)
-	gfpAdd(x3, newGFp(1), x3)
+	gfpMul(x3, tv8, tv8)      // x3 = tv8^2
+	gfpMul(x3, c4, x3)        // x3 = c4 * x3
+	gfpAdd(x3, newGFp(1), x3) // x3 = 1 + x3
 
 	var x *gfP
 	y := &gfP{}
@@ -289,10 +289,11 @@ func mapToPoint(domain []byte, u *gfP) kyber.Point {
 // Borrowed from: https://github.com/kilic/bls12-381/blob/master/hash_to_field.go
 func expandMsgXmdKeccak256(domain, msg []byte, outLen int) []byte {
 	h := sha3.NewLegacyKeccak256()
-	domainLen := uint8(len(domain))
-	if domainLen > 255 {
+	if len(domain) > 255 {
 		panic("invalid domain length")
 	}
+	domainLen := uint8(len(domain))
+
 	// DST_prime = DST || I2OSP(len(DST), 1)
 	// b_0 = H(Z_pad || msg || l_i_b_str || I2OSP(0, 1) || DST_prime)
 	_, _ = h.Write(make([]byte, h.BlockSize()))
