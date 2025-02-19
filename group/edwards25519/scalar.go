@@ -113,7 +113,7 @@ func (s *scalar) Div(a, b kyber.Scalar) kyber.Scalar {
 func (s *scalar) Inv(a kyber.Scalar) kyber.Scalar {
 	var res scalar
 	res.One()
-	ac := a.(*scalar) //nolint:errcheck // V4 may bring better error handling
+	ac := a.(*scalar) //nolint:errcheck // Design pattern to emulate generics
 	// Modular inversion in a multiplicative group is a^(phi(m)-1) = a^-1 mod m
 	// Since m is prime, phi(m) = m - 1 => a^(m-2) = a^-1 mod m.
 	// The inverse is computed using the exponentation-and-square algorithm.

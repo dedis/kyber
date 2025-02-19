@@ -6,12 +6,15 @@ import (
 	"compress/gzip"
 	"crypto/cipher"
 	"encoding/hex"
+	"encoding/json"
+	"io"
 	"math/rand"
 	"os"
 	"strings"
 	"testing"
 
 	"go.dedis.ch/kyber/v4/group/edwards25519"
+	"go.dedis.ch/kyber/v4/internal/wycheproof"
 	"go.dedis.ch/kyber/v4/util/random"
 
 	"github.com/stretchr/testify/assert"
@@ -345,5 +348,47 @@ func TestGolden(t *testing.T) {
 
 	if err := scanner.Err(); err != nil {
 		t.Fatalf("error reading test data: %s", err)
+	}
+}
+
+// Test vectors from: https://github.com/C2SP/wycheproof/blob/0d2dab394df1eb05b0865977f7633d010a98bccd/testvectors_v1/ed25519_test.json
+func TestWycheProof(t *testing.T) {
+	// Open Json and parse content
+	jsonFile, err := os.Open("testdata/ed25519_test.json")
+	require.NoError(t, err)
+	defer jsonFile.Close()
+
+	jsonByte, err := io.ReadAll(jsonFile)
+	require.NoError(t, err)
+
+	var wycheproofTestData wycheproof.TestV1
+	err = json.Unmarshal(jsonByte, &wycheproofTestData)
+	require.NoError(t, err)
+
+	// Prepare instance
+	suite := edwards25519.NewBlakeSHA256Ed25519()
+	pk := suite.Point()
+
+	// Go over every tests
+	for _, testGroup := range wycheproofTestData.TestGroups {
+		pkBytes, err := hex.DecodeString(testGroup.Pk.PK)
+		require.NoError(t, err)
+
+		err = pk.UnmarshalBinary(pkBytes)
+		require.NoError(t, err)
+
+		for _, test := range testGroup.Tests {
+			sigByte, err := hex.DecodeString(test.Sig)
+			require.NoError(t, err)
+			msgByte, err := hex.DecodeString(test.Msg)
+			require.NoError(t, err)
+			err = Verify(pk, msgByte, sigByte)
+
+			if test.Result == "valid" {
+				require.NoError(t, err)
+			} else {
+				require.NotNil(t, err)
+			}
+		}
 	}
 }

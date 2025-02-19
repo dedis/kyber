@@ -19,6 +19,7 @@ import (
 	"go.dedis.ch/kyber/v4/pairing"
 	circl "go.dedis.ch/kyber/v4/pairing/bls12381/circl"
 	kilic "go.dedis.ch/kyber/v4/pairing/bls12381/kilic"
+	"go.dedis.ch/kyber/v4/sign/bdn"
 	"go.dedis.ch/kyber/v4/sign/bls"
 	"go.dedis.ch/kyber/v4/sign/tbls"
 	"go.dedis.ch/kyber/v4/util/random"
@@ -665,14 +666,15 @@ var (
 var result interface{}
 
 func BenchmarkKilic(b *testing.B) {
-	BLSBenchmark(b, "kilic")
+	BDNBenchmark(b, "kilic")
 }
 
 func BenchmarkCircl(b *testing.B) {
-	BLSBenchmark(b, "circl")
+	BDNBenchmark(b, "circl")
 }
 
-func BLSBenchmark(b *testing.B, curveOption string) {
+//nolint: gocyclo,cyclop // breaking this down doesn't make sense
+func BDNBenchmark(b *testing.B, curveOption string) {
 	b.Logf("----------------------")
 	b.Logf("Payload to sign: %d bytes\n", dataSize)
 	b.Logf("Numbers of signatures: %v\n", numSigs)
@@ -700,8 +702,8 @@ func BLSBenchmark(b *testing.B, curveOption string) {
 		panic(fmt.Errorf("invalid curve option: %s", curveOption))
 	}
 
-	schemeOnG1 := bls.NewSchemeOnG1(suite)
-	schemeOnG2 := bls.NewSchemeOnG2(suite)
+	schemeOnG1 := bdn.NewSchemeOnG1(suite)
+	schemeOnG2 := bdn.NewSchemeOnG2(suite)
 
 	maxN := 1
 	for _, s := range numSigs {
@@ -730,31 +732,52 @@ func BLSBenchmark(b *testing.B, curveOption string) {
 		}
 	}
 
+	// Prepare masks for aggregation
+	maskG1, err := bdn.NewMask(suite.G1(), pubKeysOnG1, nil)
+	if err != nil {
+		panic(err)
+	}
+	maskG2, err := bdn.NewMask(suite.G2(), pubKeysOnG2, nil)
+	if err != nil {
+		panic(err)
+	}
+
 	for _, n := range numSigs {
+		for i := 0; i < n; i++ {
+			maskG1.SetBit(i, true)
+			maskG2.SetBit(i, true)
+		}
+
 		// Benchmark aggregation of public keys
 		b.Run(fmt.Sprintf("AggregatePublicKeys-G1 on %d signs", n), func(bb *testing.B) {
 			for j := 0; j < bb.N; j++ {
-				result = schemeOnG1.AggregatePublicKeys(pubKeysOnG1[:n]...)
+				result, err = schemeOnG1.AggregatePublicKeys(maskG1)
+				if err != nil {
+					require.NoError(b, err)
+				}
 			}
 		})
 		b.Run(fmt.Sprintf("AggregatePublicKeys-G2 on %d signs", n), func(bb *testing.B) {
 			for j := 0; j < bb.N; j++ {
-				result = schemeOnG2.AggregatePublicKeys(pubKeysOnG2[:n]...)
+				result, err = schemeOnG2.AggregatePublicKeys(maskG2)
+				if err != nil {
+					panic(err)
+				}
 			}
 		})
 
 		// Benchmark aggregation of signatures
 		b.Run(fmt.Sprintf("AggregateSign-G1 on %d signs", n), func(bb *testing.B) {
 			for j := 0; j < bb.N; j++ {
-				result, err = schemeOnG1.AggregateSignatures(sigsOnG1[:n]...)
+				result, err = schemeOnG1.AggregateSignatures(sigsOnG1[:n], maskG1)
 				if err != nil {
 					panic(err)
 				}
 			}
 		})
-		b.Run(fmt.Sprintf("AggregateSign-G1 on %d signs", n), func(bb *testing.B) {
+		b.Run(fmt.Sprintf("AggregateSign-G2 on %d signs", n), func(bb *testing.B) {
 			for j := 0; j < bb.N; j++ {
-				result, err = schemeOnG2.AggregateSignatures(sigsOnG2[:n]...)
+				result, err = schemeOnG2.AggregateSignatures(sigsOnG2[:n], maskG2)
 				if err != nil {
 					panic(err)
 				}
@@ -809,4 +832,34 @@ func BLSBenchmark(b *testing.B, curveOption string) {
 			}
 		}
 	})
+}
+
+// This signature fails to validate when using kilic@7536ae1cb938a818cffabc34c4f9a7335b1c7f9a or latter
+func TestSignatureEdgeCase(t *testing.T) {
+	// G2 pubkey
+	publicBytes := []byte{0x83, 0xcf, 0xf, 0x28, 0x96, 0xad, 0xee, 0x7e, 0xb8, 0xb5, 0xf0, 0x1f, 0xca, 0xd3, 0x91, 0x22, 0x12, 0xc4, 0x37, 0xe0, 0x7, 0x3e, 0x91, 0x1f, 0xb9, 0x0, 0x22, 0xd3, 0xe7, 0x60, 0x18, 0x3c, 0x8c, 0x4b, 0x45, 0xb, 0x6a, 0xa, 0x6c, 0x3a, 0xc6, 0xa5, 0x77, 0x6a, 0x2d, 0x10, 0x64, 0x51, 0xd, 0x1f, 0xec, 0x75, 0x8c, 0x92, 0x1c, 0xc2, 0x2b, 0xe, 0x17, 0xe6, 0x3a, 0xaf, 0x4b, 0xcb, 0x5e, 0xd6, 0x63, 0x4, 0xde, 0x9c, 0xf8, 0x9, 0xbd, 0x27, 0x4c, 0xa7, 0x3b, 0xab, 0x4a, 0xf5, 0xa6, 0xe9, 0xc7, 0x6a, 0x4b, 0xc0, 0x9e, 0x76, 0xea, 0xe8, 0x99, 0x1e, 0xf5, 0xec, 0xe4, 0x5a}
+	message := []byte{0xa1, 0xc6, 0xbe, 0xc3, 0xb9, 0xa6, 0xf0, 0x98, 0x9d, 0x4d, 0x80, 0x2d, 0xbf, 0xe2, 0xb9, 0xb, 0x49, 0x5f, 0xa1, 0x74, 0x2b, 0x58, 0x99, 0x63, 0x45, 0x1e, 0xeb, 0xa9, 0xb1, 0x87, 0xb8, 0x15}
+	// G1 signature
+	sig := []byte{0x95, 0x89, 0x0, 0x9b, 0x47, 0xbf, 0xd9, 0xe3, 0x65, 0x10, 0x6b, 0x11, 0xa3, 0x42, 0xfe, 0x50, 0x75, 0xeb, 0x44, 0x5, 0xb0, 0x2b, 0x80, 0xe8, 0x93, 0x42, 0x69, 0x86, 0xcf, 0xb6, 0x0, 0x77, 0x99, 0x8e, 0x3b, 0x47, 0x99, 0x68, 0x86, 0xe0, 0x35, 0xca, 0x1c, 0xde, 0x5f, 0xd9, 0x62, 0x89}
+
+	var suites = []struct {
+		name  string
+		suite pairing.Suite
+	}{
+		{"kilic", kilic.NewBLS12381Suite()},
+		{"circl", circl.NewSuiteBLS12381()},
+	}
+	for _, s := range suites {
+		suite := s.suite
+		t.Run(s.name, func(t *testing.T) {
+			schemeOnG1 := bls.NewSchemeOnG1(suite)
+			pubkey := suite.G2().Point()
+			err := pubkey.UnmarshalBinary(publicBytes)
+			require.NoError(t, err)
+
+			err = schemeOnG1.Verify(pubkey, message, sig)
+			require.NoError(t, err)
+		})
+
+	}
 }

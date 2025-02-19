@@ -38,11 +38,11 @@ type Suite struct {
 }
 
 func newDefaultDomainG1() []byte {
-	return []byte("BN254G1_XMD:KECCAK-256_SSWU_RO_")
+	return []byte("BN254G1_XMD:KECCAK-256_SVDW_RO_")
 }
 
 func newDefaultDomainG2() []byte {
-	return []byte("BN254G2_XMD:KECCAK-256_SSWU_RO_")
+	return []byte("BN254G2_XMD:KECCAK-256_SVDW_RO_")
 }
 
 // NewSuite generates and returns a new BN254 pairing suite.

@@ -12,9 +12,9 @@ import (
 	"go.dedis.ch/kyber/v4/util/random"
 )
 
-func PrepareBLS(numSigs int) (suite *bn256.Suite, scheme sign.AggregatableScheme,
+func PrepareBLS(numSigs int) (scheme sign.Scheme,
 	publics []kyber.Point, privates []kyber.Scalar, msgs [][]byte, sigs [][]byte) {
-	suite = bn256.NewSuite()
+	suite := bn256.NewSuite()
 	scheme = bls.NewSchemeOnG1(suite)
 
 	publics = make([]kyber.Point, numSigs)
@@ -37,10 +37,10 @@ func PrepareBLS(numSigs int) (suite *bn256.Suite, scheme sign.AggregatableScheme
 		}
 		sigs[i] = sig
 	}
-	return suite, scheme, publics, privates, msgs, sigs
+	return scheme, publics, privates, msgs, sigs
 }
 
-func BenchCreateKeys(b *testing.B, scheme sign.AggregatableScheme, n int) {
+func BenchCreateKeys(b *testing.B, scheme sign.Scheme, n int) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		for j := 0; j < n; j++ {
@@ -49,7 +49,7 @@ func BenchCreateKeys(b *testing.B, scheme sign.AggregatableScheme, n int) {
 	}
 }
 
-func BenchSign(b *testing.B, scheme sign.AggregatableScheme, msg []byte, privates []kyber.Scalar) {
+func BenchSign(b *testing.B, scheme sign.Scheme, msg []byte, privates []kyber.Scalar) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		for _, private := range privates {
@@ -59,12 +59,13 @@ func BenchSign(b *testing.B, scheme sign.AggregatableScheme, msg []byte, private
 	}
 }
 
-func BLSBenchVerify(b *testing.B, sigs [][]byte, scheme sign.AggregatableScheme,
-	suite *bn256.Suite, publics []kyber.Point, msgs [][]byte) {
+func BLSBenchVerify(b *testing.B, sigs [][]byte, scheme sign.Scheme,
+	publics []kyber.Point, msgs [][]byte) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		aggregateSig, _ := scheme.AggregateSignatures(sigs...)
-		err := bls.BatchVerify(suite, publics, msgs, aggregateSig)
-		require.NoError(b, err)
+		for j, p := range publics {
+			err := scheme.Verify(p, msgs[j], sigs[j])
+			require.NoError(b, err)
+		}
 	}
 }

@@ -1,8 +1,12 @@
 package p256
 
 import (
+	"encoding/hex"
+	"math/big"
+	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	"go.dedis.ch/kyber/v4/util/test"
 )
 
@@ -21,6 +25,26 @@ func TestSetBytesBE(t *testing.T) {
 	// in the LSB of the bigint.
 	if s.String() != "010203" {
 		t.Fatal("unexpected result from String():", s.String())
+	}
+}
+
+func TestVectors(t *testing.T) {
+	k := big.NewInt(0)
+	s := testP256.Scalar()
+
+	BasePoint := testP256.Point().Base().(*curvePoint)
+	BasePoint.x.SetString(basePointScalarMult[0].X, 16)
+	BasePoint.y.SetString(basePointScalarMult[0].Y, 16)
+
+	for _, vec := range basePointScalarMult {
+		// Read from strings
+		k, ok := k.SetString(vec.K, 10)
+		require.Equal(t, true, ok)
+		s.SetBytes(k.Bytes())
+
+		Q := testP256.Point().Mul(s, BasePoint).(*curvePoint)
+		require.Equal(t, strings.ToLower(vec.X), hex.EncodeToString(Q.x.Bytes()))
+		require.Equal(t, strings.ToLower(vec.Y), hex.EncodeToString(Q.y.Bytes()))
 	}
 }
 
