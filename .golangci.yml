@@ -11,7 +11,7 @@ linters-settings:
   staticcheck:
     checks:
       - all
-      - '-SA1019' # Ignore deprecated for now
+      - "-SA1019" # Ignore deprecated for now
   cyclop:
     # The maximal code complexity to report.
     # Default: 10
@@ -42,23 +42,6 @@ linters-settings:
     # Default: 30 (but we recommend 10-20)
     min-complexity: 20
 
-  gomnd:
-    # List of function patterns to exclude from analysis.
-    # Values always ignored: `time.Date`
-    # Default: []
-    ignored-functions:
-      - os.Chmod
-      - os.Mkdir
-      - os.MkdirAll
-      - os.OpenFile
-      - os.WriteFile
-      - strconv.FormatFloat
-      - strconv.FormatInt
-      - strconv.FormatUint
-      - strconv.ParseFloat
-      - strconv.ParseInt
-      - strconv.ParseUint
-
   govet:
     # Enable all analyzers.
     # Default: false
@@ -78,7 +61,7 @@ linters-settings:
   nolintlint:
     # Exclude following linters from requiring an explanation.
     # Default: []
-    allow-no-explanation: [ funlen, gocognit, lll ]
+    allow-no-explanation: [funlen, gocognit, lll]
     # Enable to require an explanation of nonzero length after each nolint directive.
     # Default: false
     require-explanation: true
@@ -212,7 +195,6 @@ linters:
     #- structcheck # [deprecated, replaced by unused] finds unused struct fields
     #- varcheck # [deprecated, replaced by unused] finds unused global variables and constants
 
-
 issues:
   # Maximum count of issues with the same text.
   # Set to 0 to disable.
@@ -221,13 +203,13 @@ issues:
 
   exclude-rules:
     - source: "^//\\s*go:generate\\s"
-      linters: [ lll ]
+      linters: [lll]
     - source: "(noinspection|TODO)"
-      linters: [ godot ]
+      linters: [godot]
     - source: "//noinspection"
-      linters: [ gocritic ]
+      linters: [gocritic]
     - source: "^\\s+if _, ok := err\\.\\([^.]+\\.InternalError\\); ok {"
-      linters: [ errorlint ]
+      linters: [errorlint]
     - path: ".skeleton"
       linters:
         - unused
@@ -254,18 +236,18 @@ issues:
       text: "unexported-return:"
     - linters:
         - govet
-      text: "shadow: declaration of \"err\" shadows declaration"
-    - path: 'group.go'
+      text: 'shadow: declaration of "err" shadows declaration'
+    - path: "group.go"
       linters:
         - interfacebloat
-    - path: 'group/edwards25519/scalar.go'
+    - path: "group/edwards25519/scalar.go"
       linters:
         - ineffassign
         - funlen
-    - path: 'group/edwards25519/const.go'
+    - path: "group/edwards25519/const.go"
       linters:
         - lll
-    - path: 'group/edwards25519/fe.go'
+    - path: "group/edwards25519/fe.go"
       linters:
         - funlen
     - path: "share/dkg/pedersen"
