@@ -22,7 +22,7 @@ func init() {
 
 var _ kyber.Point = &GTElt{}
 
-// GTElt is a wrapper around the Circl Gt point type.
+// GTElt is a wrapper around the gnark Gt point type.
 type GTElt struct{ inner bls12381.GT }
 
 // MarshalBinary returns a compressed point, without any domain separation tag information
