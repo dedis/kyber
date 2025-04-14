@@ -707,10 +707,10 @@ func BenchmarkCircl(b *testing.B) {
 	BDNBenchmark(b, "circl")
 }
 func BenchmarkGnark(b *testing.B) {
-	BLSBenchmark(b, "gnark")
+	BDNBenchmark(b, "gnark")
 }
 
-//nolint: gocyclo,cyclop // breaking this down doesn't make sense
+// nolint: gocyclo,cyclop // breaking this down doesn't make sense
 func BDNBenchmark(b *testing.B, curveOption string) {
 	b.Logf("----------------------")
 	b.Logf("Payload to sign: %d bytes\n", dataSize)
