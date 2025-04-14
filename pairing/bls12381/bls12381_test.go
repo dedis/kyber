@@ -710,8 +710,8 @@ func BenchmarkGnark(b *testing.B) {
 	BDNBenchmark(b, "gnark")
 }
 
-// nolint: gocyclo,cyclop // breaking this down doesn't make sense
-func BDNBenchmark(b *testing.B, curveOption string) {
+func BDNBenchmark(b *testing.B, curveOption string) { //nolint: gocyclo,cyclop // breaking this down doesn't make sense
+
 	b.Logf("----------------------")
 	b.Logf("Payload to sign: %d bytes\n", dataSize)
 	b.Logf("Numbers of signatures: %v\n", numSigs)
