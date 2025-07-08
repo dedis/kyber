@@ -95,7 +95,7 @@ func (p *G1Elt) Mul(s kyber.Scalar, q kyber.Point) kyber.Point {
 	return p
 }
 
-func (p *G1Elt) IsInCorrectGroup() bool { return p.inner.IsOnG1() }
+func (p *G1Elt) Valid() bool { return p.inner.IsOnG1() }
 
 var domainG1 = []byte("BLS_SIG_BLS12381G1_XMD:SHA-256_SSWU_RO_NUL_")
 

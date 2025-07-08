@@ -13,6 +13,16 @@ import (
 	"go.dedis.ch/kyber/v4/util/random"
 )
 
+// curvePoint is a point on the elliptic curve, implementing the kyber.Point
+// interface. It contains the x and y coordinates of the point, as well as
+// a reference to the curve it belongs to. The coordinates are stored as
+// big.Int values, which allows for arbitrary precision arithmetic. The
+// curvePoint struct also provides methods for point operations such as
+// addition, subtraction, negation, and scalar multiplication. It also
+// implements methods for embedding and extracting data from the point,
+// as well as for marshaling and unmarshaling the point to and from binary
+// format. The curvePoint struct is designed to work with the kyber library,
+// which is a Go library for cryptography and cryptographic protocols.
 type curvePoint struct {
 	x, y *big.Int
 	c    *curve
@@ -27,7 +37,8 @@ func (P *curvePoint) Equal(P2 kyber.Point) bool {
 
 	// Make sure both coordinates are normalized.
 	// Apparently Go's elliptic curve code doesn't always ensure this.
-	M := P.c.p.P
+	M := P.c.p.P // M is the order of the curve where the first point lies on
+
 	P.x.Mod(P.x, M)
 	P.y.Mod(P.y, M)
 	cp2.x.Mod(cp2.x, M)
@@ -63,8 +74,8 @@ func (P *curvePoint) genPoint(x *big.Int, rand cipher.Stream) bool {
 	y2.Mul(y2, x)
 	threeX := new(big.Int).Lsh(x, 1)
 	threeX.Add(threeX, x)
-	y2.Sub(y2, threeX)
-	y2.Add(y2, P.c.p.B)
+	y2.Sub(y2, threeX)  // y2 = x^3 - 3*x
+	y2.Add(y2, P.c.p.B) // y2 = x^3 - 3*x + b
 	y2.Mod(y2, P.c.p.P)
 	y := P.c.sqrt(y2)
 
