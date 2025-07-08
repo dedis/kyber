@@ -127,9 +127,6 @@ type Point interface {
 	// Multiply point p by the scalar s.
 	// If p == nil, multiply with the standard base point Base().
 	Mul(s Scalar, p Point) Point
-
-	// Returns whether this point belong to its curve
-	Valid() bool
 }
 
 // AllowsVarTime allows callers to determine if a given kyber.Scalar
@@ -192,5 +189,5 @@ type Group interface {
 // use the Schnorr signature scheme for example.
 type SubGroupElement interface {
 	Point
-	Valid() bool
+	IsInCorrectGroup() bool
 }
