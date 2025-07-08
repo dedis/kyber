@@ -3,6 +3,9 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"go.dedis.ch/kyber/v4/pairing/bls12381/circl"
+	"go.dedis.ch/kyber/v4/pairing/bls12381/gnark"
+	"go.dedis.ch/kyber/v4/pairing/bls12381/kilic"
 	"os"
 	"testing"
 
@@ -22,7 +25,11 @@ var (
 		nist.NewBlakeSHA256P256(), nist.NewBlakeSHA256QR512(),
 		bn256.NewSuiteG1(),
 		bn254.NewSuiteG1(),
-		edwards25519.NewBlakeSHA256Ed25519()}
+		edwards25519.NewBlakeSHA256Ed25519(),
+		circl.NewSuiteBLS12381(),
+		gnark.NewSuiteBLS12381(),
+		kilic.NewSuiteBLS12381(),
+	}
 	signatures = []string{"anon", "bls"}
 )
 
