@@ -18,7 +18,6 @@ import (
 	"bytes"
 	"crypto/sha512"
 	"errors"
-
 	"go.dedis.ch/kyber/v4"
 	"go.dedis.ch/kyber/v4/share"
 	"go.dedis.ch/kyber/v4/sign/eddsa"
@@ -67,6 +66,8 @@ type PartialSig struct {
 	SessionID []byte
 	Signature []byte
 }
+
+var ErrInvalidSignatureIndex = errors.New("dss: partial signature with invalid index")
 
 // NewDSS returns a DSS struct out of the suite, the longterm secret of this
 // node, the list of participants, the longterm and random distributed key
@@ -138,9 +139,9 @@ func (d *DSS) PartialSig() (*PartialSig, error) {
 // received by the same peer. To know whether the distributed signature can be
 // computed after this call, one can use the `EnoughPartialSigs` method.
 func (d *DSS) ProcessPartialSig(ps *PartialSig) error {
-	public, ok := findPub(d.participants, int(ps.Partial.I))
+	public, ok := findPub(d.participants, ps.Partial.I)
 	if !ok {
-		return errors.New("dss: partial signature with invalid index")
+		return ErrInvalidSignatureIndex
 	}
 
 	if err := schnorr.Verify(d.suite, public, ps.Hash(d.suite), ps.Signature); err != nil {
@@ -224,8 +225,8 @@ func (ps *PartialSig) Hash(s Suite) []byte {
 	return h.Sum(nil)
 }
 
-func findPub(list []kyber.Point, i int) (kyber.Point, bool) {
-	if i >= len(list) {
+func findPub(list []kyber.Point, i uint32) (kyber.Point, bool) {
+	if i >= uint32(len(list)) {
 		return nil, false
 	}
 	return list[i], true
