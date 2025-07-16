@@ -2,7 +2,6 @@ package dss
 
 import (
 	"crypto/rand"
-	"fmt"
 	"go.dedis.ch/kyber/v4/share"
 	"math"
 	"testing"
@@ -225,9 +224,17 @@ func randomBytes(n int) []byte {
 	return buff
 }
 
-// This test tries to make the Process Signature crush by telling that it has a negative index
+// This test tries to make the Process Signature crash by telling that it has a negative index
 // It prevents the casting bug from uint32 to int on a 32-bit machine
 func TestOutOfIndex(t *testing.T) {
+	dss, err := NewDSS(suite, partSec[0], partPubs, longterms[0], randoms[0], []byte("hello"), 10)
+	if err != nil {
+		assert.Fail(t, "Couldn't create DSS: %w", err)
+	}
+	if dss == nil {
+		assert.Fail(t, "nil dss")
+	}
+
 	malevolentShare := &share.PriShare{
 		I: math.MaxUint32,
 		V: suite.Scalar().Pick(suite.RandomStream()),
@@ -235,17 +242,8 @@ func TestOutOfIndex(t *testing.T) {
 	malevolentSignature := &PartialSig{
 		malevolentShare, nil, nil,
 	}
-	dss, err := NewDSS(suite, partSec[0], partPubs, longterms[0], randoms[0], []byte("hello"), 10)
-	if dss == nil || err != nil {
-		panic("nil dss")
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			fmt.Println("NOT PASSED ", r)
-		}
-	}()
 	err = dss.ProcessPartialSig(malevolentSignature)
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "invalid index")
 
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, ErrInvalidSignatureIndex)
 }
