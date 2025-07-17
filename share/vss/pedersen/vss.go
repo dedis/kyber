@@ -125,7 +125,7 @@ func NewDealer(suite Suite, longterm, secret kyber.Scalar, verifiers []kyber.Poi
 	}
 	d.t = t
 
-	f := share.NewPriPoly(d.suite, d.t, d.secret, suite.RandomStream())
+	f := share.NewPriPoly(d.suite, int64(d.t), d.secret, suite.RandomStream())
 	d.pub = d.suite.Point().Mul(d.long, nil)
 
 	// Compute public polynomial coefficients
@@ -485,7 +485,7 @@ func RecoverSecret(suite Suite, deals []*Deal, n, t int) (kyber.Scalar, error) {
 			return nil, errors.New("vss: all deals need to have same session id")
 		}
 	}
-	return share.RecoverSecret(suite, shares, t, n)
+	return share.RecoverSecret(suite, shares, int64(t), int64(n))
 }
 
 // SetTimeout marks the end of the protocol. The caller is expected to call this

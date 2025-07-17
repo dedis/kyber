@@ -127,12 +127,12 @@ func testResults(t *testing.T, suite Suite, thr, n int, results []*Result) {
 		require.True(t, pubShare.V.Equal(expShare), "share %s give pub %s vs exp %s", share.V.String(), pubShare.V.String(), expShare.String())
 	}
 
-	secretPoly, err := share.RecoverPriPoly(suite, shares, thr, n)
+	secretPoly, err := share.RecoverPriPoly(suite, shares, int64(thr), int64(n))
 	require.NoError(t, err)
 	gotPub := secretPoly.Commit(suite.Point().Base())
 	require.True(t, exp.Equal(gotPub))
 
-	secret, err := share.RecoverSecret(suite, shares, thr, n)
+	secret, err := share.RecoverSecret(suite, shares, int64(thr), int64(n))
 	require.NoError(t, err)
 	public := suite.Point().Mul(secret, nil)
 	expKey := results[0].Key.Public()
