@@ -34,11 +34,11 @@ func TBLSRoutine(test *testing.T, msg []byte, n uint32) {
 	th := n/2 + 1
 
 	secret := suite.G1().Scalar().Pick(stream)
-	priPoly := share.NewPriPoly(suite.G2(), int64(th), secret, stream)
+	priPoly := share.NewPriPoly(suite.G2(), th, secret, stream)
 	pubPoly := priPoly.Commit(suite.G2().Point().Base())
 	sigShares := make([][]byte, 0)
 
-	for _, x := range priPoly.Shares(int64(n)) {
+	for _, x := range priPoly.Shares(n) {
 		sig, err := scheme.Sign(x, msg)
 		require.Nil(test, err)
 		sigShares = append(sigShares, sig)

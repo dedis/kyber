@@ -139,7 +139,7 @@ func (s *scheme) Recover(public *share.PubPoly, msg []byte, sigs [][]byte, t, n 
 	if uint32(len(pubShares)) < t {
 		return nil, errors.New("not enough valid partial signatures")
 	}
-	commit, err := share.RecoverCommit(s.sigGroup, pubShares, int64(t), int64(n))
+	commit, err := share.RecoverCommit(s.sigGroup, pubShares, t, n)
 	if err != nil {
 		return nil, err
 	}
