@@ -614,7 +614,7 @@ func TestDistKeyShare(t *testing.T) {
 		shares[i] = dks.Share
 	}
 
-	secret, err := share.RecoverSecret(suite, shares, int64(nbParticipants), int64(nbParticipants))
+	secret, err := share.RecoverSecret(suite, shares, nbParticipants, nbParticipants)
 	assert.Nil(t, err)
 
 	commitSecret := suite.Point().Mul(secret, nil)

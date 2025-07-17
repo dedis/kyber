@@ -145,8 +145,8 @@ func NewDealer(suite Suite, longterm, secret kyber.Scalar, verifiers []kyber.Poi
 	d.t = t
 
 	H := deriveH(d.suite, d.verifiers)
-	f := share.NewPriPoly(d.suite, int64(d.t), d.secret, suite.RandomStream())
-	g := share.NewPriPoly(d.suite, int64(d.t), nil, suite.RandomStream())
+	f := share.NewPriPoly(d.suite, d.t, d.secret, suite.RandomStream())
+	g := share.NewPriPoly(d.suite, d.t, nil, suite.RandomStream())
 	d.pub = d.suite.Point().Mul(d.long, nil)
 
 	// Compute public polynomial coefficients
@@ -498,7 +498,7 @@ func RecoverSecret(suite Suite, deals []*Deal, n, t uint32) (kyber.Scalar, error
 			return nil, errors.New("vss: all deals need to have same session id")
 		}
 	}
-	return share.RecoverSecret(suite, shares, int64(t), int64(n))
+	return share.RecoverSecret(suite, shares, t, n)
 }
 
 // SetTimeout tells this verifier to consider this moment the maximum time limit.
