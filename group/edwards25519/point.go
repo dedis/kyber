@@ -336,7 +336,7 @@ func hashToField(m []byte, dst string, count int) []fieldElement {
 
 func expandMessageXMD(h hash.Hash, m []byte, domainSeparator string, byteLen int) ([]byte, error) {
 	r := float64(byteLen) / float64(h.Size()>>3)
-	ell := int(math.Ceil(r))
+	ell := int64(math.Ceil(r))
 	if ell > 255 || ell < 0 || byteLen > 65535 || len(domainSeparator) == 0 {
 		return nil, errors.New("invalid parameters")
 	}
@@ -349,15 +349,15 @@ func expandMessageXMD(h hash.Hash, m []byte, domainSeparator string, byteLen int
 		domainSeparator = string(h.Sum(nil))
 	}
 
-	padDom, err := i2OSP(len(domainSeparator), 1)
+	padDom, err := i2OSP(int64(len(domainSeparator)), 1)
 	if err != nil {
 		return nil, err
 	}
 
 	dstPrime := append([]byte(domainSeparator), padDom...)
-	byteLenStr, _ := i2OSP(byteLen, 2)
+	byteLenStr, _ := i2OSP(int64(byteLen), 2)
 	zeroPad, _ := i2OSP(0, 1)
-	zPad, _ := i2OSP(0, h.BlockSize())
+	zPad, _ := i2OSP(0, uint32(h.BlockSize()))
 
 	// mPrime = Z_pad || msg || l_i_b_str || I2OSP(0, 1) || DST_prim
 	mPrime := make([]byte, 0, len(zPad)+len(m)+len(byteLenStr)+len(zeroPad)+len(dstPrime))
@@ -380,10 +380,10 @@ func expandMessageXMD(h hash.Hash, m []byte, domainSeparator string, byteLen int
 	h.Write(dstPrime)
 	b1 := h.Sum(nil)
 
-	bFinal := make([]byte, 0, len(b1)*(ell+1))
+	bFinal := make([]byte, 0, int64(len(b1))*(ell+1))
 	bFinal = append(bFinal, b1...)
 	bPred := b1
-	for i := 2; i <= ell; i++ {
+	for i := int64(2); i <= ell; i++ {
 		x, err := byteXor(bPred, b0, bPred)
 		if err != nil {
 			return nil, err
@@ -402,7 +402,7 @@ func expandMessageXMD(h hash.Hash, m []byte, domainSeparator string, byteLen int
 	return bFinal[:byteLen], nil
 }
 
-func expandMessageXOF(h sha3.ShakeHash, m []byte, domainSeparator string, byteLen int) ([]byte, error) {
+func expandMessageXOF(h sha3.ShakeHash, m []byte, domainSeparator string, byteLen int64) ([]byte, error) {
 	if byteLen > 65535 || len(domainSeparator) == 0 {
 		return nil, errors.New("invalid parameters")
 	}
@@ -427,7 +427,7 @@ func expandMessageXOF(h sha3.ShakeHash, m []byte, domainSeparator string, byteLe
 		domainSeparator = string(dst)
 	}
 
-	dstPad, err := i2OSP(len(domainSeparator), 1)
+	dstPad, err := i2OSP(int64(len(domainSeparator)), 1)
 	if err != nil {
 		return nil, err
 	}
@@ -450,21 +450,21 @@ func expandMessageXOF(h sha3.ShakeHash, m []byte, domainSeparator string, byteLe
 		return nil, err
 	}
 
-	if n != byteLen {
+	if int64(n) != byteLen {
 		return nil, fmt.Errorf("read %d byte instead of expected %d from xof", n, byteLen)
 	}
 
 	return uniformBytes, nil
 }
 
-func i2OSP(x int, xLen int) ([]byte, error) {
-	b := big.NewInt(int64(x))
+func i2OSP(x int64, xLen uint32) ([]byte, error) {
+	b := big.NewInt(x)
 	s := b.Bytes()
-	if len(s) > xLen {
+	if uint32(len(s)) > xLen {
 		return nil, fmt.Errorf("input %d superior to max length %d", len(s), xLen)
 	}
 
-	pad := make([]byte, (xLen - len(s)))
+	pad := make([]byte, (xLen - uint32(len(s))))
 	return append(pad, s...), nil
 }
 

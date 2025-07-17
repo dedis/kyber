@@ -45,7 +45,7 @@ type DSS struct {
 	suite        Suite
 	secret       kyber.Scalar
 	public       kyber.Point
-	index        int
+	index        uint32
 	participants []kyber.Point
 	T            uint32
 	long         DistKeyShare
@@ -54,7 +54,7 @@ type DSS struct {
 	randomPoly   *share.PubPoly
 	msg          []byte
 	partials     []*share.PriShare
-	partialsIdx  map[int]bool
+	partialsIdx  map[uint32]bool
 	signed       bool
 	sessionID    []byte
 }
@@ -77,12 +77,12 @@ var ErrInvalidSignatureIndex = errors.New("dss: partial signature with invalid i
 func NewDSS(suite Suite, secret kyber.Scalar, participants []kyber.Point,
 	long, random DistKeyShare, msg []byte, t uint32) (*DSS, error) {
 	public := suite.Point().Mul(secret, nil)
-	var i int
+	var i uint32
 	var found bool
 	for j, p := range participants {
 		if p.Equal(public) {
 			found = true
-			i = j
+			i = uint32(j)
 			break
 		}
 	}
@@ -101,7 +101,7 @@ func NewDSS(suite Suite, secret kyber.Scalar, participants []kyber.Point,
 		randomPoly:   share.NewPubPoly(suite, suite.Point().Base(), random.Commitments()),
 		msg:          msg,
 		T:            t,
-		partialsIdx:  make(map[int]bool),
+		partialsIdx:  make(map[uint32]bool),
 		sessionID:    sessionID(suite, long, random),
 	}, nil
 }
@@ -153,7 +153,7 @@ func (d *DSS) ProcessPartialSig(ps *PartialSig) error {
 		return errors.New("dss: session id do not match")
 	}
 
-	if _, ok := d.partialsIdx[int(ps.Partial.I)]; ok {
+	if _, ok := d.partialsIdx[ps.Partial.I]; ok {
 		return errors.New("dss: partial signature already received from peer")
 	}
 
@@ -167,7 +167,7 @@ func (d *DSS) ProcessPartialSig(ps *PartialSig) error {
 	if !left.Equal(right) {
 		return errors.New("dss: partial signature not valid")
 	}
-	d.partialsIdx[int(ps.Partial.I)] = true
+	d.partialsIdx[ps.Partial.I] = true
 	d.partials = append(d.partials, ps.Partial)
 	return nil
 }

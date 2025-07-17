@@ -372,10 +372,10 @@ func (d *DistKeyGenerator) Certified() bool {
 // of all participants that are not disqualified after having  exchanged all
 // deals, responses and justification. This is the set that is used to extract
 // the distributed public key with SecretCommits() and ProcessSecretCommits().
-func (d *DistKeyGenerator) QUAL() []int {
-	var good []int
+func (d *DistKeyGenerator) QUAL() []uint32 {
+	var good []uint32
 	d.qualIter(func(i uint32, _ *vss.Verifier) bool {
-		good = append(good, int(i))
+		good = append(good, i)
 		return true
 	})
 	return good

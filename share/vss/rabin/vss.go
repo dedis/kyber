@@ -722,11 +722,10 @@ func deriveH(suite Suite, verifiers []kyber.Point) kyber.Point {
 }
 
 func findPub(verifiers []kyber.Point, idx uint32) (kyber.Point, bool) {
-	iidx := int(idx)
-	if iidx >= len(verifiers) {
+	if idx >= uint32(len(verifiers)) {
 		return nil, false
 	}
-	return verifiers[iidx], true
+	return verifiers[idx], true
 }
 
 func sessionID(suite Suite, dealer kyber.Point, verifiers, commitments []kyber.Point, t uint32) ([]byte, error) {

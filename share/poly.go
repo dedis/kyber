@@ -85,7 +85,7 @@ func (p *PriPoly) Secret() kyber.Scalar {
 func (p *PriPoly) Eval(i uint32) *PriShare {
 	xi := p.g.Scalar().SetInt64(1 + int64(i))
 	v := p.g.Scalar().Zero()
-	for j := p.Threshold() - 1; j >= 0; j-- {
+	for j := int64(p.Threshold()) - 1; j >= 0; j-- {
 		v.Mul(v, xi)
 		v.Add(v, p.coeffs[j])
 	}
