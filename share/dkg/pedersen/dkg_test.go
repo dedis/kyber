@@ -29,19 +29,19 @@ type TestNode struct {
 	clock   *clock.FakeClock
 }
 
-func NewTestNode(s Suite, index int) *TestNode {
+func NewTestNode(s Suite, index uint32) *TestNode {
 	private := s.Scalar().Pick(random.New())
 	public := s.Point().Mul(private, nil)
 	return &TestNode{
-		Index:   uint32(index),
+		Index:   index,
 		Private: private,
 		Public:  public,
 	}
 }
 
-func GenerateTestNodes(s Suite, n int) []*TestNode {
+func GenerateTestNodes(s Suite, n uint32) []*TestNode {
 	tns := make([]*TestNode, n)
-	for i := 0; i < n; i++ {
+	for i := uint32(0); i < n; i++ {
 		tns[i] = NewTestNode(s, i)
 	}
 	return tns
@@ -103,7 +103,7 @@ func IsDealerIncluded(bundles []*ResponseBundle, dealer uint32) bool {
 	return false
 }
 
-func testResults(t *testing.T, suite Suite, thr, n int, results []*Result) {
+func testResults(t *testing.T, suite Suite, thr, n uint32, results []*Result) {
 	// test if all results are consistent
 	for i, res := range results {
 		require.Equal(t, thr, len(res.Key.Commitments()))
@@ -127,12 +127,12 @@ func testResults(t *testing.T, suite Suite, thr, n int, results []*Result) {
 		require.True(t, pubShare.V.Equal(expShare), "share %s give pub %s vs exp %s", share.V.String(), pubShare.V.String(), expShare.String())
 	}
 
-	secretPoly, err := share.RecoverPriPoly(suite, shares, int64(thr), int64(n))
+	secretPoly, err := share.RecoverPriPoly(suite, shares, thr, n)
 	require.NoError(t, err)
 	gotPub := secretPoly.Commit(suite.Point().Base())
 	require.True(t, exp.Equal(gotPub))
 
-	secret, err := share.RecoverSecret(suite, shares, int64(thr), int64(n))
+	secret, err := share.RecoverSecret(suite, shares, thr, n)
 	require.NoError(t, err)
 	public := suite.Point().Mul(secret, nil)
 	expKey := results[0].Key.Public()
@@ -210,11 +210,11 @@ func RunDKG(t *testing.T, tns []*TestNode, conf Config,
 // This tests makes a dealer being evicted and checks if the dealer knows about the eviction
 // itself and quits the DKG
 func TestSelfEvictionDealer(t *testing.T) {
-	n := 5
-	thr := 3
+	n := uint32(5)
+	thr := uint32(3)
 	suite := edwards25519.NewBlakeSHA256Ed25519()
 	tns := GenerateTestNodes(suite, n)
-	skippedIndex := rand.Intn(n)
+	skippedIndex := rand.Intn(int(n))
 	var newIndex uint32 = 53 // XXX should there be a limit to the index ?
 	tns[skippedIndex].Index = newIndex
 	list := NodesFromTest(tns)
@@ -263,8 +263,8 @@ func TestSelfEvictionDealer(t *testing.T) {
 // This test is running DKG and resharing with skipped indices given there is no
 // guarantees that the indices of the nodes are going to be sequentials.
 func TestDKGSkipIndex(t *testing.T) {
-	n := 5
-	thr := 4
+	n := uint32(5)
+	thr := uint32(4)
 	suite := edwards25519.NewBlakeSHA256Ed25519()
 	tns := GenerateTestNodes(suite, n)
 	skippedIndex := 1
@@ -287,12 +287,12 @@ func TestDKGSkipIndex(t *testing.T) {
 
 	// we setup now the second group with higher node count and higher threshold
 	// and we remove one node from the previous group
-	nodesToAdd := 5
+	nodesToAdd := uint32(5)
 	newN := n - 1 + nodesToAdd   // we remove one old node
 	newT := thr + nodesToAdd - 1 // set the threshold to accept one offline new node
 	var newTns = make([]*TestNode, 0, newN)
 	// remove a random node from the previous group
-	offlineToRemove := uint32(rand.Intn(n))
+	offlineToRemove := uint32(rand.Intn(int(n)))
 	for i, node := range tns {
 		if i == int(offlineToRemove) {
 			continue
@@ -301,9 +301,9 @@ func TestDKGSkipIndex(t *testing.T) {
 		t.Logf("Added old node newTns[%d].Index = %d\n", len(newTns), newTns[len(newTns)-1].Index)
 	}
 	// we also mess up with indexing here
-	newSkipped := 2
+	newSkipped := uint32(2)
 	t.Logf("skippedIndex: %d, newSkipped: %d\n", skippedIndex, newSkipped)
-	for i := 0; i <= nodesToAdd; i++ {
+	for i := uint32(0); i <= nodesToAdd; i++ {
 		if i == newSkipped {
 			continue // gonna get filled up at last iteration
 		}
@@ -365,7 +365,7 @@ func TestDKGSkipIndex(t *testing.T) {
 
 }
 func TestDKGFull(t *testing.T) {
-	n := 5
+	n := uint32(5)
 	thr := n
 	suite := edwards25519.NewBlakeSHA256Ed25519()
 	tns := GenerateTestNodes(suite, n)
@@ -382,8 +382,8 @@ func TestDKGFull(t *testing.T) {
 }
 
 func TestSelfEvictionShareHolder(t *testing.T) {
-	n := 5
-	thr := 4
+	n := uint32(5)
+	thr := uint32(4)
 	var suite = bn256.NewSuiteG2()
 	var sigSuite = bn256.NewSuiteG1()
 	tns := GenerateTestNodes(suite, n)
@@ -418,7 +418,7 @@ func TestSelfEvictionShareHolder(t *testing.T) {
 	var newTns = make([]*TestNode, n)
 	copy(newTns, tns)
 	newNode := newN - n
-	for i := 0; i < newNode; i++ {
+	for i := uint32(0); i < newNode; i++ {
 		newTns = append(newTns, NewTestNode(suite, n+1+i))
 	}
 	newIndexToEvict := newTns[len(newTns)-1].Index
@@ -470,8 +470,8 @@ func TestSelfEvictionShareHolder(t *testing.T) {
 }
 
 func TestDKGResharing(t *testing.T) {
-	n := 5
-	thr := 4
+	n := uint32(5)
+	thr := uint32(4)
 	var suite = bn256.NewSuiteG2()
 	var sigSuite = bn256.NewSuiteG1()
 	tns := GenerateTestNodes(suite, n)
@@ -505,11 +505,11 @@ func TestDKGResharing(t *testing.T) {
 	newT := thr + 4
 	var newTns = make([]*TestNode, newN)
 	// remove the last node from the previous group
-	offline := 1
+	offline := uint32(1)
 	copy(newTns, tns[:n-offline])
 	// + offline because we fill the gap of the offline nodes by new nodes
 	newNode := newN - n + offline
-	for i := 0; i < newNode; i++ {
+	for i := uint32(0); i < newNode; i++ {
 		//  new node can have the same index as a previous one, separation is made
 		newTns[n-1+i] = NewTestNode(suite, n-1+i)
 	}
@@ -576,8 +576,8 @@ func TestDKGResharing(t *testing.T) {
 }
 
 func TestDKGThreshold(t *testing.T) {
-	n := 5
-	thr := 4
+	n := uint32(5)
+	thr := uint32(4)
 	suite := edwards25519.NewBlakeSHA256Ed25519()
 	tns := GenerateTestNodes(suite, n)
 	list := NodesFromTest(tns)
@@ -591,7 +591,7 @@ func TestDKGThreshold(t *testing.T) {
 	dm := func(deals []*DealBundle) []*DealBundle {
 		// we make first dealer absent
 		deals = deals[1:]
-		require.Len(t, deals, n-1)
+		require.Len(t, deals, int(n-1))
 		// we make the second dealer creating a invalid share for 3rd participant
 		deals[0].Deals[2].EncryptedShare = []byte("Another one bites the dust")
 		return deals
@@ -641,8 +641,8 @@ func TestDKGThreshold(t *testing.T) {
 }
 
 func TestDKGResharingFast(t *testing.T) {
-	n := 6
-	thr := 4
+	n := uint32(6)
+	thr := uint32(4)
 	var suite = bn256.NewSuiteG2()
 	var sigSuite = bn256.NewSuiteG1()
 	tns := GenerateTestNodes(suite, n)
@@ -697,11 +697,11 @@ func TestDKGResharingFast(t *testing.T) {
 	newT := thr + 4
 	var newTns = make([]*TestNode, newN)
 	// remove the last node from the previous group
-	offline := 1
+	offline := uint32(1)
 	copy(newTns, tns[:n-offline])
 	// + offline because we fill the gap of the offline nodes by new nodes
 	newNode := newN - n + offline
-	for i := 0; i < newNode; i++ {
+	for i := uint32(0); i < newNode; i++ {
 		//  new node can have the same index as a previous one, separation is made
 		newTns[n-1+i] = NewTestNode(suite, n-1+i)
 	}
@@ -806,7 +806,7 @@ func TestDKGResharingFast(t *testing.T) {
 }
 
 func TestDKGFullFast(t *testing.T) {
-	n := 5
+	n := uint32(5)
 	thr := n
 	suite := edwards25519.NewBlakeSHA256Ed25519()
 	tns := GenerateTestNodes(suite, n)
@@ -824,7 +824,7 @@ func TestDKGFullFast(t *testing.T) {
 }
 
 func TestDKGNonceInvalid(t *testing.T) {
-	n := 5
+	n := uint32(5)
 	thr := n
 	suite := edwards25519.NewBlakeSHA256Ed25519()
 	tns := GenerateTestNodes(suite, n)
@@ -851,7 +851,7 @@ func TestDKGNonceInvalid(t *testing.T) {
 }
 
 func TestDKGAbsentAuth(t *testing.T) {
-	n := 5
+	n := uint32(5)
 	thr := n
 	suite := edwards25519.NewBlakeSHA256Ed25519()
 	tns := GenerateTestNodes(suite, n)
@@ -875,8 +875,8 @@ func TestDKGAbsentAuth(t *testing.T) {
 }
 
 func TestDKGNonceInvalidEviction(t *testing.T) {
-	n := 7
-	thr := 4
+	n := uint32(7)
+	thr := uint32(4)
 	suite := edwards25519.NewBlakeSHA256Ed25519()
 	tns := GenerateTestNodes(suite, n)
 	list := NodesFromTest(tns)
@@ -889,7 +889,7 @@ func TestDKGNonceInvalidEviction(t *testing.T) {
 
 	genPublic := func() []kyber.Point {
 		points := make([]kyber.Point, thr)
-		for i := 0; i < thr; i++ {
+		for i := uint32(0); i < thr; i++ {
 			points[i] = suite.Point().Pick(random.New())
 		}
 		return points
@@ -929,7 +929,7 @@ func TestDKGNonceInvalidEviction(t *testing.T) {
 	}
 	filtered := results[:0]
 	for _, r := range results {
-		if isEvicted(Index(r.Key.Share.I)) {
+		if isEvicted(r.Key.Share.I) {
 			continue
 		}
 		require.NotContains(t, r.QUAL, Index(0))
@@ -941,8 +941,8 @@ func TestDKGNonceInvalidEviction(t *testing.T) {
 }
 
 func TestDKGInvalidResponse(t *testing.T) {
-	n := 6
-	thr := 3
+	n := uint32(6)
+	thr := uint32(3)
 	suite := edwards25519.NewBlakeSHA256Ed25519()
 	tns := GenerateTestNodes(suite, n)
 	list := NodesFromTest(tns)
@@ -962,7 +962,7 @@ func TestDKGInvalidResponse(t *testing.T) {
 	}
 	// we make first dealer absent
 	deals = deals[1:]
-	require.Len(t, deals, n-1)
+	require.Len(t, deals, int(n-1))
 
 	var respBundles []*ResponseBundle
 	for _, node := range tns {
@@ -1024,8 +1024,8 @@ func TestDKGInvalidResponse(t *testing.T) {
 }
 
 func TestDKGTooManyComplaints(t *testing.T) {
-	n := 5
-	thr := 3
+	n := uint32(5)
+	thr := uint32(3)
 	suite := edwards25519.NewBlakeSHA256Ed25519()
 	tns := GenerateTestNodes(suite, n)
 	list := NodesFromTest(tns)
@@ -1039,7 +1039,7 @@ func TestDKGTooManyComplaints(t *testing.T) {
 	dm := func(deals []*DealBundle) []*DealBundle {
 		// we make the second dealer creating a invalid share for too many
 		// participants
-		for i := 0; i <= thr; i++ {
+		for i := uint32(0); i <= thr; i++ {
 			deals[0].Deals[i].EncryptedShare = []byte("Another one bites the dust")
 		}
 		return deals
@@ -1088,8 +1088,8 @@ func TestConfigDuplicate(t *testing.T) {
 
 func TestMinimumT(t *testing.T) {
 	tests := []struct {
-		input  int
-		output int
+		input  uint32
+		output uint32
 	}{
 		{10, 6},
 		{6, 4},

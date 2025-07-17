@@ -766,15 +766,15 @@ func (prf *proof) prover(p Predicate, sval map[string]kyber.Scalar,
 	pval map[string]kyber.Point,
 	choice map[Predicate]int) Prover {
 
-	return Prover(func(ctx ProverContext) error {
+	return func(ctx ProverContext) error {
 		return prf.prove(p, sval, pval, choice, ctx)
-	})
+	}
 }
 
 // Produce a higher-order Verifier embodying a given proof predicate.
 func (prf *proof) verifier(p Predicate, pval map[string]kyber.Point) Verifier {
 
-	return Verifier(func(ctx VerifierContext) error {
+	return func(ctx VerifierContext) error {
 		return prf.verify(p, pval, ctx)
-	})
+	}
 }

@@ -110,8 +110,8 @@ func (s *StatusMatrix) String() string {
 	return str
 }
 
-func (b BitSet) LengthComplaints() int {
-	var count = 0
+func (b BitSet) LengthComplaints() uint32 {
+	var count = uint32(0)
 	for _, status := range b {
 		if status == Complaint {
 			count++

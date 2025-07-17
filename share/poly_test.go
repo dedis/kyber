@@ -12,8 +12,8 @@ import (
 
 func TestSecretRecovery(test *testing.T) {
 	g := edwards25519.NewBlakeSHA256Ed25519()
-	var n int64 = 6
-	var t int64 = 5
+	var n uint32 = 6
+	var t uint32 = 5
 	poly := NewPriPoly(g, t, nil, g.RandomStream())
 	test.Log("polynom has degree ", len(poly.coeffs)-1)
 	shares := poly.Shares(n)
@@ -43,7 +43,7 @@ func TestSecretRecovery(test *testing.T) {
 // See TestPublicRecoveryOutIndex for testing with the commitment.
 func TestSecretRecoveryOutIndex(test *testing.T) {
 	g := edwards25519.NewBlakeSHA256Ed25519()
-	var n int64 = 10
+	var n uint32 = 10
 	t := n/2 + 1
 	poly := NewPriPoly(g, t, nil, g.RandomStream())
 	shares := poly.Shares(n)
@@ -64,7 +64,7 @@ func TestSecretRecoveryOutIndex(test *testing.T) {
 
 func TestSecretRecoveryDelete(test *testing.T) {
 	g := edwards25519.NewBlakeSHA256Ed25519()
-	var n int64 = 10
+	var n uint32 = 10
 	t := n/2 + 1
 	poly := NewPriPoly(g, t, nil, g.RandomStream())
 	shares := poly.Shares(n)
@@ -87,7 +87,7 @@ func TestSecretRecoveryDelete(test *testing.T) {
 
 func TestSecretRecoveryDeleteFail(test *testing.T) {
 	g := edwards25519.NewBlakeSHA256Ed25519()
-	var n int64 = 10
+	var n uint32 = 10
 	t := n/2 + 1
 
 	poly := NewPriPoly(g, t, nil, g.RandomStream())
@@ -108,7 +108,7 @@ func TestSecretRecoveryDeleteFail(test *testing.T) {
 
 func TestSecretPolyEqual(test *testing.T) {
 	g := edwards25519.NewBlakeSHA256Ed25519()
-	var n int64 = 10
+	var n uint32 = 10
 	t := n/2 + 1
 
 	p1 := NewPriPoly(g, t, nil, g.RandomStream())
@@ -128,7 +128,7 @@ func TestSecretPolyEqual(test *testing.T) {
 
 func TestPublicCheck(test *testing.T) {
 	g := edwards25519.NewBlakeSHA256Ed25519()
-	var n int64 = 10
+	var n uint32 = 10
 	t := n/2 + 1
 
 	priPoly := NewPriPoly(g, t, nil, g.RandomStream())
@@ -144,7 +144,7 @@ func TestPublicCheck(test *testing.T) {
 
 func TestBenchy(test *testing.T) {
 	g := edwards25519.NewBlakeSHA256Ed25519()
-	var n int64 = 100
+	var n uint32 = 100
 	t := n/2 + 1
 
 	priPoly := NewPriPoly(g, t, nil, g.RandomStream())
@@ -166,7 +166,7 @@ func TestBenchy(test *testing.T) {
 
 func TestPublicRecovery(test *testing.T) {
 	g := edwards25519.NewBlakeSHA256Ed25519()
-	var n int64 = 10
+	var n uint32 = 10
 	t := n/2 + 1
 
 	priPoly := NewPriPoly(g, t, nil, g.RandomStream())
@@ -192,7 +192,7 @@ func TestPublicRecovery(test *testing.T) {
 
 func TestPublicRecoveryOutIndex(test *testing.T) {
 	g := edwards25519.NewBlakeSHA256Ed25519()
-	var n int64 = 10
+	var n uint32 = 10
 	t := n/2 + 1
 
 	priPoly := NewPriPoly(g, t, nil, g.RandomStream())
@@ -222,7 +222,7 @@ func TestPublicRecoveryOutIndex(test *testing.T) {
 
 func TestPublicRecoveryDelete(test *testing.T) {
 	g := edwards25519.NewBlakeSHA256Ed25519()
-	var n int64 = 10
+	var n uint32 = 10
 	t := n/2 + 1
 
 	priPoly := NewPriPoly(g, t, nil, g.RandomStream())
@@ -247,7 +247,7 @@ func TestPublicRecoveryDelete(test *testing.T) {
 
 func TestPublicRecoveryDeleteFail(test *testing.T) {
 	g := edwards25519.NewBlakeSHA256Ed25519()
-	var n int64 = 10
+	var n uint32 = 10
 	t := n/2 + 1
 
 	priPoly := NewPriPoly(g, t, nil, g.RandomStream())
@@ -269,7 +269,7 @@ func TestPublicRecoveryDeleteFail(test *testing.T) {
 
 func TestPrivateAdd(test *testing.T) {
 	g := edwards25519.NewBlakeSHA256Ed25519()
-	var n int64 = 10
+	var n uint32 = 10
 	t := n/2 + 1
 
 	p := NewPriPoly(g, t, nil, g.RandomStream())
@@ -291,7 +291,7 @@ func TestPrivateAdd(test *testing.T) {
 
 func TestPublicAdd(test *testing.T) {
 	g := edwards25519.NewBlakeSHA256Ed25519()
-	var n int64 = 10
+	var n uint32 = 10
 	t := n/2 + 1
 
 	G := g.Point().Pick(g.RandomStream())
@@ -325,7 +325,7 @@ func TestPublicAdd(test *testing.T) {
 
 func TestPublicPolyEqual(test *testing.T) {
 	g := edwards25519.NewBlakeSHA256Ed25519()
-	var n int64 = 10
+	var n uint32 = 10
 	t := n/2 + 1
 
 	G := g.Point().Pick(g.RandomStream())
@@ -351,7 +351,7 @@ func TestPublicPolyEqual(test *testing.T) {
 
 func TestPriPolyMul(test *testing.T) {
 	suite := edwards25519.NewBlakeSHA256Ed25519()
-	var n int64 = 10
+	var n uint32 = 10
 	t := n/2 + 1
 	a := NewPriPoly(suite, t, nil, suite.RandomStream())
 	b := NewPriPoly(suite, t, nil, suite.RandomStream())
@@ -378,7 +378,7 @@ func TestPriPolyMul(test *testing.T) {
 
 func TestRecoverPriPoly(test *testing.T) {
 	suite := edwards25519.NewBlakeSHA256Ed25519()
-	var n int64 = 10
+	var n uint32 = 10
 	t := n/2 + 1
 	a := NewPriPoly(suite, t, nil, suite.RandomStream())
 
@@ -394,7 +394,7 @@ func TestRecoverPriPoly(test *testing.T) {
 	reverseRecovered, err := RecoverPriPoly(suite, reverses, t, n)
 	assert.Nil(test, err)
 
-	for i := uint32(0); i < uint32(t); i++ {
+	for i := uint32(0); i < t; i++ {
 		assert.Equal(test, recovered.Eval(i).V.String(), a.Eval(i).V.String())
 		assert.Equal(test, reverseRecovered.Eval(i).V.String(), a.Eval(i).V.String())
 	}
@@ -402,7 +402,7 @@ func TestRecoverPriPoly(test *testing.T) {
 
 func TestPriPolyCoefficients(test *testing.T) {
 	suite := edwards25519.NewBlakeSHA256Ed25519()
-	var n int64 = 10
+	var n uint32 = 10
 	t := n/2 + 1
 	a := NewPriPoly(suite, t, nil, suite.RandomStream())
 
@@ -416,7 +416,7 @@ func TestPriPolyCoefficients(test *testing.T) {
 
 func TestRefreshDKG(test *testing.T) {
 	g := edwards25519.NewBlakeSHA256Ed25519()
-	var n int64 = 10
+	var n uint32 = 10
 	t := n/2 + 1
 
 	// Run an n-fold Pedersen VSS (= DKG)
@@ -424,7 +424,7 @@ func TestRefreshDKG(test *testing.T) {
 	priShares := make([][]*PriShare, n)
 	pubPolys := make([]*PubPoly, n)
 	pubShares := make([][]*PubShare, n)
-	for i := int64(0); i < n; i++ {
+	for i := uint32(0); i < n; i++ {
 		priPolys[i] = NewPriPoly(g, t, nil, g.RandomStream())
 		priShares[i] = priPolys[i].Shares(n)
 		pubPolys[i] = priPolys[i].Commit(nil)
@@ -432,8 +432,8 @@ func TestRefreshDKG(test *testing.T) {
 	}
 
 	// Verify VSS shares
-	for i := int64(0); i < n; i++ {
-		for j := int64(0); j < n; j++ {
+	for i := uint32(0); i < n; i++ {
+		for j := uint32(0); j < n; j++ {
 			sij := priShares[i][j]
 			// s_ij * G
 			sijG := g.Point().Base().Mul(sij.V, nil)
@@ -443,9 +443,9 @@ func TestRefreshDKG(test *testing.T) {
 
 	// Create private DKG shares
 	dkgShares := make([]*PriShare, n)
-	for i := uint32(0); i < uint32(n); i++ {
+	for i := uint32(0); i < n; i++ {
 		acc := g.Scalar().Zero()
-		for j := int64(0); j < n; j++ { // assuming all participants are in the qualified set
+		for j := uint32(0); j < n; j++ { // assuming all participants are in the qualified set
 			acc = g.Scalar().Add(acc, priShares[j][i].V)
 		}
 		dkgShares[i] = &PriShare{i, acc}
@@ -453,9 +453,9 @@ func TestRefreshDKG(test *testing.T) {
 
 	// Create public DKG commitments (= verification vector)
 	dkgCommits := make([]kyber.Point, t)
-	for k := int64(0); k < t; k++ {
+	for k := uint32(0); k < t; k++ {
 		acc := g.Point().Null()
-		for i := int64(0); i < n; i++ { // assuming all participants are in the qualified set
+		for i := uint32(0); i < n; i++ { // assuming all participants are in the qualified set
 			_, coeff := pubPolys[i].Info()
 			acc = g.Point().Add(acc, coeff[k])
 		}
@@ -464,7 +464,7 @@ func TestRefreshDKG(test *testing.T) {
 
 	// Check that the private DKG shares verify against the public DKG commits
 	dkgPubPoly := NewPubPoly(g, nil, dkgCommits)
-	for i := int64(0); i < n; i++ {
+	for i := uint32(0); i < n; i++ {
 		require.True(test, dkgPubPoly.Check(dkgShares[i]))
 	}
 
@@ -475,7 +475,7 @@ func TestRefreshDKG(test *testing.T) {
 	subPubShares := make([][]*PubShare, n)
 
 	// Create subshares and subpolys
-	for i := int64(0); i < n; i++ {
+	for i := uint32(0); i < n; i++ {
 		subPriPolys[i] = NewPriPoly(g, t, dkgShares[i].V, g.RandomStream())
 		subPriShares[i] = subPriPolys[i].Shares(n)
 		subPubPolys[i] = subPriPolys[i].Commit(nil)
@@ -485,10 +485,10 @@ func TestRefreshDKG(test *testing.T) {
 
 	// Handout shares to new nodes column-wise and verify them
 	newDKGShares := make([]*PriShare, n)
-	for i := uint32(0); i < uint32(n); i++ {
+	for i := uint32(0); i < n; i++ {
 		tmpPriShares := make([]*PriShare, n) // column-wise reshuffled sub-shares
 		tmpPubShares := make([]*PubShare, n) // public commitments to old DKG private shares
-		for j := uint32(0); j < uint32(n); j++ {
+		for j := uint32(0); j < n; j++ {
 			// Check 1: Verify that the received individual private subshares s_ji
 			// is correct by evaluating the public commitment vector
 			tmpPriShares[j] = &PriShare{I: j, V: subPriShares[j][i].V} // Shares that participant i gets from j
@@ -513,9 +513,9 @@ func TestRefreshDKG(test *testing.T) {
 
 	// Refresh the DKG commitments (= verification vector)
 	newDKGCommits := make([]kyber.Point, t)
-	for i := int64(0); i < t; i++ {
+	for i := uint32(0); i < t; i++ {
 		pubShares := make([]*PubShare, n)
-		for j := uint32(0); j < uint32(n); j++ {
+		for j := uint32(0); j < n; j++ {
 			_, c := subPubPolys[j].Info()
 			pubShares[j] = &PubShare{I: j, V: c[i]}
 		}
@@ -528,13 +528,13 @@ func TestRefreshDKG(test *testing.T) {
 	require.True(test, dkgCommits[0].Equal(newDKGCommits[0]))
 
 	// Check that the old and new DKG private shares are different
-	for i := int64(0); i < n; i++ {
+	for i := uint32(0); i < n; i++ {
 		require.False(test, dkgShares[i].V.Equal(newDKGShares[i].V))
 	}
 
 	// Check that the refreshed private DKG shares verify against the refreshed public DKG commits
 	q := NewPubPoly(g, nil, newDKGCommits)
-	for i := int64(0); i < n; i++ {
+	for i := uint32(0); i < n; i++ {
 		require.True(test, q.Check(newDKGShares[i]))
 	}
 

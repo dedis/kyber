@@ -53,9 +53,9 @@ func EncShares(
 	H kyber.Point,
 	X []kyber.Point,
 	secret kyber.Scalar,
-	t int64,
+	t uint32,
 ) (shares []*PubVerShare, commit *share.PubPoly, err error) {
-	n := int64(len(X))
+	n := uint32(len(X))
 	encShares := make([]*PubVerShare, n)
 
 	// Create secret sharing polynomial
@@ -71,7 +71,7 @@ func EncShares(
 	indices := make([]uint32, n)
 	values := make([]kyber.Scalar, n)
 	HS := make([]kyber.Point, n)
-	for i := int64(0); i < n; i++ {
+	for i := uint32(0); i < n; i++ {
 		indices[i] = priShares[i].I
 		values[i] = priShares[i].V
 		HS[i] = H
@@ -83,7 +83,7 @@ func EncShares(
 		return nil, nil, err
 	}
 
-	for i := int64(0); i < n; i++ {
+	for i := uint32(0); i < n; i++ {
 		ps := &share.PubShare{I: indices[i], V: sX[i]}
 		encShares[i] = &PubVerShare{*ps, *proofs[i]}
 	}
@@ -305,13 +305,13 @@ func RecoverSecret(
 	X []kyber.Point,
 	encShares []*PubVerShare,
 	decShares []*PubVerShare,
-	t, n int64,
+	t, n uint32,
 ) (kyber.Point, error) {
 	D, err := VerifyDecShareBatch(suite, G, X, encShares, decShares)
 	if err != nil {
 		return nil, err
 	}
-	if int64(len(D)) < t {
+	if uint32(len(D)) < t {
 		return nil, fmt.Errorf("didn't verify: %w", ErrTooFewShares)
 	}
 	var shares []*share.PubShare

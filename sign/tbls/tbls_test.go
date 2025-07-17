@@ -15,7 +15,7 @@ func TestTBLS(test *testing.T) {
 }
 
 func FuzzTBLS(f *testing.F) {
-	f.Fuzz(func(t *testing.T, msg []byte, n int) {
+	f.Fuzz(func(t *testing.T, msg []byte, n uint32) {
 		if (n < 1) || (n > 100) {
 			t.Skip("n must be between 1 and 100")
 		}
@@ -26,7 +26,7 @@ func FuzzTBLS(f *testing.F) {
 	})
 }
 
-func TBLSRoutine(test *testing.T, msg []byte, n int) {
+func TBLSRoutine(test *testing.T, msg []byte, n uint32) {
 	// Use a deterministic seed for the random stream
 	stream := blake2xb.New(msg)
 	suite := bn256.NewSuiteRand(stream)
@@ -34,11 +34,11 @@ func TBLSRoutine(test *testing.T, msg []byte, n int) {
 	th := n/2 + 1
 
 	secret := suite.G1().Scalar().Pick(stream)
-	priPoly := share.NewPriPoly(suite.G2(), int64(th), secret, stream)
+	priPoly := share.NewPriPoly(suite.G2(), th, secret, stream)
 	pubPoly := priPoly.Commit(suite.G2().Point().Base())
 	sigShares := make([][]byte, 0)
 
-	for _, x := range priPoly.Shares(int64(n)) {
+	for _, x := range priPoly.Shares(n) {
 		sig, err := scheme.Sign(x, msg)
 		require.Nil(test, err)
 		sigShares = append(sigShares, sig)

@@ -17,10 +17,10 @@ type TestNetwork struct {
 	noops  []uint32
 }
 
-func NewTestNetwork(n int) *TestNetwork {
+func NewTestNetwork(n uint32) *TestNetwork {
 	t := &TestNetwork{}
-	for i := 0; i < n; i++ {
-		t.boards = append(t.boards, NewTestBoard(uint32(i), n, t))
+	for i := uint32(0); i < n; i++ {
+		t.boards = append(t.boards, NewTestBoard(i, n, t))
 	}
 	return t
 }
@@ -81,7 +81,7 @@ type TestBoard struct {
 	badSig   bool
 }
 
-func NewTestBoard(index uint32, n int, network *TestNetwork) *TestBoard {
+func NewTestBoard(index uint32, n uint32, network *TestNetwork) *TestBoard {
 	return &TestBoard{
 		network:  network,
 		index:    index,
@@ -145,7 +145,7 @@ func moveTime(tns []*TestNode, p time.Duration) {
 }
 
 func TestProtoFull(t *testing.T) {
-	n := 5
+	n := uint32(5)
 	thr := n
 	period := 1 * time.Second
 	suite := edwards25519.NewBlakeSHA256Ed25519()
@@ -187,7 +187,7 @@ func TestProtoFull(t *testing.T) {
 	for optRes := range resCh {
 		require.NoError(t, optRes.Error)
 		results = append(results, optRes.Result)
-		if len(results) == n {
+		if uint32(len(results)) == n {
 			break
 		}
 	}
@@ -196,8 +196,8 @@ func TestProtoFull(t *testing.T) {
 }
 
 func TestProtoResharing(t *testing.T) {
-	n := 5
-	thr := 4
+	n := uint32(5)
+	thr := uint32(4)
 	period := 1 * time.Second
 	suite := edwards25519.NewBlakeSHA256Ed25519()
 	tns := GenerateTestNodes(suite, n)
@@ -243,7 +243,7 @@ func TestProtoResharing(t *testing.T) {
 	for optRes := range resCh {
 		require.NoError(t, optRes.Error)
 		results = append(results, optRes.Result)
-		if len(results) == n {
+		if uint32(len(results)) == n {
 			break
 		}
 	}
@@ -304,7 +304,7 @@ func TestProtoResharing(t *testing.T) {
 		require.NoError(t, optRes.Error)
 		results = append(results, optRes.Result)
 		t.Logf("GOT %d RESULTS\n", len(results))
-		if len(results) == newN {
+		if uint32(len(results)) == newN {
 			break
 		}
 	}
@@ -313,9 +313,9 @@ func TestProtoResharing(t *testing.T) {
 }
 
 func TestProtoThreshold(t *testing.T) {
-	n := 5
-	realN := 4
-	thr := 4
+	n := uint32(5)
+	realN := uint32(4)
+	thr := uint32(4)
 	period := 1 * time.Second
 	suite := edwards25519.NewBlakeSHA256Ed25519()
 	tns := GenerateTestNodes(suite, n)
@@ -355,7 +355,7 @@ func TestProtoThreshold(t *testing.T) {
 	for optRes := range resCh {
 		require.NoError(t, optRes.Error)
 		results = append(results, optRes.Result)
-		if len(results) == realN {
+		if uint32(len(results)) == realN {
 			break
 		}
 	}
@@ -364,7 +364,7 @@ func TestProtoThreshold(t *testing.T) {
 }
 
 func TestProtoFullFast(t *testing.T) {
-	n := 5
+	n := uint32(5)
 	thr := n
 	period := 1 * time.Second
 	suite := edwards25519.NewBlakeSHA256Ed25519()
@@ -397,7 +397,7 @@ func TestProtoFullFast(t *testing.T) {
 	for optRes := range resCh {
 		require.NoError(t, optRes.Error)
 		results = append(results, optRes.Result)
-		if len(results) == n {
+		if uint32(len(results)) == n {
 			break
 		}
 	}
@@ -405,8 +405,8 @@ func TestProtoFullFast(t *testing.T) {
 }
 
 func TestProtoResharingAbsent(t *testing.T) {
-	n := 4
-	thr := 3
+	n := uint32(4)
+	thr := uint32(3)
 	// we setup now the second group with one node left from old group and two
 	// new node
 	newN := n + 1
@@ -457,7 +457,7 @@ func TestProtoResharingAbsent(t *testing.T) {
 	for optRes := range resCh {
 		require.NoError(t, optRes.Error)
 		results = append(results, optRes.Result)
-		if len(results) == n {
+		if uint32(len(results)) == n {
 			break
 		}
 	}
@@ -523,7 +523,7 @@ func TestProtoResharingAbsent(t *testing.T) {
 		}
 		results = append(results, optRes.Result)
 		t.Logf("GOT %d RESULTS\n", len(results))
-		if len(results) == newN-1 {
+		if uint32(len(results)) == newN-1 {
 			break
 		}
 	}
@@ -531,8 +531,8 @@ func TestProtoResharingAbsent(t *testing.T) {
 }
 
 func TestProtoThresholdFast(t *testing.T) {
-	n := 5
-	thr := 4
+	n := uint32(5)
+	thr := uint32(4)
 	period := 1 * time.Second
 	suite := edwards25519.NewBlakeSHA256Ed25519()
 	tns := GenerateTestNodes(suite, n)
@@ -579,7 +579,7 @@ func TestProtoThresholdFast(t *testing.T) {
 	for optRes := range resCh {
 		require.NoError(t, optRes.Error)
 		results = append(results, optRes.Result)
-		if len(results) == n-1 {
+		if uint32(len(results)) == n-1 {
 			break
 		}
 	}
@@ -637,8 +637,8 @@ func TestSet(t *testing.T) {
 }
 
 func TestProtoSkip(t *testing.T) {
-	n := 5
-	thr := 4
+	n := uint32(5)
+	thr := uint32(4)
 	period := 1 * time.Second
 	suite := edwards25519.NewBlakeSHA256Ed25519()
 	tns := GenerateTestNodes(suite, n)
@@ -678,7 +678,7 @@ func TestProtoSkip(t *testing.T) {
 	for optRes := range resCh {
 		require.NoError(t, optRes.Error)
 		results = append(results, optRes.Result)
-		if len(results) == n {
+		if uint32(len(results)) == n {
 			break
 		}
 	}

@@ -369,15 +369,15 @@ func expandMessageXMD(h hash.Hash, m []byte, domainSeparator string, byteLen int
 
 	// b0 = H(msg_prime)
 	h.Reset()
-	h.Write([]byte(mPrime))
+	h.Write(mPrime)
 	b0 := h.Sum(nil)
 
 	// b_1 = H(b_0 || I2OSP(1, 1) || DST_prime)
 	h.Reset()
 	h.Write(b0)
 	onePad, _ := i2OSP(1, 1)
-	h.Write([]byte(onePad))
-	h.Write([]byte(dstPrime))
+	h.Write(onePad)
+	h.Write(dstPrime)
 	b1 := h.Sum(nil)
 
 	bFinal := make([]byte, 0, len(b1)*(ell+1))

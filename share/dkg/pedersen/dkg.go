@@ -67,7 +67,7 @@ type Config struct {
 	// `vss.MinimumT(len(NewNodes))`. This threshold indicates the degree of the
 	// polynomials used to create the shares, and the minimum number of
 	// verification required for each deal.
-	Threshold int
+	Threshold uint32
 
 	// OldThreshold holds the threshold value that was used in the previous
 	// configuration. This field MUST be specified when doing resharing, but is
@@ -76,7 +76,7 @@ type Config struct {
 	// NOTE: this field is always required (instead of taking the default when
 	// absent) when doing a resharing to avoid a downgrade attack, where a resharing
 	// the number of deals required is less than what it is supposed to be.
-	OldThreshold int
+	OldThreshold uint32
 
 	// Reader is an optional field that can hold a user-specified entropy
 	// source.  If it is set, Reader's data will be combined with random data
@@ -170,9 +170,9 @@ type DistKeyGenerator struct {
 	// index in the new list of nodes
 	nidx Index
 	// old threshold used in the previous DKG
-	oldT int
+	oldT uint32
 	// new threshold to use in this round
-	newT int
+	newT uint32
 	// indicates whether we are in the re-sharing protocol or basic DKG
 	isResharing bool
 	// indicates whether we are able to issue shares or not
@@ -222,11 +222,11 @@ func NewDistKeyHandler(c *Config) (*DistKeyGenerator, error) {
 		return nil, errors.New("dkg: public key not found in old list or new list")
 	}
 
-	var newThreshold int
+	var newThreshold uint32
 	if c.Threshold != 0 {
 		newThreshold = c.Threshold
 	} else {
-		newThreshold = MinimumT(len(c.NewNodes))
+		newThreshold = MinimumT(uint32(len(c.NewNodes)))
 	}
 	if !newPresent {
 		// if we are not in the new list of nodes, then we definitely can't
@@ -240,7 +240,7 @@ func NewDistKeyHandler(c *Config) (*DistKeyGenerator, error) {
 	var dpriv *share.PriPoly
 	var dpub *share.PubPoly
 	var olddpub *share.PubPoly
-	var oldThreshold int
+	var oldThreshold uint32
 	if !isResharing && newPresent {
 		// fresk DKG present
 		randomStream := random.New()
@@ -264,7 +264,7 @@ func NewDistKeyHandler(c *Config) (*DistKeyGenerator, error) {
 	if err := c.CheckForDuplicates(); err != nil {
 		return nil, err
 	}
-	dpriv = share.NewPriPoly(c.Suite, int64(c.Threshold), secretCoeff, c.Suite.RandomStream())
+	dpriv = share.NewPriPoly(c.Suite, c.Threshold, secretCoeff, c.Suite.RandomStream())
 	dpub = dpriv.Commit(c.Suite.Point().Base())
 	// resharing case and we are included in the new list of nodes
 	if isResharing && newPresent {
@@ -282,7 +282,7 @@ func NewDistKeyHandler(c *Config) (*DistKeyGenerator, error) {
 		// oldThreshold is only useful in the context of a new share holder, to
 		// make sure there are enough correct deals from the old nodes.
 		canReceive = true
-		oldThreshold = len(c.PublicCoeffs)
+		oldThreshold = uint32(len(c.PublicCoeffs))
 	}
 	var statuses *StatusMatrix
 	if c.FastSync {
@@ -298,7 +298,7 @@ func NewDistKeyHandler(c *Config) (*DistKeyGenerator, error) {
 			// by default, so if we miss one share or there's an invalid share,
 			// it'll generate a complaint
 			for _, node := range c.OldNodes {
-				statuses.Set(node.Index, uint32(nidx), Complaint)
+				statuses.Set(node.Index, nidx, Complaint)
 			}
 		}
 	}
@@ -339,7 +339,7 @@ func (d *DistKeyGenerator) Deals() (*DealBundle, error) {
 		// compute share
 		si := d.dpriv.Eval(node.Index).V
 
-		if d.canReceive && uint32(d.nidx) == node.Index {
+		if d.canReceive && d.nidx == node.Index {
 			d.validShares[d.oidx] = si
 			d.allPublics[d.oidx] = d.dpub
 			// we set our own share as true, because we are not malicious!
@@ -360,7 +360,7 @@ func (d *DistKeyGenerator) Deals() (*DealBundle, error) {
 	d.state = DealPhase
 	_, commits := d.dpub.Info()
 	bundle := &DealBundle{
-		DealerIndex: uint32(d.oidx),
+		DealerIndex: d.oidx,
 		Deals:       deals,
 		Public:      commits,
 		SessionID:   d.c.Nonce,
@@ -400,7 +400,7 @@ func (d *DistKeyGenerator) ProcessDeals(bundles []*DealBundle) (*ResponseBundle,
 			d.c.Error("found nil Deal bundle")
 			continue
 		}
-		if d.canIssue && bundle.DealerIndex == uint32(d.oidx) {
+		if d.canIssue && bundle.DealerIndex == d.oidx {
 			// dont look at our own deal
 			// Note that's why we are not checking if we are evicted at the end of this function and return an error
 			// because we're supposing we are honest and we don't look at our own deal
@@ -417,7 +417,7 @@ func (d *DistKeyGenerator) ProcessDeals(bundles []*DealBundle) (*ResponseBundle,
 			continue
 		}
 
-		if bundle.Public == nil || len(bundle.Public) != d.c.Threshold {
+		if bundle.Public == nil || uint32(len(bundle.Public)) != d.c.Threshold {
 			// invalid public polynomial is clearly cheating
 			// so we evict him from the list
 			// since we assume broadcast channel, every honest player will evict
@@ -445,7 +445,7 @@ func (d *DistKeyGenerator) ProcessDeals(bundles []*DealBundle) (*ResponseBundle,
 				d.c.Error("Deal share holder evicted normally")
 				break
 			}
-			if deal.ShareIndex != uint32(d.nidx) {
+			if deal.ShareIndex != d.nidx {
 				// we dont look at other's shares
 				continue
 			}
@@ -493,12 +493,12 @@ func (d *DistKeyGenerator) ProcessDeals(bundles []*DealBundle) (*ResponseBundle,
 		if !found {
 			continue
 		}
-		d.statuses.Set(dealer.Index, uint32(nidx), Success)
+		d.statuses.Set(dealer.Index, nidx, Success)
 	}
 
 	// producing response part
 	var responses []Response
-	var myshares = d.statuses.StatusesForShare(uint32(d.nidx))
+	var myshares = d.statuses.StatusesForShare(d.nidx)
 	for _, node := range d.c.OldNodes {
 		// if the node is evicted, we don't even need to send a complaint or a
 		// response since every honest node evicts him as well.
@@ -518,7 +518,7 @@ func (d *DistKeyGenerator) ProcessDeals(bundles []*DealBundle) (*ResponseBundle,
 		} else {
 			// dealer i did not give a successful share (or absent etc)
 			responses = append(responses, Response{
-				DealerIndex: uint32(node.Index),
+				DealerIndex: node.Index,
 				Status:      Complaint,
 			})
 			d.c.Info(fmt.Sprintf("Complaint towards node %d", node.Index))
@@ -527,7 +527,7 @@ func (d *DistKeyGenerator) ProcessDeals(bundles []*DealBundle) (*ResponseBundle,
 	var bundle *ResponseBundle
 	if len(responses) > 0 {
 		bundle = &ResponseBundle{
-			ShareIndex: uint32(d.nidx),
+			ShareIndex: d.nidx,
 			Responses:  responses,
 			SessionID:  d.c.Nonce,
 		}
@@ -583,7 +583,7 @@ func (d *DistKeyGenerator) ProcessResponses(bundles []*ResponseBundle) (
 		if bundle == nil {
 			continue
 		}
-		if d.canIssue && bundle.ShareIndex == uint32(d.nidx) {
+		if d.canIssue && bundle.ShareIndex == d.nidx {
 			// just in case we don't treat our own response
 			continue
 		}
@@ -679,7 +679,7 @@ func (d *DistKeyGenerator) ProcessResponses(bundles []*ResponseBundle) (
 	}
 
 	// check if there are justifications this node needs to produce
-	var myrow = d.statuses.StatusesOfDealer(uint32(d.oidx))
+	var myrow = d.statuses.StatusesOfDealer(d.oidx)
 	var justifications []Justification
 	var foundJustifs bool
 	for shareIndex, status := range myrow {
@@ -695,7 +695,7 @@ func (d *DistKeyGenerator) ProcessResponses(bundles []*ResponseBundle) (
 		d.c.Info(fmt.Sprintf("Producing justifications for node %d", shareIndex))
 		foundJustifs = true
 		// mark those shares as resolved in the statuses
-		d.statuses.Set(uint32(d.oidx), shareIndex, Success)
+		d.statuses.Set(d.oidx, shareIndex, Success)
 	}
 	if !foundJustifs {
 		// no justifications required from us !
@@ -703,7 +703,7 @@ func (d *DistKeyGenerator) ProcessResponses(bundles []*ResponseBundle) (
 	}
 
 	var bundle = &JustificationBundle{
-		DealerIndex:    uint32(d.oidx),
+		DealerIndex:    d.oidx,
 		Justifications: justifications,
 		SessionID:      d.c.Nonce,
 	}
@@ -748,7 +748,7 @@ func (d *DistKeyGenerator) ProcessJustifications(bundles []*JustificationBundle)
 			d.c.Error("Justification bundle contains duplicate - evicting dealer", bundle.DealerIndex)
 			continue
 		}
-		if d.canIssue && bundle.DealerIndex == uint32(d.oidx) {
+		if d.canIssue && bundle.DealerIndex == d.oidx {
 			// we dont treat our own justifications
 			d.c.Info("Skipping own justification", true)
 			continue
@@ -812,7 +812,7 @@ func (d *DistKeyGenerator) ProcessJustifications(bundles []*JustificationBundle)
 			}
 			// valid share -> mark OK
 			d.statuses.Set(bundle.DealerIndex, justif.ShareIndex, Success)
-			if justif.ShareIndex == uint32(d.nidx) {
+			if justif.ShareIndex == d.nidx {
 				// store the share if it's for us
 				d.c.Info("Saving our key share for", justif.ShareIndex)
 				d.validShares[bundle.DealerIndex] = justif.Share
@@ -826,7 +826,7 @@ func (d *DistKeyGenerator) ProcessJustifications(bundles []*JustificationBundle)
 	}
 
 	// check if there is enough dealer entries marked as all success
-	var allGood int
+	var allGood uint32
 	for _, n := range d.c.OldNodes {
 		if contains(d.evicted, n.Index) {
 			continue
@@ -901,7 +901,7 @@ func (d *DistKeyGenerator) computeResharingResult() (*Result, error) {
 
 	// the private polynomial is generated from the old nodes, thus inheriting
 	// the old threshold condition
-	priPoly, err := share.RecoverPriPoly(d.suite, shares, int64(d.oldT), int64(len(d.c.OldNodes)))
+	priPoly, err := share.RecoverPriPoly(d.suite, shares, d.oldT, uint32(len(d.c.OldNodes)))
 	if err != nil {
 		return nil, err
 	}
@@ -915,7 +915,7 @@ func (d *DistKeyGenerator) computeResharingResult() (*Result, error) {
 	// the new public polynomial must however have "newT" coefficients since it
 	// will be held by the new nodes.
 	finalCoeffs := make([]kyber.Point, d.newT)
-	for i := 0; i < d.newT; i++ {
+	for i := uint32(0); i < d.newT; i++ {
 		tmpCoeffs := make([]*share.PubShare, 0, len(coeffs))
 		// take all i-th coefficients
 		for j := range coeffs {
@@ -928,7 +928,7 @@ func (d *DistKeyGenerator) computeResharingResult() (*Result, error) {
 		// using the old threshold / length because there are at most
 		// len(d.c.OldNodes) i-th coefficients since they are the one generating one
 		// each, thus using the old threshold.
-		coeff, err := share.RecoverCommit(d.suite, tmpCoeffs, int64(d.oldT), int64(len(d.c.OldNodes)))
+		coeff, err := share.RecoverCommit(d.suite, tmpCoeffs, d.oldT, uint32(len(d.c.OldNodes)))
 		if err != nil {
 			return nil, err
 		}
@@ -970,7 +970,7 @@ func (d *DistKeyGenerator) computeResharingResult() (*Result, error) {
 		}
 	}
 
-	if len(qual) < d.c.Threshold {
+	if uint32(len(qual)) < d.c.Threshold {
 		return nil, fmt.Errorf("dkg: too many uncompliant new participants %d/%d", len(qual), d.c.Threshold)
 	}
 	return &Result{
@@ -1091,7 +1091,7 @@ func findIndex(list []Node, index Index) (kyber.Point, bool) {
 	return nil, false
 }
 
-func MinimumT(n int) int {
+func MinimumT(n uint32) uint32 {
 	return (n >> 1) + 1
 }
 
