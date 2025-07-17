@@ -158,7 +158,7 @@ type DistKeyGenerator struct {
 
 	participants []kyber.Point
 
-	t int
+	t uint32
 
 	dealer    *vss.Dealer
 	verifiers map[uint32]*vss.Verifier
@@ -182,7 +182,7 @@ func NewDistKeyGenerator(
 	suite Suite,
 	longterm kyber.Scalar,
 	participants []kyber.Point,
-	t int,
+	t uint32,
 ) (*DistKeyGenerator, error) {
 	pub := suite.Point().Mul(longterm, nil)
 	// find our index
@@ -318,7 +318,7 @@ func (d *DistKeyGenerator) ProcessResponse(resp *Response) (*Justification, erro
 		return nil, err
 	}
 
-	if resp.Index != uint32(d.index) {
+	if resp.Index != d.index {
 		//nolint:nilnil // Expected behavior
 		return nil, nil
 	}
@@ -364,7 +364,7 @@ func (d *DistKeyGenerator) SetTimeout() {
 // vss.Verifier.DealCertified()). If the distribution is certified, the protocol
 // can continue using d.SecretCommits().
 func (d *DistKeyGenerator) Certified() bool {
-	return len(d.QUAL()) >= d.t
+	return uint32(len(d.QUAL())) >= d.t
 }
 
 // QUAL returns the index in the list of participants that forms the QUALIFIED
@@ -415,7 +415,7 @@ func (d *DistKeyGenerator) SecretCommits() (*SecretCommits, error) {
 	}
 	sc := &SecretCommits{
 		Commitments: d.dealer.Commits(),
-		Index:       uint32(d.index),
+		Index:       d.index,
 		SessionID:   d.dealer.SessionID(),
 	}
 	msg := sc.Hash(d.suite)
@@ -425,7 +425,7 @@ func (d *DistKeyGenerator) SecretCommits() (*SecretCommits, error) {
 	}
 	sc.Signature = sig
 	// adding our own commitments
-	d.commitments[uint32(d.index)] = share.NewPubPoly(d.suite, d.suite.Point().Base(), sc.Commitments)
+	d.commitments[d.index] = share.NewPubPoly(d.suite, d.suite.Point().Base(), sc.Commitments)
 	return sc, err
 }
 
@@ -460,7 +460,7 @@ func (d *DistKeyGenerator) ProcessSecretCommits(sc *SecretCommits) (*ComplaintCo
 	poly := share.NewPubPoly(d.suite, d.suite.Point().Base(), sc.Commitments)
 	if !poly.Check(deal.SecShare) {
 		cc := &ComplaintCommits{
-			Index:       uint32(d.index),
+			Index:       d.index,
 			DealerIndex: sc.Index,
 			Deal:        deal,
 		}
@@ -580,14 +580,14 @@ func (d *DistKeyGenerator) ProcessReconstructCommits(rs *ReconstructCommits) err
 	arr = append(arr, rs)
 	d.pendingReconstruct[rs.DealerIndex] = arr
 	// check if we can reconstruct commitments
-	if len(arr) >= d.t {
+	if uint32(len(arr)) >= d.t {
 		var shares = make([]*share.PriShare, len(arr))
 		for i, r := range arr {
 			shares[i] = r.Share
 		}
 		// error only happens when you have less than t shares, but we ensure
 		// there are more just before
-		pri, _ := share.RecoverPriPoly(d.suite, shares, int64(d.t), int64(len(d.participants)))
+		pri, _ := share.RecoverPriPoly(d.suite, shares, d.t, uint32(len(d.participants)))
 		d.commitments[rs.DealerIndex] = pri.Commit(d.suite.Point().Base())
 		// note it has been reconstructed.
 		d.reconstructed[rs.DealerIndex] = true
@@ -612,7 +612,7 @@ func (d *DistKeyGenerator) Finished() bool {
 		}
 		return true
 	})
-	return nb >= d.t && ret
+	return uint32(nb) >= d.t && ret
 }
 
 // DistKeyShare generates the distributed key relative to this receiver

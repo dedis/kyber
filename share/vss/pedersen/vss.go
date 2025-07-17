@@ -38,7 +38,7 @@ type Dealer struct {
 	verifiers     []kyber.Point
 	hkdfContext   []byte
 	// threshold of shares that is needed to reconstruct the secret
-	t int
+	t uint32
 	// sessionID is a unique identifier for the whole session of the scheme
 	sessionID []byte
 	// list of deals this Dealer has generated
@@ -113,7 +113,7 @@ type Justification struct {
 // a middle ground between robustness and secrecy. Increasing t will increase
 // the secrecy at the cost of the decreased robustness and vice versa. It
 // returns an error if the t is inferior or equal to 2.
-func NewDealer(suite Suite, longterm, secret kyber.Scalar, verifiers []kyber.Point, t int) (*Dealer, error) {
+func NewDealer(suite Suite, longterm, secret kyber.Scalar, verifiers []kyber.Point, t uint32) (*Dealer, error) {
 	d := &Dealer{
 		suite:     suite,
 		long:      longterm,
@@ -125,7 +125,7 @@ func NewDealer(suite Suite, longterm, secret kyber.Scalar, verifiers []kyber.Poi
 	}
 	d.t = t
 
-	f := share.NewPriPoly(d.suite, int64(d.t), d.secret, suite.RandomStream())
+	f := share.NewPriPoly(d.suite, d.t, d.secret, suite.RandomStream())
 	d.pub = d.suite.Point().Mul(d.long, nil)
 
 	// Compute public polynomial coefficients
@@ -358,9 +358,7 @@ func (v *Verifier) ProcessEncryptedDeal(e *EncryptedDeal) (*Response, error) {
 		return nil, errors.New("vss: verifier got wrong index from deal")
 	}
 
-	t := int(d.T)
-
-	sid, err := sessionID(v.suite, v.dealer, v.verifiers, d.Commitments, t)
+	sid, err := sessionID(v.suite, v.dealer, v.verifiers, d.Commitments, d.T)
 	if err != nil {
 		return nil, err
 	}
@@ -475,7 +473,7 @@ func (v *Verifier) SessionID() []byte {
 // RecoverSecret recovers the secret shared by a Dealer by gathering at least t
 // Deals from the verifiers. It returns an error if there is not enough Deals or
 // if all Deals don't have the same SessionID.
-func RecoverSecret(suite Suite, deals []*Deal, n, t int) (kyber.Scalar, error) {
+func RecoverSecret(suite Suite, deals []*Deal, n, t uint32) (kyber.Scalar, error) {
 	shares := make([]*share.PriShare, len(deals))
 	for i, deal := range deals {
 		// all sids the same
@@ -485,7 +483,7 @@ func RecoverSecret(suite Suite, deals []*Deal, n, t int) (kyber.Scalar, error) {
 			return nil, errors.New("vss: all deals need to have same session id")
 		}
 	}
-	return share.RecoverSecret(suite, shares, int64(t), int64(n))
+	return share.RecoverSecret(suite, shares, t, n)
 }
 
 // SetTimeout marks the end of the protocol. The caller is expected to call this
@@ -501,7 +499,7 @@ func (v *Verifier) SetTimeout() {
 func (v *Verifier) UnsafeSetResponseDKG(idx uint32, approval bool) {
 	r := &Response{
 		SessionID:      v.Aggregator.sid,
-		Index:          uint32(idx),
+		Index:          idx,
 		StatusApproved: approval,
 	}
 
@@ -520,7 +518,7 @@ type Aggregator struct {
 	responses map[uint32]*Response
 	sid       []byte
 	deal      *Deal
-	t         int
+	t         uint32
 	badDealer bool
 	timeout   bool
 }
@@ -530,7 +528,7 @@ func newAggregator(
 	dealer kyber.Point,
 	verifiers,
 	commitments []kyber.Point,
-	t int,
+	t uint32,
 	sid []byte,
 ) *Aggregator {
 	agg := &Aggregator{
@@ -569,14 +567,14 @@ func (a *Aggregator) VerifyDeal(d *Deal, inclusion bool) error {
 		a.commits = d.Commitments
 		a.sid = d.SessionID
 		a.deal = d
-		a.t = int(d.T)
+		a.t = d.T
 	}
 
-	if !validT(int(d.T), a.verifiers) {
+	if !validT(d.T, a.verifiers) {
 		return errors.New("vss: invalid t received in Deal")
 	}
 
-	if int(d.T) != a.t {
+	if d.T != a.t {
 		return errors.New("vss: incompatible threshold - potential attack")
 	}
 
@@ -605,7 +603,7 @@ func (a *Aggregator) VerifyDeal(d *Deal, inclusion bool) error {
 // should make sure the one it receives from the dealer is consistent. If this
 // method is not called, the first threshold received is considered as the
 // "truth".
-func (a *Aggregator) SetThreshold(t int) {
+func (a *Aggregator) SetThreshold(t uint32) {
 	a.t = t
 }
 
@@ -686,8 +684,8 @@ func (a *Aggregator) Responses() map[uint32]*Response {
 // If the caller previously called `SetTimeout` and `DealCertified()` returns
 // false, the protocol MUST abort as the deal is not and never will be validated.
 func (a *Aggregator) DealCertified() bool {
-	var absentVerifiers int
-	var approvals int
+	var absentVerifiers uint32
+	var approvals uint32
 	var isComplaint bool
 
 	for i := range a.verifiers {
@@ -700,7 +698,7 @@ func (a *Aggregator) DealCertified() bool {
 		}
 	}
 	enoughApprovals := approvals >= a.t
-	tooMuchAbsents := absentVerifiers > len(a.verifiers)-a.t
+	tooMuchAbsents := absentVerifiers > uint32(len(a.verifiers))-a.t
 	baseCondition := !a.badDealer && enoughApprovals && !isComplaint
 	if a.timeout {
 		return baseCondition && !tooMuchAbsents
@@ -724,12 +722,12 @@ func (a *Aggregator) MissingResponses() []int {
 // T should be adjusted to your threat model. Setting a lower T decreases the
 // difficulty for an adversary to break secrecy. However, a too large T makes
 // it possible for an adversary to prevent recovery (robustness).
-func MinimumT(n int) int {
+func MinimumT(n uint32) uint32 {
 	return (n >> 1) + 1
 }
 
-func validT(t int, verifiers []kyber.Point) bool {
-	return t >= 2 && t <= len(verifiers) && int(uint32(t)) == t
+func validT(t uint32, verifiers []kyber.Point) bool {
+	return t >= 2 && t <= uint32(len(verifiers))
 }
 
 func findPub(verifiers []kyber.Point, idx uint32) (kyber.Point, bool) {
@@ -740,7 +738,7 @@ func findPub(verifiers []kyber.Point, idx uint32) (kyber.Point, bool) {
 	return verifiers[iidx], true
 }
 
-func sessionID(suite Suite, dealer kyber.Point, verifiers, commitments []kyber.Point, t int) ([]byte, error) {
+func sessionID(suite Suite, dealer kyber.Point, verifiers, commitments []kyber.Point, t uint32) ([]byte, error) {
 	h := suite.Hash()
 	_, err := dealer.MarshalTo(h)
 	if err != nil {

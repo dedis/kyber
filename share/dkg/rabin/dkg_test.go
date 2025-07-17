@@ -15,7 +15,7 @@ import (
 
 var suite = edwards25519.NewBlakeSHA256Ed25519()
 
-var nbParticipants = 7
+var nbParticipants = uint32(7)
 
 var partPubs []kyber.Point
 var partSec []kyber.Scalar
@@ -25,7 +25,7 @@ var dkgs []*DistKeyGenerator
 func init() {
 	partPubs = make([]kyber.Point, nbParticipants)
 	partSec = make([]kyber.Scalar, nbParticipants)
-	for i := 0; i < nbParticipants; i++ {
+	for i := uint32(0); i < nbParticipants; i++ {
 		sec, pub := genPair()
 		partPubs[i] = pub
 		partSec[i] = sec
@@ -58,7 +58,7 @@ func TestDKGDeal(t *testing.T) {
 
 	deals, err := dkg.Deals()
 	require.Nil(t, err)
-	assert.Len(t, deals, nbParticipants-1)
+	assert.Len(t, deals, int(nbParticipants-1))
 
 	for i := range deals {
 		assert.NotNil(t, deals[i])
@@ -605,7 +605,7 @@ func TestDistKeyShare(t *testing.T) {
 		require.NotNil(t, dks)
 		assert.Nil(t, err)
 		dkss[i] = dks
-		assert.Equal(t, dkg.index, uint32(dks.Share.I))
+		assert.Equal(t, dkg.index, dks.Share.I)
 	}
 
 	shares := make([]*share.PriShare, nbParticipants)
@@ -614,7 +614,7 @@ func TestDistKeyShare(t *testing.T) {
 		shares[i] = dks.Share
 	}
 
-	secret, err := share.RecoverSecret(suite, shares, int64(nbParticipants), int64(nbParticipants))
+	secret, err := share.RecoverSecret(suite, shares, nbParticipants, nbParticipants)
 	assert.Nil(t, err)
 
 	commitSecret := suite.Point().Mul(secret, nil)
@@ -623,7 +623,7 @@ func TestDistKeyShare(t *testing.T) {
 
 func dkgGen() []*DistKeyGenerator {
 	dkgs := make([]*DistKeyGenerator, nbParticipants)
-	for i := 0; i < nbParticipants; i++ {
+	for i := uint32(0); i < nbParticipants; i++ {
 		dkg, err := NewDistKeyGenerator(suite, partSec[i], partPubs, nbParticipants/2+1)
 		if err != nil {
 			panic(err)

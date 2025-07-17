@@ -32,11 +32,11 @@ func ExampleSign_one() {
 
 	// Generate the signature
 	M := []byte("Hello World!") // message we want to sign
-	sig := Sign(suite, M, Set(X), nil, mine, x)
+	sig := Sign(suite, M, X, nil, mine, x)
 	fmt.Print("Signature:\n" + hex.Dump(sig))
 
 	// Verify the signature against the correct message
-	tag, err := Verify(suite, M, Set(X), nil, sig)
+	tag, err := Verify(suite, M, X, nil, sig)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -47,7 +47,7 @@ func ExampleSign_one() {
 
 	// Verify the signature against the wrong message
 	BAD := []byte("Goodbye world!")
-	tag, err = Verify(suite, BAD, Set(X), nil, sig)
+	tag, err = Verify(suite, BAD, X, nil, sig)
 	if err == nil || tag != nil {
 		panic("Signature verified against wrong message!?")
 	}
@@ -85,11 +85,11 @@ func ExampleSign_anonSet() {
 
 	// Generate the signature
 	M := []byte("Hello World!") // message we want to sign
-	sig := Sign(suite, M, Set(X), nil, mine, x)
+	sig := Sign(suite, M, X, nil, mine, x)
 	fmt.Print("Signature:\n" + hex.Dump(sig))
 
 	// Verify the signature against the correct message
-	tag, err := Verify(suite, M, Set(X), nil, sig)
+	tag, err := Verify(suite, M, X, nil, sig)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -100,7 +100,7 @@ func ExampleSign_anonSet() {
 
 	// Verify the signature against the wrong message
 	BAD := []byte("Goodbye world!")
-	tag, err = Verify(suite, BAD, Set(X), nil, sig)
+	tag, err = Verify(suite, BAD, X, nil, sig)
 	if err == nil || tag != nil {
 		panic("Signature verified against wrong message!?")
 	}
@@ -150,10 +150,10 @@ func ExampleSign_linkable() {
 	M := []byte("Hello World!")     // message we want to sign
 	S := []byte("My Linkage Scope") // scope for linkage tags
 	var sig [4][]byte
-	sig[0] = Sign(suite, M, Set(X), S, mine1, x1)
-	sig[1] = Sign(suite, M, Set(X), S, mine1, x1)
-	sig[2] = Sign(suite, M, Set(X), S, mine2, x2)
-	sig[3] = Sign(suite, M, Set(X), S, mine2, x2)
+	sig[0] = Sign(suite, M, X, S, mine1, x1)
+	sig[1] = Sign(suite, M, X, S, mine1, x1)
+	sig[2] = Sign(suite, M, X, S, mine2, x2)
+	sig[3] = Sign(suite, M, X, S, mine2, x2)
 	for i := range sig {
 		fmt.Printf("Signature %d:\n%s", i, hex.Dump(sig[i]))
 	}
@@ -161,7 +161,7 @@ func ExampleSign_linkable() {
 	// Verify the signatures against the correct message
 	var tag [4][]byte
 	for i := range sig {
-		goodtag, err := Verify(suite, M, Set(X), S, sig[i])
+		goodtag, err := Verify(suite, M, X, S, sig[i])
 		if err != nil {
 			panic(err.Error())
 		}
@@ -174,7 +174,7 @@ func ExampleSign_linkable() {
 
 		// Verify the signature against the wrong message
 		BAD := []byte("Goodbye world!")
-		badtag, err := Verify(suite, BAD, Set(X), S, sig[i])
+		badtag, err := Verify(suite, BAD, X, S, sig[i])
 		if err == nil || badtag != nil {
 			panic("Signature verified against wrong message!?")
 		}
@@ -265,21 +265,21 @@ func benchGenKeysEd25519(nkeys int) ([]kyber.Point, kyber.Scalar) {
 func benchGenSigEd25519(nkeys int) []byte {
 	suite := edwards25519.NewBlakeSHA256Ed25519()
 	return Sign(suite, benchMessage,
-		Set(benchPubEd25519[:nkeys]), nil,
+		benchPubEd25519[:nkeys], nil,
 		0, benchPriEd25519)
 }
 
 func benchSign(suite Suite, pub []kyber.Point, pri kyber.Scalar,
 	niter int) {
 	for i := 0; i < niter; i++ {
-		Sign(suite, benchMessage, Set(pub), nil, 0, pri)
+		Sign(suite, benchMessage, pub, nil, 0, pri)
 	}
 }
 
 func benchVerify(suite Suite, pub []kyber.Point,
 	sig []byte, niter int) {
 	for i := 0; i < niter; i++ {
-		tag, err := Verify(suite, benchMessage, Set(pub), nil, sig)
+		tag, err := Verify(suite, benchMessage, pub, nil, sig)
 		if tag == nil || err != nil {
 			panic("benchVerify failed")
 		}

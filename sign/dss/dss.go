@@ -47,7 +47,7 @@ type DSS struct {
 	public       kyber.Point
 	index        int
 	participants []kyber.Point
-	T            int
+	T            uint32
 	long         DistKeyShare
 	random       DistKeyShare
 	longPoly     *share.PubPoly
@@ -75,7 +75,7 @@ var ErrInvalidSignatureIndex = errors.New("dss: partial signature with invalid i
 // threshold. It returns an error if the public key of the secret can't be found
 // in the list of participants.
 func NewDSS(suite Suite, secret kyber.Scalar, participants []kyber.Point,
-	long, random DistKeyShare, msg []byte, t int) (*DSS, error) {
+	long, random DistKeyShare, msg []byte, t uint32) (*DSS, error) {
 	public := suite.Point().Mul(secret, nil)
 	var i int
 	var found bool
@@ -176,7 +176,7 @@ func (d *DSS) ProcessPartialSig(ps *PartialSig) error {
 // the distributed signature. It returns false otherwise. If there are enough
 // partial signatures, one can issue the signature with `Signature()`.
 func (d *DSS) EnoughPartialSig() bool {
-	return len(d.partials) >= d.T
+	return uint32(len(d.partials)) >= d.T
 }
 
 // Signature computes the distributed signature from the list of partial
@@ -187,7 +187,7 @@ func (d *DSS) Signature() ([]byte, error) {
 	if !d.EnoughPartialSig() {
 		return nil, errors.New("dkg: not enough partial signatures to sign")
 	}
-	gamma, err := share.RecoverSecret(d.suite, d.partials, int64(d.T), int64(len(d.participants)))
+	gamma, err := share.RecoverSecret(d.suite, d.partials, d.T, uint32(len(d.participants)))
 	if err != nil {
 		return nil, err
 	}
