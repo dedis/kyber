@@ -82,6 +82,7 @@ func (s *StatusMatrix) Get(dealer, share uint32) Status {
 func (s *StatusMatrix) String() string {
 	// get dealer indexes
 	dealerIdx := make([]int, 0, len((*s)))
+	//todo what are these indexes? Should they be uint32?
 	for didx := range *s {
 		dealerIdx = append(dealerIdx, int(didx))
 	}

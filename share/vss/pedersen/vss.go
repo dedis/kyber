@@ -238,7 +238,7 @@ func (d *Dealer) ProcessResponse(r *Response) (*Justification, error) {
 		SessionID: d.sessionID,
 		// index is guaranteed to be good because of d.verifyResponse before
 		Index: r.Index,
-		Deal:  d.deals[int(r.Index)],
+		Deal:  d.deals[r.Index],
 	}
 	sig, err := schnorr.Sign(d.suite, d.long, j.Hash(d.suite))
 	if err != nil {
@@ -297,7 +297,7 @@ type Verifier struct {
 	longterm    kyber.Scalar
 	pub         kyber.Point
 	dealer      kyber.Point
-	index       int
+	index       uint32
 	verifiers   []kyber.Point
 	hkdfContext []byte
 	*Aggregator
@@ -316,11 +316,11 @@ func NewVerifier(suite Suite, longterm kyber.Scalar, dealerKey kyber.Point,
 
 	pub := suite.Point().Mul(longterm, nil)
 	var ok bool
-	var index int
+	var index uint32
 	for i, v := range verifiers {
 		if v.Equal(pub) {
 			ok = true
-			index = i
+			index = uint32(i)
 			break
 		}
 	}
@@ -354,7 +354,7 @@ func (v *Verifier) ProcessEncryptedDeal(e *EncryptedDeal) (*Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	if int(d.SecShare.I) != v.index {
+	if d.SecShare.I != v.index {
 		return nil, errors.New("vss: verifier got wrong index from deal")
 	}
 
@@ -460,7 +460,7 @@ func (v *Verifier) Key() (kyber.Scalar, kyber.Point) {
 
 // Index returns the index of the verifier in the list of participants used
 // during this run of the protocol.
-func (v *Verifier) Index() int {
+func (v *Verifier) Index() uint32 {
 	return v.index
 }
 
@@ -731,11 +731,10 @@ func validT(t uint32, verifiers []kyber.Point) bool {
 }
 
 func findPub(verifiers []kyber.Point, idx uint32) (kyber.Point, bool) {
-	iidx := int(idx)
-	if iidx >= len(verifiers) {
+	if idx >= uint32(len(verifiers)) {
 		return nil, false
 	}
-	return verifiers[iidx], true
+	return verifiers[idx], true
 }
 
 func sessionID(suite Suite, dealer kyber.Point, verifiers, commitments []kyber.Point, t uint32) ([]byte, error) {
