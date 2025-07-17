@@ -264,7 +264,7 @@ func NewDistKeyHandler(c *Config) (*DistKeyGenerator, error) {
 	if err := c.CheckForDuplicates(); err != nil {
 		return nil, err
 	}
-	dpriv = share.NewPriPoly(c.Suite, c.Threshold, secretCoeff, c.Suite.RandomStream())
+	dpriv = share.NewPriPoly(c.Suite, int64(c.Threshold), secretCoeff, c.Suite.RandomStream())
 	dpub = dpriv.Commit(c.Suite.Point().Base())
 	// resharing case and we are included in the new list of nodes
 	if isResharing && newPresent {
