@@ -587,7 +587,7 @@ func (d *DistKeyGenerator) ProcessReconstructCommits(rs *ReconstructCommits) err
 		}
 		// error only happens when you have less than t shares, but we ensure
 		// there are more just before
-		pri, _ := share.RecoverPriPoly(d.suite, shares, d.t, len(d.participants))
+		pri, _ := share.RecoverPriPoly(d.suite, shares, int64(d.t), int64(len(d.participants)))
 		d.commitments[rs.DealerIndex] = pri.Commit(d.suite.Point().Base())
 		// note it has been reconstructed.
 		d.reconstructed[rs.DealerIndex] = true

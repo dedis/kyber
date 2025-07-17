@@ -264,7 +264,7 @@ func NewDistKeyHandler(c *Config) (*DistKeyGenerator, error) {
 	if err := c.CheckForDuplicates(); err != nil {
 		return nil, err
 	}
-	dpriv = share.NewPriPoly(c.Suite, c.Threshold, secretCoeff, c.Suite.RandomStream())
+	dpriv = share.NewPriPoly(c.Suite, int64(c.Threshold), secretCoeff, c.Suite.RandomStream())
 	dpub = dpriv.Commit(c.Suite.Point().Base())
 	// resharing case and we are included in the new list of nodes
 	if isResharing && newPresent {
@@ -901,7 +901,7 @@ func (d *DistKeyGenerator) computeResharingResult() (*Result, error) {
 
 	// the private polynomial is generated from the old nodes, thus inheriting
 	// the old threshold condition
-	priPoly, err := share.RecoverPriPoly(d.suite, shares, d.oldT, len(d.c.OldNodes))
+	priPoly, err := share.RecoverPriPoly(d.suite, shares, int64(d.oldT), int64(len(d.c.OldNodes)))
 	if err != nil {
 		return nil, err
 	}
@@ -928,7 +928,7 @@ func (d *DistKeyGenerator) computeResharingResult() (*Result, error) {
 		// using the old threshold / length because there are at most
 		// len(d.c.OldNodes) i-th coefficients since they are the one generating one
 		// each, thus using the old threshold.
-		coeff, err := share.RecoverCommit(d.suite, tmpCoeffs, d.oldT, len(d.c.OldNodes))
+		coeff, err := share.RecoverCommit(d.suite, tmpCoeffs, int64(d.oldT), int64(len(d.c.OldNodes)))
 		if err != nil {
 			return nil, err
 		}

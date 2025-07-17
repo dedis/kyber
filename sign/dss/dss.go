@@ -187,7 +187,7 @@ func (d *DSS) Signature() ([]byte, error) {
 	if !d.EnoughPartialSig() {
 		return nil, errors.New("dkg: not enough partial signatures to sign")
 	}
-	gamma, err := share.RecoverSecret(d.suite, d.partials, d.T, len(d.participants))
+	gamma, err := share.RecoverSecret(d.suite, d.partials, int64(d.T), int64(len(d.participants)))
 	if err != nil {
 		return nil, err
 	}
