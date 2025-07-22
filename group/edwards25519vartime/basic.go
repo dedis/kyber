@@ -10,6 +10,7 @@ import (
 	"go.dedis.ch/kyber/v4/compatible"
 	"go.dedis.ch/kyber/v4/group/internal/marshalling"
 	"go.dedis.ch/kyber/v4/group/mod"
+	"io"
 )
 
 type basicPoint struct {
