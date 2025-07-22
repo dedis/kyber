@@ -6,7 +6,6 @@ import (
 	"crypto/cipher"
 	"go.dedis.ch/kyber/v4/compatible/compatible_mod"
 	"io"
-	"math/big"
 
 	fr "github.com/consensys/gnark-crypto/ecc/bls12-381/fr"
 	"go.dedis.ch/kyber/v4"

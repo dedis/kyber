@@ -225,7 +225,6 @@ func newScalarInt(i *compatible.Int) *scalar {
 	if err != nil {
 		panic(err)
 	}
-
 	s := scalar{}
 	s.setInt(mod.NewInt(i, modulusFullOrder))
 	return &s

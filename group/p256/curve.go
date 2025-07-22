@@ -6,6 +6,7 @@ import (
 	"crypto/cipher"
 	"crypto/elliptic"
 	"errors"
+	"go.dedis.ch/kyber/v4/compatible"
 	"io"
 
 	"go.dedis.ch/kyber/v4"
