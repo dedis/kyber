@@ -1,8 +1,10 @@
+//go:build !constantTime
+
 package p256
 
 import (
 	"encoding/hex"
-	"math/big"
+	"go.dedis.ch/kyber/v4/compatible"
 	"strings"
 	"testing"
 
@@ -29,7 +31,7 @@ func TestSetBytesBE(t *testing.T) {
 }
 
 func TestVectors(t *testing.T) {
-	k := big.NewInt(0)
+	k := compatible.NewInt(0)
 	s := testP256.Scalar()
 
 	BasePoint := testP256.Point().Base().(*curvePoint)

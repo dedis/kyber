@@ -5,11 +5,10 @@ import (
 	"crypto/sha256"
 	"crypto/subtle"
 	"errors"
-	"go.dedis.ch/kyber/v4/compatible"
 	"io"
-	"math/big"
 
 	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v4/compatible"
 	"go.dedis.ch/kyber/v4/group/mod"
 )
 
@@ -277,7 +276,7 @@ func hashToPoint(m []byte) (*compatible.Int, *compatible.Int) {
 			return x, y
 		}
 
-		x.Add(x, big.NewInt(1))
+		x.Add(x, compatible.NewInt(1))
 	}
 }
 

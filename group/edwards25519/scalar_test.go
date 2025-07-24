@@ -2,7 +2,7 @@ package edwards25519
 
 import (
 	"fmt"
-	"math/big"
+	"go.dedis.ch/kyber/v4/compatible"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -454,7 +454,7 @@ func scSubFact(a, c *[32]byte) {
 // Test_ScalarIsCanonical ensures that scalars >= primeOrder are
 // considered non canonical.
 func Test_ScalarIsCanonical(t *testing.T) {
-	candidate := big.NewInt(-2)
+	candidate := compatible.NewInt(-2)
 	candidate.Add(candidate, primeOrder)
 
 	candidateBuf := candidate.Bytes()
