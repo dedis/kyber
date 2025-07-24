@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v4/compatible"
 	"go.dedis.ch/kyber/v4/proof"
 )
 

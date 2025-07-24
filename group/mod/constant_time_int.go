@@ -9,6 +9,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"go.dedis.ch/kyber/v4"
+	"github.com/cronokirby/saferith"
 	"go.dedis.ch/kyber/v4/compatible"
 	"go.dedis.ch/kyber/v4/compatible/compatible_mod"
 	"go.dedis.ch/kyber/v4/group/internal/marshalling"
@@ -111,7 +112,7 @@ func (i *Int) Init64(v int64, m *compatible_mod.Mod) *Int {
 	}
 	i.M = m
 	i.BO = kyber.BigEndian
-	i.V.SetUint(uint(v)).Mod(i.V, m)
+	i.V.SetUint64(v).Mod(i.V, m)
 	return i
 }
 
@@ -137,6 +138,34 @@ func (i *Int) InitString(n, d string, base int, m *compatible_mod.Mod) *Int {
 // Return the Int's integer value in hexadecimal string representation.
 func (i *Int) String() string {
 	return hex.EncodeToString(i.V.Bytes())
+}
+
+// SetString sets the Int to a rational fraction n/d represented by a pair of strings.
+// If d == "", then the denominator is taken to be 1.
+// Returns (i,true) on success, or
+// (nil,false) if either string fails to parse.
+func (i *Int) SetString(n, d string, base int) (*Int, bool) {
+	if _, succ := i.V.SetString(n, base); !succ {
+		return nil, false
+	}
+	if d != "" {
+		var di Int
+		di.M = i.M
+		if _, succ := di.SetString(d, "", base); !succ {
+			return nil, false
+		}
+		i.Div(i, &di)
+	}
+	return i, true
+}
+
+// Jacobi computes the Jacobi symbol of (a/M), which indicates whether a is
+// zero (0), a positive square in M (1), or a non-square in M (-1).
+func (i *Int) Jacobi(as kyber.Scalar) kyber.Scalar {
+	ai := as.(*Int) //nolint:errcheck // Design pattern to emulate generics
+	i.M = ai.M
+	i.V.SetUint64(uint64(big.Jacobi(&ai.V, i.M)))
+	return i
 }
 
 // Cmp compares two Ints for equality or inequality
@@ -180,13 +209,13 @@ func (i *Int) Clone() kyber.Scalar {
 
 // Zero set the Int to the value 0.  The modulus must already be initialized.
 func (i *Int) Zero() kyber.Scalar {
-	i.V.SetUint(0)
+	i.V.SetUint64(0)
 	return i
 }
 
 // One sets the Int to the value 1.  The modulus must already be initialized.
 func (i *Int) One() kyber.Scalar {
-	i.V.SetUint(1)
+	i.V.SetUint6464(1)
 	return i
 }
 
@@ -203,30 +232,29 @@ func (i *Int) SetInt64(v int64) kyber.Scalar {
 // SetUint64 sets the Int to an arbitrary uint64 value.
 // The modulus must already be initialized.
 func (i *Int) SetUint64(v uint64) kyber.Scalar {
-	i.V.SetUint(uint(v)).Mod(i.V, i.M)
+	i.V.SetUint64(v).Mod(i.V, i.M)
 	return i
 }
 
-//
-//// Uint64 returns the uint64 representation of the value.
-//// If the value is not representable in an uint64 the result is undefined.
-//func (i *Int) Uint64() uint64 {
-//	return i.V.()
-//}
+// Uint64 returns the uint64 representation of the value.
+// If the value is not representable in an uint64 the result is undefined.
+func (i *Int) Uint64() uint64 {
+	return i.V.Uint64()
+}
 
 // Add sets the target to a + b mod M, where M is a's modulus..
 func (i *Int) Add(a, b kyber.Scalar) kyber.Scalar {
 	ai := a.(*Int) //nolint:errcheck // Design pattern to emulate generics
 	bi := b.(*Int) //nolint:errcheck // Design pattern to emulate generics
 	i.M = ai.M
-	i.V.Add(ai.V, bi.V, i.M)
+	i.V.Add(ai.V, bi.V, Cap).Mod(i.V, i.M)
 	return i
 }
 
 // Sub sets the target to a - b mod M.
 // Target receives a's modulus.
 func (i *Int) Sub(a, b kyber.Scalar) kyber.Scalar {
-	i.V.Sub(a.(*Int).V, b.(*Int).V, i.M)
+	i.V.ModSub(a.(*Int).V, b.(*Int).V, i.M)
 	//ai := a.(*Int) //nolint:errcheck // Design pattern to emulate generics
 	//bi := b.(*Int) //nolint:errcheck // Design pattern to emulate generics
 	//i.M = ai.M
@@ -236,11 +264,7 @@ func (i *Int) Sub(a, b kyber.Scalar) kyber.Scalar {
 
 // Neg sets the target to -a mod M.
 func (i *Int) Neg(a kyber.Scalar) kyber.Scalar {
-	newNat := new(compatible.Int)
-	ai := a.(*Int)
-	newNat.Int = ai.M.Nat()
-	i.V.Set(newNat)
-	i.V.Sub(i.V, ai.V, i.M)
+	i.V.ModNeg(a.(*Int).V, i.M)
 
 	//ai := a.(*Int) //nolint:errcheck // Design pattern to emulate generics
 	//i.M = ai.M
@@ -255,7 +279,7 @@ func (i *Int) Neg(a kyber.Scalar) kyber.Scalar {
 // Mul sets the target to a * b mod M.
 // Target receives a's modulus.
 func (i *Int) Mul(a, b kyber.Scalar) kyber.Scalar {
-	i.V.Mul(a.(*Int).V, b.(*Int).V, i.M)
+	i.V.ModMul(a.(*Int).V, b.(*Int).V, i.M)
 	//ai := a.(*Int) //nolint:errcheck // Design pattern to emulate generics
 	//bi := b.(*Int) //nolint:errcheck // Design pattern to emulate generics
 	//i.M = ai.M
@@ -270,6 +294,7 @@ func (i *Int) Div(a, b kyber.Scalar) kyber.Scalar {
 	var t compatible.Int
 	i.M = ai.M
 	i.V.Mul(ai.V, t.ModInverse(bi.V, i.M), i.M)
+	i.V.Mod(i.V, i.M)
 	return i
 }
 

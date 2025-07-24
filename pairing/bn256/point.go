@@ -7,7 +7,6 @@ import (
 	"crypto/sha256"
 	"crypto/subtle"
 	"errors"
-	"go.dedis.ch/kyber/v4/compatible"
 	"io"
 
 	"go.dedis.ch/kyber/v4"
