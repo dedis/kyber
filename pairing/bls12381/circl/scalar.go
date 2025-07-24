@@ -5,9 +5,9 @@ import (
 	"github.com/cloudflare/circl/ecc/bls12381"
 	"go.dedis.ch/kyber/v4/compatible"
 	"io"
-	"math/big"
 
 	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v4/compatible"
 )
 
 var _ kyber.Scalar = &Scalar{}
@@ -123,5 +123,5 @@ func (s *Scalar) ByteOrder() kyber.ByteOrder {
 }
 
 func (s *Scalar) GroupOrder() *compatible.Int {
-	return big.NewInt(0).SetBytes(bls12381.Order())
+	return compatible.NewInt(0).SetBytes(bls12381.Order())
 }

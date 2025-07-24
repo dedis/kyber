@@ -41,6 +41,7 @@ jobs:
         size: ['64b', '32b']
         golang: ['1.25.4']
         tag : ['', 'constantTime']
+        tag : ['', 'constantTime']
         exclude:
           - os: windows-latest
             size: '32b'

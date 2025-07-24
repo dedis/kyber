@@ -7,7 +7,6 @@ import (
 	"crypto/dsa"
 	"errors"
 	"fmt"
-	"go.dedis.ch/kyber/v4/compatible"
 	"io"
 
 	"go.dedis.ch/kyber/v4"
