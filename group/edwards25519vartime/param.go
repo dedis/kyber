@@ -14,8 +14,6 @@ package edwards25519vartime
 
 import (
 	"go.dedis.ch/kyber/v4/compatible"
-	"math/big"
-
 	"go.dedis.ch/kyber/v4/group/mod"
 )
 
@@ -50,9 +48,9 @@ func Param1174() *Param {
 	var mi mod.Int
 
 	p.Name = "Curve1174"
-	p.P.SetBit(zero, 251, 1).Sub(&p.P, big.NewInt(9))
+	p.P.SetBit(zero, 251, 1).Sub(&p.P, compatible.NewInt(9))
 	p.Q.SetString("45330879683285730139092453152713398835", 10)
-	p.Q.Sub(&p.P, &p.Q).Div(&p.Q, big.NewInt(4))
+	p.Q.Sub(&p.P, &p.Q).Div(&p.Q, compatible.NewInt(4))
 	p.R = 4
 	p.A.SetInt64(1)
 	p.D.SetInt64(-1174)
@@ -76,7 +74,7 @@ func ParamEd25519() *Param {
 	var p Param
 	var qs compatible.Int
 	p.Name = "edwards25519vartime"
-	p.P.SetBit(zero, 255, 1).Sub(&p.P, big.NewInt(19))
+	p.P.SetBit(zero, 255, 1).Sub(&p.P, compatible.NewInt(19))
 	qs.SetString("27742317777372353535851937790883648493", 10)
 	p.Q.SetBit(zero, 252, 1).Add(&p.Q, &qs)
 	p.R = 8
@@ -105,7 +103,7 @@ func ParamE382() *Param {
 	var p Param
 	var qs compatible.Int
 	p.Name = "E-382"
-	p.P.SetBit(zero, 382, 1).Sub(&p.P, big.NewInt(105)) // p = 2^382-105
+	p.P.SetBit(zero, 382, 1).Sub(&p.P, compatible.NewInt(105)) // p = 2^382-105
 	qs.SetString("1030303207694556153926491950732314247062623204330168346855", 10)
 	p.Q.SetBit(zero, 380, 1).Sub(&p.Q, &qs)
 	p.R = 8
@@ -125,7 +123,7 @@ func Param41417() *Param {
 	var p Param
 	var qs compatible.Int
 	p.Name = "Curve41417"
-	p.P.SetBit(zero, 414, 1).Sub(&p.P, big.NewInt(17))
+	p.P.SetBit(zero, 414, 1).Sub(&p.P, compatible.NewInt(17))
 	qs.SetString("33364140863755142520810177694098385178984727200411208589594759", 10)
 	p.Q.SetBit(zero, 411, 1).Sub(&p.Q, &qs)
 	p.R = 8

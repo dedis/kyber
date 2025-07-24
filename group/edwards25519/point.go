@@ -24,7 +24,6 @@ import (
 	"hash"
 	"io"
 	"math"
-	"math/big"
 
 	"go.dedis.ch/kyber/v4"
 	"go.dedis.ch/kyber/v4/group/internal/marshalling"
@@ -325,7 +324,7 @@ func hashToField(m []byte, dst string, count int) []fieldElement {
 	u := make([]fieldElement, count)
 	for i := 0; i < count; i++ {
 		elmOffset := l * i
-		tv := big.NewInt(0).SetBytes(uniformBytes[elmOffset : elmOffset+l])
+		tv := compatible.NewInt(0).SetBytes(uniformBytes[elmOffset : elmOffset+l])
 		tv = tv.Mod(tv, prime)
 		fe := fieldElement{}
 		feFromBn(&fe, tv)
@@ -459,7 +458,7 @@ func expandMessageXOF(h sha3.ShakeHash, m []byte, domainSeparator string, byteLe
 }
 
 func i2OSP(x int64, xLen uint32) ([]byte, error) {
-	b := big.NewInt(x)
+	b := compatible.NewInt(x)
 	s := b.Bytes()
 	if uint32(len(s)) > xLen {
 		return nil, fmt.Errorf("input %d superior to max length %d", len(s), xLen)
@@ -523,9 +522,9 @@ func curve25519Elligator2(u fieldElement) (xn, xd, yn, yd fieldElement) {
 	feMul(&tv2, &tv2, &tv3) // tv2 = tv2 * tv3
 
 	// compute y11 = tv2 ^ c4
-	tv2Big := big.NewInt(0)
+	tv2Big := compatible.NewInt(0)
 	feToBn(tv2Big, &tv2)
-	y11Big := big.NewInt(0).Exp(tv2Big, c4, prime)
+	y11Big := compatible.NewInt(0).Exp(tv2Big, c4, prime)
 	feFromBn(&y11, y11Big)
 
 	feMul(&y11, &y11, &tv3) // y11 = y11 * tv3

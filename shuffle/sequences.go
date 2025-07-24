@@ -4,9 +4,9 @@ import (
 	"crypto/cipher"
 	"errors"
 	"fmt"
-	"math/big"
 
 	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v4/compatible"
 	"go.dedis.ch/kyber/v4/proof"
 	"go.dedis.ch/kyber/v4/util/random"
 )
@@ -56,7 +56,7 @@ func SequencesShuffle(
 
 	// Fisher–Yates shuffle
 	for i := k - 1; i > 0; i-- {
-		j := int(random.Int(big.NewInt(int64(i+1)), rand).Int64())
+		j := int(random.Int(compatible.NewInt(int64(i+1)), rand).Int64())
 		if j != i {
 			pi[i], pi[j] = pi[j], pi[i]
 		}

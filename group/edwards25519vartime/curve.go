@@ -5,7 +5,6 @@ import (
 	"crypto/sha512"
 	"errors"
 	"fmt"
-	"math/big"
 
 	"go.dedis.ch/kyber/v4"
 	"go.dedis.ch/kyber/v4/compatible"
@@ -13,8 +12,8 @@ import (
 	"go.dedis.ch/kyber/v4/util/random"
 )
 
-var zero = big.NewInt(0)
-var one = big.NewInt(1)
+var zero = compatible.NewInt(0)
+var one = compatible.NewInt(1)
 
 // Extension of Point interface for elliptic curve X,Y coordinate access
 type point interface {

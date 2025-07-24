@@ -1,14 +1,15 @@
+//go:build !constantTime
+
 package p256
 
 import (
 	"crypto/cipher"
 	"crypto/elliptic"
 	"errors"
-	"go.dedis.ch/kyber/v4/compatible"
 	"io"
-	"math/big"
 
 	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v4/compatible"
 	"go.dedis.ch/kyber/v4/group/internal/marshalling"
 	"go.dedis.ch/kyber/v4/group/mod"
 	"go.dedis.ch/kyber/v4/util/random"
@@ -191,8 +192,8 @@ func (P *curvePoint) UnmarshalBinary(buf []byte) error {
 		}
 	} else {
 		// All bytes are 0, so we initialize x and y
-		P.x = big.NewInt(0)
-		P.y = big.NewInt(0)
+		P.x = compatible.NewInt(0)
+		P.y = compatible.NewInt(0)
 	}
 	return nil
 }

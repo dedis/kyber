@@ -13,9 +13,10 @@ lint: tidy
 
 test: tidy
 	go test ./...
+	# go test -tags constantTime ./...
 
 coverage: tidy
-	go test -json -covermode=count -coverprofile=profile.cov ./... > report.json
+	go test -json -covermode=count -coverprofile=profile.cov ./... > report.jsonl
 
 # target to run all the possible checks; it's a good habit to run it before
 # pushing code
