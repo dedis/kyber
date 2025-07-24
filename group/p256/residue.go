@@ -1,3 +1,5 @@
+//go:build !constantTime
+
 package p256
 
 import (
@@ -5,18 +7,17 @@ import (
 	"crypto/dsa"
 	"errors"
 	"fmt"
-	"go.dedis.ch/kyber/v4/compatible"
 	"io"
-	"math/big"
 
 	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v4/compatible"
 	"go.dedis.ch/kyber/v4/group/internal/marshalling"
 	"go.dedis.ch/kyber/v4/group/mod"
 	"go.dedis.ch/kyber/v4/util/random"
 )
 
-var one = big.NewInt(1)
-var two = big.NewInt(2)
+var one = compatible.NewInt(1)
+var two = compatible.NewInt(2)
 
 type residuePoint struct {
 	compatible.Int
@@ -58,6 +59,7 @@ func (P *residuePoint) Clone() kyber.Point {
 }
 
 func (P *residuePoint) Valid() bool {
+	//todo check if it works in constant time
 	return P.Int.Sign() > 0 && P.Int.Cmp(P.g.P) < 0 &&
 		new(compatible.Int).Exp(&P.Int, P.g.Q, P.g.P).Cmp(one) == 0
 }
@@ -242,6 +244,7 @@ func (g *ResidueGroup) Valid() bool {
 	n := new(compatible.Int)
 	n.Mul(g.Q, g.R)
 	n.Add(n, one)
+	// todo check for constant time
 	if n.Cmp(g.P) != 0 {
 		return false
 	}

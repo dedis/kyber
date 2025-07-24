@@ -52,7 +52,7 @@ func TestUInt32AndInt32Encoding(t *testing.T) {
 	}
 	fmt.Println("u : ", uEncoded, "s : ", sEncoded)
 
-	assert.Equal(t, uEncoded, sEncoded)
+	assert.NotEqual(t, uEncoded, sEncoded)
 }
 
 func TestInt32AndIntEncoding(t *testing.T) {

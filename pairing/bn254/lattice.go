@@ -1,8 +1,9 @@
+//go:build !constantTime
+
 package bn254
 
 import (
 	"go.dedis.ch/kyber/v4/compatible"
-	"math/big"
 )
 
 var half = new(compatible.Int).Rsh(Order, 1)
@@ -111,7 +112,8 @@ func round(num, denom *compatible.Int) {
 	r := new(compatible.Int)
 	num.DivMod(num, denom, r)
 
+	// todo CondAssignment
 	if r.Cmp(half) == 1 {
-		num.Add(num, big.NewInt(1))
+		num.Add(num, compatible.NewInt(1))
 	}
 }
