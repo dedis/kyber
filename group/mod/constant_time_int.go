@@ -46,6 +46,34 @@ type Int struct {
 	BO kyber.ByteOrder   // Endianness which will be used on input and output
 }
 
+// SetString sets the Int to a rational fraction n/d represented by a pair of strings.
+// If d == "", then the denominator is taken to be 1.
+// Returns (i,true) on success, or
+// (nil,false) if either string fails to parse.
+func (i *Int) SetString(n, d string, base int) (*Int, bool) {
+	if _, succ := i.V.SetString(n, base); !succ {
+		return nil, false
+	}
+	if d != "" {
+		var di Int
+		di.M = i.M
+		if _, succ := di.SetString(d, "", base); !succ {
+			return nil, false
+		}
+		i.Div(i, &di)
+	}
+	return i, true
+}
+
+// Jacobi computes the Jacobi symbol of (a/M), which indicates whether a is
+// zero (0), a positive square in M (1), or a non-square in M (-1).
+func (i *Int) Jacobi(as kyber.Scalar) kyber.Scalar {
+	ai := as.(*Int) //nolint:errcheck // Design pattern to emulate generics
+	i.M = ai.M
+	i.V.SetUint64(uint64(big.Jacobi(&ai.V, i.M)))
+	return i
+}
+
 // NewInt creaters a new Int with a given compatible.Int and a compatible.Int modulus.
 func NewInt(v *saferith.Nat, m *saferith.Modulus) *Int {
 	return new(Int).Init(v, m)
@@ -110,34 +138,6 @@ func (i *Int) InitString(n, d string, base int, m *saferith.Modulus) *Int {
 // Return the Int's integer value in hexadecimal string representation.
 func (i *Int) String() string {
 	return hex.EncodeToString(i.V.Bytes())
-}
-
-// SetString sets the Int to a rational fraction n/d represented by a pair of strings.
-// If d == "", then the denominator is taken to be 1.
-// Returns (i,true) on success, or
-// (nil,false) if either string fails to parse.
-func (i *Int) SetString(n, d string, base int) (*Int, bool) {
-	if _, succ := i.V.SetString(n, base); !succ {
-		return nil, false
-	}
-	if d != "" {
-		var di Int
-		di.M = i.M
-		if _, succ := di.SetString(d, "", base); !succ {
-			return nil, false
-		}
-		i.Div(i, &di)
-	}
-	return i, true
-}
-
-// Jacobi computes the Jacobi symbol of (a/M), which indicates whether a is
-// zero (0), a positive square in M (1), or a non-square in M (-1).
-func (i *Int) Jacobi(as kyber.Scalar) kyber.Scalar {
-	ai := as.(*Int) //nolint:errcheck // Design pattern to emulate generics
-	i.M = ai.M
-	i.V.SetUint64(uint64(big.Jacobi(&ai.V, i.M)))
-	return i
 }
 
 // Cmp compares two Ints for equality or inequality

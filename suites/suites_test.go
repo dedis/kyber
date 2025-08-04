@@ -28,6 +28,7 @@ func TestSuites_Find(t *testing.T) {
 	}
 }
 
+// todo, check which suites will be supported in constantTime
 func TestSuites_ConstTime(t *testing.T) {
 	RequireConstantTime()
 	defer func() { requireConstTime = false }()

@@ -300,7 +300,7 @@ func (i *Int) ByteOrder() kyber.ByteOrder {
 }
 
 // GroupOrder returns the order of the underlying group
-func (i *Int) GroupOrder() *compatible.Int {
+func (i *Int) GroupOrder() *big.Int {
 	return big.NewInt(0).Set(i.M)
 }
 

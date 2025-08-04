@@ -130,7 +130,7 @@ func TestInt(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(fmt.Sprintf("modulusBitlen: %d", tc.modulusBitLen), func(t *testing.T) {
-			modulus, err := rand.Prime(rand.Reader, int(tc.modulusBitLen))
+			modulus, err := compatible.Prime(rand.Reader, int(tc.modulusBitLen))
 			if err != nil {
 				t.Fatalf("Failed to generate random prime: %v", err)
 			}
