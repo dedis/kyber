@@ -1,3 +1,5 @@
+//go:build !constantTime
+
 // Package edwards25519vartime contains several implementations of Twisted Edwards Curves,
 // from general and unoptimized to highly specialized and optimized.
 //

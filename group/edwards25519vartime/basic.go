@@ -1,14 +1,15 @@
-//go:build experimental
+//go:build experimental && !constantTime
 
 package edwards25519vartime
 
 import (
 	"crypto/cipher"
+	"io"
+
 	"go.dedis.ch/kyber/v4"
 	"go.dedis.ch/kyber/v4/compatible"
 	"go.dedis.ch/kyber/v4/group/internal/marshalling"
 	"go.dedis.ch/kyber/v4/group/mod"
-	"io"
 )
 
 type basicPoint struct {
