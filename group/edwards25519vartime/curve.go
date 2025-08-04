@@ -1,3 +1,5 @@
+//go:build !constantTime
+
 package edwards25519vartime
 
 import (

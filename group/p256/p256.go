@@ -1,3 +1,5 @@
+//go:build !constantTime
+
 package p256
 
 import (

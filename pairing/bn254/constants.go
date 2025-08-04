@@ -1,3 +1,5 @@
+//go:build !constantTime
+
 //nolint:lll
 package bn254
 

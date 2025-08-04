@@ -1,3 +1,5 @@
+//go:build !constantTime
+
 package bn254
 
 // Generated from bls-bn254 tests
