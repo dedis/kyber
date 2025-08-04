@@ -26,104 +26,127 @@ func NewInt(x int64) Int {
 	u := (uint64(x) ^ mask) - mask
 
 	// 3. Load the magnitude into z (branchless).
-	z.SetUint64(u)
+	z.SetUint(uint(u))
+	if mask != 0 {
+		panic("negative nat")
+	}
+	//// 4. Conditionally negate: if mask&1==1 (i.e. n<0), do Neg(1), else Neg(0).
+	////    Neg takes a saferith.Choice (alias of uint) and is branchless internally.
+	//z.IsMinusOne()
+	//z.Neg(bigmod.Choice(mask & 1))
 
-	// 4. Conditionally negate: if mask&1==1 (i.e. n<0), do Neg(1), else Neg(0).
-	//    Neg takes a saferith.Choice (alias of uint) and is branchless internally.
-	z.Neg(saferith.Choice(mask & 1))
-
-	return Int{z}
+	return &Int{z}
 }
 
-func (i Int) String() string {
-	return i.Int.String()
+// the number of bytes to print in the string representation before an underscore
+const underscoreAfterNBytes = 4
+
+func (z *Int) String() string {
+
 }
+
+func (z *Int) SetString(s string, base int) (*Int, bool) { panic("implement me") }
 
 func (z *Int) SetBit(x *Int, i int, b uint) *Int { panic("implement me") }
 
-func (i Int) Div(a, b Int) Int {
+func (z *Int) Div(x, y *Int) *Int {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (i Int) BitLen() int {
+func (z *Int) BitLen() int {
+	panic("implement me")
+}
+func (x *Int) FillBytes(buf []byte) []byte { panic("implement me") }
+
+func (z *Int) Bytes() []byte {
 	panic("implement me")
 }
 
-func (i Int) Bytes() interface{} {
+func (z *Int) ModInverse(g, n *Int) *Int {
 	panic("implement me")
 }
 
-func (i Int) ModInverse(c *Int, m *Int) Int {
-	panic("implement me")
+// not to be used
+func (z *Int) ProbablyPrime(n int) bool { panic("implement me") }
+
+func (x *Int) Text(base int) string { panic("implement me") }
+
+func (x *Int) Bit(i int) uint { panic("implement me") }
+
+// not to be used
+func Prime(rand io.Reader, bits int) (*Int, error) { panic("implement me") }
+
+func (z *Int) Exp(x, y, m *Int) *Int {
+	z.Abs().ExpI(x.Abs(), y.Int, saferith.ModulusFromNat(m.Abs()))
+	return z
 }
 
-func (i Int) Int64() int64 {
-	panic("implement me")
-}
-
-func (x *Int) ProbablyPrime(n int) bool { panic("implement me") }
-
-func (i Int) Equal(s2 Int) bool {
-	return i.Int.Eq(s2.Int) == 1
+func (z *Int) Equal(s2 *Int) bool {
+	return z.Int.Eq(s2.Int) == 1
 
 }
 
-func (i Int) Set(a Int) Int {
-	i.Int = a.Int
-	return i
+func (z *Int) Set(a *Int) *Int {
+	z.Int = a.Int
+	return z
 }
 
-func (i Int) Clone() Int {
-	return Int{i.Int.Clone()}
+func (z *Int) Int64() int64 {
+	isNeg := z.Int.IsNegative()
+	abs := z.Int.Abs()
+	return int64(abs.Uint64()) * int64(isNeg)
 }
 
-func (i Int) SetInt64(v int64) Int {
-	z := NewInt(v)
-	i.Int = z.Int
-	return i
+func (z *Int) clone() *Int {
+	return &Int{z.Int.Clone()}
 }
 
-func (i Int) Zero() Int {
-	i.Int.SetUint64(0)
-	return i
+func (z *Int) SetInt64(v int64) *Int {
+	z.Int = NewInt(v).Int
+	return z
 }
 
-func (i Int) Add(a, b Int) Int {
+func (z *Int) zero() *Int {
+	z.Int.SetUint64(0)
+	return z
+}
+
+func (z *Int) Add(a, b *Int) *Int {
 	innerA := a.Int
 	innerB := b.Int
-	i.Int.Add(innerA, innerB, IntSize)
-	return i
+	z.Int.Add(innerA, innerB, IntSize)
+	return z
 }
 
-func (i Int) Sub(a, b Int) Int {
+func (z *Int) Sub(a, b *Int) *Int {
 	innerA := a.Int
 	innerB := b.Int.Clone().Neg(1)
-	i.Int.Add(innerA, innerB, IntSize)
-	return i
+	z.Int.Add(innerA, innerB, IntSize)
+	return z
 }
 
-func (i Int) Neg(a Int) Int {
+func (z *Int) Neg(a *Int) *Int {
 	innerA := a.Int
-	i.Int = innerA.Clone().Neg(1)
-	return i
+	z.Int = innerA.Clone().Neg(1)
+	return z
 }
 
-func (i Int) One() Int {
-	i.Int.SetUint64(1)
-	return i
+func (z *Int) one() *Int {
+	z.Int.SetUint64(1)
+	return z
 }
 
-func (i Int) Mul(a, b Int) Int {
+func (z *Int) Mul(a, b *Int) *Int {
 	innerA := a.Int
 	innerB := b.Int
-	i.Int.Mul(innerA, innerB, IntSize)
-	return i
+	z.Int.Mul(innerA, innerB, IntSize)
+	return z
 }
 
-func (i Int) SetBytes(bytes []byte) Int {
-	i.Int.SetBytes(bytes)
-	return i
+func (z *Int) SetBytes(buf []byte) *Int {
+	z.Int.SetBytes(buf)
+	return z
 }
 
 func (z *Int) Mod(x, y *Int) *Int {
@@ -136,11 +159,11 @@ func (z *Int) Mod(x, y *Int) *Int {
 	return z
 }
 
-func (i Int) Sign() int {
-	isNeg := i.IsNegative()
-	isZero := i.Int.Abs().EqZero()
+func (z *Int) Sign() int {
+	isNeg := z.IsNegative()
+	isZero := z.Int.Abs().EqZero()
 
-	var one int = 4
+	var one = 4
 	if isNeg == 1 {
 		one = -1
 	} else {

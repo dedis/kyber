@@ -4,8 +4,8 @@ package gnark
 
 import (
 	"crypto/cipher"
-	"go.dedis.ch/kyber/v4/compatible"
 	"io"
+	"math/big"
 
 	fr "github.com/consensys/gnark-crypto/ecc/bls12-381/fr"
 	"go.dedis.ch/kyber/v4"
@@ -106,6 +106,6 @@ func (s *Scalar) ByteOrder() kyber.ByteOrder {
 	return kyber.BigEndian
 }
 
-func (s *Scalar) GroupOrder() *compatible.Int {
+func (s *Scalar) GroupOrder() *big.Int {
 	return fr.Modulus()
 }

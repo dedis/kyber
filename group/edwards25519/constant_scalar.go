@@ -1,4 +1,4 @@
-//go:build !constantTime
+//go:build constantTime
 
 // Copyright 2013 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
@@ -10,6 +10,7 @@ import (
 	"crypto/subtle"
 	"encoding/hex"
 	"errors"
+	"github.com/cronokirby/saferith"
 	"go.dedis.ch/kyber/v4/compatible"
 	"io"
 	"math/big"
@@ -59,11 +60,11 @@ func (s *scalar) setInt(i *mod.Int) kyber.Scalar {
 
 // SetInt64 sets the scalar to a small integer value.
 func (s *scalar) SetInt64(v int64) kyber.Scalar {
-	return s.setInt(mod.NewInt64(v, primeOrder))
+	return s.setInt(mod.NewInt64(v, saferith.ModulusFromNat(primeOrder.Abs())))
 }
 
 func (s *scalar) toInt() *mod.Int {
-	return mod.NewIntBytes(s.v[:], primeOrder, defaultEndianess)
+	return mod.NewIntBytes(s.v[:], saferith.ModulusFromNat(primeOrder.Abs()), defaultEndianess)
 }
 
 // Set to the additive identity (0)
@@ -137,13 +138,13 @@ func (s *scalar) Inv(a kyber.Scalar) kyber.Scalar {
 
 // Set to a fresh random or pseudo-random scalar
 func (s *scalar) Pick(rand cipher.Stream) kyber.Scalar {
-	i := mod.NewInt(random.Int(primeOrder, rand), primeOrder)
+	i := mod.NewInt(random.Int(primeOrder, rand).Abs(), saferith.ModulusFromNat(primeOrder.Abs()))
 	return s.setInt(i)
 }
 
 // SetBytes s to b, interpreted as a little endian integer.
 func (s *scalar) SetBytes(b []byte) kyber.Scalar {
-	return s.setInt(mod.NewIntBytes(b, primeOrder, defaultEndianess))
+	return s.setInt(mod.NewIntBytes(b, saferith.ModulusFromNat(primeOrder.Abs()), defaultEndianess))
 }
 
 // ByteOrder return the byte representation type (big or little endian)
@@ -203,7 +204,7 @@ func (s *scalar) UnmarshalFrom(r io.Reader) (int, error) {
 
 func newScalarInt(i *compatible.Int) *scalar {
 	s := scalar{}
-	s.setInt(mod.NewInt(i, fullOrder))
+	s.setInt(mod.NewInt(i.Abs(), saferith.ModulusFromNat(fullOrder.Abs())))
 	return &s
 }
 
