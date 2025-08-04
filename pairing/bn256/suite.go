@@ -1,3 +1,5 @@
+//go:build !constantTime
+
 // Package bn256 implements a particular bilinear group.
 //
 // Bilinear groups are the basis of many of the new cryptographic protocols that
