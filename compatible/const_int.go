@@ -14,6 +14,10 @@ type Int struct {
 	Int *bigmod.Nat
 }
 
+func SetFromNat(x *bigmod.Nat) *Int {
+	return &Int{x}
+}
+
 func NewInt(x uint) *Int {
 	var z = bigmod.NewNat().SetUint(x)
 	//
@@ -96,6 +100,10 @@ func (z *Int) Set(a *Int) *Int {
 
 func (z *Int) SetUint(v uint) *Int {
 	z.Int = bigmod.NewNat().SetUint(v)
+	return z
+}
+func (z *Int) SetUint64(v uint64) *Int {
+	z.Int = bigmod.NewNat().SetUint(uint(v))
 	return z
 }
 

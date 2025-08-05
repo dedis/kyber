@@ -8,15 +8,12 @@ import (
 	"crypto/cipher"
 	"encoding/hex"
 	"errors"
-	"github.com/cronokirby/saferith"
+	"go.dedis.ch/kyber/v4"
 	"go.dedis.ch/kyber/v4/compatible"
 	"go.dedis.ch/kyber/v4/compatible/compatible_mod"
-	"io"
-	"math/big"
-
-	"go.dedis.ch/kyber/v4"
 	"go.dedis.ch/kyber/v4/group/internal/marshalling"
 	"go.dedis.ch/kyber/v4/util/random"
+	"io"
 )
 
 var Cap = 64
@@ -24,7 +21,7 @@ var marshalScalarID = [8]byte{'m', 'o', 'd', '.', 'i', 'n', 't', ' '}
 
 // Int is a generic implementation of finite field arithmetic
 // on integer finite fields with a given constant modulus,
-// built using Go's built-in big.Int or with the saferith package,
+// built using Go's built-in big.Int or with the filosottile/bigmod package,
 // depending on whether the constantTime build tag is chosen.
 // Int satisfies the kyber.Scalar interface,
 // and hence serves as a basic implementation of kyber.Scalar,
@@ -66,17 +63,18 @@ func (i *Int) SetString(n, d string, base int) (*Int, bool) {
 	return i, true
 }
 
-// Jacobi computes the Jacobi symbol of (a/M), which indicates whether a is
-// zero (0), a positive square in M (1), or a non-square in M (-1).
-func (i *Int) Jacobi(as kyber.Scalar) kyber.Scalar {
-	ai := as.(*Int) //nolint:errcheck // Design pattern to emulate generics
-	i.M = ai.M
-	i.V.SetUint(uint(big.Jacobi(&ai.V, i.M)))
-	return i
-}
+// Not used in constant time
+//// Jacobi computes the Jacobi symbol of (a/M), which indicates whether a is
+//// zero (0), a positive square in M (1), or a non-square in M (-1).
+//func (i *Int) Jacobi(as kyber.Scalar) kyber.Scalar {
+//	ai := as.(*Int) //nolint:errcheck // Design pattern to emulate generics
+//	i.M = ai.M
+//	i.V.SetUint(uint(big.Jacobi(&ai.V, i.M)))
+//	return i
+//}
 
 // NewInt creaters a new Int with a given compatible.Int and a compatible.Int modulus.
-func NewInt(v *saferith.Nat, m *compatible_mod.Mod) *Int {
+func NewInt(v *compatible.Int, m *compatible_mod.Mod) *Int {
 	return new(Int).Init(v, m)
 }
 
@@ -182,13 +180,13 @@ func (i *Int) Clone() kyber.Scalar {
 
 // Zero set the Int to the value 0.  The modulus must already be initialized.
 func (i *Int) Zero() kyber.Scalar {
-	i.V.SetUint64(0)
+	i.V.SetUint(0)
 	return i
 }
 
 // One sets the Int to the value 1.  The modulus must already be initialized.
 func (i *Int) One() kyber.Scalar {
-	i.V.SetUint64(1)
+	i.V.SetUint(1)
 	return i
 }
 
@@ -295,28 +293,25 @@ func (i *Int) Exp(a kyber.Scalar, e *compatible.Int) kyber.Scalar {
 	return i
 }
 
-// Sqrt computes some square root of a mod M of one exists.
-// Assumes the modulus M is an odd prime.
-// Returns true on success, false if input a is not a square.
-func (i *Int) Sqrt(as kyber.Scalar) bool {
-	ai := as.(*Int) //nolint:errcheck // Design pattern to emulate generics
-	out := i.V.ModSqrt(ai.V, ai.M)
-	i.M = ai.M
-	return out != nil
-}
+//not used in constant time
+//// Sqrt computes some square root of a mod M of one exists.
+//// Assumes the modulus M is an odd prime.
+//// Returns true on success, false if input a is not a square.
+//func (i *Int) Sqrt(as kyber.Scalar) bool {
+//	ai := as.(*Int) //nolint:errcheck // Design pattern to emulate generics
+//	out := i.V.ModSqrt(ai.V, ai.M)
+//	i.M = ai.M
+//	return out != nil
+//}
 
 // Pick a [pseudo-]random integer, modulo M,
 // using bits from the given stream cipher.
 func (i *Int) Pick(rand cipher.Stream) kyber.Scalar {
-	moduleInt := &saferith.Int{}
-	moduleInt.SetNat(i.M.Nat())
-
-	compInt := &compatible.Int{
-		moduleInt,
-	}
+	moduleInt := i.M.Nat()
+	moduleCompatible := compatible.SetFromNat(moduleInt)
 
 	i.V.Set(
-		random.Int(compInt, rand),
+		random.Int(moduleCompatible, rand),
 	)
 	return i
 }
@@ -328,8 +323,8 @@ func (i *Int) ByteOrder() kyber.ByteOrder {
 
 // GroupOrder returns the order of the underlying group
 // todo change to compatible_mod.Mod
-func (i *Int) GroupOrder() *big.Int {
-	return big.NewInt(0).Set(i.M.Modulus)
+func (i *Int) GroupOrder() *compatible_mod.Mod {
+	return i.M
 }
 
 // MarshalSize returns the length in bytes of encoded integers with modulus M.

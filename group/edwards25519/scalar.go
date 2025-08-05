@@ -1,5 +1,3 @@
-//go:build !constantTime
-
 // Copyright 2013 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
@@ -11,8 +9,8 @@ import (
 	"encoding/hex"
 	"errors"
 	"go.dedis.ch/kyber/v4/compatible"
+	"go.dedis.ch/kyber/v4/compatible/compatible_mod"
 	"io"
-	"math/big"
 
 	"go.dedis.ch/kyber/v4"
 	"go.dedis.ch/kyber/v4/group/internal/marshalling"
@@ -59,11 +57,19 @@ func (s *scalar) setInt(i *mod.Int) kyber.Scalar {
 
 // SetInt64 sets the scalar to a small integer value.
 func (s *scalar) SetInt64(v int64) kyber.Scalar {
-	return s.setInt(mod.NewInt64(v, primeOrder))
+	modulusPrimeOrder, err := new(compatible_mod.Mod).SetBytes(primeOrder.Bytes())
+	if err != nil {
+		panic(err)
+	}
+	return s.setInt(mod.NewInt64(v, modulusPrimeOrder))
 }
 
 func (s *scalar) toInt() *mod.Int {
-	return mod.NewIntBytes(s.v[:], primeOrder, defaultEndianess)
+	modulusPrimeOrder, err := new(compatible_mod.Mod).SetBytes(primeOrder.Bytes())
+	if err != nil {
+		panic(err)
+	}
+	return mod.NewIntBytes(s.v[:], modulusPrimeOrder, defaultEndianess)
 }
 
 // Set to the additive identity (0)
@@ -137,13 +143,21 @@ func (s *scalar) Inv(a kyber.Scalar) kyber.Scalar {
 
 // Set to a fresh random or pseudo-random scalar
 func (s *scalar) Pick(rand cipher.Stream) kyber.Scalar {
-	i := mod.NewInt(random.Int(primeOrder, rand), primeOrder)
+	modulusPrimeOrder, err := new(compatible_mod.Mod).SetBytes(primeOrder.Bytes())
+	if err != nil {
+		panic(err)
+	}
+	i := mod.NewInt(random.Int(primeOrder, rand), modulusPrimeOrder)
 	return s.setInt(i)
 }
 
 // SetBytes s to b, interpreted as a little endian integer.
 func (s *scalar) SetBytes(b []byte) kyber.Scalar {
-	return s.setInt(mod.NewIntBytes(b, primeOrder, defaultEndianess))
+	modulusPrimeOrder, err := new(compatible_mod.Mod).SetBytes(primeOrder.Bytes())
+	if err != nil {
+		panic(err)
+	}
+	return s.setInt(mod.NewIntBytes(b, modulusPrimeOrder, defaultEndianess))
 }
 
 // ByteOrder return the byte representation type (big or little endian)
@@ -152,8 +166,13 @@ func (s *scalar) ByteOrder() kyber.ByteOrder {
 }
 
 // GroupOrder returns the order of the underlying group
-func (s *scalar) GroupOrder() *big.Int {
-	return big.NewInt(0).SetBytes(primeOrder.Bytes())
+func (s *scalar) GroupOrder() *compatible_mod.Mod {
+
+	modulusPrimeOrder, err := new(compatible_mod.Mod).SetBytes(primeOrder.Bytes())
+	if err != nil {
+		panic(err)
+	}
+	return modulusPrimeOrder
 }
 
 // String returns the string representation of this scalar (fixed length of 32 bytes, little endian).
@@ -202,8 +221,13 @@ func (s *scalar) UnmarshalFrom(r io.Reader) (int, error) {
 }
 
 func newScalarInt(i *compatible.Int) *scalar {
+	modulusFullOrder, err := new(compatible_mod.Mod).SetBytes(fullOrder.Bytes())
+	if err != nil {
+		panic(err)
+	}
+
 	s := scalar{}
-	s.setInt(mod.NewInt(i, fullOrder))
+	s.setInt(mod.NewInt(i, modulusFullOrder))
 	return &s
 }
 
