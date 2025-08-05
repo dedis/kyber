@@ -39,8 +39,8 @@ func (P *curvePoint) Equal(P2 kyber.Point) bool {
 }
 
 func (P *curvePoint) Null() kyber.Point {
-	P.x = new(compatible.Int).SetInt64(0)
-	P.y = new(compatible.Int).SetInt64(0)
+	P.x = new(compatible.Int).SetUint64(0)
+	P.y = new(compatible.Int).SetUint64(0)
 	return P
 }
 
