@@ -25,3 +25,17 @@ type Mod struct {
 func (m *Mod) Nat() *bigmod.Nat {
 	return m.Nat()
 }
+
+func (z *Mod) SetString(s string, base int) (*Mod, bool) { panic("implement me") }
+
+func (z *Mod) SetUint64(v uint64) *Mod {
+	panic("implement me")
+}
+
+func (z *Mod) SetBytes(b []byte) (*Mod, error) {
+	modulus, err := bigmod.NewModulus(b)
+	if err != nil {
+		return nil, err
+	}
+	return &Mod{modulus}, nil
+}
