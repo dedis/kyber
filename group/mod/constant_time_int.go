@@ -232,29 +232,30 @@ func (i *Int) SetInt64(v int64) kyber.Scalar {
 // SetUint64 sets the Int to an arbitrary uint64 value.
 // The modulus must already be initialized.
 func (i *Int) SetUint64(v uint64) kyber.Scalar {
-	i.V.SetUint64(v).Mod(i.V, i.M)
+	i.V.SetUint(uint(v)).Mod(i.V, i.M)
 	return i
 }
 
-// Uint64 returns the uint64 representation of the value.
-// If the value is not representable in an uint64 the result is undefined.
-func (i *Int) Uint64() uint64 {
-	return i.V.Uint64()
-}
+//
+//// Uint64 returns the uint64 representation of the value.
+//// If the value is not representable in an uint64 the result is undefined.
+//func (i *Int) Uint64() uint64 {
+//	return i.V.()
+//}
 
 // Add sets the target to a + b mod M, where M is a's modulus..
 func (i *Int) Add(a, b kyber.Scalar) kyber.Scalar {
 	ai := a.(*Int) //nolint:errcheck // Design pattern to emulate generics
 	bi := b.(*Int) //nolint:errcheck // Design pattern to emulate generics
 	i.M = ai.M
-	i.V.Add(ai.V, bi.V, Cap).Mod(i.V, i.M)
+	i.V.Add(ai.V, bi.V, i.M)
 	return i
 }
 
 // Sub sets the target to a - b mod M.
 // Target receives a's modulus.
 func (i *Int) Sub(a, b kyber.Scalar) kyber.Scalar {
-	i.V.ModSub(a.(*Int).V, b.(*Int).V, i.M)
+	i.V.Sub(a.(*Int).V, b.(*Int).V, i.M)
 	//ai := a.(*Int) //nolint:errcheck // Design pattern to emulate generics
 	//bi := b.(*Int) //nolint:errcheck // Design pattern to emulate generics
 	//i.M = ai.M
@@ -264,7 +265,11 @@ func (i *Int) Sub(a, b kyber.Scalar) kyber.Scalar {
 
 // Neg sets the target to -a mod M.
 func (i *Int) Neg(a kyber.Scalar) kyber.Scalar {
-	i.V.ModNeg(a.(*Int).V, i.M)
+	newNat := new(compatible.Int)
+	ai := a.(*Int)
+	newNat.Int = ai.M.Nat()
+	i.V.Set(newNat)
+	i.V.Sub(i.V, ai.V, i.M)
 
 	//ai := a.(*Int) //nolint:errcheck // Design pattern to emulate generics
 	//i.M = ai.M
@@ -279,7 +284,7 @@ func (i *Int) Neg(a kyber.Scalar) kyber.Scalar {
 // Mul sets the target to a * b mod M.
 // Target receives a's modulus.
 func (i *Int) Mul(a, b kyber.Scalar) kyber.Scalar {
-	i.V.ModMul(a.(*Int).V, b.(*Int).V, i.M)
+	i.V.Mul(a.(*Int).V, b.(*Int).V, i.M)
 	//ai := a.(*Int) //nolint:errcheck // Design pattern to emulate generics
 	//bi := b.(*Int) //nolint:errcheck // Design pattern to emulate generics
 	//i.M = ai.M
@@ -294,7 +299,6 @@ func (i *Int) Div(a, b kyber.Scalar) kyber.Scalar {
 	var t compatible.Int
 	i.M = ai.M
 	i.V.Mul(ai.V, t.ModInverse(bi.V, i.M), i.M)
-	i.V.Mod(i.V, i.M)
 	return i
 }
 
@@ -348,8 +352,8 @@ func (i *Int) ByteOrder() kyber.ByteOrder {
 
 // GroupOrder returns the order of the underlying group
 // todo change to compatible_mod.Mod
-func (i *Int) GroupOrder() *compatible_mod.Mod {
-	return i.M
+func (i *Int) GroupOrder() *big.Int {
+	return big.NewInt(0).Set(i.M.Modulus)
 }
 
 // MarshalSize returns the length in bytes of encoded integers with modulus M.

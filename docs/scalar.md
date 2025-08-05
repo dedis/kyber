@@ -11,7 +11,7 @@ type Scalar interface {
 	Equal(s2 Scalar) bool
 	Set(a Scalar) Scalar
 	Clone() Scalar
-	SetInt64(v int64) Scalar
+	SetUint64(v int64) Scalar
 	Zero() Scalar
 	Add(a, b Scalar) Scalar
 	Sub(a, b Scalar) Scalar
