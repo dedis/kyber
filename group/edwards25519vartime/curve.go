@@ -59,7 +59,7 @@ func (c *curve) ScalarLen() int {
 
 // Create a new Scalar for this curve.
 func (c *curve) Scalar() kyber.Scalar {
-	return mod.NewInt64(0, &c.order.V)
+	return mod.NewInt64(0, c.order.V.ToCompatibleMod())
 }
 
 // Returns the size in bytes of an encoded Point on this curve.
@@ -96,14 +96,14 @@ func (c *curve) initBasePoint(self kyber.Group, p *Param, fullGroup bool, Base p
 		// No standard base point was defined, so pick one.
 		// Find the lowest-numbered y-coordinate that works.
 		var x, y mod.Int
-		for y.Init64(2, &c.P); ; y.Add(&y, &c.one) {
+		for y.Init64(2, c.P.ToCompatibleMod()); ; y.Add(&y, &c.one) {
 			if !c.solveForX(&x, &y) {
 				continue // try another y
 			}
 			if c.coordSign(&x) != 0 {
 				x.Neg(&x) // try positive x first
 			}
-			Base.initXY(&x.V, &y.V, self)
+			Base.initXY(x.V, y.V, self)
 			if c.validPoint(Base) {
 				break // got one
 			}
@@ -113,7 +113,7 @@ func (c *curve) initBasePoint(self kyber.Group, p *Param, fullGroup bool, Base p
 			}
 		}
 
-		bx, by = &x.V, &y.V
+		bx, by = x.V, y.V
 	}
 	Base.initXY(bx, by, self)
 }
@@ -128,11 +128,11 @@ func (c *curve) init(self kyber.Group, p *Param, fullGroup bool,
 	c.null = null
 
 	// Edwards curve parameters as ModInts for convenience
-	c.a.Init(&p.A, &p.P)
-	c.d.Init(&p.D, &p.P)
+	c.a.Init(&p.A, p.P.ToCompatibleMod())
+	c.d.Init(&p.D, p.P.ToCompatibleMod())
 
 	// Cofactor
-	c.cofact.Init64(int64(p.R), &c.P)
+	c.cofact.Init64(int64(p.R), c.P.ToCompatibleMod())
 
 	// Determine the modulus for scalars on this curve.
 	// Note that we do NOT initialize c.order with Init(),
@@ -140,16 +140,18 @@ func (c *curve) init(self kyber.Group, p *Param, fullGroup bool,
 	// Just to be sure it's never used, we leave c.order.M set to nil.
 	// We want it to be in a ModInt, so we can pass it to P.Mul(),
 	// but the scalar's modulus isn't needed for point multiplication.
+
+	// todo, what should be done here?
 	if fullGroup {
 		// Scalar modulus is prime-order times the cofactor
-		c.order.V.SetInt64(int64(p.R)).Mul(&c.order.V, &p.Q)
+		c.order.V.SetInt64(int64(p.R)).Mul(c.order.V, &p.Q)
 	} else {
 		c.order.V.Set(&p.Q) // Prime-order subgroup
 	}
 
 	// Useful ModInt constants for this curve
-	c.zero.Init64(0, &c.P)
-	c.one.Init64(1, &c.P)
+	c.zero.Init64(0, c.P.ToCompatibleMod())
+	c.one.Init64(1, c.P.ToCompatibleMod())
 
 	// Identity element is (0,1)
 	null.initXY(zero, one, self)
@@ -222,8 +224,8 @@ func (c *curve) decodePoint(bb []byte, x, y *mod.Int) error {
 	b[0] &^= 0x80
 
 	// Extract the y-coordinate
-	y.V.SetBytes(b)
-	y.M = &c.P
+	y.V.SetBytes(b, c.P.ToCompatibleMod())
+	y.M = c.P.ToCompatibleMod()
 
 	// Compute the corresponding x-coordinate
 	if !c.solveForX(x, y) {
@@ -322,7 +324,7 @@ func (c *curve) embed(P point, data []byte, rand cipher.Stream) {
 		xsign := b[0] >> 7                    // save x-coordinate sign bit
 		b[0] &^= 0xff << uint(c.P.BitLen()&7) // clear high bits
 
-		y.M = &c.P // set y-coordinate
+		y.M = c.P.ToCompatibleMod() // set y-coordinate
 		y.SetBytes(b)
 
 		if !c.solveForX(&x, &y) { // Corresponding x-coordinate?
@@ -335,7 +337,7 @@ func (c *curve) embed(P point, data []byte, rand cipher.Stream) {
 		}
 
 		// Initialize the point
-		P.initXY(&x.V, &y.V, c.self)
+		P.initXY(x.V, y.V, c.self)
 		if c.full {
 			// If we're using the full group,
 			// we just need any point on the curve, so we're done.

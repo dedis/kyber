@@ -50,6 +50,7 @@ func Param1174() *Param {
 	var mi mod.Int
 
 	p.Name = "Curve1174"
+	// todo what's the modulus here?
 	p.P.SetBit(zero, 251, 1).Sub(&p.P, compatible.NewInt(9))
 	p.Q.SetString("45330879683285730139092453152713398835", 10)
 	p.Q.Sub(&p.P, &p.Q).Div(&p.Q, compatible.NewInt(4))
@@ -58,10 +59,10 @@ func Param1174() *Param {
 	p.D.SetInt64(-1174)
 
 	// Full-group generator is (4/V,3/5)
-	mi.InitString("4", "19225777642111670230408712442205514783403012708409058383774613284963344096", 10, &p.P)
-	p.FBX.Set(&mi.V)
-	mi.InitString("3", "5", 10, &p.P)
-	p.FBY.Set(&mi.V)
+	mi.InitString("4", "19225777642111670230408712442205514783403012708409058383774613284963344096", 10, p.P.ToCompatibleMod())
+	p.FBX.Set(mi.V)
+	mi.InitString("3", "5", 10, p.P.ToCompatibleMod())
+	p.FBY.Set(mi.V)
 
 	// Elligator1 parameter s for Curve1174 (Elligator paper section 4.1)
 	p.Elligator1s.SetString("1806494121122717992522804053500797229648438766985538871240722010849934886421", 10)

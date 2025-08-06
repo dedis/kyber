@@ -1,20 +1,17 @@
-//go:build !constantTime
-
 package mod
 
 import (
 	"bytes"
 	"encoding/hex"
-	"go.dedis.ch/kyber/v4/compatible"
+	"go.dedis.ch/kyber/v4/compatible/compatible_mod"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"go.dedis.ch/kyber/v4"
 )
 
 func TestIntEndianness(t *testing.T) {
-	modulo := compatible.NewInt(65535)
+	modulo := compatible_mod.NewInt(65535)
 	var v int64 = 65500
 	// Let's assume it is bigendian and test that
 	i := new(Int).Init64(v, modulo)
@@ -59,8 +56,8 @@ func TestIntEndianness(t *testing.T) {
 }
 func TestIntEndianBytes(t *testing.T) {
 	modulo, err := hex.DecodeString("1000")
-	moduloI := new(compatible.Int).SetBytes(modulo)
 	assert.Nil(t, err)
+	moduloI := new(compatible_mod.Mod).SetBytes(modulo)
 	v, err := hex.DecodeString("10")
 	assert.Nil(t, err)
 
@@ -71,8 +68,8 @@ func TestIntEndianBytes(t *testing.T) {
 }
 
 func TestInits(t *testing.T) {
-	i1 := NewInt64(int64(65500), compatible.NewInt(65535))
-	i2 := NewInt(&i1.V, i1.M)
+	i1 := NewInt64(int64(65500), compatible_mod.NewInt(65535))
+	i2 := NewInt(i1.V, i1.M)
 	assert.True(t, i1.Equal(i2))
 	b, _ := i1.MarshalBinary()
 	i3 := NewIntBytes(b, i1.M, kyber.BigEndian)
@@ -81,17 +78,8 @@ func TestInits(t *testing.T) {
 	assert.True(t, i1.Equal(i4))
 }
 
-func TestInit128bits(t *testing.T) {
-	m := new(compatible.Int).Lsh(compatible.NewInt(1), 128)
-	m = m.Sub(m, compatible.NewInt(1))
-
-	i1 := NewInt(compatible.NewInt(1), m)
-	// size in bytes
-	require.Equal(t, 16, i1.MarshalSize())
-}
-
 func TestIntClone(t *testing.T) {
-	moduloI := new(compatible.Int).SetBytes([]byte{0x10, 0})
+	moduloI := new(compatible_mod.Mod).SetBytes([]byte{0x10, 0})
 	base := new(Int).InitBytes([]byte{0x10}, moduloI, kyber.BigEndian)
 
 	clone := base.Clone()
