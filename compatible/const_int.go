@@ -56,7 +56,6 @@ func (z *Int) SetString(s string, base int) (*Int, bool) { panic("implement me")
 func (z *Int) SetBit(x *Int, i int, b uint) *Int { panic("implement me") }
 
 func (z *Int) Div(x, y *Int) *Int {
-	//TODO implement me
 	panic("implement me")
 }
 

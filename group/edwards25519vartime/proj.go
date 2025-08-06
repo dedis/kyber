@@ -19,9 +19,9 @@ type projPoint struct {
 
 func (P *projPoint) initXY(x, y *compatible.Int, c kyber.Group) {
 	P.c = c.(*ProjectiveCurve) //nolint:errcheck // Design pattern to emulate generics
-	P.X.Init(x, &P.c.P)
-	P.Y.Init(y, &P.c.P)
-	P.Z.Init64(1, &P.c.P)
+	P.X.Init(x, P.c.P.ToCompatibleMod())
+	P.Y.Init(y, P.c.P.ToCompatibleMod())
+	P.Z.Init64(1, P.c.P.ToCompatibleMod())
 }
 
 func (P *projPoint) getXY() (x, y *mod.Int) {
@@ -44,7 +44,7 @@ func (P *projPoint) MarshalBinary() ([]byte, error) {
 }
 
 func (P *projPoint) UnmarshalBinary(b []byte) error {
-	P.Z.Init64(1, &P.c.P)
+	P.Z.Init64(1, P.c.P.ToCompatibleMod())
 	return P.c.decodePoint(b, &P.X, &P.Y)
 }
 

@@ -4,6 +4,8 @@ package test
 
 import (
 	"go.dedis.ch/kyber/v4/internal/test"
+	"go.dedis.ch/kyber/v4/pairing/bls12381/gnark"
+	"go.dedis.ch/kyber/v4/pairing/bls12381/kilic"
 	sign "go.dedis.ch/kyber/v4/sign/bls"
 	"testing"
 )

@@ -259,7 +259,7 @@ func feToBn(dst *compatible.Int, src *fieldElement) {
 	for i := 0; i < half; i++ {
 		b[i], b[l-i] = b[l-i], b[i]
 	}
-
+	//todo, what's the modulus here?
 	dst.SetBytes(b[:])
 }
 

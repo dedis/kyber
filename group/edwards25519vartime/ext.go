@@ -21,9 +21,9 @@ type extPoint struct {
 func (P *extPoint) initXY(x, y *compatible.Int, c kyber.Group) {
 	P.c = c.(*ExtendedCurve) //nolint:errcheck // Design pattern to emulate generics
 
-	P.X.Init(x, &P.c.P)
-	P.Y.Init(y, &P.c.P)
-	P.Z.Init64(1, &P.c.P)
+	P.X.Init(x, P.c.P.ToCompatibleMod())
+	P.Y.Init(y, P.c.P.ToCompatibleMod())
+	P.Z.Init64(1, P.c.P.ToCompatibleMod())
 	P.T.Mul(&P.X, &P.Y)
 }
 
@@ -51,7 +51,7 @@ func (P *extPoint) UnmarshalBinary(b []byte) error {
 	if err := P.c.decodePoint(b, &P.X, &P.Y); err != nil {
 		return err
 	}
-	P.Z.Init64(1, &P.c.P)
+	P.Z.Init64(1, P.c.P.ToCompatibleMod())
 	P.T.Mul(&P.X, &P.Y)
 	return nil
 }
