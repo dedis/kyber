@@ -3,7 +3,7 @@
 package bn254
 
 import (
-	"go.dedis.ch/kyber/v4/compatible"
+	"math/big"
 )
 
 // twistPoint implements the elliptic curve y²=x³+3/ξ over GF(p²). Points are
@@ -164,7 +164,7 @@ func (c *twistPoint) Double(a *twistPoint) {
 	c.y.Sub(t2, t)
 }
 
-func (c *twistPoint) Mul(a *twistPoint, scalar *compatible.Int) {
+func (c *twistPoint) Mul(a *twistPoint, scalar *big.Int) {
 	sum, t := &twistPoint{}, &twistPoint{}
 
 	for i := scalar.BitLen(); i >= 0; i-- {

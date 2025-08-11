@@ -7,9 +7,9 @@ import (
 	"crypto/subtle"
 	"errors"
 	"io"
+	"math/big"
 
 	"go.dedis.ch/kyber/v4"
-	"go.dedis.ch/kyber/v4/compatible"
 	"go.dedis.ch/kyber/v4/group/mod"
 	"golang.org/x/crypto/sha3"
 )
@@ -45,9 +45,9 @@ func (p *pointG1) Base() kyber.Point {
 }
 
 func (p *pointG1) Pick(rand cipher.Stream) kyber.Point {
-	s := mod.NewInt64(0, Order).Pick(rand)
+	s := mod.NewInt64(0, OrderMod).Pick(rand)
 	p.Base()
-	p.g.Mul(p.g, &s.(*mod.Int).V)
+	p.g.Mul(p.g, s.(*mod.Int).V.Int)
 	return p
 }
 
@@ -220,7 +220,7 @@ func hashToPoint(domain, m []byte) kyber.Point {
 func hashToField(domain, m []byte) (*gfP, *gfP) {
 	const u = 48
 	_msg := expandMsgXmdKeccak256(domain, m, 2*u)
-	x, y := new(compatible.Int), new(compatible.Int)
+	x, y := new(big.Int), new(big.Int)
 	x.SetBytes(_msg[0:48]).Mod(x, p)
 	y.SetBytes(_msg[48:96]).Mod(y, p)
 	gx, gy := &gfP{}, &gfP{}
@@ -366,7 +366,7 @@ func (p *pointG2) Base() kyber.Point {
 }
 
 func (p *pointG2) Pick(rand cipher.Stream) kyber.Point {
-	s := mod.NewInt64(0, Order).Pick(rand)
+	s := mod.NewInt64(0, OrderMod).Pick(rand)
 	p.Base()
 	p.g.Mul(p.g, &s.(*mod.Int).V)
 	return p
@@ -419,7 +419,7 @@ func (p *pointG2) Mul(s kyber.Scalar, q kyber.Point) kyber.Point {
 	if q == nil {
 		q = newPointG2(p.dst).Base()
 	}
-	t := s.(*mod.Int).V
+	t := s.(*mod.Int).V.Int
 	r := q.(*pointG2).g
 	p.g.Mul(r, &t)
 	return p
@@ -563,9 +563,9 @@ func (p *pointGT) Base() kyber.Point {
 }
 
 func (p *pointGT) Pick(rand cipher.Stream) kyber.Point {
-	s := mod.NewInt64(0, Order).Pick(rand)
+	s := mod.NewInt64(0, OrderMod).Pick(rand)
 	p.Base()
-	p.g.Exp(p.g, &s.(*mod.Int).V)
+	p.g.Exp(p.g, s.(*mod.Int).V.Int)
 	return p
 }
 

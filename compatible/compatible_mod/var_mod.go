@@ -3,6 +3,7 @@
 package compatible_mod
 
 import (
+	"fmt"
 	"math/big"
 )
 
@@ -14,8 +15,21 @@ func NewInt(x int64) *Mod {
 	return &Mod{big.NewInt(x)}
 }
 
-func (m *Mod) SetBytes(b []byte) (*Mod, error) {
-	return &Mod{big.NewInt(0).SetBytes(b)}, nil
+func (z *Mod) SetString(s string, base int) (*Mod, bool) {
+	if z.Int == nil {
+		z.Int = new(big.Int)
+	}
+	_, t := z.Int.SetString(s, base)
+	fmt.Println("	debug: ", t)
+	return z, t
+}
+
+func (z *Mod) SetBytes(buf []byte) *Mod {
+	if z.Int == nil {
+		z.Int = new(big.Int)
+	}
+	z.Int.SetBytes(buf)
+	return z
 }
 
 // func Add(x, y *Int, _ int) *Int { return big.Add(x, y) }

@@ -8,9 +8,9 @@ import (
 	"crypto/subtle"
 	"errors"
 	"io"
+	"math/big"
 
 	"go.dedis.ch/kyber/v4"
-	"go.dedis.ch/kyber/v4/compatible"
 	"go.dedis.ch/kyber/v4/group/mod"
 )
 
@@ -46,7 +46,7 @@ func (p *pointG1) Base() kyber.Point {
 }
 
 func (p *pointG1) Pick(rand cipher.Stream) kyber.Point {
-	s := mod.NewInt64(0, Order).Pick(rand)
+	s := mod.NewInt64(0, OrderMod).Pick(rand)
 	p.Base()
 	p.g.Mul(p.g, &s.(*mod.Int).V)
 	return p
@@ -87,7 +87,7 @@ func (p *pointG1) Embed(data []byte, rand cipher.Stream) kyber.Point {
 			b[0] = byte(dl)       // Encode length in low 8 bits
 			copy(b[1:1+dl], data) // Copy in data to embed
 		}
-		x := new(compatible.Int).SetBytes(b[:])
+		x := new(big.Int).SetBytes(b[:])
 
 		y := deriveY(x)
 		if y != nil {
@@ -267,9 +267,9 @@ func (p *pointG1) Hash(m []byte) kyber.Point {
 
 // hashes a byte slice into a curve point represented by two big.Int's
 // ideally we want to do this using gfP, but gfP doesn't have a ModSqrt function
-func hashToPoint(m []byte) (*compatible.Int, *compatible.Int) {
+func hashToPoint(m []byte) (*big.Int, *big.Int) {
 	h := sha256.Sum256(m)
-	x := new(compatible.Int).SetBytes(h[:])
+	x := new(big.Int).SetBytes(h[:])
 	x.Mod(x, p)
 
 	for {
@@ -278,18 +278,18 @@ func hashToPoint(m []byte) (*compatible.Int, *compatible.Int) {
 			return x, y
 		}
 
-		x.Add(x, compatible.NewInt(1))
+		x.Add(x, big.NewInt(1))
 	}
 }
 
-func deriveY(x *compatible.Int) *compatible.Int {
+func deriveY(x *big.Int) *big.Int {
 	intCurveB := curveB.BigInt()
-	xxx := new(compatible.Int).Mul(x, x)
+	xxx := new(big.Int).Mul(x, x)
 	xxx.Mul(xxx, x)
 	xxx.Mod(xxx, p)
 
-	t := new(compatible.Int).Add(xxx, intCurveB)
-	y := new(compatible.Int).ModSqrt(t, p)
+	t := new(big.Int).Add(xxx, intCurveB)
+	y := new(big.Int).ModSqrt(t, p)
 	return y
 }
 
@@ -319,7 +319,7 @@ func (p *pointG2) Base() kyber.Point {
 }
 
 func (p *pointG2) Pick(rand cipher.Stream) kyber.Point {
-	s := mod.NewInt64(0, Order).Pick(rand)
+	s := mod.NewInt64(0, OrderMod).Pick(rand)
 	p.Base()
 	p.g.Mul(p.g, &s.(*mod.Int).V)
 	return p
@@ -374,7 +374,7 @@ func (p *pointG2) Mul(s kyber.Scalar, q kyber.Point) kyber.Point {
 	}
 	t := s.(*mod.Int).V
 	r := q.(*pointG2).g
-	p.g.Mul(r, &t)
+	p.g.Mul(r, &t.Int)
 	return p
 }
 
@@ -503,7 +503,7 @@ func (p *pointGT) Base() kyber.Point {
 }
 
 func (p *pointGT) Pick(rand cipher.Stream) kyber.Point {
-	s := mod.NewInt64(0, Order).Pick(rand)
+	s := mod.NewInt64(0, OrderMod).Pick(rand)
 	p.Base()
 	p.g.Exp(p.g, &s.(*mod.Int).V)
 	return p

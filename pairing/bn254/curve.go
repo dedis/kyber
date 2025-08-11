@@ -4,7 +4,7 @@ package bn254
 
 import (
 	"fmt"
-	"go.dedis.ch/kyber/v4/compatible"
+	"math/big"
 )
 
 // curvePoint implements the elliptic curve y²=x³+3. Points are kept in Jacobian
@@ -193,7 +193,7 @@ func (c *curvePoint) Double(a *curvePoint) {
 	gfpSub(&c.y, t2, t)
 }
 
-func (c *curvePoint) Mul(a *curvePoint, scalar *compatible.Int) {
+func (c *curvePoint) Mul(a *curvePoint, scalar *big.Int) {
 	precomp := [1 << 2]*curvePoint{nil, {}, {}, {}}
 	precomp[1].Set(a)
 	precomp[2].Set(a)

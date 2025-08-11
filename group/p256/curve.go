@@ -7,6 +7,7 @@ import (
 	"crypto/elliptic"
 	"errors"
 	"io"
+	"math/big"
 
 	"go.dedis.ch/kyber/v4"
 	"go.dedis.ch/kyber/v4/compatible"
@@ -16,7 +17,7 @@ import (
 )
 
 type curvePoint struct {
-	x, y *compatible.Int
+	x, y *big.Int
 	c    *curve
 }
 
@@ -39,8 +40,8 @@ func (P *curvePoint) Equal(P2 kyber.Point) bool {
 }
 
 func (P *curvePoint) Null() kyber.Point {
-	P.x = new(compatible.Int).SetUint64(0)
-	P.y = new(compatible.Int).SetUint64(0)
+	P.x = big.NewInt(0)
+	P.y = big.NewInt(0)
 	return P
 }
 
@@ -59,11 +60,11 @@ func (P *curvePoint) Valid() bool {
 
 // Try to generate a point on this curve from a chosen x-coordinate,
 // with a random sign.
-func (P *curvePoint) genPoint(x *compatible.Int, rand cipher.Stream) bool {
+func (P *curvePoint) genPoint(x *big.Int, rand cipher.Stream) bool {
 	// Compute the corresponding Y coordinate, if any
-	y2 := new(compatible.Int).Mul(x, x)
+	y2 := new(big.Int).Mul(x, x)
 	y2.Mul(y2, x)
-	threeX := new(compatible.Int).Lsh(x, 1)
+	threeX := new(big.Int).Lsh(x, 1)
 	threeX.Add(threeX, x)
 	y2.Sub(y2, threeX)
 	y2.Add(y2, P.c.p.B)
@@ -78,7 +79,7 @@ func (P *curvePoint) genPoint(x *compatible.Int, rand cipher.Stream) bool {
 	}
 
 	// Check that it's a valid point
-	y2t := new(compatible.Int).Mul(y, y)
+	y2t := new(big.Int).Mul(y, y)
 	y2t.Mod(y2t, P.c.p.P)
 	if y2t.Cmp(y2) != 0 {
 		return false // Doesn't yield a valid point!
@@ -115,7 +116,7 @@ func (P *curvePoint) Embed(data []byte, rand cipher.Stream) kyber.Point {
 			b[l-1] = byte(dl)         // Encode length in low 8 bits
 			copy(b[l-dl-1:l-1], data) // Copy in data to embed
 		}
-		if P.genPoint(new(compatible.Int).SetBytes(b), rand) {
+		if P.genPoint(new(big.Int).SetBytes(b), rand) {
 			return P
 		}
 	}
@@ -192,8 +193,8 @@ func (P *curvePoint) UnmarshalBinary(buf []byte) error {
 		}
 	} else {
 		// All bytes are 0, so we initialize x and y
-		P.x = compatible.NewInt(0)
-		P.y = compatible.NewInt(0)
+		P.x = big.NewInt(0)
+		P.y = big.NewInt(0)
 	}
 	return nil
 }
@@ -208,7 +209,7 @@ func (P *curvePoint) UnmarshalFrom(r io.Reader) (int, error) {
 
 // interface for curve-specifc mathematical functions
 type curveOps interface {
-	sqrt(y *compatible.Int) *compatible.Int
+	sqrt(y *big.Int) *big.Int
 }
 
 // Curve is an implementation of the kyber.Group interface
@@ -227,7 +228,7 @@ func (c *curve) ScalarLen() int { return (c.p.N.BitLen() + 7) / 8 }
 // the bytes as a big-endian integer, so as to be compatible with the
 // Go standard library's big.Int type.
 func (c *curve) Scalar() kyber.Scalar {
-	return mod.NewInt64(0, c.p.N)
+	return mod.NewInt64(0, compatible.FromBigInt(c.p.N).ToCompatibleMod())
 }
 
 // Number of bytes required to store one coordinate on this curve
@@ -260,6 +261,6 @@ func (P *curvePoint) Clone() kyber.Point {
 }
 
 // Return the order of this curve: the prime N in the curve parameters.
-func (c *curve) Order() *compatible.Int {
+func (c *curve) Order() *big.Int {
 	return c.p.N
 }

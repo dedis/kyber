@@ -22,6 +22,10 @@ var lMinus2, _ = new(compatible.Int).SetString("72370055773322622139731865630429
 // cofactor of the curve, as a ModInt
 var cofactor = new(compatible.Int).SetUint64(8)
 
+// twoExp256 is 2^256, used as the modulus for cofactor * primeOrder
+var twoExp256, _ = compatible.NewInt(0).SetString("115792089237316195423570985008687907853269984665640564039457584007913129639936", 10)
+
+// todo, what's the modulus for the multiplication here?
 // order of the full group including the cofactor
 var fullOrder = new(compatible.Int).Mul(primeOrder, cofactor, prime)
 

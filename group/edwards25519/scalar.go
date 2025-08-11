@@ -59,18 +59,12 @@ func (s *scalar) setInt(i *mod.Int) kyber.Scalar {
 
 // SetInt64 sets the scalar to a small integer value.
 func (s *scalar) SetInt64(v int64) kyber.Scalar {
-	modulusPrimeOrder, err := new(compatible_mod.Mod).SetBytes(primeOrder.Bytes())
-	if err != nil {
-		panic(err)
-	}
+	modulusPrimeOrder := primeOrder.ToCompatibleMod()
 	return s.setInt(mod.NewInt64(v, modulusPrimeOrder))
 }
 
 func (s *scalar) toInt() *mod.Int {
-	modulusPrimeOrder, err := new(compatible_mod.Mod).SetBytes(primeOrder.Bytes())
-	if err != nil {
-		panic(err)
-	}
+	modulusPrimeOrder := primeOrder.ToCompatibleMod()
 	return mod.NewIntBytes(s.v[:], modulusPrimeOrder, defaultEndianess)
 }
 
@@ -145,20 +139,14 @@ func (s *scalar) Inv(a kyber.Scalar) kyber.Scalar {
 
 // Set to a fresh random or pseudo-random scalar
 func (s *scalar) Pick(rand cipher.Stream) kyber.Scalar {
-	modulusPrimeOrder, err := new(compatible_mod.Mod).SetBytes(primeOrder.Bytes())
-	if err != nil {
-		panic(err)
-	}
+	modulusPrimeOrder := primeOrder.ToCompatibleMod()
 	i := mod.NewInt(random.Int(primeOrder, rand), modulusPrimeOrder)
 	return s.setInt(i)
 }
 
 // SetBytes s to b, interpreted as a little endian integer.
 func (s *scalar) SetBytes(b []byte) kyber.Scalar {
-	modulusPrimeOrder, err := new(compatible_mod.Mod).SetBytes(primeOrder.Bytes())
-	if err != nil {
-		panic(err)
-	}
+	modulusPrimeOrder := primeOrder.ToCompatibleMod()
 	return s.setInt(mod.NewIntBytes(b, modulusPrimeOrder, defaultEndianess))
 }
 
@@ -170,10 +158,7 @@ func (s *scalar) ByteOrder() kyber.ByteOrder {
 // GroupOrder returns the order of the underlying group
 func (s *scalar) GroupOrder() *compatible_mod.Mod {
 
-	modulusPrimeOrder, err := new(compatible_mod.Mod).SetBytes(primeOrder.Bytes())
-	if err != nil {
-		panic(err)
-	}
+	modulusPrimeOrder := primeOrder.ToCompatibleMod()
 	return modulusPrimeOrder
 }
 
@@ -223,10 +208,7 @@ func (s *scalar) UnmarshalFrom(r io.Reader) (int, error) {
 }
 
 func newScalarInt(i *compatible.Int) *scalar {
-	modulusFullOrder, err := new(compatible_mod.Mod).SetBytes(fullOrder.Bytes())
-	if err != nil {
-		panic(err)
-	}
+	modulusFullOrder := fullOrder.ToCompatibleMod()
 	s := scalar{}
 	s.setInt(mod.NewInt(i, modulusFullOrder))
 	return &s

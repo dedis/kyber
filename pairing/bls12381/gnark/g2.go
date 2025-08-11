@@ -7,8 +7,8 @@ import (
 	"fmt"
 	bls12381 "github.com/consensys/gnark-crypto/ecc/bls12-381"
 	"go.dedis.ch/kyber/v4"
-	"go.dedis.ch/kyber/v4/compatible"
 	"io"
+	"math/big"
 )
 
 var _ kyber.SubGroupElement = &G2Elt{}
@@ -119,7 +119,7 @@ func (p *G2Elt) Mul(s kyber.Scalar, q kyber.Point) kyber.Point {
 		q = new(G2Elt).Base()
 	}
 	ss, qq := s.(*Scalar), q.(*G2Elt)
-	var scalar compatible.Int
+	var scalar big.Int
 	ss.inner.BigInt(&scalar)
 	p.inner.ScalarMultiplication(&qq.inner, &scalar)
 	return p

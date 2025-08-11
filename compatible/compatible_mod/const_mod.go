@@ -32,10 +32,22 @@ func (z *Mod) SetUint64(v uint64) *Mod {
 	panic("implement me")
 }
 
-func (z *Mod) SetBytes(b []byte) (*Mod, error) {
+func (z *Mod) SetBytes(b []byte) *Mod {
 	modulus, err := bigmod.NewModulus(b)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
-	return &Mod{modulus}, nil
+	return &Mod{modulus}
+}
+
+func (z *Mod) Bytes() []byte {
+	panic("implement me")
+}
+
+func NewInt(x int64) *Mod {
+	mod, err := bigmod.NewModulusFromNat(bigmod.NewNat().SetUint(uint(x)))
+	if err != nil {
+		panic(err)
+	}
+	return &Mod{mod}
 }

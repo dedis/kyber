@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"fmt"
 	"go.dedis.ch/kyber/v4/compatible"
+	"math/big"
 	"strconv"
 	"strings"
 	"testing"
@@ -105,7 +106,7 @@ func TestBits(t *testing.T) {
 			cipher := New(r, rand.Reader)
 
 			bigIntBytes := Bits(tc.bitlen, tc.exact, cipher)
-			bigInt := new(compatible.Int).SetBytes(bigIntBytes)
+			bigInt := new(big.Int).SetBytes(bigIntBytes)
 
 			// Check if the bit length matches the expected length
 			expectedBitLen := tc.bitlen

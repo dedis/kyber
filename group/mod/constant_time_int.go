@@ -50,13 +50,13 @@ type Int struct {
 // Returns (i,true) on success, or
 // (nil,false) if either string fails to parse.
 func (i *Int) SetString(n, d string, base int) (*Int, bool) {
-	if _, succ := i.V.SetString(n, base); !succ {
+	if _, ok := i.V.SetString(n, base); !ok {
 		return nil, false
 	}
 	if d != "" {
 		var di Int
 		di.M = i.M
-		if _, succ := di.SetString(d, "", base); !succ {
+		if _, ok := di.SetString(d, "", base); !ok {
 			return nil, false
 		}
 		i.Div(i, &di)
@@ -129,7 +129,7 @@ func (i *Int) InitBytes(a []byte, m *compatible_mod.Mod, byteOrder kyber.ByteOrd
 func (i *Int) InitString(n, d string, base int, m *compatible_mod.Mod) *Int {
 	i.M = m
 	i.BO = kyber.BigEndian
-	if _, succ := i.SetString(n, d, base); !succ {
+	if _, ok := i.SetString(n, d, base); !ok {
 		panic("InitString: invalid fraction representation")
 	}
 	return i

@@ -14,12 +14,16 @@ type Int struct {
 	Int *bigmod.Nat
 }
 
-func SetFromNat(x *bigmod.Nat) *Int {
+func FromNat(x *bigmod.Nat) *Int {
 	return &Int{x}
 }
 
-func NewInt(x uint) *Int {
-	var z = bigmod.NewNat().SetUint(x)
+func NewInt(x int64) *Int {
+	if x < 0 {
+		panic("negative number")
+	}
+
+	var z = bigmod.NewNat().SetUint(uint(x))
 	//
 	//// 1. Compute mask = 0 if n>=0, all-bits-1 if n<0.
 	////    In Go, right-shifting a signed negative replicates the sign bit.
@@ -201,3 +205,15 @@ func (z *Int) Abs(x *Int) *Int {
 //		i.Set(&a)
 //		return *i
 //	}
+
+func (z *Int) ToCompatibleMod() *compatible_mod.Mod {
+	mod, err := bigmod.NewModulusFromNat(z.Int)
+	if err != nil {
+		panic(err)
+	}
+	return &compatible_mod.Mod{Modulus: mod}
+}
+
+func FromBigInt(z *big.Int) *Int {
+
+}
