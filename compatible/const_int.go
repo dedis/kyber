@@ -88,26 +88,26 @@ func (x *Int) Bit(i int) uint { panic("implement me") }
 func Prime(rand io.Reader, bits int) (*Int, error) { panic("implement me") }
 
 func (z *Int) Exp(x, y *Int, m *compatible_mod.Mod) *Int {
-	z.Int.Exp(x.Int, y.Bytes(), m.Modulus)
+	z.Int.Exp(&x.Int, y.Bytes(), &m.Modulus)
 	return z
 }
 
 func (z *Int) Equal(s2 *Int) bool {
-	return z.Int.Equal(s2.Int) == 1
+	return z.Int.Equal(&s2.Int) == 1
 
 }
 
 func (z *Int) Set(a *Int) *Int {
-	z.Int.Set(a.Int)
+	z.Int.Set(&a.Int)
 	return z
 }
 
 func (z *Int) SetUint(v uint) *Int {
-	z.Int = bigmod.NewNat().SetUint(v)
+	z.Int = *bigmod.NewNat().SetUint(v)
 	return z
 }
 func (z *Int) SetUint64(v uint64) *Int {
-	z.Int = bigmod.NewNat().SetUint(uint(v))
+	z.Int = *bigmod.NewNat().SetUint(uint(v))
 	return z
 }
 
@@ -118,14 +118,14 @@ func (z *Int) zero() *Int {
 
 // this function should take a Modulus
 func (z *Int) Add(a, b *Int, mod *compatible_mod.Mod) *Int {
-	z.Int.Set(a.Int)
-	z.Int.Add(b.Int, mod.Modulus)
+	z.Int.Set(&a.Int)
+	z.Int.Add(&b.Int, &mod.Modulus)
 	return z
 }
 
 func (z *Int) Sub(a, b *Int, mod *compatible_mod.Mod) *Int {
-	z.Int.Set(a.Int)
-	z.Int.Sub(b.Int, mod.Modulus)
+	z.Int.Set(&a.Int)
+	z.Int.Sub(&b.Int, &mod.Modulus)
 	return z
 }
 
@@ -141,13 +141,13 @@ func (z *Int) one() *Int {
 }
 
 func (z *Int) Mul(a, b *Int, mod *compatible_mod.Mod) *Int {
-	z.Int.Set(a.Int)
-	z.Int.Mul(b.Int, mod.Modulus)
+	z.Int.Set(&a.Int)
+	z.Int.Mul(&b.Int, &mod.Modulus)
 	return z
 }
 
 func (z *Int) SetBytes(buf []byte, mod *compatible_mod.Mod) *Int {
-	_, err := z.Int.SetBytes(buf, mod.Modulus)
+	_, err := z.Int.SetBytes(buf, &mod.Modulus)
 	if err != nil {
 		panic(err)
 	}
@@ -155,7 +155,7 @@ func (z *Int) SetBytes(buf []byte, mod *compatible_mod.Mod) *Int {
 }
 
 func (z *Int) Mod(x *Int, y *compatible_mod.Mod) *Int {
-	z.Int.Mod(x.Int, y.Modulus)
+	z.Int.Mod(&x.Int, &y.Modulus)
 	return z
 }
 
@@ -169,8 +169,8 @@ func (z *Int) IsZero() bool {
 
 func (z *Int) Cmp(x *Int) int {
 
-	greaterOrEqual := 2 * int(z.Int.CmpGeq(x.Int))
-	equal := int(z.Int.Equal(x.Int))
+	greaterOrEqual := 2 * int(z.Int.CmpGeq(&x.Int))
+	equal := int(z.Int.Equal(&x.Int))
 	return greaterOrEqual - equal - 1
 	//res := 10
 	//if bigger == 1 {
@@ -208,13 +208,21 @@ func (z *Int) Abs(x *Int) *Int {
 //	}
 
 func (z *Int) ToCompatibleMod() *compatible_mod.Mod {
-	mod, err := bigmod.NewModulusFromNat(z.Int)
+	mod, err := bigmod.NewModulusFromNat(&z.Int)
 	if err != nil {
 		panic(err)
 	}
-	return &compatible_mod.Mod{Modulus: mod}
+	return &compatible_mod.Mod{Modulus: *mod}
 }
 
-func FromBigInt(z *big.Int) *Int {
+func FromBigInt(z *big.Int, m *compatible_mod.Mod) *Int {
+	nat, err := bigmod.NewNat().SetBytes(z.Bytes(), &m.Modulus)
+	if err != nil {
+		panic(err)
+	}
+	return &Int{*nat}
+}
 
+func (z *Int) ToBigInt() *big.Int {
+	return big.NewInt(0).SetBytes(z.Bytes())
 }

@@ -6,7 +6,7 @@ import (
 	"crypto/rsa"
 	"testing"
 
-	"filippo.io/bigmod"
+	"go.dedis.ch/kyber/v4/compatible/bigmod"
 )
 
 // TestLinkWithStdlib ensures this package can be linked with the standard
