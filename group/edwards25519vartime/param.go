@@ -15,7 +15,6 @@
 package edwards25519vartime
 
 import (
-	"fmt"
 	"go.dedis.ch/kyber/v4/compatible"
 	"go.dedis.ch/kyber/v4/group/mod"
 )
@@ -52,19 +51,18 @@ func Param1174() *Param {
 
 	p.Name = "Curve1174"
 	// todo what's the modulus here?
-	p.P.SetBit(zero, 251, 1).Int.Sub(p.P.Int, compatible.NewInt(9).Int)
+	p.P.SetBit(zero, 251, 1).Int.Sub(&p.P.Int, &compatible.NewInt(9).Int)
 	p.Q.SetString("45330879683285730139092453152713398835", 10)
-	p.Q.Int.Sub(p.P.Int, p.Q.Int).Div(p.Q.Int, compatible.NewInt(4).Int)
+	p.Q.Int.Sub(&p.P.Int, &p.Q.Int).Div(&p.Q.Int, &compatible.NewInt(4).Int)
 	p.R = 4
 	p.A.SetInt64(1)
 	p.D.SetInt64(-1174)
 
 	// Full-group generator is (4/V,3/5)
 	mi.InitString("4", "19225777642111670230408712442205514783403012708409058383774613284963344096", 10, p.P.ToCompatibleMod())
-	p.FBX.Set(mi.V)
+	p.FBX.Set(&mi.V)
 	mi.InitString("3", "5", 10, p.P.ToCompatibleMod())
-	p.FBY.Set(mi.V)
-
+	p.FBY.Set(&mi.V)
 	// Elligator1 parameter s for Curve1174 (Elligator paper section 4.1)
 	p.Elligator1s.SetString("1806494121122717992522804053500797229648438766985538871240722010849934886421", 10)
 
@@ -78,11 +76,11 @@ func ParamEd25519() *Param {
 	var p Param
 	var qs compatible.Int
 	p.Name = "edwards25519vartime"
-	p.P.SetBit(zero, 255, 1).Int.Sub(p.P.Int, compatible.NewInt(19).Int)
+	p.P.SetBit(zero, 255, 1).Int.Sub(&p.P.Int, &compatible.NewInt(19).Int)
 	qs.SetString("27742317777372353535851937790883648493", 10)
-	p.Q.SetBit(zero, 252, 1).Int.Add(p.Q.Int, qs.Int)
+	p.Q.SetBit(zero, 252, 1).Int.Add(&p.Q.Int, &qs.Int)
 	p.R = 8
-	p.A.SetInt64(-1).Int.Add(p.P.Int, p.A.Int)
+	p.A.SetInt64(-1).Int.Add(&p.P.Int, &p.A.Int)
 	p.D.SetString("37095705934669439343138083508754565189542113879843219016388785533085940283555", 10)
 
 	p.PBX.SetString("15112221349535400772501151409588531511454012693041857206046113283949847762202", 10)
@@ -107,9 +105,9 @@ func ParamE382() *Param {
 	var p Param
 	var qs compatible.Int
 	p.Name = "E-382"
-	p.P.SetBit(zero, 382, 1).Int.Sub(p.P.Int, compatible.NewInt(105).Int) // p = 2^382-105
+	p.P.SetBit(zero, 382, 1).Int.Sub(&p.P.Int, &compatible.NewInt(105).Int) // p = 2^382-105
 	qs.SetString("1030303207694556153926491950732314247062623204330168346855", 10)
-	p.Q.SetBit(zero, 380, 1).Int.Sub(p.Q.Int, qs.Int)
+	p.Q.SetBit(zero, 380, 1).Int.Sub(&p.Q.Int, &qs.Int)
 	p.R = 8
 	p.A.SetInt64(1)
 	p.D.SetInt64(-67254)
@@ -127,9 +125,9 @@ func Param41417() *Param {
 	var p Param
 	var qs compatible.Int
 	p.Name = "Curve41417"
-	p.P.SetBit(zero, 414, 1).Int.Sub(p.P.Int, compatible.NewInt(17).Int)
+	p.P.SetBit(zero, 414, 1).Int.Sub(&p.P.Int, &compatible.NewInt(17).Int)
 	qs.SetString("33364140863755142520810177694098385178984727200411208589594759", 10)
-	p.Q.SetBit(zero, 411, 1).Int.Sub(p.Q.Int, qs.Int)
+	p.Q.SetBit(zero, 411, 1).Int.Sub(&p.Q.Int, &qs.Int)
 	p.R = 8
 	p.A.SetInt64(1)
 	p.D.SetInt64(3617)
@@ -151,9 +149,9 @@ func ParamE521() *Param {
 	var p Param
 	var qs compatible.Int
 	p.Name = "E-521"
-	p.P.SetBit(zero, 521, 1).Int.Sub(p.P.Int, one.Int)
+	p.P.SetBit(zero, 521, 1).Int.Sub(&p.P.Int, &one.Int)
 	qs.SetString("337554763258501705789107630418782636071904961214051226618635150085779108655765", 10)
-	p.Q.SetBit(zero, 519, 1).Int.Sub(p.Q.Int, qs.Int)
+	p.Q.SetBit(zero, 519, 1).Int.Sub(&p.Q.Int, &qs.Int)
 	p.R = 8
 	p.A.SetInt64(1)
 	p.D.SetInt64(-376014)

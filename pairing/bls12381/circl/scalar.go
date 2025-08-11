@@ -4,8 +4,8 @@ import (
 	"crypto/cipher"
 	"github.com/cloudflare/circl/ecc/bls12381"
 	"go.dedis.ch/kyber/v4"
-	"io"
 	"go.dedis.ch/kyber/v4/compatible"
+	"io"
 )
 
 var _ kyber.Scalar = &Scalar{}

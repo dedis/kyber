@@ -39,8 +39,8 @@ func Int(mod *compatible.Int, rand cipher.Stream) *compatible.Int {
 	i := new(big.Int)
 	for {
 		i.SetBytes(Bits(bitlen, false, rand))
-		if i.Sign() > 0 && i.Cmp(mod.Int) < 0 {
-			return compatible.FromBigInt(i)
+		if i.Sign() > 0 && i.Cmp(mod.ToBigInt()) < 0 {
+			return compatible.FromBigInt(i, mod.ToCompatibleMod())
 		}
 	}
 }

@@ -69,7 +69,7 @@ func TestIntEndianBytes(t *testing.T) {
 
 func TestInits(t *testing.T) {
 	i1 := NewInt64(int64(65500), compatible_mod.NewInt(65535))
-	i2 := NewInt(i1.V, i1.M)
+	i2 := NewInt(&i1.V, i1.M)
 	assert.True(t, i1.Equal(i2))
 	b, _ := i1.MarshalBinary()
 	i3 := NewIntBytes(b, i1.M, kyber.BigEndian)

@@ -228,7 +228,7 @@ func (c *curve) ScalarLen() int { return (c.p.N.BitLen() + 7) / 8 }
 // the bytes as a big-endian integer, so as to be compatible with the
 // Go standard library's big.Int type.
 func (c *curve) Scalar() kyber.Scalar {
-	return mod.NewInt64(0, compatible.FromBigInt(c.p.N).ToCompatibleMod())
+	return mod.NewInt64(0, compatible.FromBigInt(c.p.N, nil).ToCompatibleMod())
 }
 
 // Number of bytes required to store one coordinate on this curve

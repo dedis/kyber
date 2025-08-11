@@ -21,7 +21,7 @@ var u = bigFromBase10("4965661367192848881")
 // Order - 1 = 2^28 * 3^2 * 13 * 29 * 983 * 11003 * 237073 * 405928799 * 1670836401704629 * 13818364434197438864469338081.
 // Refer to https://eprint.iacr.org/2013/879.pdf and https://eprint.iacr.org/2013/507.pdf for more information on these parameters.
 var Order = bigFromBase10("21888242871839275222246405745257275088548364400416034343698204186575808495617")
-var OrderMod = compatible.FromBigInt(Order).ToCompatibleMod()
+var OrderMod = compatible.FromBigInt(Order, nil).ToCompatibleMod()
 
 // p is a prime over which we form a basic field: 36u⁴+36u³+24u²+6u+1.
 var p = bigFromBase10("21888242871839275222246405745257275088696311157297823662689037894645226208583")

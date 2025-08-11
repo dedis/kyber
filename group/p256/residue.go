@@ -137,7 +137,7 @@ func (P *residuePoint) Mul(s kyber.Scalar, B kyber.Point) kyber.Point {
 	}
 	// to protect against golang/go#22830
 	var tmp big.Int
-	tmp.Exp(&B.(*residuePoint).Int, s.(*mod.Int).V.Int, P.g.P)
+	tmp.Exp(&B.(*residuePoint).Int, &s.(*mod.Int).V.Int, P.g.P)
 	P.Int = tmp
 	return P
 }
@@ -211,7 +211,7 @@ func (g *ResidueGroup) ScalarLen() int { return (g.Q.BitLen() + 7) / 8 }
 // Scalar creates a Scalar associated with this Residue group,
 // with an initial value of nil.
 func (g *ResidueGroup) Scalar() kyber.Scalar {
-	return mod.NewInt64(0, compatible.FromBigInt(g.Q).ToCompatibleMod())
+	return mod.NewInt64(0, compatible.FromBigInt(g.Q, nil).ToCompatibleMod())
 }
 
 // PointLen returns the number of bytes in the encoding of a Point
