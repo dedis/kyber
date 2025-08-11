@@ -9,8 +9,6 @@ import (
 	"math/big"
 )
 
-var IntSize = 64
-
 type Int struct {
 	Int bigmod.Nat
 }
@@ -23,66 +21,42 @@ func NewInt(x int64) *Int {
 	if x < 0 {
 		panic("negative number")
 	}
-
 	var z = bigmod.NewNat().SetUint(uint(x))
-	//
-	//// 1. Compute mask = 0 if n>=0, all-bits-1 if n<0.
-	////    In Go, right-shifting a signed negative replicates the sign bit.
-	//mask := uint64(x >> 63)
-	//
-	//// 2. Compute absolute value without branching:
-	////    u = (uint64(n) ^ mask) - mask
-	////    If mask==0: u = uint64(n)
-	////    If mask==0xFF…: u = ^uint64(n) + 1 = -uint64(n)
-	//u := (uint64(x) ^ mask) - mask
-	//
-	//// 3. Load the magnitude into z (branchless).
-	//z.SetUint(uint(u))
-	//if mask != 0 {
-	//	panic("negative nat")
-	//}
-	////// 4. Conditionally negate: if mask&1==1 (i.e. n<0), do Neg(1), else Neg(0).
-	//////    Neg takes a saferith.Choice (alias of uint) and is branchless internally.
-	////z.IsMinusOne()
-	////z.Neg(bigmod.Choice(mask & 1))
-
 	return &Int{*z}
 }
 
-// the number of bytes to print in the string representation before an underscore
-const underscoreAfterNBytes = 4
-
-func (z *Int) String() string {
-	panic("implement me")
+// todo, vartime function. Only to be used if s is public
+func (z *Int) SetString(s string, base int) (*Int, bool) {
+	bigFromS, ok := new(big.Int).SetString(s, base)
+	if !ok {
+		panic("invalid string")
+	}
+	z = FromBigInt(bigFromS, z.ToCompatibleMod())
+	return z, true
 }
-
-func (z *Int) SetString(s string, base int) (*Int, bool) { panic("implement me") }
-
-func (z *Int) SetBit(x *Int, i int, b uint) *Int { panic("implement me") }
-
-func (z *Int) Div(x, y *Int) *Int {
-	panic("implement me")
-}
-
-func (z *Int) BitLen() int {
-	panic("implement me")
-}
-func (x *Int) FillBytes(buf []byte) []byte { panic("implement me") }
 
 func (z *Int) Bytes() []byte {
 	panic("implement me")
 }
 
+// todo vartime function
 func (z *Int) ModInverse(g *Int, n *compatible_mod.Mod) *Int {
+	z.Int.InverseVarTime(&g.Int, &n.Modulus)
+	return z
+}
+
+// no usages found, probably only used in vartime only code
+func (z *Int) SetBit(x *Int, i int, b uint) *Int {
 	panic("implement me")
 }
 
-// not to be used
-func (z *Int) ProbablyPrime(n int) bool { panic("implement me") }
-
-func (x *Int) Text(base int) string { panic("implement me") }
-
-func (x *Int) Bit(i int) uint { panic("implement me") }
+// one usage in rand.go, maybe can be replaced by big.Int directly
+func (z *Int) BitLen() int {
+	// to get the real length
+	return z.Int.BitLenVarTime()
+	// to get the announced value
+	// return z.Int.BitLenAnnounced()
+}
 
 // not to be used
 func Prime(rand io.Reader, bits int) (*Int, error) { panic("implement me") }

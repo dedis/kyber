@@ -56,7 +56,7 @@ func SequencesShuffle(
 
 	// Fisher–Yates shuffle
 	for i := k - 1; i > 0; i-- {
-		j := int(random.Int(compatible.NewInt(int64(i+1)), rand).Int64())
+		j := int(random.Int(compatible.NewInt(int64(i+1)), rand).ToBigInt().Uint64())
 		if j != i {
 			pi[i], pi[j] = pi[j], pi[i]
 		}
