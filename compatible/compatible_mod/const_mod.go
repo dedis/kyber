@@ -26,9 +26,7 @@ func (m *Mod) Nat() *bigmod.Nat {
 	return m.Nat()
 }
 
-func (z *Mod) SetString(s string, base int) (*Mod, bool) { panic("implement me") }
-
-func (z *Mod) SetUint64(v uint64) *Mod {
+func (z *Mod) SetString(s string, base int) (*Mod, bool) {
 	panic("implement me")
 }
 
