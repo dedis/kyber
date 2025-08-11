@@ -45,23 +45,23 @@ type Int struct {
 	BO kyber.ByteOrder     // Endianness which will be used on input and output
 }
 
-// NewInt creaters a new Int with a given compatible.Int and a compatible.Int modulus.
+// NewInt creaters a new Int with a given compatible.Int and a compatible.Mod modulus.
 func NewInt(v *compatible.Int, m *compatible_mod.Mod) *Int {
 	return new(Int).Init(v, m)
 }
 
-// NewInt64 creates a new Int with a given int64 value and compatible.Int modulus.
+// NewInt64 creates a new Int with a given int64 value and compatible.Mod modulus.
 func NewInt64(v int64, m *compatible_mod.Mod) *Int {
 	return new(Int).Init64(v, m)
 }
 
-// NewIntBytes creates a new Int with a given slice of bytes and a compatible.Int
+// NewIntBytes creates a new Int with a given slice of bytes and a compatible.Mod
 // modulus.
 func NewIntBytes(a []byte, m *compatible_mod.Mod, byteOrder kyber.ByteOrder) *Int {
 	return new(Int).InitBytes(a, m, byteOrder)
 }
 
-// NewIntString creates a new Int with a given string and a compatible.Int modulus.
+// NewIntString creates a new Int with a given string and a compatible.Mod modulus.
 // The value is set to a rational fraction n/d in a given base.
 func NewIntString(n, d string, base int, m *compatible_mod.Mod) *Int {
 	return new(Int).InitString(n, d, base, m)
@@ -97,7 +97,7 @@ func (i *Int) InitBytes(a []byte, m *compatible_mod.Mod, byteOrder kyber.ByteOrd
 func (i *Int) InitString(n, d string, base int, m *compatible_mod.Mod) *Int {
 	i.M = m
 	i.BO = kyber.BigEndian
-	if _, succ := i.SetString(n, d, base); !succ {
+	if _, ok := i.SetString(n, d, base); !ok {
 		panic("InitString: invalid fraction representation")
 	}
 	return i
@@ -113,13 +113,13 @@ func (i *Int) String() string {
 // Returns (i,true) on success, or
 // (nil,false) if either string fails to parse.
 func (i *Int) SetString(n, d string, base int) (*Int, bool) {
-	if _, succ := i.V.SetString(n, base); !succ {
+	if _, ok := i.V.SetString(n, base); !ok {
 		return nil, false
 	}
 	if d != "" {
 		var di Int
 		di.M = i.M
-		if _, succ := di.SetString(d, "", base); !succ {
+		if _, ok := di.SetString(d, "", base); !ok {
 			return nil, false
 		}
 		i.Div(i, &di)
@@ -349,7 +349,7 @@ func (i *Int) UnmarshalBinary(buf []byte) error {
 		buf = reverse(nil, buf)
 	}
 	//todo what's the modulus here?
-	i.V.SetBytes(buf)
+	i.V.Int.SetBytes(buf)
 	if i.V.Cmp(compatible.FromCompatibleMod(i.M)) >= 0 {
 		return errors.New("UnmarshalBinary: value out of range")
 	}
@@ -391,7 +391,7 @@ func (i *Int) SetBytes(a []byte) kyber.Scalar {
 	if i.BO == kyber.LittleEndian {
 		buff = reverse(nil, a)
 	}
-	i.V.SetBytes(buff).Mod(&i.V, i.M.Int)
+	i.V.SetBytes(buff, i.M)
 	return i
 }
 

@@ -4,9 +4,11 @@ import (
 	"crypto/cipher"
 	"errors"
 	"fmt"
+	"go.dedis.ch/kyber/v4/compatible"
 
 	"go.dedis.ch/kyber/v4"
 	"go.dedis.ch/kyber/v4/proof"
+	"go.dedis.ch/kyber/v4/util/random"
 )
 
 // SequencesShuffle shuffles a sequence of ElGamal pairs based on Section 5 of
@@ -43,22 +45,18 @@ func SequencesShuffle(
 	}
 
 	NQ := len(X)
-	k := uint64(len(X[0]))
+	k := len(X[0])
 
 	// Pick a random permutation used in ALL k ElGamal sequences. The permutation
 	// (π) of an ElGamal pair at index i always outputs to the same index
 	pi := make([]int, k)
-	for i := uint64(0); i < k; i++ {
-		pi[i] = int(i)
+	for i := 0; i < k; i++ {
+		pi[i] = i
 	}
 
 	// Fisher–Yates shuffle
 	for i := k - 1; i > 0; i-- {
-		j := randUint64(rand)
-		if j >= i+1 {
-			j = randUint64(rand)
-		}
-		//j := int(random.Int(compatible.NewInt(int64(i+1)), rand).Int64())
+		j := int(random.Int(compatible.NewInt(int64(i+1)), rand).Int64())
 		if j != i {
 			pi[i], pi[j] = pi[j], pi[i]
 		}
@@ -69,7 +67,7 @@ func SequencesShuffle(
 	beta := make([][]kyber.Scalar, NQ)
 	for j := 0; j < NQ; j++ {
 		beta[j] = make([]kyber.Scalar, k)
-		for i := uint64(0); i < k; i++ {
+		for i := 0; i < k; i++ {
 			beta[j][i] = group.Scalar().Pick(rand)
 		}
 	}
@@ -82,7 +80,7 @@ func SequencesShuffle(
 		xBar[j] = make([]kyber.Point, k)
 		yBar[j] = make([]kyber.Point, k)
 
-		for i := uint64(0); i < k; i++ {
+		for i := 0; i < k; i++ {
 			xBar[j][i] = group.Point().Mul(beta[j][pi[i]], G)
 			xBar[j][i].Add(xBar[j][i], X[j][pi[i]])
 
@@ -96,7 +94,7 @@ func SequencesShuffle(
 		// (xUp, yUp), (xDown, yDown) and e[j]
 
 		ps := PairShuffle{}
-		ps.Init(group, int(k))
+		ps.Init(group, k)
 
 		if len(e) != NQ {
 			return nil, fmt.Errorf("len(e) must be equal to NQ: %d != %d", len(e), NQ)
@@ -106,7 +104,7 @@ func SequencesShuffle(
 			// Need to consolidate beta to a one dimensional array
 			beta2 := make([]kyber.Scalar, k)
 
-			for i := uint64(0); i < k; i++ {
+			for i := 0; i < k; i++ {
 				beta2[i] = group.Scalar().Mul(e[0], beta[0][i])
 
 				for j := 1; j < NQ; j++ {

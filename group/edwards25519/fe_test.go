@@ -59,14 +59,11 @@ func Test_feBnConversionRandom(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, s, l)
 
-	b0 := compatible.NewInt(0).SetBytes(p0)
-	b0 = b0.Mod(b0, prime)
+	b0 := compatible.NewInt(0).SetBytes(p0, prime)
 
-	b1 := compatible.NewInt(0).SetBytes(p1)
-	b1 = b1.Mod(b1, prime)
+	b1 := compatible.NewInt(0).SetBytes(p1, prime)
 
-	b2 := compatible.NewInt(0).SetBytes(p2)
-	b2 = b1.Mod(b2, prime)
+	b2 := compatible.NewInt(0).SetBytes(p2, prime)
 
 	// Convert compatible.Int to fieldElement
 	feFromBn(&fe0, b0)
@@ -81,8 +78,8 @@ func Test_feBnConversionRandom(t *testing.T) {
 	feAdd(&feRes, &fe0, &fe1)
 	feMul(&feRes, &feRes, &fe2)
 
-	bExp = compatible.NewInt(0).Add(b0, b1)
-	bExp = compatible.NewInt(0).Mul(bExp, b2)
+	bExp = compatible.NewInt(0).Add(b0, b1, prime)
+	bExp = compatible.NewInt(0).Mul(bExp, b2, prime)
 	bExp = bExp.Mod(bExp, prime)
 
 	// Final conversion to compare the results

@@ -111,7 +111,7 @@ func (k *G1Elt) Mul(s kyber.Scalar, q kyber.Point) kyber.Point {
 	if q == nil {
 		q = NullG1(k.dst...).Base()
 	}
-	bls12381.NewG1().MulScalarBig(k.p, q.(*G1Elt).p, &s.(*mod.Int).V)
+	bls12381.NewG1().MulScalarBig(k.p, q.(*G1Elt).p, &s.(*mod.Int).V.Int)
 	return k
 }
 

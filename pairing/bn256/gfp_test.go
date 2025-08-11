@@ -5,13 +5,13 @@ package bn256
 import (
 	"crypto/rand"
 	"encoding/binary"
-	"go.dedis.ch/kyber/v4/compatible"
 	"io"
+	"math/big"
 	"testing"
 )
 
 // randomGF returns a random integer between 0 and p-1.
-func randomGF(r io.Reader) *compatible.Int {
+func randomGF(r io.Reader) *big.Int {
 	k, err := rand.Int(r, p)
 	if err != nil {
 		panic(err)
@@ -21,13 +21,13 @@ func randomGF(r io.Reader) *compatible.Int {
 
 // toBigInt converts a field element into its reduced (mod p)
 // integer representation.
-func toBigInt(a *gfP) *compatible.Int {
+func toBigInt(a *gfP) *big.Int {
 	v := &gfP{}
 	montDecode(v, a)
-	c := new(compatible.Int)
+	c := new(big.Int)
 	for i := len(v) - 1; i >= 0; i-- {
 		c.Lsh(c, 64)
-		c.Add(c, new(compatible.Int).SetUint64(v[i]))
+		c.Add(c, new(big.Int).SetUint64(v[i]))
 	}
 	return c
 }
@@ -35,7 +35,7 @@ func toBigInt(a *gfP) *compatible.Int {
 // togfP converts an integer into a field element (in
 // Montgomery representation). This function assumes the
 // input is between 0 and p-1; otherwise it panics.
-func togfP(k *compatible.Int) *gfP {
+func togfP(k *big.Int) *gfP {
 	if k.Cmp(p) >= 0 {
 		panic("not in the range 0 to p-1")
 	}
@@ -59,7 +59,7 @@ func TestGFp(t *testing.T) {
 
 	t.Run("add", func(t *testing.T) {
 		c := &gfP{}
-		bigC := new(compatible.Int)
+		bigC := new(big.Int)
 		for i := 0; i < testTimes; i++ {
 			bigA := randomGF(rand.Reader)
 			bigB := randomGF(rand.Reader)
@@ -78,7 +78,7 @@ func TestGFp(t *testing.T) {
 
 	t.Run("sub", func(t *testing.T) {
 		c := &gfP{}
-		bigC := new(compatible.Int)
+		bigC := new(big.Int)
 		for i := 0; i < testTimes; i++ {
 			bigA := randomGF(rand.Reader)
 			bigB := randomGF(rand.Reader)
@@ -97,7 +97,7 @@ func TestGFp(t *testing.T) {
 
 	t.Run("mul", func(t *testing.T) {
 		c := &gfP{}
-		bigC := new(compatible.Int)
+		bigC := new(big.Int)
 		for i := 0; i < testTimes; i++ {
 			bigA := randomGF(rand.Reader)
 			bigB := randomGF(rand.Reader)
@@ -116,7 +116,7 @@ func TestGFp(t *testing.T) {
 
 	t.Run("neg", func(t *testing.T) {
 		c := &gfP{}
-		bigC := new(compatible.Int)
+		bigC := new(big.Int)
 		for i := 0; i < testTimes; i++ {
 			bigA := randomGF(rand.Reader)
 			want := bigC.Neg(bigA).Mod(bigC, p)
@@ -133,7 +133,7 @@ func TestGFp(t *testing.T) {
 
 	t.Run("inv", func(t *testing.T) {
 		c := &gfP{}
-		bigC := new(compatible.Int)
+		bigC := new(big.Int)
 		for i := 0; i < testTimes; i++ {
 			bigA := randomGF(rand.Reader)
 			want := bigC.ModInverse(bigA, p)
@@ -150,7 +150,7 @@ func TestGFp(t *testing.T) {
 
 	t.Run("sqrt", func(t *testing.T) {
 		c := &gfP{}
-		bigC := new(compatible.Int)
+		bigC := new(big.Int)
 		for i := 0; i < testTimes; i++ {
 			bigA := randomGF(rand.Reader)
 			bigA.Mul(bigA, bigA).Mod(bigA, p)

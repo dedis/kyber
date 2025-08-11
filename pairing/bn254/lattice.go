@@ -3,17 +3,17 @@
 package bn254
 
 import (
-	"go.dedis.ch/kyber/v4/compatible"
+	"math/big"
 )
 
-var half = new(compatible.Int).Rsh(Order, 1)
+var half = new(big.Int).Rsh(Order, 1)
 
 var curveLattice = &lattice{
-	vectors: [][]*compatible.Int{
+	vectors: [][]*big.Int{
 		{bigFromBase10("147946756881789319000765030803803410728"), bigFromBase10("147946756881789319010696353538189108491")},
 		{bigFromBase10("147946756881789319020627676272574806254"), bigFromBase10("-147946756881789318990833708069417712965")},
 	},
-	inverse: []*compatible.Int{
+	inverse: []*big.Int{
 		bigFromBase10("147946756881789318990833708069417712965"),
 		bigFromBase10("147946756881789319010696353538189108491"),
 	},
@@ -22,44 +22,44 @@ var curveLattice = &lattice{
 
 //nolint:lll,unused // maybe useful
 var targetLattice = &lattice{
-	vectors: [][]*compatible.Int{
+	vectors: [][]*big.Int{
 		{bigFromBase10("9931322734385697761"), bigFromBase10("9931322734385697761"), bigFromBase10("9931322734385697763"), bigFromBase10("9931322734385697764")},
 		{bigFromBase10("4965661367192848881"), bigFromBase10("4965661367192848881"), bigFromBase10("4965661367192848882"), bigFromBase10("-9931322734385697762")},
 		{bigFromBase10("-9931322734385697762"), bigFromBase10("-4965661367192848881"), bigFromBase10("4965661367192848881"), bigFromBase10("-4965661367192848882")},
 		{bigFromBase10("9931322734385697763"), bigFromBase10("-4965661367192848881"), bigFromBase10("-4965661367192848881"), bigFromBase10("-4965661367192848881")},
 	},
-	inverse: []*compatible.Int{
+	inverse: []*big.Int{
 		bigFromBase10("734653495049373973658254490726798021314063399421879442165"),
 		bigFromBase10("147946756881789319000765030803803410728"),
 		bigFromBase10("-147946756881789319005730692170996259609"),
 		bigFromBase10("1469306990098747947464455738335385361643788813749140841702"),
 	},
-	det: new(compatible.Int).Set(Order),
+	det: new(big.Int).Set(Order),
 }
 
 type lattice struct {
-	vectors [][]*compatible.Int
-	inverse []*compatible.Int
-	det     *compatible.Int
+	vectors [][]*big.Int
+	inverse []*big.Int
+	det     *big.Int
 }
 
 // decompose takes a scalar mod Order as input and finds a short, positive decomposition of it wrt to the lattice basis.
-func (l *lattice) decompose(k *compatible.Int) []*compatible.Int {
+func (l *lattice) decompose(k *big.Int) []*big.Int {
 	n := len(l.inverse)
 
 	// Calculate closest vector in lattice to <k,0,0,...> with Babai's rounding.
-	c := make([]*compatible.Int, n)
+	c := make([]*big.Int, n)
 	for i := 0; i < n; i++ {
-		c[i] = new(compatible.Int).Mul(k, l.inverse[i])
+		c[i] = new(big.Int).Mul(k, l.inverse[i])
 		round(c[i], l.det)
 	}
 
 	// Transform vectors according to c and subtract <k,0,0,...>.
-	out := make([]*compatible.Int, n)
-	temp := new(compatible.Int)
+	out := make([]*big.Int, n)
+	temp := new(big.Int)
 
 	for i := 0; i < n; i++ {
-		out[i] = new(compatible.Int)
+		out[i] = new(big.Int)
 
 		for j := 0; j < n; j++ {
 			temp.Mul(c[j], l.vectors[j][i])
@@ -87,7 +87,7 @@ func (l *lattice) Precompute(add func(i, j uint)) {
 	}
 }
 
-func (l *lattice) Multi(scalar *compatible.Int) []uint8 {
+func (l *lattice) Multi(scalar *big.Int) []uint8 {
 	decomp := l.decompose(scalar)
 
 	maxLen := 0
@@ -108,12 +108,12 @@ func (l *lattice) Multi(scalar *compatible.Int) []uint8 {
 }
 
 // round sets num to num/denom rounded to the nearest integer.
-func round(num, denom *compatible.Int) {
-	r := new(compatible.Int)
+func round(num, denom *big.Int) {
+	r := new(big.Int)
 	num.DivMod(num, denom, r)
 
 	// todo CondAssignment
 	if r.Cmp(half) == 1 {
-		num.Add(num, compatible.NewInt(1))
+		num.Add(num, big.NewInt(1))
 	}
 }
