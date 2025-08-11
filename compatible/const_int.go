@@ -31,12 +31,14 @@ func (z *Int) SetString(s string, base int) (*Int, bool) {
 	if !ok {
 		panic("invalid string")
 	}
+	// todo change this modulus
 	z = FromBigInt(bigFromS, z.ToCompatibleMod())
 	return z, true
 }
 
+// todo, check the modulus
 func (z *Int) Bytes() []byte {
-	panic("implement me")
+	return z.Int.Bytes(&z.ToCompatibleMod().Modulus)
 }
 
 // todo vartime function
@@ -49,6 +51,10 @@ func (z *Int) ModInverse(g *Int, n *compatible_mod.Mod) *Int {
 func (z *Int) SetBit(x *Int, i int, b uint) *Int {
 	panic("implement me")
 }
+
+func (x *Int) Bit(i int) uint              { panic("implement me") }
+func (x *Int) FillBytes(buf []byte) []byte { panic("implement me") }
+func (x *Int) Text(base int) string        { panic("implement me") }
 
 // one usage in rand.go, maybe can be replaced by big.Int directly
 func (z *Int) BitLen() int {
