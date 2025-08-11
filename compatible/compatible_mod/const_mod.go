@@ -40,6 +40,7 @@ func (z *Mod) SetBytes(b []byte) *Mod {
 	return &Mod{*modulus}
 }
 
+// one usage in group/edwards22519/point_test.go @ TestPointIsCanonical
 func (z *Mod) Bytes() []byte {
 	panic("implement me")
 }

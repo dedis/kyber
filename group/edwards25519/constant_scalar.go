@@ -154,7 +154,7 @@ func (s *scalar) ByteOrder() kyber.ByteOrder {
 
 // GroupOrder returns the order of the underlying group
 func (s *scalar) GroupOrder() *big.Int {
-	return big.NewInt(0).SetBytes(primeOrder.Bytes())
+	return primeOrder.ToBigInt()
 }
 
 // String returns the string representation of this scalar (fixed length of 32 bytes, little endian).
