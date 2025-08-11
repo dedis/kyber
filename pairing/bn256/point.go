@@ -321,7 +321,7 @@ func (p *pointG2) Base() kyber.Point {
 func (p *pointG2) Pick(rand cipher.Stream) kyber.Point {
 	s := mod.NewInt64(0, OrderMod).Pick(rand)
 	p.Base()
-	p.g.Mul(p.g, &s.(*mod.Int).V)
+	p.g.Mul(p.g, &s.(*mod.Int).V.Int)
 	return p
 }
 
@@ -505,7 +505,7 @@ func (p *pointGT) Base() kyber.Point {
 func (p *pointGT) Pick(rand cipher.Stream) kyber.Point {
 	s := mod.NewInt64(0, OrderMod).Pick(rand)
 	p.Base()
-	p.g.Exp(p.g, &s.(*mod.Int).V)
+	p.g.Exp(p.g, &s.(*mod.Int).V.Int)
 	return p
 }
 
@@ -558,7 +558,7 @@ func (p *pointGT) Mul(s kyber.Scalar, q kyber.Point) kyber.Point {
 	}
 	t := s.(*mod.Int).V
 	r := q.(*pointGT).g
-	p.g.Exp(r, &t)
+	p.g.Exp(r, &t.Int)
 	return p
 }
 

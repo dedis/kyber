@@ -6,16 +6,17 @@ import (
 	"go.dedis.ch/kyber/v4/compatible/bigmod"
 	"go.dedis.ch/kyber/v4/compatible/compatible_mod"
 	"io"
+	"math/big"
 )
 
 var IntSize = 64
 
 type Int struct {
-	Int *bigmod.Nat
+	Int bigmod.Nat
 }
 
 func FromNat(x *bigmod.Nat) *Int {
-	return &Int{x}
+	return &Int{*x}
 }
 
 func NewInt(x int64) *Int {
@@ -45,7 +46,7 @@ func NewInt(x int64) *Int {
 	////z.IsMinusOne()
 	////z.Neg(bigmod.Choice(mask & 1))
 
-	return &Int{z}
+	return &Int{*z}
 }
 
 // the number of bytes to print in the string representation before an underscore

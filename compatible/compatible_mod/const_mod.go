@@ -7,7 +7,7 @@ import (
 )
 
 type Mod struct {
-	*bigmod.Modulus
+	bigmod.Modulus
 }
 
 //func NewInt(x int64) *Mod {
@@ -37,7 +37,7 @@ func (z *Mod) SetBytes(b []byte) *Mod {
 	if err != nil {
 		panic(err)
 	}
-	return &Mod{modulus}
+	return &Mod{*modulus}
 }
 
 func (z *Mod) Bytes() []byte {
@@ -49,5 +49,5 @@ func NewInt(x int64) *Mod {
 	if err != nil {
 		panic(err)
 	}
-	return &Mod{mod}
+	return &Mod{*mod}
 }
