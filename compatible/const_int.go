@@ -52,9 +52,35 @@ func (z *Int) SetBit(x *Int, i int, b uint) *Int {
 	panic("implement me")
 }
 
-func (x *Int) Bit(i int) uint              { panic("implement me") }
-func (x *Int) FillBytes(buf []byte) []byte { panic("implement me") }
-func (x *Int) Text(base int) string        { panic("implement me") }
+func (x *Int) Bit(i int) uint { panic("implement me") }
+
+// copied from saferith.Nat
+func (x *Int) FillBytes(buf []byte) []byte {
+	for i := 0; i < len(buf); i++ {
+		buf[i] = 0
+	}
+
+	i := len(buf)
+	// LEAK: Number of limbs
+	// OK: The number of limbs is public
+	// LEAK: The addresses touched in the out array
+	// OK: Every member of out is touched
+Outer:
+	for _, x := range x.Int.Bits() {
+		y := x
+		for j := 0; j < bigmod.LimbsSizeInBytes(); j++ {
+			i--
+			if i < 0 {
+				break Outer
+			}
+			buf[i] = byte(y)
+			y >>= 8
+		}
+	}
+	return buf
+}
+
+func (x *Int) Text(base int) string { panic("implement me") }
 
 // one usage in rand.go, maybe can be replaced by big.Int directly
 func (z *Int) BitLen() int {
@@ -96,7 +122,6 @@ func (z *Int) zero() *Int {
 	return z
 }
 
-// this function should take a Modulus
 func (z *Int) Add(a, b *Int, mod *compatible_mod.Mod) *Int {
 	z.Int.Set(&a.Int)
 	z.Int.Add(&b.Int, &mod.Modulus)
@@ -175,18 +200,6 @@ func (z *Int) Abs(x *Int) *Int {
 	return z.Set(x)
 }
 
-//Bytes, SetString, Cmp
-
-//	func (i *Int) Equal(x Int) bool {
-//		x
-//		return i.Eq(x) == 1
-//	}
-//
-//	func (i *Int) Set(a Int) Int {
-//		i.Set(&a)
-//		return *i
-//	}
-
 func (z *Int) ToCompatibleMod() *compatible_mod.Mod {
 	mod, err := bigmod.NewModulusFromNat(&z.Int)
 	if err != nil {
@@ -195,6 +208,7 @@ func (z *Int) ToCompatibleMod() *compatible_mod.Mod {
 	return &compatible_mod.Mod{Modulus: *mod}
 }
 
+// todo this function is vartime
 func FromBigInt(z *big.Int, m *compatible_mod.Mod) *Int {
 	nat, err := bigmod.NewNat().SetBytes(z.Bytes(), &m.Modulus)
 	if err != nil {
@@ -203,6 +217,7 @@ func FromBigInt(z *big.Int, m *compatible_mod.Mod) *Int {
 	return &Int{*nat}
 }
 
+// todo this function is vartime
 func (z *Int) ToBigInt() *big.Int {
 	return big.NewInt(0).SetBytes(z.Bytes())
 }
