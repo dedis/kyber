@@ -50,7 +50,7 @@ type Int struct {
 // Returns (i,true) on success, or
 // (nil,false) if either string fails to parse.
 func (i *Int) SetString(n, d string, base int) (*Int, bool) {
-	if _, ok := i.V.SetString(n, base); !ok {
+	if _, ok := i.V.SetStringM(n, i.M, base); !ok {
 		return nil, false
 	}
 	if d != "" {

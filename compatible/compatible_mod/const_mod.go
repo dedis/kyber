@@ -4,6 +4,7 @@ package compatible_mod
 
 import (
 	"go.dedis.ch/kyber/v4/compatible/bigmod"
+	"math/big"
 )
 
 type Mod struct {
@@ -26,8 +27,23 @@ func (m *Mod) Nat() *bigmod.Nat {
 	return m.Nat()
 }
 
-func (z *Mod) SetString(s string, base int) (*Mod, bool) {
-	panic("implement me")
+// vartime function
+func (z *Mod) SetString(s, m string, base int) (*Mod, bool) {
+	bigFromS, ok := new(big.Int).SetString(s, base)
+	if !ok {
+		panic("invalid string, cannot convert to a Modulus")
+	}
+	z = FromBigInt(bigFromS)
+	return z, true
+}
+
+func FromString(s string, base int) (*Mod, bool) {
+	bigFromS, ok := new(big.Int).SetString(s, base)
+	if !ok {
+		panic("invalid string, cannot convert to a Modulus")
+	}
+	z := FromBigInt(bigFromS)
+	return z, true
 }
 
 func (z *Mod) SetBytes(b []byte) *Mod {
@@ -49,4 +65,16 @@ func NewInt(x int64) *Mod {
 		panic(err)
 	}
 	return &Mod{*mod}
+}
+
+func FromBigInt(x *big.Int) *Mod {
+	modulus, err := bigmod.NewModulus(x.Bytes())
+	if err != nil {
+		panic(err)
+	}
+	return &Mod{*modulus}
+}
+
+func (z *Mod) SetBigInt(big *big.Int) *Mod {
+	return z.SetBytes(big.Bytes())
 }
