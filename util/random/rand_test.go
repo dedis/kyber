@@ -139,10 +139,10 @@ func TestInt(t *testing.T) {
 			r := strings.NewReader(readerStream)
 			cipher := New(r, rand.Reader)
 
-			randomInt := Int(modulus, cipher)
+			randomInt := Int(modulus.ToBigInt(), cipher)
 
 			// Check if the generated BigInt is less than the modulus
-			if randomInt.Cmp(modulus) >= 0 {
+			if randomInt.Cmp(modulus.ToBigInt()) >= 0 {
 				t.Errorf("Generated BigInt %v is not less than the modulus %v", randomInt, modulus)
 			}
 		})

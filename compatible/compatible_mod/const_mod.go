@@ -28,7 +28,7 @@ func (m *Mod) Nat() *bigmod.Nat {
 }
 
 // vartime function
-func (z *Mod) SetString(s, m string, base int) (*Mod, bool) {
+func (z *Mod) SetString(s string, base int) (*Mod, bool) {
 	bigFromS, ok := new(big.Int).SetString(s, base)
 	if !ok {
 		panic("invalid string, cannot convert to a Modulus")
@@ -80,5 +80,5 @@ func (z *Mod) SetBigInt(big *big.Int) *Mod {
 }
 
 func (z *Mod) Bit(i int) uint {
-	return z.Modulus.Nat().Bits()[i]
+	return z.Modulus.Nat().Bit(i)
 }

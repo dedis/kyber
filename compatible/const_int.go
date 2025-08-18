@@ -3,6 +3,7 @@
 package compatible
 
 import (
+	rand2 "crypto/rand"
 	"go.dedis.ch/kyber/v4/compatible/bigmod"
 	"go.dedis.ch/kyber/v4/compatible/compatible_mod"
 	"io"
@@ -86,7 +87,7 @@ func (z *Int) ModInverseVartime(g *Int, n *compatible_mod.Mod) *Int {
 
 // todo, normally fine if it's vartime (from its Kyber's usages (call it BitVartime)
 func (x *Int) Bit(i int) uint {
-	return x.Int.Bits()[i]
+	return x.Int.Bit(i)
 }
 
 // copied from saferith.Nat
@@ -125,9 +126,18 @@ func (z *Int) BitLen() int {
 	// return z.Int.BitLenAnnounced()
 }
 
-// not to be used
-func Prime(rand io.Reader, bits int) (*Int, error) { panic("implement me") }
-func (z *Int) String() string                      { panic("implement me") }
+// vartime wrapper around crypto/rand
+func Prime(rand io.Reader, bits int) (*Int, error) {
+	big, err := rand2.Prime(rand, bits)
+	if err != nil {
+		return nil, err
+	}
+	m := big.SetUint64(0)
+	mod := compatible_mod.FromBigInt(m.SetBit(big.SetUint64(0), bits, 1))
+
+	return FromBigInt(big, mod), nil
+}
+func (z *Int) String() string { panic("implement me") }
 func (z *Int) Exp(x, y *Int, m *compatible_mod.Mod) *Int {
 	// Exp requires y to be reduced modulo m
 	y.Int.Mod(&y.Int, &m.Modulus)

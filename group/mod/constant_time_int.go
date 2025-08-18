@@ -337,10 +337,9 @@ func (i *Int) Exp(a kyber.Scalar, e *compatible.Int) kyber.Scalar {
 func (i *Int) Pick(rand cipher.Stream) kyber.Scalar {
 	moduleInt := i.M.Nat()
 	moduleCompatible := compatible.FromNat(moduleInt)
-
-	i.V.Set(
-		random.Int(moduleCompatible, rand),
-	)
+	randomBig := random.Int(moduleCompatible.ToBigInt(), rand)
+	randomNat := compatible.FromBigInt(randomBig, moduleCompatible.ToCompatibleMod())
+	i.V.Set(randomNat)
 	return i
 }
 

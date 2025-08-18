@@ -96,8 +96,8 @@ func (s *Scalar) Inv(a kyber.Scalar) kyber.Scalar {
 }
 
 func (s *Scalar) Pick(stream cipher.Stream) kyber.Scalar {
-	n := random.Int(compatible.FromBigInt(fr.Modulus(), nil), stream)
-	s.inner.SetBigInt(&n.Int)
+	randomInt := random.Int(fr.Modulus(), stream)
+	s.inner.SetBigInt(randomInt)
 	return s
 }
 
