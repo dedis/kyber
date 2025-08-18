@@ -292,7 +292,8 @@ func (i *Int) Sqrt(as kyber.Scalar) bool {
 // Pick a [pseudo-]random integer modulo M
 // using bits from the given stream cipher.
 func (i *Int) Pick(rand cipher.Stream) kyber.Scalar {
-	i.V.Set(random.Int(compatible.FromBigInt(&i.M.Int, nil), rand))
+	randomInt := random.Int(&i.M.Int, rand)
+	i.V.Set(compatible.FromBigInt(randomInt, nil))
 	return i
 }
 

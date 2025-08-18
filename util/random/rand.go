@@ -7,7 +7,6 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"crypto/sha256"
-	"go.dedis.ch/kyber/v4/compatible"
 	"io"
 	"math/big"
 
@@ -34,13 +33,13 @@ func Bits(bitlen uint, exact bool, rand cipher.Stream) []byte {
 }
 
 // Int chooses a uniform random big.Int less than a given modulus
-func Int(mod *compatible.Int, rand cipher.Stream) *compatible.Int {
+func Int(mod *big.Int, rand cipher.Stream) *big.Int {
 	bitlen := uint(mod.BitLen())
 	i := new(big.Int)
 	for {
 		i.SetBytes(Bits(bitlen, false, rand))
-		if i.Sign() > 0 && i.Cmp(mod.ToBigInt()) < 0 {
-			return compatible.FromBigInt(i, mod.ToCompatibleMod())
+		if i.Sign() > 0 && i.Cmp(mod) < 0 {
+			return i
 		}
 	}
 }
