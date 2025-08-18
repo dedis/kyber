@@ -57,18 +57,37 @@ func (z *Int) bytesVartime() []byte {
 	return z.Int.Bytes(&z.ToCompatibleMod().Modulus)
 }
 
-// todo vartime function
+// ModInverse sets z to the multiplicative inverse of g in the ring ℤ/nℤ
 func (z *Int) ModInverse(g *Int, n *compatible_mod.Mod) *Int {
+	res := NewInt(1)
+
+	// Modular inversion in a multiplicative group is a^(phi(m)-1) = a^-1 mod m
+	// Since m is prime, phi(m) = m - 1 => a^(m-2) = a^-1 mod m.
+	// The inverse is computed using the exponentation-and-square algorithm.
+	// Implementation is constant time regarding the value a, it only depends on
+	// the modulo.
+	for i := 255; i >= 0; i-- {
+		bit := n.Bit(i)
+		// square step
+		res.Mul(res, res, n)
+		if bit == 1 {
+			// multiply step
+			res.Mul(res, g, n)
+		}
+	}
+	z = res
+	return z
+}
+
+func (z *Int) ModInverseVartime(g *Int, n *compatible_mod.Mod) *Int {
 	z.Int.InverseVarTime(&g.Int, &n.Modulus)
 	return z
 }
 
-// no usages found, probably only used in vartime only code
-func (z *Int) SetBit(x *Int, i int, b uint) *Int {
-	panic("implement me")
+// todo, normally fine if it's vartime (from its Kyber's usages (call it BitVartime)
+func (x *Int) Bit(i int) uint {
+	return x.Int.Bits()[i]
 }
-
-func (x *Int) Bit(i int) uint { panic("implement me") }
 
 // copied from saferith.Nat
 func (x *Int) FillBytes(buf []byte) []byte {
