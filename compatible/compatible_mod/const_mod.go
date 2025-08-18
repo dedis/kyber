@@ -56,7 +56,7 @@ func (z *Mod) SetBytes(b []byte) *Mod {
 
 // one usage in group/edwards22519/point_test.go @ TestPointIsCanonical
 func (z *Mod) Bytes() []byte {
-	panic("implement me")
+	return z.Modulus.Nat().Bytes(&z.Modulus)
 }
 
 func NewInt(x int64) *Mod {

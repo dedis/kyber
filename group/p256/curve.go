@@ -162,9 +162,9 @@ func (P *curvePoint) Mul(s kyber.Scalar, B kyber.Point) kyber.Point {
 	cs := s.(*mod.Int) //nolint:errcheck // Design pattern to emulate generics
 	if B != nil {
 		cb := B.(*curvePoint) //nolint:errcheck // Design pattern to emulate generics
-		P.x, P.y = P.c.ScalarMult(cb.x, cb.y, cs.V.Bytes())
+		P.x, P.y = P.c.ScalarMult(cb.x, cb.y, cs.V.Bytes(nil))
 	} else {
-		P.x, P.y = P.c.ScalarBaseMult(cs.V.Bytes())
+		P.x, P.y = P.c.ScalarBaseMult(cs.V.Bytes(nil))
 	}
 	return P
 }

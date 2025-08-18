@@ -114,3 +114,7 @@ func (z *Int) SetBit(x *Int, i int, b uint) *Int {
 	z.Int.SetBit(&x.Int, i, b)
 	return z
 }
+
+func (z *Int) Bytes(_ *compatible_mod.Mod) []byte {
+	return z.Int.Bytes()
+}
