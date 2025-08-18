@@ -40,7 +40,7 @@ func TestVectors(t *testing.T) {
 
 	for _, vec := range basePointScalarMult {
 		// Read from strings
-		k, ok := k.SetString(vec.K, 10)
+		k, ok := k.SetString(vec.K, "", 10)
 		require.Equal(t, true, ok)
 		s.SetBytes(k.Bytes())
 

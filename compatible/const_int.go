@@ -25,18 +25,29 @@ func NewInt(x int64) *Int {
 	return &Int{*z}
 }
 
-// todo, vartime function. Only to be used if s is public
-func (z *Int) SetString(s string, base int) (*Int, bool) {
+// Vartime function. Only to be used if the size of s is public
+// The function also requires to pass a string to set the modulus, which determines the announced length of the Nat
+// SetString sets z to s modulo m (s must be bigger than m, the program panics otherwise)
+func (z *Int) SetString(s, sm string, base int) (*Int, bool) {
 	bigFromS, ok := new(big.Int).SetString(s, base)
 	if !ok {
-		panic("invalid string")
+		panic("invalid string for the value")
 	}
-	// todo change this modulus
-	z = FromBigInt(bigFromS, z.ToCompatibleMod())
+	m, _ := compatible_mod.FromString(sm, base)
+	z = FromBigInt(bigFromS, m)
 	return z, true
 }
 
-// todo, check the modulus
+// SetStringM sets z to s modulo m (s must be bigger than m, the program panics otherwise)
+func (z *Int) SetStringM(s string, m *compatible_mod.Mod, base int) (*Int, bool) {
+	bigFromS, ok := new(big.Int).SetString(s, base)
+	if !ok {
+		panic("invalid string for the value")
+	}
+	z = FromBigInt(bigFromS, m)
+	return z, true
+}
+
 func (z *Int) Bytes() []byte {
 	return z.Int.Bytes(&z.ToCompatibleMod().Modulus)
 }

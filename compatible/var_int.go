@@ -27,8 +27,6 @@ func Prime(randR io.Reader, bits int) (*Int, error) {
 	return &Int{*random}, err
 }
 
-// func Add(x, y *Int, _ int) *Int { return big.Add(x, y) }
-
 func (z *Int) ToCompatibleMod() *compatible_mod.Mod {
 	return &compatible_mod.Mod{Int: z.Int}
 }
@@ -44,7 +42,7 @@ func (z *Int) ToBigInt() *big.Int {
 	return &z.Int
 }
 
-func (z *Int) SetString(s string, base int) (*Int, bool) {
+func (z *Int) SetString(s, _ string, base int) (*Int, bool) {
 	_, err := z.Int.SetString(s, base)
 	return z, err
 }
