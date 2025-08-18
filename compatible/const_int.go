@@ -48,7 +48,12 @@ func (z *Int) SetStringM(s string, m *compatible_mod.Mod, base int) (*Int, bool)
 	return z, true
 }
 
-func (z *Int) Bytes() []byte {
+func (z *Int) Bytes(m *compatible_mod.Mod) []byte {
+	return z.Int.Bytes(&m.Modulus)
+}
+
+// leaks the size of z
+func (z *Int) bytesVartime() []byte {
 	return z.Int.Bytes(&z.ToCompatibleMod().Modulus)
 }
 
@@ -103,9 +108,11 @@ func (z *Int) BitLen() int {
 
 // not to be used
 func Prime(rand io.Reader, bits int) (*Int, error) { panic("implement me") }
-
+func (z *Int) String() string                      { panic("implement me") }
 func (z *Int) Exp(x, y *Int, m *compatible_mod.Mod) *Int {
-	z.Int.Exp(&x.Int, y.Bytes(), &m.Modulus)
+	// Exp requires y to be reduced modulo m
+	y.Int.Mod(&y.Int, &m.Modulus)
+	z.Int.Exp(&x.Int, y.Bytes(m), &m.Modulus)
 	return z
 }
 
@@ -230,5 +237,5 @@ func FromBigInt(z *big.Int, m *compatible_mod.Mod) *Int {
 
 // todo this function is vartime
 func (z *Int) ToBigInt() *big.Int {
-	return big.NewInt(0).SetBytes(z.Bytes())
+	return big.NewInt(0).SetBytes(z.bytesVartime())
 }

@@ -42,7 +42,7 @@ func TestVectors(t *testing.T) {
 		// Read from strings
 		k, ok := k.SetString(vec.K, "", 10)
 		require.Equal(t, true, ok)
-		s.SetBytes(k.Bytes())
+		s.SetBytes(k.Bytes(nil))
 
 		Q := testP256.Point().Mul(s, BasePoint).(*curvePoint)
 		require.Equal(t, strings.ToLower(vec.X), hex.EncodeToString(Q.x.Bytes()))

@@ -137,7 +137,7 @@ func (i *Int) InitString(n, d string, base int, m *compatible_mod.Mod) *Int {
 
 // Return the Int's integer value in hexadecimal string representation.
 func (i *Int) String() string {
-	return hex.EncodeToString(i.V.Bytes())
+	return hex.EncodeToString(i.V.Bytes(i.M))
 }
 
 // SetString sets the Int to a rational fraction n/d represented by a pair of strings.
@@ -367,7 +367,7 @@ func (i *Int) MarshalSize() int {
 // It uses i's ByteOrder to determine which byte order to output.
 func (i *Int) MarshalBinary() ([]byte, error) {
 	l := i.MarshalSize()
-	b := i.V.Bytes() // may be shorter than l
+	b := i.V.Bytes(i.M) // may be shorter than l
 	offset := l - len(b)
 
 	if i.BO == kyber.LittleEndian {
@@ -425,7 +425,7 @@ func (i *Int) BigEndian(minBytes, maxBytes int) []byte {
 		panic("Int not representable in max bytes")
 	}
 	buf := make([]byte, pad)
-	copy(buf[ofs:], i.V.Bytes())
+	i.V.FillBytes(buf[ofs:])
 	return buf
 }
 
@@ -446,7 +446,7 @@ func (i *Int) SetBytes(a []byte) kyber.Scalar {
 // Panics if max != 0 and the Int cannot be represented in max bytes.
 func (i *Int) LittleEndian(minByte, maxBytes int) []byte {
 	act := i.MarshalSize()
-	vBytes := i.V.Bytes()
+	vBytes := i.V.Bytes(i.M)
 	vSize := len(vBytes)
 	if vSize < act {
 		act = vSize
@@ -459,6 +459,7 @@ func (i *Int) LittleEndian(minByte, maxBytes int) []byte {
 		panic("Int not representable in max bytes")
 	}
 	buf := make([]byte, pad)
+	// todo, check if this must be changed for constant-time execution
 	reverse(buf[:act], vBytes)
 	return buf
 }

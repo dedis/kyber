@@ -50,7 +50,7 @@ func hashToBase(msg, dst []byte) *gfP {
 		panic(err)
 	}
 	var x compatible.Int
-	v := x.SetBytes(t[:], pMod).Bytes()
+	v := x.SetBytes(t[:], pMod).Bytes(nil)
 	v32 := [32]byte{}
 	for i := len(v) - 1; i >= 0; i-- {
 		v32[len(v)-1-i] = v[i]

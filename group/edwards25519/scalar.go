@@ -2279,7 +2279,7 @@ func (s *scalar) IsCanonical(sb []byte) bool {
 		return true
 	}
 
-	L := primeOrder.Bytes()
+	L := primeOrder.ToCompatibleMod().Bytes()
 	for i, j := 0, 31; i < j; i, j = i+1, j-1 {
 		L[i], L[j] = L[j], L[i]
 	}

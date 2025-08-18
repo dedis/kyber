@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"go.dedis.ch/kyber/v4/compatible"
+	"go.dedis.ch/kyber/v4/compatible/compatible_mod"
 	"hash"
 	"io"
 	"math"
@@ -458,7 +459,7 @@ func expandMessageXOF(h sha3.ShakeHash, m []byte, domainSeparator string, byteLe
 
 func i2OSP(x int64, xLen uint32) ([]byte, error) {
 	b := compatible.NewInt(x)
-	s := b.Bytes()
+	s := b.Bytes(compatible_mod.NewInt(math.MaxInt64))
 	if uint32(len(s)) > xLen {
 		return nil, fmt.Errorf("input %d superior to max length %d", len(s), xLen)
 	}
