@@ -24,7 +24,7 @@ type Mod struct {
 //}
 
 func (m *Mod) Nat() *bigmod.Nat {
-	return m.Nat()
+	return m.Modulus.Nat()
 }
 
 // vartime function

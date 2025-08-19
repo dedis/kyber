@@ -1,7 +1,5 @@
 package bigmod
 
-import "fmt"
-
 func (x *Nat) CmpGeq(y *Nat) Choice {
 	return Choice(x.cmpGeq(y))
 }
@@ -42,6 +40,10 @@ func LimbsSizeInBytes() int {
 }
 
 func (x *Nat) Bit(i int) uint {
-	fmt.Println(x.limbs)
-	return x.limbs[i/64] >> (uint(i) % 64) & 1
+	j := uint(i / _W)
+	if j >= uint(len(x.limbs)) {
+		return 0
+	}
+	// 0 <= j < len(x)
+	return uint(x.limbs[j] >> (i % _W) & 1)
 }
