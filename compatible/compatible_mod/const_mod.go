@@ -75,6 +75,10 @@ func FromBigInt(x *big.Int) *Mod {
 	return &Mod{*modulus}
 }
 
+func (z *Mod) ToBigInt() *big.Int {
+	return big.NewInt(0).SetBytes(z.Bytes())
+}
+
 func (z *Mod) SetBigInt(big *big.Int) *Mod {
 	return z.SetBytes(big.Bytes())
 }
@@ -82,3 +86,5 @@ func (z *Mod) SetBigInt(big *big.Int) *Mod {
 func (z *Mod) Bit(i int) uint {
 	return z.Modulus.Nat().Bit(i)
 }
+
+func (z *Mod) String() string { return z.ToBigInt().String() }

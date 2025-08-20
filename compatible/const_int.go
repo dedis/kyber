@@ -4,6 +4,7 @@ package compatible
 
 import (
 	rand2 "crypto/rand"
+	"fmt"
 	"go.dedis.ch/kyber/v4/compatible/bigmod"
 	"go.dedis.ch/kyber/v4/compatible/compatible_mod"
 	"io"
@@ -35,7 +36,8 @@ func (z *Int) SetString(s, sm string, base int) (*Int, bool) {
 		panic("invalid string for the value")
 	}
 	m, _ := compatible_mod.FromString(sm, base)
-	z = FromBigInt(bigFromS, m)
+	res := FromBigInt(bigFromS, m)
+	z.Int = res.Int
 	return z, true
 }
 
@@ -45,7 +47,8 @@ func (z *Int) SetStringM(s string, m *compatible_mod.Mod, base int) (*Int, bool)
 	if !ok {
 		panic("invalid string for the value")
 	}
-	z = FromBigInt(bigFromS, m)
+	res := FromBigInt(bigFromS, m)
+	z.Int = res.Int
 	return z, true
 }
 
@@ -59,25 +62,34 @@ func (z *Int) bytesVartime() []byte {
 }
 
 // ModInverse sets z to the multiplicative inverse of g in the ring ℤ/nℤ
+// Requires n to be prime (uses Fermat: g^(n-2) mod n).
 func (z *Int) ModInverse(g *Int, n *compatible_mod.Mod) *Int {
-	res := NewInt(1)
+	//if n.ToBigInt().ProbablyPrime(10) == false {
+	//	panic("n is not prime")
+	//}
+	p := FromNat(n.Nat())                 // p = modulus as *Int
+	exp := NewInt(0).Sub(p, NewInt(2), n) // exp = p - 2
 
-	// Modular inversion in a multiplicative group is a^(phi(m)-1) = a^-1 mod m
-	// Since m is prime, phi(m) = m - 1 => a^(m-2) = a^-1 mod m.
-	// The inverse is computed using the exponentation-and-square algorithm.
-	// Implementation is constant time regarding the value a, it only depends on
-	// the modulo.
-	for i := 255; i >= 0; i-- {
-		bit := n.Bit(i)
-		// square step
+	// If g == 0 modulo n, no inverse
+	if g.Cmp(NewInt(0)) == 0 {
+		return nil
+	}
+
+	res := NewInt(1)
+	base := NewInt(0).Set(g) // copy of g
+
+	// iterate from most-significant bit down to zero
+	for i := exp.BitLen() - 1; i >= 0; i-- {
+		// square: res = res * res mod n
 		res.Mul(res, res, n)
-		if bit == 1 {
-			// multiply step
-			res.Mul(res, g, n)
+
+		if exp.Bit(i) == 1 {
+			// multiply by base: res = res * base mod n
+			res.Mul(res, base, n)
 		}
 	}
-	z = res
-	return z
+
+	return z.Set(res)
 }
 
 func (z *Int) ModInverseVartime(g *Int, n *compatible_mod.Mod) *Int {
@@ -116,7 +128,7 @@ Outer:
 	return buf
 }
 
-func (x *Int) Text(base int) string { panic("implement me") }
+func (z *Int) Text(base int) string { return z.ToBigInt().Text(base) }
 
 // one usage in rand.go, maybe can be replaced by big.Int directly
 func (z *Int) BitLen() int {
@@ -137,7 +149,7 @@ func Prime(rand io.Reader, bits int) (*Int, error) {
 
 	return FromBigInt(big, mod), nil
 }
-func (z *Int) String() string { panic("implement me") }
+func (z *Int) String() string { return z.ToBigInt().String() }
 func (z *Int) Exp(x, y *Int, m *compatible_mod.Mod) *Int {
 	// Exp requires y to be reduced modulo m
 	y.Int.Mod(&y.Int, &m.Modulus)
@@ -151,7 +163,8 @@ func (z *Int) Equal(s2 *Int) bool {
 }
 
 func (z *Int) Set(a *Int) *Int {
-	z.Int.Set(&a.Int)
+	//z.Int.Set(&a.Int)
+	z.Int.Assign(1, &a.Int)
 	return z
 }
 
@@ -164,36 +177,20 @@ func (z *Int) SetUint64(v uint64) *Int {
 	return z
 }
 
-func (z *Int) zero() *Int {
-	z.Int.SetUint(0)
-	return z
-}
-
 func (z *Int) Add(a, b *Int, mod *compatible_mod.Mod) *Int {
-	z.Int.Set(&a.Int)
+	z.Set(a)
 	z.Int.Add(&b.Int, &mod.Modulus)
 	return z
 }
 
 func (z *Int) Sub(a, b *Int, mod *compatible_mod.Mod) *Int {
-	z.Int.Set(&a.Int)
+	z.Set(a)
 	z.Int.Sub(&b.Int, &mod.Modulus)
 	return z
 }
 
-//func (z *Int) Neg(a *Int) *Int {
-//	innerA := a.Int
-//	z.Int = innerA.Clone().Neg(1)
-//	return z
-//}
-
-func (z *Int) one() *Int {
-	z.Int.SetUint(1)
-	return z
-}
-
 func (z *Int) Mul(a, b *Int, mod *compatible_mod.Mod) *Int {
-	z.Int.Set(&a.Int)
+	z.Set(a)
 	z.Int.Mul(&b.Int, &mod.Modulus)
 	return z
 }
@@ -220,27 +217,9 @@ func (z *Int) IsZero() bool {
 }
 
 func (z *Int) Cmp(x *Int) int {
-
 	greaterOrEqual := 2 * int(z.Int.CmpGeq(&x.Int))
 	equal := int(z.Int.Equal(&x.Int))
 	return greaterOrEqual - equal - 1
-	//res := 10
-	//if bigger == 1 {
-	//	res = 1
-	//}
-	//if equal == 1 {
-	//	res = 0
-	//}
-	//if smaller == 1 {
-	//	res = -1
-	//}
-	//return res
-	//
-	//nat := bigmod.NewNat()
-	//nat.Assign(greaterOrEqual, bigmod.NewNat().SetUint(2))
-	//nat.Assign(bigmod.Choice(equal), bigmod.NewNat().SetUint(1))
-	//nat.Assign(bigmod.Not(greaterOrEqual), bigmod.NewNat().SetUint(0))
-	//return nat.
 }
 
 func (z *Int) Abs(x *Int) *Int {
@@ -255,16 +234,22 @@ func (z *Int) ToCompatibleMod() *compatible_mod.Mod {
 	return &compatible_mod.Mod{Modulus: *mod}
 }
 
-// todo this function is vartime
+// this function is vartime
 func FromBigInt(z *big.Int, m *compatible_mod.Mod) *Int {
 	nat, err := bigmod.NewNat().SetBytes(z.Bytes(), &m.Modulus)
 	if err != nil {
-		panic(err)
+		fmt.Println(err)
 	}
 	return &Int{*nat}
 }
 
-// todo this function is vartime
+// this function is vartime
 func (z *Int) ToBigInt() *big.Int {
+	if z.IsZero() {
+		return big.NewInt(0)
+	}
+	if z.Equal(NewInt(1)) {
+		return big.NewInt(1)
+	}
 	return big.NewInt(0).SetBytes(z.bytesVartime())
 }
