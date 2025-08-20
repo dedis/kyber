@@ -17,7 +17,6 @@ import (
 	"io"
 )
 
-var Cap = 64
 var marshalScalarID = [8]byte{'m', 'o', 'd', '.', 'i', 'n', 't', ' '}
 
 // Int is a generic implementation of finite field arithmetic
@@ -74,7 +73,7 @@ func (i *Int) SetString(n, d string, base int) (*Int, bool) {
 //	return i
 //}
 
-// NewInt creaters a new Int with a given compatible.Int and a compatible.Int modulus.
+// NewInt creates a new Int with a given compatible.Int and a compatible.Int modulus.
 func NewInt(v *compatible.Int, m *compatible_mod.Mod) *Int {
 	return new(Int).Init(v, m)
 }
@@ -268,6 +267,7 @@ func (i *Int) Neg(a kyber.Scalar) kyber.Scalar {
 	ai := a.(*Int)
 	newNat.Int = *ai.M.Nat()
 	i.V.Set(newNat)
+	i.M = ai.M
 	i.V.Sub(&i.V, &ai.V, i.M)
 
 	//ai := a.(*Int) //nolint:errcheck // Design pattern to emulate generics
@@ -283,11 +283,10 @@ func (i *Int) Neg(a kyber.Scalar) kyber.Scalar {
 // Mul sets the target to a * b mod M.
 // Target receives a's modulus.
 func (i *Int) Mul(a, b kyber.Scalar) kyber.Scalar {
-	i.V.Mul(&a.(*Int).V, &b.(*Int).V, i.M)
-	//ai := a.(*Int) //nolint:errcheck // Design pattern to emulate generics
-	//bi := b.(*Int) //nolint:errcheck // Design pattern to emulate generics
-	//i.M = ai.M
-	//i.V.Mul(&ai.V, &bi.V).Mod(&i.V, i.M)
+	ai := a.(*Int) //nolint:errcheck // Design pattern to emulate generics
+	bi := b.(*Int) //nolint:errcheck // Design pattern to emulate generics
+	i.M = ai.M
+	i.V.Mul(&ai.V, &bi.V, i.M)
 	return i
 }
 
@@ -349,7 +348,6 @@ func (i *Int) ByteOrder() kyber.ByteOrder {
 }
 
 // GroupOrder returns the order of the underlying group
-// todo change to compatible_mod.Mod
 func (i *Int) GroupOrder() *big.Int {
 	return big.NewInt(0).Set(i.M.Modulus)
 }
