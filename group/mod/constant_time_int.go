@@ -335,11 +335,11 @@ func (i *Int) Exp(a kyber.Scalar, e *compatible.Int) kyber.Scalar {
 // Pick a [pseudo-]random integer, modulo M,
 // using bits from the given stream cipher.
 func (i *Int) Pick(rand cipher.Stream) kyber.Scalar {
-	moduleInt := i.M.Nat()
-	moduleCompatible := compatible.FromNat(moduleInt)
-	randomBig := random.Int(moduleCompatible.ToBigInt(), rand)
-	randomNat := compatible.FromBigInt(randomBig, moduleCompatible.ToCompatibleMod())
-	i.V.Set(randomNat)
+	modulusBig := i.M.ToBigInt()
+
+	randomBig := random.Int(modulusBig, rand)
+
+	i.V = *compatible.FromBigInt(randomBig, i.M)
 	return i
 }
 
