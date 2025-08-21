@@ -27,6 +27,14 @@ func NewInt(x int64) *Int {
 	return &Int{*z}
 }
 
+func NewUint(x uint64) *Int {
+	if x < 0 {
+		panic("negative number")
+	}
+	var z = bigmod.NewNat().SetUint(uint(x))
+	return &Int{*z}
+}
+
 // Vartime function. Only to be used if the size of s is public
 // The function also requires to pass a string to set the modulus, which determines the announced length of the Nat
 // SetString sets z to s modulo m (s must be bigger than m, the program panics otherwise)
@@ -81,11 +89,11 @@ func (z *Int) ModInverse(g *Int, n *compatible_mod.Mod) *Int {
 	// iterate from most-significant bit down to zero
 	for i := exp.BitLen() - 1; i >= 0; i-- {
 		// square: res = res * res mod n
-		res.Mul(res, res, n)
+		res = NewInt(0).Mul(res, res, n)
 
 		if exp.Bit(i) == 1 {
 			// multiply by base: res = res * base mod n
-			res.Mul(res, base, n)
+			res = NewInt(0).Mul(res, base, n)
 		}
 	}
 
@@ -98,12 +106,12 @@ func (z *Int) ModInverseVartime(g *Int, n *compatible_mod.Mod) *Int {
 }
 
 // todo, normally fine if it's vartime (from its Kyber's usages (call it BitVartime)
-func (x *Int) Bit(i int) uint {
-	return x.Int.Bit(i)
+func (z *Int) Bit(i int) uint {
+	return z.Int.Bit(i)
 }
 
 // copied from saferith.Nat
-func (x *Int) FillBytes(buf []byte) []byte {
+func (z *Int) FillBytes(buf []byte) []byte {
 	for i := 0; i < len(buf); i++ {
 		buf[i] = 0
 	}
@@ -114,7 +122,7 @@ func (x *Int) FillBytes(buf []byte) []byte {
 	// LEAK: The addresses touched in the out array
 	// OK: Every member of out is touched
 Outer:
-	for _, x := range x.Int.Bits() {
+	for _, x := range z.Int.Bits() {
 		y := x
 		for j := 0; j < bigmod.LimbsSizeInBytes(); j++ {
 			i--
@@ -189,9 +197,11 @@ func (z *Int) Sub(a, b *Int, mod *compatible_mod.Mod) *Int {
 	return z
 }
 
+// This functions ... sometimes bugs if you look at the receiver directly rather than at the
+// return value. I suspect it depends on the implementation of the Set method
 func (z *Int) Mul(a, b *Int, mod *compatible_mod.Mod) *Int {
 	z.Set(a)
-	z.Int.Mul(&b.Int, &mod.Modulus)
+	z.Int = *z.Int.Mul(&b.Int, &mod.Modulus)
 	return z
 }
 
