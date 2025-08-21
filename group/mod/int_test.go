@@ -2,8 +2,13 @@ package mod
 
 import (
 	"bytes"
+	"crypto/aes"
+	"crypto/cipher"
 	"encoding/hex"
+	"go.dedis.ch/kyber/v4/compatible"
 	"go.dedis.ch/kyber/v4/compatible/compatible_mod"
+	"math/big"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -88,5 +93,175 @@ func TestIntClone(t *testing.T) {
 	b2, _ := base.MarshalBinary()
 	if bytes.Equal(b1, b2) {
 		t.Error("Should not be equal")
+	}
+}
+
+func TestSetString7mod17(t *testing.T) {
+	mod := compatible_mod.NewInt(17)
+	initial := compatible.NewInt(3)
+	i := NewInt(initial, mod)
+	i.SetString("7", "", 16)
+	assert.Equal(t, "07", i.String())
+}
+
+func TestSetString199291mod9991211391(t *testing.T) {
+	mod := compatible_mod.NewInt(9991211391)
+	initial := compatible.NewInt(199291) // in decimal
+	i := NewInt(initial, mod)
+	i.SetString("199291", "", 16) // in hex
+	assert.Equal(t, "199291", strings.TrimPrefix(i.String(), "0000"))
+}
+
+func TestAdditions(t *testing.T) {
+	mod := compatible_mod.NewInt(17)
+	initial := compatible.NewInt(3)
+	i := NewInt(initial, mod)
+	i.Add(i, i)
+	assert.Equal(t, "06", i.String()) // 6
+	i.Add(i, i)
+	assert.Equal(t, "0c", i.String()) // 12
+	i.Add(i, i)
+	assert.Equal(t, "07", i.String()) // 24 mod 17 = 7
+	i.Add(i, i)
+	assert.Equal(t, "0e", i.String()) // 14
+	i.Add(i, i)
+	assert.Equal(t, "0b", i.String()) // 28 mod 17 = 11
+}
+
+func TestSubtraction(t *testing.T) {
+	mod := compatible_mod.NewInt(171)
+	initial := compatible.NewInt(33)
+	initialMinus := compatible.NewInt(100)
+	i := NewInt(initial, mod)
+	minus := NewInt(initialMinus, mod)
+	i.Sub(i, minus)
+	assert.Equal(t, "68", i.String()) // 33 - 100 mod 171 = 104 = 6 * 16 + 8
+}
+
+func TestMultiplication(t *testing.T) {
+	mod := compatible_mod.NewInt(171)
+	initial := compatible.NewInt(33)
+	initialMul := compatible.NewInt(100)
+	i := NewInt(initial, mod)
+	mul := NewInt(initialMul, mod)
+	i.Mul(i, mul)
+	assert.Equal(t, "33", i.String()) // 3300 mod 171 = 51 = 16 * 3 + 3
+}
+
+func TestDivision(t *testing.T) {
+	mod := compatible_mod.NewInt(181)
+	initial := compatible.NewInt(51)
+	initialDiv := compatible.NewInt(100)
+	i := NewInt(initial, mod)
+	div := NewInt(initialDiv, mod)
+	i.Div(i, div)
+	assert.Equal(t, "35", i.String()) // 51 / 100 mod 181 = [53]10 = [35]16
+}
+
+func TestComparisons(t *testing.T) {
+	mod := compatible_mod.NewInt(171)
+	numbers := []int64{0, 1, 13, 100, 21, 170, 110, 85, 35, 42}
+
+	for i, n1 := range numbers {
+		initial1 := compatible.NewInt(n1)
+		i1 := NewInt(initial1, mod)
+
+		for j, n2 := range numbers {
+			initial2 := compatible.NewInt(n2)
+			i2 := NewInt(initial2, mod)
+
+			cmp := i1.Cmp(i2)
+
+			if i == j {
+				assert.Equal(t, 0, cmp, "Same numbers should be equal: ", n1, n2)
+			} else if n1 > n2 {
+				assert.Equal(t, 1, cmp, "First number should be greater", n1, n2)
+			} else {
+				assert.Equal(t, -1, cmp, "First number should be smaller", n1, n2)
+			}
+		}
+	}
+}
+
+func TestSimpleInit(t *testing.T) {
+	mod := compatible_mod.NewInt(171)
+	initial := compatible.NewInt(33)
+	i := NewInt(initial, mod)
+	assert.Equal(t, "21", i.String())
+}
+
+func TestSimpleInit2(t *testing.T) {
+	mod := compatible_mod.NewInt(171)
+	initial := compatible.NewInt(33)
+	i := NewInt(initial, mod)
+	assert.Equal(t, "21", i.String())
+	i.SetUint64(991)
+	assert.Equal(t, "88", i.String()) // 991 mod 171 = 136 = 8*16 + 8
+}
+
+func TestPick(t *testing.T) {
+
+	mod := compatible_mod.NewInt(171)
+	key := make([]byte, 32)
+	block, err := aes.NewCipher(key)
+	assert.Nil(t, err)
+
+	stream := cipher.NewCTR(block, make([]byte, block.BlockSize()))
+
+	// Create multiple numbers and verify they're within bounds
+	for i := 0; i < 10; i++ {
+		initial := compatible.NewInt(0)
+		num := NewInt(initial, mod)
+		num.Pick(stream)
+		// Verify number is within valid range (0 to modulo-1)
+		assert.True(t, num.V.Sign() >= 0)
+		assert.True(t, num.V.ToBigInt().Cmp(mod.ToBigInt()) < 0)
+	}
+}
+
+func TestModInverse(t *testing.T) {
+	testCases := []struct {
+		value      string
+		modulus    string
+		hasInverse bool
+	}{
+		{"7", "13", true},
+		{"3", "7", true},
+		{"100", "181", true},
+	}
+
+	for _, tc := range testCases {
+		bigValue, _ := new(big.Int).SetString(tc.value, 10)
+		bigMod, _ := new(big.Int).SetString(tc.modulus, 10)
+
+		// big.Int implementation
+		bigResult := new(big.Int)
+		bigInverse := bigResult.ModInverse(bigValue, bigMod)
+		hasBigInverse := bigInverse != nil
+
+		// Compatible implementation
+		natMod := compatible_mod.FromBigInt(bigMod)
+		natValue := compatible.FromBigInt(bigValue, natMod)
+		nat := NewInt(natValue, natMod)
+		natInverse := NewInt(natValue, natMod).Inv(nat)
+		hasNatInverse := natInverse != nil
+
+		if hasBigInverse != tc.hasInverse {
+			t.Errorf("big.Int ModInverse existence mismatch for %v mod %v: got %v, want %v",
+				tc.value, tc.modulus, hasBigInverse, tc.hasInverse)
+		}
+
+		if hasNatInverse != tc.hasInverse {
+			t.Errorf("Compatible ModInverse existence mismatch for %v mod %v: got %v, want %v",
+				tc.value, tc.modulus, hasNatInverse, tc.hasInverse)
+		}
+
+		if tc.hasInverse {
+			inverseAsBig := natInverse.(*Int).V.ToBigInt()
+			if bigInverse.Cmp(inverseAsBig) != 0 {
+				t.Errorf("ModInverse result mismatch for %v mod %v: got %v, want %v",
+					tc.value, tc.modulus, inverseAsBig, bigInverse)
+			}
+		}
 	}
 }

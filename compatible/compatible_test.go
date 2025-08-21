@@ -4,6 +4,7 @@ package compatible
 
 import (
 	"fmt"
+	"github.com/stretchr/testify/assert"
 	"go.dedis.ch/kyber/v4/compatible/compatible_mod"
 	"math/big"
 	"testing"
@@ -145,9 +146,9 @@ func TestModInverse(t *testing.T) {
 		// Compatible implementation
 		natMod := compatible_mod.FromBigInt(bigMod)
 		natValue := FromBigInt(bigValue, natMod)
-		natInverse := NewInt(0)
-		natInverse = natInverse.ModInverse(natValue, natMod)
+		natInverse := NewInt(0).ModInverse(natValue, natMod)
 		hasNatInverse := natInverse != nil
+
 		fmt.Println(bigMod, natMod, bigValue, natValue, bigInverse, natInverse, hasBigInverse, hasNatInverse, tc.hasInverse)
 		if hasBigInverse != tc.hasInverse {
 			t.Errorf("big.Int ModInverse existence mismatch for %v mod %v: got %v, want %v",
@@ -190,4 +191,19 @@ func TestMultiplication(t *testing.T) {
 	if resBig.Cmp(res.ToBigInt()) != 0 {
 		t.Errorf("Multiplication result mismatch: got %v, want %v", resBig, res.ToBigInt())
 	}
+	assert.Equal(t, resBig, res.ToBigInt())
+	assert.Equal(t, res.String(), "1")
+}
+
+func TestSimpleMod(t *testing.T) {
+	mod := compatible_mod.NewInt(171)
+	initial := NewInt(330)
+	a := NewInt(0).Mod(initial, mod)
+	fmt.Println(a)
+}
+
+func TestSimpleMultiplication(t *testing.T) {
+	m := compatible_mod.NewInt(171)
+	a := NewInt(0).Mul(NewInt(33), NewInt(100), m)
+	fmt.Println(a)
 }
