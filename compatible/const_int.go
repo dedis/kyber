@@ -148,14 +148,15 @@ func (z *Int) BitLen() int {
 
 // vartime wrapper around crypto/rand
 func Prime(rand io.Reader, bits int) (*Int, error) {
-	big, err := rand2.Prime(rand, bits)
+	bigRandom, err := rand2.Prime(rand, bits)
 	if err != nil {
 		return nil, err
 	}
-	m := big.SetUint64(0)
-	mod := compatible_mod.FromBigInt(m.SetBit(big.SetUint64(0), bits, 1))
+	m := big.NewInt(0)
+	m.SetBit(m, bits+1, 1)
+	mod := compatible_mod.FromBigInt(m)
 
-	return FromBigInt(big, mod), nil
+	return FromBigInt(bigRandom, mod), nil
 }
 func (z *Int) String() string { return z.ToBigInt().String() }
 func (z *Int) Exp(x, y *Int, m *compatible_mod.Mod) *Int {
