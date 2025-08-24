@@ -2,6 +2,7 @@ package edwards25519
 
 import (
 	"go.dedis.ch/kyber/v4/compatible"
+	"math/big"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -59,11 +60,17 @@ func Test_feBnConversionRandom(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, s, l)
 
-	b0 := compatible.NewInt(0).SetBytes(p0, prime)
+	b0Big := big.NewInt(0).SetBytes(p0)
+	b0Big.Mod(b0Big, prime.ToBigInt())
+	b0 := compatible.FromBigInt(b0Big, prime)
 
-	b1 := compatible.NewInt(0).SetBytes(p1, prime)
+	b1Big := big.NewInt(0).SetBytes(p1)
+	b1Big.Mod(b0Big, prime.ToBigInt())
+	b1 := compatible.FromBigInt(b1Big, prime)
 
-	b2 := compatible.NewInt(0).SetBytes(p2, prime)
+	b2Big := big.NewInt(0).SetBytes(p2)
+	b2Big.Mod(b0Big, prime.ToBigInt())
+	b2 := compatible.FromBigInt(b2Big, prime)
 
 	// Convert compatible.Int to fieldElement
 	feFromBn(&fe0, b0)

@@ -209,6 +209,9 @@ func (s *scalar) UnmarshalFrom(r io.Reader) (int, error) {
 }
 
 func newScalarInt(i *compatible.Int) *scalar {
+	//fmt.Println("order: ", i, "fullorder: ", fullOrder)
+	//fmt.Println("modulus: ", fullOrder.ToCompatibleMod())
+	//fmt.Println("twoExp256m1: ", twoExp256m1)
 	modulusFullOrder := fullOrder.ToCompatibleMod()
 	s := scalar{}
 	s.setInt(mod.NewInt(i, modulusFullOrder))

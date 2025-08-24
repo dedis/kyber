@@ -107,13 +107,17 @@ func (i *Int) Init(v *compatible.Int, m *compatible_mod.Mod) *Int {
 
 // Init64 creates an Int with an int64 value and compatible.Int modulus.
 func (i *Int) Init64(v int64, m *compatible_mod.Mod) *Int {
-	if v < 0 {
-		panic(errors.New("v must be >= 0"))
-	}
+	// leaks the initialization sign, but the result will be positive anyway...
 	i.M = m
 	i.BO = kyber.BigEndian
-	i.V = *compatible.NewInt(0).SetUint(uint(v))
-	i.V = *compatible.NewInt(0).Mod(&i.V, m)
+	if v < 0 {
+		i.V = *compatible.FromNat(i.M.Nat())
+		negated := compatible.NewInt(-v)
+		i.V = *compatible.NewInt(0).Sub(&i.V, negated, i.M)
+	} else {
+		i.V = *compatible.NewInt(0).SetUint(uint(v))
+		i.V = *compatible.NewInt(0).Mod(&i.V, m)
+	}
 	return i
 }
 
@@ -196,8 +200,8 @@ func (i *Int) Nonzero() bool {
 // it may be used as an alternative to Init().
 func (i *Int) Set(a kyber.Scalar) kyber.Scalar {
 	ai := a.(*Int) //nolint:errcheck // Design pattern to emulate generics
-	i.V.Set(&ai.V)
 	i.M = ai.M
+	i.V = *i.V.Set(&ai.V)
 	return i
 }
 
@@ -234,7 +238,7 @@ func (i *Int) SetInt64(v int64) kyber.Scalar {
 // SetUint64 sets the Int to an arbitrary uint64 value.
 // The modulus must already be initialized.
 func (i *Int) SetUint64(v uint64) kyber.Scalar {
-	i.V = *compatible.NewInt(0).Mod(compatible.NewUint(v), i.M)
+	i.V.Mod(compatible.NewUint(v), i.M)
 	return i
 }
 
@@ -300,7 +304,9 @@ func (i *Int) Div(a, b kyber.Scalar) kyber.Scalar {
 	bi := b.(*Int) //nolint:errcheck // Design pattern to emulate generics
 
 	inverse := NewInt(compatible.NewInt(0), bi.M).Inv(bi)
-	i.Set(i.Mul(ai, inverse))
+	divResult := i.Mul(ai, inverse)
+	// todo temporary solution... i.Set(divResult) does not work.........
+	i.V = divResult.(*Int).V
 	return i
 }
 

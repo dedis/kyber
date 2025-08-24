@@ -3,7 +3,6 @@
 package compatible_mod
 
 import (
-	"fmt"
 	"math/big"
 )
 
@@ -17,7 +16,7 @@ func NewInt(x int64) *Mod {
 
 func (z *Mod) SetString(s string, base int) (*Mod, bool) {
 	_, t := z.Int.SetString(s, base)
-	fmt.Println("	debug: ", t)
+	//fmt.Println("	debug: ", t)
 	return z, t
 }
 
