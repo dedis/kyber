@@ -12,26 +12,26 @@ import (
 var prime, _ = new(compatible_mod.Mod).SetString("57896044618658097711785492504343953926634992332820282019728792003956564819949", 10)
 
 // prime order of base point = 2^252 + 27742317777372353535851937790883648493
-var primeOrder, _ = new(compatible.Int).SetString("7237005577332262213973186563042994240857116359379907606001950938285454250989", twoExp256m1String, 10)
+var primeOrder, _ = new(compatible.Int).SetString("7237005577332262213973186563042994240857116359379907606001950938285454250989", twoExp256p1String, 10)
 
 // `l_minus_2` is the order of base point minus two, i.e. 2^252 +
 // 27742317777372353535851937790883648493 - 2, in little-endian form
 // This is needed to compute constant time modular inversion of scalars.
-var lMinus2, _ = new(compatible.Int).SetString("7237005577332262213973186563042994240857116359379907606001950938285454250987", twoExp256m1String, 10)
+var lMinus2, _ = new(compatible.Int).SetString("7237005577332262213973186563042994240857116359379907606001950938285454250987", twoExp256p1String, 10)
 
 // cofactor of the curve, as a ModInt
 var cofactor = new(compatible.Int).SetUint64(8)
 
-// twoExp256 is 2^256, used as a modulus to initialize twoExp256m1
-var twoExp256String = "115792089237316195423570985008687907853269984665640564039457584007913129639936"
+// twoExp256p2 is 2^256 + 2, used as a modulus to initialize twoExp256p1
+var twoExp256p2String = "115792089237316195423570985008687907853269984665640564039457584007913129639938"
 
-// twoExp256m1 is 2^256 - 1, used as the modulus for cofactor * primeOrder
-var twoExp256m1, _ = new(compatible.Int).SetString("115792089237316195423570985008687907853269984665640564039457584007913129639935", twoExp256String, 10)
-var twoExp256m1String = "115792089237316195423570985008687907853269984665640564039457584007913129639935"
+// twoExp256p1 is 2^256 + 1, used as the modulus for cofactor * primeOrder
+var twoExp256p1String = "115792089237316195423570985008687907853269984665640564039457584007913129639937"
+var twoExp256p1, _ = new(compatible.Int).SetString(twoExp256p1String, twoExp256p2String, 10)
 
 // todo, check the modulus for the multiplication here
 // order of the full group including the cofactor
-var fullOrder = compatible.NewInt(0).Mul(primeOrder, cofactor, twoExp256m1.ToCompatibleMod())
+var fullOrder = compatible.NewInt(0).Mul(primeOrder, cofactor, twoExp256p1.ToCompatibleMod())
 
 // scalar versions of these, usable for multiplication
 var primeOrderScalar = newScalarInt(primeOrder)
