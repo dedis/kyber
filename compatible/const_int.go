@@ -171,8 +171,8 @@ func (z *Int) Equal(s2 *Int) bool {
 }
 
 func (z *Int) Set(a *Int) *Int {
-	//z.Int.Set(&a.Int)
-	z.Int.Assign(1, &a.Int)
+	z.Int.Set(&a.Int)
+	//z.Int.Assign(1, &a.Int)
 	return z
 }
 

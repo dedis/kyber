@@ -5,6 +5,7 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"encoding/hex"
+	"fmt"
 	"go.dedis.ch/kyber/v4/compatible"
 	"go.dedis.ch/kyber/v4/compatible/compatible_mod"
 	"math/big"
@@ -264,4 +265,28 @@ func TestModInverse(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestMultiplicationFullOrder(t *testing.T) {
+	var twoExp256String = "115792089237316195423570985008687907853269984665640564039457584007913129639938"
+	var twoExp256m1String = "115792089237316195423570985008687907853269984665640564039457584007913129639937"
+	// twoExp256m1 is 2^256 - 1, used as the modulus for cofactor * primeOrder
+	var twoExp256m1, _ = new(compatible.Int).SetString(twoExp256m1String, twoExp256String, 10)
+
+	// todo, check the modulus for the multiplication here
+	// order of the full group including the cofactor
+
+	// prime order of base point = 2^252 + 27742317777372353535851937790883648493
+	var primeOrder, _ = new(compatible.Int).SetString("7237005577332262213973186563042994240857116359379907606001950938285454250989", twoExp256m1String, 10)
+	var cofactor = new(compatible.Int).SetUint64(8)
+	var fullOrder = compatible.NewInt(0).Mul(primeOrder, cofactor, twoExp256m1.ToCompatibleMod())
+
+	var bigFullOrder = fullOrder.ToBigInt()
+	var bigCalculatedFullOrder = primeOrder.ToBigInt().Mul(primeOrder.ToBigInt(), cofactor.ToBigInt())
+	fmt.Println(bigFullOrder, bigCalculatedFullOrder)
+}
+
+func TestNegativeInitialization(t *testing.T) {
+	a := NewInt64(-1, compatible_mod.NewInt(97)) // mod 97
+	assert.Equal(t, a.String(), "60")            // [96]10 = [60]16
 }

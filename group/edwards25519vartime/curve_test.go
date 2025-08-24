@@ -65,7 +65,7 @@ func TestSetBytesBE(t *testing.T) {
 
 func TestFullOrder1174(t *testing.T) {
 	params1174 := Param1174()
-	test.GroupTest(t, new(ExtendedCurve).InitCurve(Param1174(), true))
+	test.GroupTest(t, new(ExtendedCurve).InitCurve(params1174, true))
 }
 
 func TestFullOrder25519(t *testing.T) {
