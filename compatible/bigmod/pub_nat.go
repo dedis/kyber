@@ -26,6 +26,18 @@ func (x *Nat) Assign(on Choice, y *Nat) *Nat {
 
 func (x *Nat) Set(y *Nat) *Nat { return x.set(y) }
 
+func (x *Nat) SetBytesBigBuffer(b []byte, m *Modulus) (*Nat, error) {
+	if m.BitLen() < len(b)*8 {
+		x.resetToBytes(b)
+		x.Mod(x, m)
+	} else {
+		_, err := x.SetBytes(b, m)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return x, nil
+}
 func NewModulusFromNat(n *Nat) (*Modulus, error) {
 	return newModulus(n)
 }

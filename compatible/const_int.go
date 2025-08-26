@@ -214,6 +214,14 @@ func (z *Int) SetBytes(buf []byte, mod *compatible_mod.Mod) *Int {
 	return z
 }
 
+func (z *Int) SetBytesBigBuffer(b []byte, m *compatible_mod.Mod) *Int {
+	nat, err := z.Int.SetBytesBigBuffer(b, &m.Modulus)
+	if err != nil {
+		panic(err)
+	}
+	return FromNat(nat)
+}
+
 func (z *Int) Mod(x *Int, y *compatible_mod.Mod) *Int {
 	z.Int.Mod(&x.Int, &y.Modulus)
 	return z

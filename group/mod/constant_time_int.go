@@ -238,7 +238,7 @@ func (i *Int) SetInt64(v int64) kyber.Scalar {
 // SetUint64 sets the Int to an arbitrary uint64 value.
 // The modulus must already be initialized.
 func (i *Int) SetUint64(v uint64) kyber.Scalar {
-	i.V.Mod(compatible.NewUint(v), i.M)
+	i.V = *compatible.NewInt(0).Mod(compatible.NewUint(v), i.M)
 	return i
 }
 
@@ -444,7 +444,7 @@ func (i *Int) SetBytes(a []byte) kyber.Scalar {
 	if i.BO == kyber.LittleEndian {
 		buff = reverse(nil, a)
 	}
-	i.V.SetBytes(buff, i.M)
+	i.V = *i.V.SetBytesBigBuffer(buff, i.M)
 	return i
 }
 
