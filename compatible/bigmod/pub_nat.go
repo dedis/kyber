@@ -29,7 +29,8 @@ func (x *Nat) Set(y *Nat) *Nat { return x.set(y) }
 func (x *Nat) SetBytesBigBuffer(b []byte, m *Modulus) (*Nat, error) {
 	if m.BitLen() < len(b)*8 {
 		x.resetToBytes(b)
-		x.Mod(x, m)
+		y := new(Nat).Set(x)
+		x.Mod(y, m)
 	} else {
 		_, err := x.SetBytes(b, m)
 		if err != nil {

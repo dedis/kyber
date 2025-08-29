@@ -284,9 +284,20 @@ func TestMultiplicationFullOrder(t *testing.T) {
 	var bigFullOrder = fullOrder.ToBigInt()
 	var bigCalculatedFullOrder = primeOrder.ToBigInt().Mul(primeOrder.ToBigInt(), cofactor.ToBigInt())
 	fmt.Println(bigFullOrder, bigCalculatedFullOrder)
+	assert.Equal(t, bigFullOrder, bigCalculatedFullOrder)
 }
 
 func TestNegativeInitialization(t *testing.T) {
 	a := NewInt64(-1, compatible_mod.NewInt(97)) // mod 97
 	assert.Equal(t, a.String(), "60")            // [96]10 = [60]16
+}
+
+func TestSetBytesBigBuf(t *testing.T) {
+	buf := make([]byte, 32)
+	buf[0] = 1
+	mod := compatible_mod.NewInt(17)
+	number := NewIntBytes(buf, mod, kyber.LittleEndian)
+
+	fmt.Println(number.String())
+
 }
