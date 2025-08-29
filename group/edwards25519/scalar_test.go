@@ -2,6 +2,7 @@ package edwards25519
 
 import (
 	"fmt"
+	"go.dedis.ch/kyber/v4/group/mod"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -112,6 +113,12 @@ func TestString(t *testing.T) {
 func TestScalar_Marshal(t *testing.T) {
 	s := &scalar{}
 	require.Equal(t, "ed.scala", fmt.Sprintf("%s", s.MarshalID()))
+}
+
+func TestSetInt(t *testing.T) {
+	am := mod.NewInt64(1, primeOrder.ToCompatibleMod())
+	s := new(scalar).setInt(am)
+	fmt.Println(s.String(), am)
 }
 
 func TestSetBytesLE(t *testing.T) {
