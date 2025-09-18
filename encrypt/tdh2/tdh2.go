@@ -1,16 +1,16 @@
-// Package implements TDH2, a threhshold encryption scheme
+// Package implements TDH2, a threshold encryption scheme
 // where decryption is secreted shared among n parties.
 // Decryption requires a threshold of t+1 parties to cooperate.
 // The scheme is based on ElGamal encryption and uses non-interactive
 // zero-knowledge proofs (NIZK) to ensure the correctness of encryption
-// See the original paper for more theoritical details:
+// See the original paper for more theoretical details:
 // https://www.shoup.net/papers/thresh1.pdf by Victor Shoup and Rosario Gennaro
 // This scheme is proven to be secure against chosen ciphertext attack
 // (CCA secure) under the decisional Diffie-Hellman (DDH) assumption
 //
-// For this implmenetation, this specification is followed,
+// For this implementation, this specification is followed,
 // https://github.com/coinbase/cb-mpc/blob/master/docs/spec/tdh2-spec.pdf
-// Similar to the specifcation, this implementation also provides an
+// Similar to the specification, this implementation also provides an
 // alternative to the original one time-pad encryption of the message.
 // If useAESGCM is set to true, AES-GCM (256-bit) is used instead of the one-time-pad.
 // We also support labels that can be used as associated data in the AEAD scheme.
