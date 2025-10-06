@@ -59,11 +59,11 @@ func TestThresholdDecryption(t *testing.T) {
 		partials[i], err = PartialDecrypt(suite, ct, shares[i].I, shares[i].V, label, public)
 		require.NoError(t, err, "partial decryption failed")
 
-		err := VerifyPartialDecryptionShare(suite, ct, partials[i], publicKeys[shares[i].I], public)
+		err := VerifyPartialDecryptionShare(suite, ct, partials[i], publicKeys[shares[i].I])
 		require.NoError(t, err, "partial decryption verification failed")
 
 		// wrong public key
-		err = VerifyPartialDecryptionShare(suite, ct, partials[i], public, public)
+		err = VerifyPartialDecryptionShare(suite, ct, partials[i], public)
 		require.Error(t, err, "partial decryption verification should failed")
 	}
 

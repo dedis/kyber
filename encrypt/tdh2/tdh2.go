@@ -266,7 +266,6 @@ func VerifyPartialDecryptionShare(
 	ct *CipherText,
 	partial *PartialDecryptionShare,
 	pki kyber.Point, // public key of node i
-	pk kyber.Point, // public key
 ) error {
 	// check if Xi is a valid curve point
 	if err := validatePoint(suite, partial.Xi); err != nil {
@@ -333,7 +332,7 @@ func CombinePartialDecryptionShares(
 		}
 		qi := publicKeys[idx]
 
-		if err := VerifyPartialDecryptionShare(suite, ct, partials[i], qi, pk); err != nil {
+		if err := VerifyPartialDecryptionShare(suite, ct, partials[i], qi); err != nil {
 			// skip the partial share
 			continue
 		}
@@ -437,7 +436,10 @@ func hash1(suite Suite, point kyber.Point, length int) ([]byte, error) {
 	// seed the new hasher
 	hasher.Write(hashSum)
 	hashed := make([]byte, length)
-	hasher.Read(hashed)
+	_, err := hasher.Read(hashed)
+	if err != nil {
+		return nil, errors.New("couldn't read from shake256 output")
+	}
 	return hashed, nil
 }
 
@@ -585,8 +587,9 @@ func validatePoint(suite Suite, p kyber.Point) error {
 	if err != nil {
 		return err
 	}
-	// then also do the null check
-	if !suite.Point().Null().Equal(p.Clone().Null()) {
+
+	// then also do the base check
+	if !suite.Point().Base().Equal(p.Clone().Base()) {
 		return errors.New("mismatch")
 	}
 	return nil
