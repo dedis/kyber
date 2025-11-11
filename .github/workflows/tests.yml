@@ -39,7 +39,7 @@ jobs:
       matrix:
         os: [windows-latest, ubuntu-latest, macos-latest]
         size: ['64b', '32b']
-        golang: ['1.25']
+        golang: ['1.25.4']
         exclude:
           - os: windows-latest
             size: '32b'
