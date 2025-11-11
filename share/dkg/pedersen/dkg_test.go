@@ -6,8 +6,8 @@ import (
 	"math/rand"
 	"testing"
 
-	clock "github.com/jonboulle/clockwork"
 	"github.com/stretchr/testify/require"
+
 	"go.dedis.ch/kyber/v4"
 	"go.dedis.ch/kyber/v4/group/edwards25519"
 	"go.dedis.ch/kyber/v4/pairing/bn256"
@@ -26,7 +26,6 @@ type TestNode struct {
 	proto   *Protocol
 	phaser  *TimePhaser
 	board   *TestBoard
-	clock   clock.FakeClock
 }
 
 func NewTestNode(s Suite, index int) *TestNode {
@@ -293,8 +292,8 @@ func TestDKGSkipIndex(t *testing.T) {
 	var newTns = make([]*TestNode, 0, newN)
 	// remove a random node from the previous group
 	offlineToRemove := uint32(rand.Intn(n))
-	for i, node := range tns {
-		if i == int(offlineToRemove) {
+	for _, node := range tns {
+		if node.Index == offlineToRemove {
 			continue
 		}
 		newTns = append(newTns, node)
@@ -458,6 +457,7 @@ func TestSelfEvictionShareHolder(t *testing.T) {
 	}
 	require.True(t, len(responses) > 0)
 
+	results = nil
 	for _, node := range newTns {
 		_, _, err := node.dkg.ProcessResponses(responses)
 		require.True(t, contains(node.dkg.evictedHolders, newIndexToEvict))
