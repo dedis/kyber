@@ -13,17 +13,14 @@ func ElGamalEncrypt(group kyber.Group, pubkey kyber.Point, message []byte) (
 
 	// Embed the message (or as much of it as will fit) into a curve point.
 	M := group.Point().Embed(message, random.New())
-	max := group.Point().EmbedLen()
-	if max > len(message) {
-		max = len(message)
-	}
-	remainder = message[max:]
+	maxLen := max(group.Point().EmbedLen(), len(message))
+	remainder = message[maxLen:]
 	// ElGamal-encrypt the point to produce ciphertext (K,C).
 	k := group.Scalar().Pick(random.New()) // ephemeral private key
 	K = group.Point().Mul(k, nil)          // ephemeral DH public key
 	S := group.Point().Mul(k, pubkey)      // ephemeral DH shared secret
 	C = S.Add(S, M)                        // message blinded with secret
-	return
+	return K, C, remainder
 }
 
 func ElGamalDecrypt(group kyber.Group, prikey kyber.Scalar, K, C kyber.Point) (
@@ -33,7 +30,7 @@ func ElGamalDecrypt(group kyber.Group, prikey kyber.Scalar, K, C kyber.Point) (
 	S := group.Point().Mul(prikey, K) // regenerate shared secret
 	M := group.Point().Sub(C, S)      // use to un-blind the message
 	message, err = M.Data()           // extract the embedded data
-	return
+	return message, err
 }
 
 /*
