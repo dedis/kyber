@@ -122,7 +122,7 @@ func (t *TestBoard) IncomingJustification() <-chan JustificationBundle {
 	return t.newJusts
 }
 
-func SetupProto(tns []*TestNode, dkgC *Config, period time.Duration, network *TestNetwork) {
+func SetupProto(tns []*TestNode, period time.Duration, network *TestNetwork) {
 	for _, n := range tns {
 		n.phaser = NewTimePhaserFunc(func(Phase) {
 			time.Sleep(period)
@@ -153,7 +153,7 @@ func TestProtoFull(t *testing.T) {
 			Auth:      schnorr.NewScheme(suite),
 		}
 		SetupNodes(tns, &dkgConf)
-		SetupProto(tns, &dkgConf, period, network)
+		SetupProto(tns, period, network)
 
 		var resCh = make(chan OptionResult, 1)
 		// start all nodes and wait until each end
@@ -209,7 +209,7 @@ func TestProtoResharing(t *testing.T) {
 			Auth:      schnorr.NewScheme(suite),
 		}
 		SetupNodes(tns, &dkgConf)
-		SetupProto(tns, &dkgConf, period, network)
+		SetupProto(tns, period, network)
 
 		var resCh = make(chan OptionResult, 1)
 		// start all nodes and wait until each end
@@ -276,7 +276,7 @@ func TestProtoResharing(t *testing.T) {
 		}
 
 		SetupReshareNodes(newTns, newConf, tns[0].res.Key.Commits)
-		SetupProto(newTns, newConf, period, network)
+		SetupProto(newTns, period, network)
 
 		resCh = make(chan OptionResult, 1)
 		// start all nodes and wait until each end
@@ -336,7 +336,7 @@ func TestProtoThreshold(t *testing.T) {
 			Auth:      schnorr.NewScheme(suite),
 		}
 		SetupNodes(tns, &dkgConf)
-		SetupProto(tns, &dkgConf, period, network)
+		SetupProto(tns, period, network)
 
 		var resCh = make(chan OptionResult, 1)
 		// start all nodes and wait until each end
@@ -391,7 +391,7 @@ func TestProtoFullFast(t *testing.T) {
 			Auth:      schnorr.NewScheme(suite),
 		}
 		SetupNodes(tns, &dkgConf)
-		SetupProto(tns, &dkgConf, period, network)
+		SetupProto(tns, period, network)
 
 		var resCh = make(chan OptionResult, 1)
 		// start all nodes and wait until each end
@@ -443,7 +443,7 @@ func TestProtoResharingAbsent(t *testing.T) {
 			Auth:      schnorr.NewScheme(suite),
 		}
 		SetupNodes(tns, &dkgConf)
-		SetupProto(tns, &dkgConf, period, network)
+		SetupProto(tns, period, network)
 
 		var resCh = make(chan OptionResult, 1)
 		// start all nodes and wait until each end
@@ -502,7 +502,7 @@ func TestProtoResharingAbsent(t *testing.T) {
 		}
 
 		SetupReshareNodes(newTns, newConf, tns[0].res.Key.Commits)
-		SetupProto(newTns, newConf, period, network)
+		SetupProto(newTns, period, network)
 		///
 		/// We set a node as registered but offline
 		///
@@ -568,7 +568,7 @@ func TestProtoThresholdFast(t *testing.T) {
 			Auth:      schnorr.NewScheme(suite),
 		}
 		SetupNodes(tns, &dkgConf)
-		SetupProto(tns, &dkgConf, period, network)
+		SetupProto(tns, period, network)
 		// set a node that will send a bad deal such that all deals are received
 		// "fast", then the normal rounds are happening
 		network.BoardFor(1).badDeal = true
@@ -677,7 +677,7 @@ func TestProtoSkip(t *testing.T) {
 			Auth:      schnorr.NewScheme(suite),
 		}
 		SetupNodes(tns, &dkgConf)
-		SetupProto(tns, &dkgConf, period, network)
+		SetupProto(tns, period, network)
 		for _, tn := range tns {
 			tn.proto.skipVerif = true
 		}
