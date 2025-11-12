@@ -81,23 +81,22 @@ func (s *StatusMatrix) Get(dealer, share uint32) Status {
 
 func (s *StatusMatrix) String() string {
 	// get dealer indexes
-	dealerIdx := make([]int, 0, len((*s)))
-	//todo what are these indexes? Should they be uint32?
+	dealerIdx := make([]uint32, 0, len((*s)))
 	for didx := range *s {
-		dealerIdx = append(dealerIdx, int(didx))
+		dealerIdx = append(dealerIdx, didx)
 	}
 	// get share holder indexes
-	sharesIdx := make([]int, 0, len((*s)[uint32(dealerIdx[0])]))
-	for sidx := range (*s)[uint32(dealerIdx[0])] {
-		sharesIdx = append(sharesIdx, int(sidx))
+	sharesIdx := make([]uint32, 0, len((*s)[dealerIdx[0]]))
+	for sidx := range (*s)[dealerIdx[0]] {
+		sharesIdx = append(sharesIdx, sidx)
 	}
-	sort.Ints(dealerIdx)
-	sort.Ints(sharesIdx)
+	sort.Slice(dealerIdx, func(i, j int) bool { return dealerIdx[i] < dealerIdx[j] })
+	sort.Slice(sharesIdx, func(i, j int) bool { return sharesIdx[i] < sharesIdx[j] })
 	var str = ""
 	for _, dealerIndex := range dealerIdx {
 		var statuses []string
 		for _, shareIndex := range sharesIdx {
-			status := (*s)[uint32(dealerIndex)][uint32(shareIndex)]
+			status := (*s)[dealerIndex][shareIndex]
 			var st string
 			if status == Success {
 				st = fmt.Sprintf(" %d: ok", shareIndex)
