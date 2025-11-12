@@ -26,7 +26,7 @@ type TestNode struct {
 	proto   *Protocol
 	phaser  *TimePhaser
 	board   *TestBoard
-	clock   clock.FakeClock
+	clock   *clock.FakeClock
 }
 
 func NewTestNode(s Suite, index int) *TestNode {
