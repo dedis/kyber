@@ -12,8 +12,8 @@ import (
 
 func TestSecretRecovery(test *testing.T) {
 	g := edwards25519.NewBlakeSHA256Ed25519()
-	var n uint32 = 6
-	var t uint32 = 5
+	n := uint32(6)
+	t := uint32(5)
 	poly := NewPriPoly(g, t, nil, g.RandomStream())
 	test.Log("polynom has degree ", len(poly.coeffs)-1)
 	shares := poly.Shares(n)
@@ -43,7 +43,7 @@ func TestSecretRecovery(test *testing.T) {
 // See TestPublicRecoveryOutIndex for testing with the commitment.
 func TestSecretRecoveryOutIndex(test *testing.T) {
 	g := edwards25519.NewBlakeSHA256Ed25519()
-	var n uint32 = 10
+	n := uint32(10)
 	t := n/2 + 1
 	poly := NewPriPoly(g, t, nil, g.RandomStream())
 	shares := poly.Shares(n)
@@ -64,7 +64,7 @@ func TestSecretRecoveryOutIndex(test *testing.T) {
 
 func TestSecretRecoveryDelete(test *testing.T) {
 	g := edwards25519.NewBlakeSHA256Ed25519()
-	var n uint32 = 10
+	n := uint32(10)
 	t := n/2 + 1
 	poly := NewPriPoly(g, t, nil, g.RandomStream())
 	shares := poly.Shares(n)
@@ -87,7 +87,7 @@ func TestSecretRecoveryDelete(test *testing.T) {
 
 func TestSecretRecoveryDeleteFail(test *testing.T) {
 	g := edwards25519.NewBlakeSHA256Ed25519()
-	var n uint32 = 10
+	n := uint32(10)
 	t := n/2 + 1
 
 	poly := NewPriPoly(g, t, nil, g.RandomStream())
@@ -108,7 +108,7 @@ func TestSecretRecoveryDeleteFail(test *testing.T) {
 
 func TestSecretPolyEqual(test *testing.T) {
 	g := edwards25519.NewBlakeSHA256Ed25519()
-	var n uint32 = 10
+	n := uint32(10)
 	t := n/2 + 1
 
 	p1 := NewPriPoly(g, t, nil, g.RandomStream())
@@ -128,7 +128,7 @@ func TestSecretPolyEqual(test *testing.T) {
 
 func TestPublicCheck(test *testing.T) {
 	g := edwards25519.NewBlakeSHA256Ed25519()
-	var n uint32 = 10
+	n := uint32(10)
 	t := n/2 + 1
 
 	priPoly := NewPriPoly(g, t, nil, g.RandomStream())
@@ -144,7 +144,7 @@ func TestPublicCheck(test *testing.T) {
 
 func TestBenchy(test *testing.T) {
 	g := edwards25519.NewBlakeSHA256Ed25519()
-	var n uint32 = 100
+	n := uint32(100)
 	t := n/2 + 1
 
 	priPoly := NewPriPoly(g, t, nil, g.RandomStream())
@@ -166,7 +166,7 @@ func TestBenchy(test *testing.T) {
 
 func TestPublicRecovery(test *testing.T) {
 	g := edwards25519.NewBlakeSHA256Ed25519()
-	var n uint32 = 10
+	n := uint32(10)
 	t := n/2 + 1
 
 	priPoly := NewPriPoly(g, t, nil, g.RandomStream())
@@ -192,7 +192,7 @@ func TestPublicRecovery(test *testing.T) {
 
 func TestPublicRecoveryOutIndex(test *testing.T) {
 	g := edwards25519.NewBlakeSHA256Ed25519()
-	var n uint32 = 10
+	n := uint32(10)
 	t := n/2 + 1
 
 	priPoly := NewPriPoly(g, t, nil, g.RandomStream())
@@ -222,7 +222,7 @@ func TestPublicRecoveryOutIndex(test *testing.T) {
 
 func TestPublicRecoveryDelete(test *testing.T) {
 	g := edwards25519.NewBlakeSHA256Ed25519()
-	var n uint32 = 10
+	n := uint32(10)
 	t := n/2 + 1
 
 	priPoly := NewPriPoly(g, t, nil, g.RandomStream())
@@ -247,7 +247,7 @@ func TestPublicRecoveryDelete(test *testing.T) {
 
 func TestPublicRecoveryDeleteFail(test *testing.T) {
 	g := edwards25519.NewBlakeSHA256Ed25519()
-	var n uint32 = 10
+	n := uint32(10)
 	t := n/2 + 1
 
 	priPoly := NewPriPoly(g, t, nil, g.RandomStream())
@@ -269,7 +269,7 @@ func TestPublicRecoveryDeleteFail(test *testing.T) {
 
 func TestPrivateAdd(test *testing.T) {
 	g := edwards25519.NewBlakeSHA256Ed25519()
-	var n uint32 = 10
+	n := uint32(10)
 	t := n/2 + 1
 
 	p := NewPriPoly(g, t, nil, g.RandomStream())
@@ -291,7 +291,7 @@ func TestPrivateAdd(test *testing.T) {
 
 func TestPublicAdd(test *testing.T) {
 	g := edwards25519.NewBlakeSHA256Ed25519()
-	var n uint32 = 10
+	n := uint32(10)
 	t := n/2 + 1
 
 	G := g.Point().Pick(g.RandomStream())
@@ -325,7 +325,7 @@ func TestPublicAdd(test *testing.T) {
 
 func TestPublicPolyEqual(test *testing.T) {
 	g := edwards25519.NewBlakeSHA256Ed25519()
-	var n uint32 = 10
+	n := uint32(10)
 	t := n/2 + 1
 
 	G := g.Point().Pick(g.RandomStream())
@@ -351,7 +351,7 @@ func TestPublicPolyEqual(test *testing.T) {
 
 func TestPriPolyMul(test *testing.T) {
 	suite := edwards25519.NewBlakeSHA256Ed25519()
-	var n uint32 = 10
+	n := uint32(10)
 	t := n/2 + 1
 	a := NewPriPoly(suite, t, nil, suite.RandomStream())
 	b := NewPriPoly(suite, t, nil, suite.RandomStream())
@@ -378,7 +378,7 @@ func TestPriPolyMul(test *testing.T) {
 
 func TestRecoverPriPoly(test *testing.T) {
 	suite := edwards25519.NewBlakeSHA256Ed25519()
-	var n uint32 = 10
+	n := uint32(10)
 	t := n/2 + 1
 	a := NewPriPoly(suite, t, nil, suite.RandomStream())
 
@@ -402,7 +402,7 @@ func TestRecoverPriPoly(test *testing.T) {
 
 func TestPriPolyCoefficients(test *testing.T) {
 	suite := edwards25519.NewBlakeSHA256Ed25519()
-	var n uint32 = 10
+	n := uint32(10)
 	t := n/2 + 1
 	a := NewPriPoly(suite, t, nil, suite.RandomStream())
 
@@ -416,7 +416,7 @@ func TestPriPolyCoefficients(test *testing.T) {
 
 func TestRefreshDKG(test *testing.T) {
 	g := edwards25519.NewBlakeSHA256Ed25519()
-	var n uint32 = 10
+	n := uint32(10)
 	t := n/2 + 1
 
 	// Run an n-fold Pedersen VSS (= DKG)

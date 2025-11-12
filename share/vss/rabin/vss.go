@@ -656,7 +656,7 @@ func (a *aggregator) addResponse(r *Response) error {
 // EnoughApprovals returns true if enough verifiers have sent their approval for
 // the deal they received.
 func (a *aggregator) EnoughApprovals() bool {
-	var app uint32 = 0
+	app := uint32(0)
 	for _, r := range a.responses {
 		if r.Approved {
 			app++

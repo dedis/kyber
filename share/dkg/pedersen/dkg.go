@@ -826,7 +826,7 @@ func (d *DistKeyGenerator) ProcessJustifications(bundles []*JustificationBundle)
 	}
 
 	// check if there is enough dealer entries marked as all success
-	var allGood uint32
+	allGood := uint32(0)
 	for _, n := range d.c.OldNodes {
 		if contains(d.evicted, n.Index) {
 			continue
