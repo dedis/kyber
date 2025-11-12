@@ -90,7 +90,7 @@ func TestVSSWhole(t *testing.T) {
 //}
 
 func TestVSSVerifierNew(t *testing.T) {
-	randIdx := rand.Int() % len(verifiersPub)
+	randIdx := uint32(rand.Int() % len(verifiersPub))
 	v, err := NewVerifier(suite, verifiersSec[randIdx], dealerPub, verifiersPub)
 	assert.NoError(t, err)
 	assert.Equal(t, randIdx, v.index)
@@ -230,7 +230,7 @@ func TestVSSVerifierReceiveDeal(t *testing.T) {
 	require.NotNil(t, resp)
 	assert.Equal(t, true, resp.Approved)
 	assert.Nil(t, err)
-	assert.Equal(t, v.index, int(resp.Index))
+	assert.Equal(t, v.index, resp.Index)
 	assert.Equal(t, dealer.sid, resp.SessionID)
 	assert.Nil(t, schnorr.Verify(suite, v.pub, resp.Hash(suite), resp.Signature))
 	assert.Equal(t, v.responses[v.index], resp)

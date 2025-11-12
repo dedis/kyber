@@ -45,7 +45,7 @@ func TestComputePolyCommitments(test *testing.T) {
 	_, com := pubPoly.Info()
 	actualComm := computeCommitments(suite, int(n), com)
 
-	require.Equal(test, n, len(expectedComm))
+	require.Equal(test, n, uint32(len(expectedComm)))
 	require.Equal(test, len(expectedComm), len(actualComm))
 
 	for i := uint32(0); i < n; i++ {

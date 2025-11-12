@@ -106,7 +106,7 @@ func IsDealerIncluded(bundles []*ResponseBundle, dealer uint32) bool {
 func testResults(t *testing.T, suite Suite, thr, n uint32, results []*Result) {
 	// test if all results are consistent
 	for i, res := range results {
-		require.Equal(t, thr, len(res.Key.Commitments()))
+		require.Equal(t, thr, uint32(len(res.Key.Commitments())))
 		for j, res2 := range results {
 			if i == j {
 				continue
@@ -343,7 +343,7 @@ func TestDKGSkipIndex(t *testing.T) {
 		responses = append(responses, resp)
 	}
 	// all nodes in the new group should have reported an error
-	require.Equal(t, newN, len(responses))
+	require.Equal(t, newN, uint32(len(responses)))
 
 	results = nil
 	for _, node := range newTns {

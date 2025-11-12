@@ -582,8 +582,8 @@ func TestDistKeyShare(t *testing.T) {
 		require.Nil(t, sc)
 		require.Nil(t, err)
 
-		require.Equal(t, nbParticipants, len(dkg.QUAL()))
-		require.Equal(t, nbParticipants, len(dkg.commitments))
+		require.Equal(t, nbParticipants, uint32(len(dkg.QUAL())))
+		require.Equal(t, nbParticipants, uint32(len(dkg.commitments)))
 	}
 
 	// missing one commitment
