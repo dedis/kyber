@@ -3,7 +3,7 @@ package bn254
 import (
 	"errors"
 	"fmt"
-	"math/big"
+	"go.dedis.ch/kyber/v4/compatible"
 )
 
 type gfP [4]uint64
@@ -21,7 +21,7 @@ func newGFp(x int64) (out *gfP) {
 }
 
 func newGFpFromBase10(x string) *gfP {
-	bx, _ := new(big.Int).SetString(x, 10)
+	bx, _ := new(compatible.Int).SetString(x, 10)
 	bx = bx.Mod(bx, p)
 	out := &gfP{}
 	_ = out.Unmarshal(zeroPadBytes(bx.Bytes(), 32))

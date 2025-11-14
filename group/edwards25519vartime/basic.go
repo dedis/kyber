@@ -4,12 +4,11 @@ package edwards25519vartime
 
 import (
 	"crypto/cipher"
-	"io"
-	"math/big"
-
 	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v4/compatible"
 	"go.dedis.ch/kyber/v4/group/internal/marshalling"
 	"go.dedis.ch/kyber/v4/group/mod"
+	"io"
 )
 
 type basicPoint struct {
@@ -17,7 +16,7 @@ type basicPoint struct {
 	c    *BasicCurve
 }
 
-func (P *basicPoint) initXY(x, y *big.Int, c kyber.Group) {
+func (P *basicPoint) initXY(x, y *compatible.Int, c kyber.Group) {
 	P.c = c.(*BasicCurve)
 	P.x.Init(x, &P.c.P)
 	P.y.Init(y, &P.c.P)

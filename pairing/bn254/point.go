@@ -5,9 +5,9 @@ import (
 	"crypto/subtle"
 	"errors"
 	"io"
-	"math/big"
 
 	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v4/compatible"
 	"go.dedis.ch/kyber/v4/group/mod"
 	"golang.org/x/crypto/sha3"
 )
@@ -218,7 +218,7 @@ func hashToPoint(domain, m []byte) kyber.Point {
 func hashToField(domain, m []byte) (*gfP, *gfP) {
 	const u = 48
 	_msg := expandMsgXmdKeccak256(domain, m, 2*u)
-	x, y := new(big.Int), new(big.Int)
+	x, y := new(compatible.Int), new(compatible.Int)
 	x.SetBytes(_msg[0:48]).Mod(x, p)
 	y.SetBytes(_msg[48:96]).Mod(y, p)
 	gx, gy := &gfP{}, &gfP{}

@@ -2,6 +2,7 @@ package circl
 
 import (
 	"crypto/cipher"
+	"go.dedis.ch/kyber/v4/compatible"
 	"io"
 	"math/big"
 
@@ -121,6 +122,6 @@ func (s *Scalar) ByteOrder() kyber.ByteOrder {
 	return kyber.BigEndian
 }
 
-func (s *Scalar) GroupOrder() *big.Int {
+func (s *Scalar) GroupOrder() *compatible.Int {
 	return big.NewInt(0).SetBytes(bls12381.Order())
 }

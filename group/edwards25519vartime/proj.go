@@ -2,8 +2,8 @@ package edwards25519vartime
 
 import (
 	"crypto/cipher"
+	"go.dedis.ch/kyber/v4/compatible"
 	"io"
-	"math/big"
 
 	"go.dedis.ch/kyber/v4"
 	"go.dedis.ch/kyber/v4/group/internal/marshalling"
@@ -15,7 +15,7 @@ type projPoint struct {
 	c       *ProjectiveCurve
 }
 
-func (P *projPoint) initXY(x, y *big.Int, c kyber.Group) {
+func (P *projPoint) initXY(x, y *compatible.Int, c kyber.Group) {
 	P.c = c.(*ProjectiveCurve) //nolint:errcheck // Design pattern to emulate generics
 	P.X.Init(x, &P.c.P)
 	P.Y.Init(y, &P.c.P)

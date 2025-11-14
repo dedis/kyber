@@ -2,8 +2,8 @@ package gnark
 
 import (
 	"crypto/cipher"
+	"go.dedis.ch/kyber/v4/compatible"
 	"io"
-	"math/big"
 
 	bls12381 "github.com/consensys/gnark-crypto/ecc/bls12-381"
 	"go.dedis.ch/kyber/v4"
@@ -101,7 +101,7 @@ func (p *GTElt) Neg(a kyber.Point) kyber.Point {
 
 func (p *GTElt) Mul(s kyber.Scalar, q kyber.Point) kyber.Point {
 	qq, ss := q.(*GTElt), s.(*Scalar)
-	var scalar big.Int
+	var scalar compatible.Int
 	ss.inner.BigInt(&scalar)
 	p.inner.Exp(qq.inner, &scalar)
 	return p

@@ -1,6 +1,7 @@
 package edwards25519
 
 import (
+	"go.dedis.ch/kyber/v4/compatible"
 	"math/big"
 	"testing"
 
@@ -68,7 +69,7 @@ func Test_feBnConversionRandom(t *testing.T) {
 	b2 := big.NewInt(0).SetBytes(p2)
 	b2 = b1.Mod(b2, prime)
 
-	// Convert big.Int to fieldElement
+	// Convert compatible.Int to fieldElement
 	feFromBn(&fe0, b0)
 	feFromBn(&fe1, b1)
 	feFromBn(&fe2, b2)
@@ -76,7 +77,7 @@ func Test_feBnConversionRandom(t *testing.T) {
 	// If we convert correctly, we should get the same result:
 	// (fe0 + fe1)*fe2 == (b0 + b1) * b2
 	var feRes fieldElement
-	var bExp *big.Int
+	var bExp *compatible.Int
 
 	feAdd(&feRes, &fe0, &fe1)
 	feMul(&feRes, &feRes, &fe2)

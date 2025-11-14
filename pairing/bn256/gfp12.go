@@ -5,7 +5,7 @@ package bn256
 // http://eprint.iacr.org/2006/471.pdf.
 
 import (
-	"math/big"
+	"go.dedis.ch/kyber/v4/compatible"
 )
 
 // gfP12 implements the field of size p¹² as a quadratic extension of gfP6
@@ -172,7 +172,7 @@ func (e *gfP12) MulScalar(b *gfP6) *gfP12 {
 	return e
 }
 
-func (e *gfP12) Exp(a *gfP12, power *big.Int) *gfP12 {
+func (e *gfP12) Exp(a *gfP12, power *compatible.Int) *gfP12 {
 	sum := (&gfP12{}).SetOne()
 	t := &gfP12{}
 

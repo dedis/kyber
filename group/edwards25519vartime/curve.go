@@ -8,6 +8,7 @@ import (
 	"math/big"
 
 	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v4/compatible"
 	"go.dedis.ch/kyber/v4/group/mod"
 	"go.dedis.ch/kyber/v4/util/random"
 )
@@ -19,7 +20,7 @@ var one = big.NewInt(1)
 type point interface {
 	kyber.Point
 
-	initXY(x, y *big.Int, curve kyber.Group)
+	initXY(x, y *compatible.Int, curve kyber.Group)
 
 	getXY() (x, y *mod.Int)
 }
@@ -82,7 +83,7 @@ func (c *curve) NewKey(stream cipher.Stream) kyber.Scalar {
 }
 
 func (c *curve) initBasePoint(self kyber.Group, p *Param, fullGroup bool, Base point) {
-	var bx, by *big.Int
+	var bx, by *compatible.Int
 	if fullGroup {
 		bx, by = &p.FBX, &p.FBY
 		Base.initXY(&p.FBX, &p.FBY, self)

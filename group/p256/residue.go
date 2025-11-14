@@ -5,6 +5,7 @@ import (
 	"crypto/dsa"
 	"errors"
 	"fmt"
+	"go.dedis.ch/kyber/v4/compatible"
 	"io"
 	"math/big"
 
@@ -18,7 +19,7 @@ var one = big.NewInt(1)
 var two = big.NewInt(2)
 
 type residuePoint struct {
-	big.Int
+	compatible.Int
 	g *ResidueGroup
 }
 
@@ -26,7 +27,7 @@ type residuePoint struct {
 const numMRTests = 64
 
 // Probabilistically test whether a big integer is prime.
-func isPrime(i *big.Int) bool {
+func isPrime(i *compatible.Int) bool {
 	return i.ProbablyPrime(numMRTests)
 }
 
@@ -58,7 +59,7 @@ func (P *residuePoint) Clone() kyber.Point {
 
 func (P *residuePoint) Valid() bool {
 	return P.Int.Sign() > 0 && P.Int.Cmp(P.g.P) < 0 &&
-		new(big.Int).Exp(&P.Int, P.g.Q, P.g.P).Cmp(one) == 0
+		new(compatible.Int).Exp(&P.Int, P.g.Q, P.g.P).Cmp(one) == 0
 }
 
 func (P *residuePoint) EmbedLen() int {
@@ -116,7 +117,7 @@ func (P *residuePoint) Add(A, B kyber.Point) kyber.Point {
 }
 
 func (P *residuePoint) Sub(A, B kyber.Point) kyber.Point {
-	binv := new(big.Int).ModInverse(&B.(*residuePoint).Int, P.g.P)
+	binv := new(compatible.Int).ModInverse(&B.(*residuePoint).Int, P.g.P)
 	P.Int.Mul(&A.(*residuePoint).Int, binv)
 	P.Int.Mod(&P.Int, P.g.P)
 	return P
@@ -132,7 +133,7 @@ func (P *residuePoint) Mul(s kyber.Scalar, B kyber.Point) kyber.Point {
 		return P.Base().Mul(s, P)
 	}
 	// to protect against golang/go#22830
-	var tmp big.Int
+	var tmp compatible.Int
 	tmp.Exp(&B.(*residuePoint).Int, &s.(*mod.Int).V, P.g.P)
 	P.Int = tmp
 	return P
@@ -193,7 +194,7 @@ ONLY on quadratic residue groups in which R=2.
 */
 type ResidueGroup struct {
 	dsa.Parameters
-	R *big.Int
+	R *compatible.Int
 }
 
 func (g *ResidueGroup) String() string {
@@ -223,7 +224,7 @@ func (g *ResidueGroup) Point() kyber.Point {
 }
 
 // Order returns the order of this Residue group, namely the prime Q.
-func (g *ResidueGroup) Order() *big.Int {
+func (g *ResidueGroup) Order() *compatible.Int {
 	return g.Q
 }
 
@@ -238,7 +239,7 @@ func (g *ResidueGroup) Valid() bool {
 	}
 
 	// Validate the equation P = QR+1
-	n := new(big.Int)
+	n := new(compatible.Int)
 	n.Mul(g.Q, g.R)
 	n.Add(n, one)
 	if n.Cmp(g.P) != 0 {
@@ -254,7 +255,7 @@ func (g *ResidueGroup) Valid() bool {
 }
 
 // SetParams explicitly initializes a ResidueGroup with given parameters.
-func (g *ResidueGroup) SetParams(p, q, r, g1 *big.Int) {
+func (g *ResidueGroup) SetParams(p, q, r, g1 *compatible.Int) {
 	g.P = p
 	g.Q = q
 	g.R = r
@@ -279,13 +280,13 @@ func (g *ResidueGroup) QuadraticResidueGroup(bitlen uint, rand cipher.Stream) {
 		// First pick a prime Q
 		b := random.Bits(bitlen-1, true, rand)
 		b[len(b)-1] |= 1 // must be odd
-		g.Q = new(big.Int).SetBytes(b)
+		g.Q = new(compatible.Int).SetBytes(b)
 		if !isPrime(g.Q) {
 			continue
 		}
 
 		// TODO:Does the corresponding P come out prime too?
-		g.P = new(big.Int)
+		g.P = new(compatible.Int)
 		g.P.Mul(g.Q, two)
 		g.P.Add(g.P, one)
 		if uint(g.P.BitLen()) == bitlen && isPrime(g.P) {
@@ -294,8 +295,8 @@ func (g *ResidueGroup) QuadraticResidueGroup(bitlen uint, rand cipher.Stream) {
 	}
 
 	// pick standard generator G
-	h := new(big.Int).Set(two)
-	g.G = new(big.Int)
+	h := new(compatible.Int).Set(two)
+	g.G = new(compatible.Int)
 	for {
 		g.G.Exp(h, two, g.P)
 		if g.G.Cmp(one) != 0 {

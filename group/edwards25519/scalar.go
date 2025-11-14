@@ -8,6 +8,7 @@ import (
 	"crypto/subtle"
 	"encoding/hex"
 	"errors"
+	"go.dedis.ch/kyber/v4/compatible"
 	"io"
 	"math/big"
 
@@ -149,7 +150,7 @@ func (s *scalar) ByteOrder() kyber.ByteOrder {
 }
 
 // GroupOrder returns the order of the underlying group
-func (s *scalar) GroupOrder() *big.Int {
+func (s *scalar) GroupOrder() *compatible.Int {
 	return big.NewInt(0).SetBytes(primeOrder.Bytes())
 }
 
@@ -198,7 +199,7 @@ func (s *scalar) UnmarshalFrom(r io.Reader) (int, error) {
 	return marshalling.ScalarUnmarshalFrom(s, r)
 }
 
-func newScalarInt(i *big.Int) *scalar {
+func newScalarInt(i *compatible.Int) *scalar {
 	s := scalar{}
 	s.setInt(mod.NewInt(i, fullOrder))
 	return &s
