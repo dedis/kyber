@@ -43,7 +43,7 @@ func TestSecretRecovery(test *testing.T) {
 // See TestPublicRecoveryOutIndex for testing with the commitment.
 func TestSecretRecoveryOutIndex(test *testing.T) {
 	g := edwards25519.NewBlakeSHA256Ed25519()
-	var n int64 = 10
+	n := uint32(10)
 	t := n/2 + 1
 	poly := NewPriPoly(g, t, nil, g.RandomStream())
 	shares := poly.Shares(n)
