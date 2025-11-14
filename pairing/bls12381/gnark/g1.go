@@ -3,8 +3,8 @@ package gnark
 import (
 	"crypto/cipher"
 	"fmt"
+	"go.dedis.ch/kyber/v4/compatible"
 	"io"
-	"math/big"
 
 	bls12381 "github.com/consensys/gnark-crypto/ecc/bls12-381"
 	"go.dedis.ch/kyber/v4"
@@ -118,7 +118,7 @@ func (p *G1Elt) Mul(s kyber.Scalar, q kyber.Point) kyber.Point {
 		q = new(G1Elt).Base()
 	}
 	ss, qq := s.(*Scalar), q.(*G1Elt)
-	var scalar big.Int
+	var scalar compatible.Int
 	ss.inner.BigInt(&scalar)
 	p.inner.ScalarMultiplication(&qq.inner, &scalar)
 	return p

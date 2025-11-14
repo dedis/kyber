@@ -3,6 +3,7 @@ package mod
 import (
 	"bytes"
 	"encoding/hex"
+	"go.dedis.ch/kyber/v4/compatible"
 	"math/big"
 	"testing"
 
@@ -57,7 +58,7 @@ func TestIntEndianness(t *testing.T) {
 }
 func TestIntEndianBytes(t *testing.T) {
 	modulo, err := hex.DecodeString("1000")
-	moduloI := new(big.Int).SetBytes(modulo)
+	moduloI := new(compatible.Int).SetBytes(modulo)
 	assert.Nil(t, err)
 	v, err := hex.DecodeString("10")
 	assert.Nil(t, err)
@@ -80,7 +81,7 @@ func TestInits(t *testing.T) {
 }
 
 func TestInit128bits(t *testing.T) {
-	m := new(big.Int).Lsh(big.NewInt(1), 128)
+	m := new(compatible.Int).Lsh(big.NewInt(1), 128)
 	m = m.Sub(m, big.NewInt(1))
 
 	i1 := NewInt(big.NewInt(1), m)
@@ -89,7 +90,7 @@ func TestInit128bits(t *testing.T) {
 }
 
 func TestIntClone(t *testing.T) {
-	moduloI := new(big.Int).SetBytes([]byte{0x10, 0})
+	moduloI := new(compatible.Int).SetBytes([]byte{0x10, 0})
 	base := new(Int).InitBytes([]byte{0x10}, moduloI, kyber.BigEndian)
 
 	clone := base.Clone()

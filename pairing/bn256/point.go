@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"crypto/subtle"
 	"errors"
+	"go.dedis.ch/kyber/v4/compatible"
 	"io"
 	"math/big"
 
@@ -85,7 +86,7 @@ func (p *pointG1) Embed(data []byte, rand cipher.Stream) kyber.Point {
 			b[0] = byte(dl)       // Encode length in low 8 bits
 			copy(b[1:1+dl], data) // Copy in data to embed
 		}
-		x := new(big.Int).SetBytes(b[:])
+		x := new(compatible.Int).SetBytes(b[:])
 
 		y := deriveY(x)
 		if y != nil {
@@ -265,9 +266,9 @@ func (p *pointG1) Hash(m []byte) kyber.Point {
 
 // hashes a byte slice into a curve point represented by two big.Int's
 // ideally we want to do this using gfP, but gfP doesn't have a ModSqrt function
-func hashToPoint(m []byte) (*big.Int, *big.Int) {
+func hashToPoint(m []byte) (*compatible.Int, *compatible.Int) {
 	h := sha256.Sum256(m)
-	x := new(big.Int).SetBytes(h[:])
+	x := new(compatible.Int).SetBytes(h[:])
 	x.Mod(x, p)
 
 	for {
@@ -280,14 +281,14 @@ func hashToPoint(m []byte) (*big.Int, *big.Int) {
 	}
 }
 
-func deriveY(x *big.Int) *big.Int {
+func deriveY(x *compatible.Int) *compatible.Int {
 	intCurveB := curveB.BigInt()
-	xxx := new(big.Int).Mul(x, x)
+	xxx := new(compatible.Int).Mul(x, x)
 	xxx.Mul(xxx, x)
 	xxx.Mod(xxx, p)
 
-	t := new(big.Int).Add(xxx, intCurveB)
-	y := new(big.Int).ModSqrt(t, p)
+	t := new(compatible.Int).Add(xxx, intCurveB)
+	y := new(compatible.Int).ModSqrt(t, p)
 	return y
 }
 

@@ -1,11 +1,11 @@
 package bn256
 
 import (
-	"math/big"
+	"go.dedis.ch/kyber/v4/compatible"
 )
 
-func bigFromBase10(s string) *big.Int {
-	n, _ := new(big.Int).SetString(s, 10)
+func bigFromBase10(s string) *compatible.Int {
+	n, _ := new(compatible.Int).SetString(s, 10)
 	return n
 }
 

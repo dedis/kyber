@@ -113,7 +113,7 @@ func TestVSSWhole(t *testing.T) {
 	require.Equal(t, secret.String(), priCoeffs[0].String())
 }
 
-func TestVSSDealerNew(t *testing.T) {
+  func TestVSSDealerNew(t *testing.T) {
 	goodT := MinimumT(nbVerifiers)
 	dealer, err := NewDealer(suite, dealerSec, secret, verifiersPub, goodT)
 	require.NoError(t, err)

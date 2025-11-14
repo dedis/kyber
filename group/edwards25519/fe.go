@@ -5,7 +5,7 @@ package edwards25519
 
 import (
 	"fmt"
-	"math/big"
+	"go.dedis.ch/kyber/v4/compatible"
 )
 
 // This code is a port of the public domain, "ref10" implementation of ed25519
@@ -247,10 +247,10 @@ func feToBytes(s *[32]byte, h *fieldElement) {
 	s[31] = byte(h[9] >> 18)
 }
 
-// feToBn converts a fieldElement to a big.Int
+// feToBn converts a fieldElement to a compatible.Int
 // Limbs are individually stored in big endian but the array is in little endian, e.g:
-// fe[0] corresponds to the smallest exponent, the array needs to be reversed for proper conversion to big.Int.
-func feToBn(dst *big.Int, src *fieldElement) {
+// fe[0] corresponds to the smallest exponent, the array needs to be reversed for proper conversion to compatible.Int.
+func feToBn(dst *compatible.Int, src *fieldElement) {
 	var b [32]byte
 	feToBytes(&b, src)
 
@@ -263,10 +263,10 @@ func feToBn(dst *big.Int, src *fieldElement) {
 	dst.SetBytes(b[:])
 }
 
-// feFromBn converts a big.Int to a fieldElement
+// feFromBn converts a compatible.Int to a fieldElement
 // Limbs are individually stored in big endian but the array is in little endian, e.g:
-// fe[0] corresponds to the smallest exponent, big.Int bytes need to be reversed for proper conversion.
-func feFromBn(dst *fieldElement, src *big.Int) {
+// fe[0] corresponds to the smallest exponent, compatible.Int bytes need to be reversed for proper conversion.
+func feFromBn(dst *fieldElement, src *compatible.Int) {
 	bn := src.Mod(src, prime)
 	b := make([]byte, 32)
 	bn.FillBytes(b)
