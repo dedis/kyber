@@ -13,6 +13,7 @@
 package edwards25519vartime
 
 import (
+	"go.dedis.ch/kyber/v4/compatible"
 	"math/big"
 
 	"go.dedis.ch/kyber/v4/group/mod"
@@ -22,17 +23,17 @@ import (
 type Param struct {
 	Name string // Name of curve
 
-	P big.Int // Prime defining the underlying field
-	Q big.Int // Order of the prime-order base point
-	R int     // Cofactor: Q*R is the total size of the curve
+	P compatible.Int // Prime defining the underlying field
+	Q compatible.Int // Order of the prime-order base point
+	R int            // Cofactor: Q*R is the total size of the curve
 
-	A, D big.Int // Edwards curve equation parameters
+	A, D compatible.Int // Edwards curve equation parameters
 
-	FBX, FBY big.Int // Standard base point for full group
-	PBX, PBY big.Int // Standard base point for prime-order subgroup
+	FBX, FBY compatible.Int // Standard base point for full group
+	PBX, PBY compatible.Int // Standard base point for prime-order subgroup
 
-	Elligator1s big.Int // Optional s parameter for Elligator 1
-	Elligator2u big.Int // Optional u parameter for Elligator 2
+	Elligator1s compatible.Int // Optional s parameter for Elligator 1
+	Elligator2u compatible.Int // Optional u parameter for Elligator 2
 }
 
 // Return the name of this curve.
@@ -73,7 +74,7 @@ func Param1174() *Param {
 // http://ed25519.cr.yp.to/ed25519-20110926.pdf
 func ParamEd25519() *Param {
 	var p Param
-	var qs big.Int
+	var qs compatible.Int
 	p.Name = "edwards25519vartime"
 	p.P.SetBit(zero, 255, 1).Sub(&p.P, big.NewInt(19))
 	qs.SetString("27742317777372353535851937790883648493", 10)
@@ -102,7 +103,7 @@ func ParamEd25519() *Param {
 // (this I-D is now expired)
 func ParamE382() *Param {
 	var p Param
-	var qs big.Int
+	var qs compatible.Int
 	p.Name = "E-382"
 	p.P.SetBit(zero, 382, 1).Sub(&p.P, big.NewInt(105)) // p = 2^382-105
 	qs.SetString("1030303207694556153926491950732314247062623204330168346855", 10)
@@ -122,7 +123,7 @@ func ParamE382() *Param {
 // http://eprint.iacr.org/2014/526.pdf
 func Param41417() *Param {
 	var p Param
-	var qs big.Int
+	var qs compatible.Int
 	p.Name = "Curve41417"
 	p.P.SetBit(zero, 414, 1).Sub(&p.P, big.NewInt(17))
 	qs.SetString("33364140863755142520810177694098385178984727200411208589594759", 10)
@@ -146,7 +147,7 @@ func Param41417() *Param {
 // http://tools.ietf.org/html/draft-ladd-safecurves-02
 func ParamE521() *Param {
 	var p Param
-	var qs big.Int
+	var qs compatible.Int
 	p.Name = "E-521"
 	p.P.SetBit(zero, 521, 1).Sub(&p.P, one)
 	qs.SetString("337554763258501705789107630418782636071904961214051226618635150085779108655765", 10)

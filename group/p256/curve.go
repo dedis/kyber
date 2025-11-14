@@ -4,6 +4,7 @@ import (
 	"crypto/cipher"
 	"crypto/elliptic"
 	"errors"
+	"go.dedis.ch/kyber/v4/compatible"
 	"io"
 	"math/big"
 
@@ -14,7 +15,7 @@ import (
 )
 
 type curvePoint struct {
-	x, y *big.Int
+	x, y *compatible.Int
 	c    *curve
 }
 
@@ -37,8 +38,8 @@ func (P *curvePoint) Equal(P2 kyber.Point) bool {
 }
 
 func (P *curvePoint) Null() kyber.Point {
-	P.x = new(big.Int).SetInt64(0)
-	P.y = new(big.Int).SetInt64(0)
+	P.x = new(compatible.Int).SetInt64(0)
+	P.y = new(compatible.Int).SetInt64(0)
 	return P
 }
 
@@ -57,11 +58,11 @@ func (P *curvePoint) Valid() bool {
 
 // Try to generate a point on this curve from a chosen x-coordinate,
 // with a random sign.
-func (P *curvePoint) genPoint(x *big.Int, rand cipher.Stream) bool {
+func (P *curvePoint) genPoint(x *compatible.Int, rand cipher.Stream) bool {
 	// Compute the corresponding Y coordinate, if any
-	y2 := new(big.Int).Mul(x, x)
+	y2 := new(compatible.Int).Mul(x, x)
 	y2.Mul(y2, x)
-	threeX := new(big.Int).Lsh(x, 1)
+	threeX := new(compatible.Int).Lsh(x, 1)
 	threeX.Add(threeX, x)
 	y2.Sub(y2, threeX)
 	y2.Add(y2, P.c.p.B)
@@ -76,7 +77,7 @@ func (P *curvePoint) genPoint(x *big.Int, rand cipher.Stream) bool {
 	}
 
 	// Check that it's a valid point
-	y2t := new(big.Int).Mul(y, y)
+	y2t := new(compatible.Int).Mul(y, y)
 	y2t.Mod(y2t, P.c.p.P)
 	if y2t.Cmp(y2) != 0 {
 		return false // Doesn't yield a valid point!
@@ -113,7 +114,7 @@ func (P *curvePoint) Embed(data []byte, rand cipher.Stream) kyber.Point {
 			b[l-1] = byte(dl)         // Encode length in low 8 bits
 			copy(b[l-dl-1:l-1], data) // Copy in data to embed
 		}
-		if P.genPoint(new(big.Int).SetBytes(b), rand) {
+		if P.genPoint(new(compatible.Int).SetBytes(b), rand) {
 			return P
 		}
 	}
@@ -206,7 +207,7 @@ func (P *curvePoint) UnmarshalFrom(r io.Reader) (int, error) {
 
 // interface for curve-specifc mathematical functions
 type curveOps interface {
-	sqrt(y *big.Int) *big.Int
+	sqrt(y *compatible.Int) *compatible.Int
 }
 
 // Curve is an implementation of the kyber.Group interface
@@ -258,6 +259,6 @@ func (P *curvePoint) Clone() kyber.Point {
 }
 
 // Return the order of this curve: the prime N in the curve parameters.
-func (c *curve) Order() *big.Int {
+func (c *curve) Order() *compatible.Int {
 	return c.p.N
 }

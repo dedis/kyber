@@ -4,8 +4,8 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"fmt"
+	"go.dedis.ch/kyber/v4/compatible"
 	"golang.org/x/crypto/hkdf"
-	"math/big"
 )
 
 type gfP [4]uint64
@@ -22,7 +22,7 @@ func newGFp(x int64) (out *gfP) {
 	return out
 }
 
-func newGFpFromBigInt(bigInt *big.Int) *gfP {
+func newGFpFromBigInt(bigInt *compatible.Int) *gfP {
 	leftPad32 := func(in []byte) []byte {
 		if len(in) > 32 {
 			panic("input cannot be more than 32 bytes")
@@ -46,7 +46,7 @@ func hashToBase(msg, dst []byte) *gfP {
 	if _, err := r.Read(t[:]); err != nil {
 		panic(err)
 	}
-	var x big.Int
+	var x compatible.Int
 	v := x.SetBytes(t[:]).Mod(&x, p).Bytes()
 	v32 := [32]byte{}
 	for i := len(v) - 1; i >= 0; i-- {
@@ -117,8 +117,8 @@ func (e *gfP) Unmarshal(in []byte) {
 	}
 }
 
-func (e *gfP) BigInt() *big.Int {
-	bigInt := new(big.Int)
+func (e *gfP) BigInt() *compatible.Int {
+	bigInt := new(compatible.Int)
 	decoded := new(gfP)
 	montDecode(decoded, e)
 	buf := make([]byte, 32)

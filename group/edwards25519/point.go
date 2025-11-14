@@ -20,6 +20,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"go.dedis.ch/kyber/v4/compatible"
 	"hash"
 	"io"
 	"math"
@@ -499,7 +500,7 @@ func curve25519Elligator2(u fieldElement) (xn, xd, yn, yd fieldElement) {
 	// Computed with sagemath
 	c2 := fieldElement{34513073, 25610706, 9377949, 3500415, 12389472, 33281959, 41962654, 31548777, 326685, 11406482}
 	c3 := fieldElement{34513072, 25610706, 9377949, 3500415, 12389472, 33281959, 41962654, 31548777, 326685, 11406482}
-	c4, _ := new(big.Int).SetString("7237005577332262213973186563042994240829374041602535252466099000494570602493", 10)
+	c4, _ := new(compatible.Int).SetString("7237005577332262213973186563042994240829374041602535252466099000494570602493", 10)
 
 	// Temporary variables
 	var tv1, tv2, tv3, x1n, gxd, gx1, gx2 fieldElement

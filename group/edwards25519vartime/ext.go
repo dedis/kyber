@@ -3,8 +3,8 @@ package edwards25519vartime
 import (
 	"crypto/cipher"
 	"encoding/hex"
+	"go.dedis.ch/kyber/v4/compatible"
 	"io"
-	"math/big"
 
 	"go.dedis.ch/kyber/v4"
 	"go.dedis.ch/kyber/v4/group/internal/marshalling"
@@ -16,7 +16,7 @@ type extPoint struct {
 	c          *ExtendedCurve
 }
 
-func (P *extPoint) initXY(x, y *big.Int, c kyber.Group) {
+func (P *extPoint) initXY(x, y *compatible.Int, c kyber.Group) {
 	P.c = c.(*ExtendedCurve) //nolint:errcheck // Design pattern to emulate generics
 
 	P.X.Init(x, &P.c.P)
