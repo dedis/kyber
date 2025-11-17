@@ -6,7 +6,6 @@ require (
 	github.com/cloudflare/circl v1.6.1
 	github.com/consensys/gnark-crypto v0.19.2
 	github.com/cronokirby/saferith v0.33.0
-	github.com/cronokirby/saferith v0.33.0
 	github.com/jonboulle/clockwork v0.5.0
 	github.com/kilic/bls12-381 v0.1.0
 	github.com/stretchr/testify v1.11.1
