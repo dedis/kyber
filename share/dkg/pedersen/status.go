@@ -81,14 +81,14 @@ func (s *StatusMatrix) Get(dealer, share uint32) Status {
 
 func (s *StatusMatrix) String() string {
 	// get dealer indexes
-	dealerIdx := make([]uint32, 0, len((*s)))
+	dealerIdx := make([]uint32, 0, len(*s))
 	for didx := range *s {
 		dealerIdx = append(dealerIdx, didx)
 	}
-	// get share holder indexes
+	// get shareholder indexes
 	sharesIdx := make([]uint32, 0, len((*s)[dealerIdx[0]]))
-	for sidx := range (*s)[dealerIdx[0]] {
-		sharesIdx = append(sharesIdx, sidx)
+	for shareIdx := range (*s)[dealerIdx[0]] {
+		sharesIdx = append(sharesIdx, shareIdx)
 	}
 	sort.Slice(dealerIdx, func(i, j int) bool { return dealerIdx[i] < dealerIdx[j] })
 	sort.Slice(sharesIdx, func(i, j int) bool { return sharesIdx[i] < sharesIdx[j] })
