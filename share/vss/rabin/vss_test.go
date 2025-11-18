@@ -78,16 +78,16 @@ func TestVSSWhole(t *testing.T) {
 	assert.Equal(t, dealer.secret.String(), sec.String())
 }
 
-//func TestVSSDealerNew(t *testing.T) {
-//	goodT := MinimumT(nbVerifiers)
-//	_, err := NewDealer(suite, dealerSec, secret, verifiersPub, goodT)
-//	assert.NoError(t, err)
-//
-//	for _, badT := range []int{0, 1, -4} {
-//		_, err = NewDealer(suite, dealerSec, secret, verifiersPub, badT)
-//		assert.Error(t, err)
-//	}
-//}
+func TestVSSDealerNew(t *testing.T) {
+	goodT := MinimumT(nbVerifiers)
+	_, err := NewDealer(suite, dealerSec, secret, verifiersPub, goodT)
+	assert.NoError(t, err)
+
+	for _, badT := range []uint32{0, 1} {
+		_, err = NewDealer(suite, dealerSec, secret, verifiersPub, badT)
+		assert.Error(t, err)
+	}
+}
 
 func TestVSSVerifierNew(t *testing.T) {
 	randIdx := uint32(rand.Int() % len(verifiersPub))

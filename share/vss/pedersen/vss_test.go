@@ -113,18 +113,18 @@ func TestVSSWhole(t *testing.T) {
 	require.Equal(t, secret.String(), priCoeffs[0].String())
 }
 
-//func TestVSSDealerNew(t *testing.T) {
-//	goodT := MinimumT(nbVerifiers)
-//	dealer, err := NewDealer(suite, dealerSec, secret, verifiersPub, goodT)
-//	require.NoError(t, err)
-//	require.NotNil(t, dealer.secretPoly)
-//
-//	for _, badT := range []int{0, 1, -4} {
-//		_, err = NewDealer(suite, dealerSec, secret, verifiersPub, badT)
-//		assert.Error(t, err)
-//	}
-//
-//}
+func TestVSSDealerNew(t *testing.T) {
+	goodT := MinimumT(nbVerifiers)
+	dealer, err := NewDealer(suite, dealerSec, secret, verifiersPub, goodT)
+	require.NoError(t, err)
+	require.NotNil(t, dealer.secretPoly)
+
+	for _, badT := range []uint32{0, 1} {
+		_, err = NewDealer(suite, dealerSec, secret, verifiersPub, badT)
+		assert.Error(t, err)
+	}
+
+}
 
 func TestVSSVerifierNew(t *testing.T) {
 	randIdx := uint32(mathRand.Int() % len(verifiersPub))
