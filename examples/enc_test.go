@@ -13,7 +13,7 @@ func ElGamalEncrypt(group kyber.Group, pubkey kyber.Point, message []byte) (
 
 	// Embed the message (or as much of it as will fit) into a curve point.
 	M := group.Point().Embed(message, random.New())
-	maxLen := max(group.Point().EmbedLen(), len(message))
+	maxLen := min(group.Point().EmbedLen(), len(message))
 	remainder = message[maxLen:]
 	// ElGamal-encrypt the point to produce ciphertext (K,C).
 	k := group.Scalar().Pick(random.New()) // ephemeral private key
