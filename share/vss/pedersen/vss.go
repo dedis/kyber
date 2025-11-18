@@ -758,7 +758,7 @@ func sessionID(suite Suite, dealer kyber.Point, verifiers, commitments []kyber.P
 		}
 	}
 
-	err = binary.Write(h, binary.LittleEndian, uint32(t))
+	err = binary.Write(h, binary.LittleEndian, t)
 	return h.Sum(nil), err
 }
 
