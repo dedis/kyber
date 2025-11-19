@@ -96,6 +96,7 @@ jobs:
       run: make coverage
 
     - name: SonarQube Scan
+      if: ${{ matrix.os == 'ubuntu-latest' && matrix.size == '64b' }}
       uses: SonarSource/sonarqube-scan-action@master
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
