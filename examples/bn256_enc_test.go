@@ -14,7 +14,7 @@ func ElGamalEncryptBn256(suite pairing.Suite, pubkey kyber.Point, message []byte
 
 	// Embed the message (or as much of it as will fit) into a curve point.
 	M := suite.G1().Point().Embed(message, random.New())
-	maxLen := max(suite.G1().Point().EmbedLen(), len(message))
+	maxLen := min(suite.G1().Point().EmbedLen(), len(message))
 	remainder = message[maxLen:]
 	// ElGamal-encrypt the point to produce ciphertext (K,C).
 	k := suite.G1().Scalar().Pick(random.New()) // ephemeral private key

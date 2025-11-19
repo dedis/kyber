@@ -95,11 +95,10 @@ jobs:
       if: ${{ matrix.os == 'ubuntu-latest' && matrix.size == '64b' }}
       run: make coverage
 
-    - name: SonarCloud scan
+    - name: SonarQube Scan
       if: ${{ matrix.os == 'ubuntu-latest' && matrix.size == '64b' }}
-      uses: sonarsource/sonarcloud-github-action@master
+      uses: SonarSource/sonarqube-scan-action@fd88b7d7ccbaefd23d8f36f73b59db7a3d246602  #v6.0.0
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       with:
         args: >
