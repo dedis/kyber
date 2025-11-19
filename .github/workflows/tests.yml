@@ -97,7 +97,7 @@ jobs:
 
     - name: SonarQube Scan
       if: ${{ matrix.os == 'ubuntu-latest' && matrix.size == '64b' }}
-      uses: SonarSource/sonarqube-scan-action@master
+      uses: SonarSource/sonarqube-scan-action@v6
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       with:
