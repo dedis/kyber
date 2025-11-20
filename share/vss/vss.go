@@ -1,12 +1,14 @@
 package vss
 
 import (
+	"bytes"
 	"encoding/binary"
 	"errors"
 	"reflect"
 
 	"go.dedis.ch/kyber/v4"
 	"go.dedis.ch/kyber/v4/share"
+	"go.dedis.ch/kyber/v4/sign/schnorr"
 	"go.dedis.ch/protobuf"
 )
 
@@ -147,3 +149,285 @@ func FindPub(verifiers []kyber.Point, idx uint32) (kyber.Point, bool) {
 }
 
 var ErrDealAlreadyProcessed = errors.New("vss: verifier already received a deal")
+
+// Aggregator is used to collect all deals, and responses for one protocol run.
+// It brings common functionalities for both Dealer and Verifier structs.
+type Aggregator interface {
+	AddResponse(r *Response) error
+	VerifyResponse(r *Response) error
+	HasDeal() bool
+	// EnoughApprovals returns true if enough verifiers have sent their approval for
+	// the deal they received.
+	EnoughApprovals() bool
+	DealCertified() bool
+	// VerifyDeal analyzes the deal and returns an error if it's incorrect. If
+	// inclusion is true, it also returns an error if it is the second time this struct
+	// analyzes a Deal.
+	VerifyDeal(d *Deal, inclusion bool) error
+	Deal() *Deal
+	VerifyJustification(*Justification) error
+	Sid() []byte
+	SetTimeout()
+}
+
+// Verifier receives a Deal from a Dealer, can reply with a Complaint, and can
+// collaborate with other Verifiers to reconstruct a secret.
+type Verifier struct {
+	suite       Suite
+	longterm    kyber.Scalar
+	pub         kyber.Point
+	dealer      kyber.Point
+	index       int
+	verifiers   []kyber.Point
+	hkdfContext []byte
+	Aggregator
+}
+
+// NewVerifier returns a Verifier out of:
+//   - its longterm secret key
+//   - the longterm dealer public key
+//   - the list of public key of verifiers. The list MUST include the public key of this Verifier also.
+//
+// The security parameter t of the secret sharing scheme is automatically set to
+// a default safe value. If a different t value is required, it is possible to set
+// it with `verifier.SetT()`.
+func NewVerifier(suite Suite, longterm kyber.Scalar, dealerKey kyber.Point,
+	verifiers []kyber.Point, aggregator Aggregator) (*Verifier, error) {
+
+	pub := suite.Point().Mul(longterm, nil)
+	var ok bool
+	var index int
+	for i, v := range verifiers {
+		if v.Equal(pub) {
+			ok = true
+			index = i
+			break
+		}
+	}
+	if !ok {
+		return nil, errors.New("vss: public key not found in the list of verifiers")
+	}
+	hkdfContext, err := Context(suite, dealerKey, verifiers)
+	if err != nil {
+		return nil, err
+	}
+	v := &Verifier{
+		suite:       suite,
+		longterm:    longterm,
+		dealer:      dealerKey,
+		verifiers:   verifiers,
+		pub:         pub,
+		index:       index,
+		hkdfContext: hkdfContext,
+		Aggregator:  aggregator,
+	}
+	return v, nil
+}
+
+// ProcessEncryptedDeal decrypt the deal received from the Dealer.
+// If the deal is valid, i.e. the verifier can verify its shares
+// against the public coefficients and the signature is valid, an approval
+// response is returned and must be broadcasted to every participants
+// including the dealer.
+// If the deal itself is invalid, it returns a complaint response that must be
+// broadcasted to every other participants including the dealer.
+// If the deal has already been received, or the signature generation of the
+// response failed, it returns an error without any responses.
+func (v *Verifier) ProcessEncryptedDeal(e *EncryptedDeal) (*Response, error) {
+	d, err := v.DecryptDeal(e)
+	if err != nil {
+		return nil, err
+	}
+	if int(d.SecShare.I) != v.index {
+		return nil, errors.New("vss: verifier got wrong index from deal")
+	}
+
+	t := int(d.T)
+
+	sid, err := SessionID(v.suite, v.dealer, v.verifiers, d.Commitments, t)
+	if err != nil {
+		return nil, err
+	}
+
+	r := &Response{
+		SessionID:      sid,
+		Index:          uint32(v.index),
+		StatusApproved: StatusApproval,
+	}
+	if err = v.VerifyDeal(d, true); err != nil {
+		r.StatusApproved = StatusComplaint
+	}
+
+	if errors.Is(err, ErrDealAlreadyProcessed) {
+		return nil, err
+	}
+
+	msg, err := r.Hash(v.suite)
+	if err != nil {
+		return nil, err
+	}
+
+	if r.Signature, err = schnorr.Sign(v.suite, v.longterm, msg); err != nil {
+		return nil, err
+	}
+
+	if err = v.Aggregator.AddResponse(r); err != nil {
+		return nil, err
+	}
+	return r, nil
+}
+
+func (v *Verifier) DecryptDeal(e *EncryptedDeal) (*Deal, error) {
+	ephBuff, err := e.DHKey.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	// verify signature
+	if err := schnorr.Verify(v.suite, v.dealer, ephBuff, e.Signature); err != nil {
+		return nil, err
+	}
+
+	// compute shared key and AES526-GCM cipher
+	pre := DhExchange(v.suite, v.longterm, e.DHKey)
+	gcm, err := NewAEAD(v.suite.Hash, pre, v.hkdfContext)
+	if err != nil {
+		return nil, err
+	}
+	nonce := make([]byte, gcm.NonceSize())
+	decrypted, err := gcm.Open(nil, nonce, e.Cipher, v.hkdfContext)
+	if err != nil {
+		return nil, err
+	}
+	deal := &Deal{}
+	err = deal.Decode(v.suite, decrypted)
+	return deal, err
+}
+
+// ErrNoDealBeforeResponse is an error returned if a verifier receives a
+// deal before having received any responses. For the moment, the caller must
+// be sure to have dispatched a deal before.
+var ErrNoDealBeforeResponse = errors.New("verifier: need to receive deal before response")
+
+// ProcessResponse analyzes the given response. If it's a valid complaint, the
+// verifier should expect to see a Justification from the Dealer. It returns an
+// error if it's not a valid response.
+// Call `v.DealCertified()` to check if the whole protocol is finished.
+func (v *Verifier) ProcessResponse(resp *Response) error {
+	if !v.HasDeal() {
+		return ErrNoDealBeforeResponse
+	}
+	return v.Aggregator.VerifyResponse(resp)
+}
+
+// Deal returns the Deal that this verifier has received. It returns
+// nil if the deal is not certified or there is not enough approvals.
+func (v *Verifier) Deal() *Deal {
+	if !v.EnoughApprovals() || !v.DealCertified() {
+		return nil
+	}
+	return v.Aggregator.Deal()
+}
+
+// ProcessJustification takes a DealerResponse and returns an error if
+// something went wrong during the verification. If it is the case, that
+// probably means the Dealer is acting maliciously. In order to be sure, call
+// `v.DealCertified()`.
+func (v *Verifier) ProcessJustification(dr *Justification) error {
+	return v.Aggregator.VerifyJustification(dr)
+}
+
+// Key returns the longterm key pair this verifier is using during this protocol
+// run.
+func (v *Verifier) Key() (kyber.Scalar, kyber.Point) {
+	return v.longterm, v.pub
+}
+
+// Index returns the index of the verifier in the list of participants used
+// during this run of the protocol.
+func (v *Verifier) Index() int {
+	return v.index
+}
+
+// SessionID returns the session id generated by the Dealer. It returns
+// a nil slice if the verifier has not received the Deal yet.
+func (v *Verifier) SessionID() []byte {
+	return v.Sid()
+}
+
+func (v *Verifier) SetTimeout() {
+	v.Aggregator.SetTimeout()
+}
+
+// UnsafeSetResponseDKG is an UNSAFE bypass method to allow DKG to use VSS
+// that works on basis of approval only.
+func (v *Verifier) UnsafeSetResponseDKG(idx uint32, approval bool) {
+	r := &Response{
+		SessionID:      v.Sid(),
+		Index:          idx,
+		StatusApproved: approval,
+	}
+
+	//nolint:errcheck // Unsafe function
+	v.AddResponse(r)
+}
+
+// Commits returns the commitments of the coefficients of the polynomial
+// contained in the Deal received. It is public information. The private
+// information in the deal must be retrieved through Deal().
+func (v *Verifier) Commits() []kyber.Point {
+	return v.Deal().Commitments
+}
+
+func SessionID(suite Suite, dealer kyber.Point, verifiers, commitments []kyber.Point, t int) ([]byte, error) {
+	h := suite.Hash()
+	_, err := dealer.MarshalTo(h)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, v := range verifiers {
+		_, err = v.MarshalTo(h)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	for _, c := range commitments {
+		_, err = c.MarshalTo(h)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	err = binary.Write(h, binary.LittleEndian, uint32(t))
+	return h.Sum(nil), err
+}
+
+func ValidT(t int, verifiers []kyber.Point) bool {
+	return t >= 2 && t <= len(verifiers) && int(uint32(t)) == t
+}
+
+// MinimumT returns a safe value of T that balances secrecy and robustness.
+// It expects n, the total number of participants.
+// T should be adjusted to your threat model. Setting a lower T decreases the
+// difficulty for an adversary to break secrecy. However, a too large T makes
+// it possible for an adversary to prevent recovery (robustness).
+func MinimumT(n int) int {
+	return (n >> 1) + 1
+}
+
+// RecoverSecret recovers the secret shared by a Dealer by gathering at least t
+// Deals from the verifiers. It returns an error if there is not enough Deals or
+// if all Deals don't have the same SessionID.
+func RecoverSecret(suite Suite, deals []*Deal, n, t int) (kyber.Scalar, error) {
+	shares := make([]*share.PriShare, len(deals))
+	for i, deal := range deals {
+		// all sids the same
+		if bytes.Equal(deal.SessionID, deals[0].SessionID) {
+			shares[i] = deal.SecShare
+		} else {
+			return nil, errors.New("vss: all deals need to have same session id")
+		}
+	}
+	return share.RecoverSecret(suite, shares, t, n)
+}

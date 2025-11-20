@@ -161,8 +161,8 @@ type DistKeyGenerator struct {
 
 	t int
 
-	dealer    *rvss.Dealer
-	verifiers map[uint32]*rvss.Verifier
+	dealer    *vss.Dealer
+	verifiers map[uint32]*vss.Verifier
 
 	// list of commitments to each secret polynomial
 	commitments map[uint32]*share.PubPoly
@@ -209,7 +209,7 @@ func NewDistKeyGenerator(
 
 	return &DistKeyGenerator{
 		dealer:             dealer,
-		verifiers:          make(map[uint32]*rvss.Verifier),
+		verifiers:          make(map[uint32]*vss.Verifier),
 		commitments:        make(map[uint32]*share.PubPoly),
 		pendingReconstruct: make(map[uint32][]*ReconstructCommits),
 		reconstructed:      make(map[uint32]bool),
@@ -259,7 +259,11 @@ func (d *DistKeyGenerator) Deals() (map[int]*Deal, error) {
 
 			// If processed own deal correctly, set positive response in this
 			// DKG's dealer's own verifier
-			d.dealer.UnsafeSetResponseDKG(d.index, true)
+			rabinAggregator, ok := d.dealer.Aggregator.(*rvss.Aggregator)
+			if !ok {
+				panic("Dealer does not have a Rabin Aggregator")
+			}
+			rabinAggregator.UnsafeSetResponseDKG(d.index, true)
 			continue
 		}
 		dd[i] = distd
@@ -283,7 +287,8 @@ func (d *DistKeyGenerator) ProcessDeal(dd *Deal) (*Response, error) {
 	}
 
 	// verifier receiving the dealer's deal
-	ver, err := rvss.NewVerifier(d.suite, d.long, pub, d.participants)
+	aggregator := rvss.NewEmptyAggregator(d.suite, d.participants)
+	ver, err := vss.NewVerifier(d.suite, d.long, pub, d.participants, aggregator)
 	if err != nil {
 		return nil, err
 	}
@@ -375,7 +380,7 @@ func (d *DistKeyGenerator) Certified() bool {
 // the distributed public key with SecretCommits() and ProcessSecretCommits().
 func (d *DistKeyGenerator) QUAL() []int {
 	var good []int
-	d.qualIter(func(i uint32, _ *rvss.Verifier) bool {
+	d.qualIter(func(i uint32, _ *vss.Verifier) bool {
 		good = append(good, int(i))
 		return true
 	})
@@ -384,7 +389,7 @@ func (d *DistKeyGenerator) QUAL() []int {
 
 func (d *DistKeyGenerator) isInQUAL(idx uint32) bool {
 	var found bool
-	d.qualIter(func(i uint32, _ *rvss.Verifier) bool {
+	d.qualIter(func(i uint32, _ *vss.Verifier) bool {
 		if i == idx {
 			found = true
 			return false
@@ -394,7 +399,7 @@ func (d *DistKeyGenerator) isInQUAL(idx uint32) bool {
 	return found
 }
 
-func (d *DistKeyGenerator) qualIter(fn func(idx uint32, v *rvss.Verifier) bool) {
+func (d *DistKeyGenerator) qualIter(fn func(idx uint32, v *vss.Verifier) bool) {
 	for i, v := range d.verifiers {
 		if v.DealCertified() {
 			if !fn(i, v) {
@@ -603,7 +608,7 @@ func (d *DistKeyGenerator) ProcessReconstructCommits(rs *ReconstructCommits) err
 func (d *DistKeyGenerator) Finished() bool {
 	var ret = true
 	var nb = 0
-	d.qualIter(func(idx uint32, _ *rvss.Verifier) bool {
+	d.qualIter(func(idx uint32, _ *vss.Verifier) bool {
 		nb++
 		// ALL QUAL members should have their commitments by now either given or
 		// reconstructed.
@@ -632,7 +637,7 @@ func (d *DistKeyGenerator) DistKeyShare() (*DistKeyShare, error) {
 	var pub *share.PubPoly
 	var err error
 
-	d.qualIter(func(i uint32, v *rvss.Verifier) bool {
+	d.qualIter(func(i uint32, v *vss.Verifier) bool {
 		// share of dist. secret = sum of all share received.
 		s := v.Deal().SecShare.V
 		sh = sh.Add(sh, s)
