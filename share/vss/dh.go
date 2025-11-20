@@ -32,7 +32,7 @@ func NewAEAD(fn func() hash.Hash, preSharedKey kyber.Point, context []byte) (cip
 		return nil, err
 	}
 	gcm, err := cipher.NewGCM(block)
-	return gcm, nil
+	return gcm, err
 }
 
 // keySize is arbitrary, make it long enough to seed the XOF
