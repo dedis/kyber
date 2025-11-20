@@ -51,42 +51,6 @@ type EncryptedDeal struct {
 	Cipher []byte
 }
 
-// Response is sent by the verifiers to all participants and holds each
-// individual validation or refusal of a Deal.
-type Response struct {
-	// SessionID related to this run of the protocol
-	SessionID []byte
-	// Index of the verifier issuing this Response from the new set of nodes
-	Index uint32
-	// false = NO APPROVAL == Complaint , true = APPROVAL
-	StatusApproved bool
-	// Signature over the whole packet
-	Signature []byte
-}
-
-const (
-	// StatusComplaint is a constant value meaning that a verifier issues
-	// a Complaint against its Dealer.
-	StatusComplaint bool = false
-	// StatusApproval is a constant value meaning that a verifier agrees with
-	// the share it received.
-	StatusApproval bool = true
-)
-
-// Justification is a message that is broadcasted by the Dealer in response to
-// a Complaint. It contains the original Complaint as well as the shares
-// distributed to the complainer.
-type Justification struct {
-	// SessionID related to the current run of the protocol
-	SessionID []byte
-	// Index of the verifier who issued the Complaint,i.e. index of this Deal
-	Index uint32
-	// Deal in cleartext
-	Deal *vss.Deal
-	// Signature over the whole packet
-	Signature []byte
-}
-
 // NewDealer returns a Dealer capable of leading the secret sharing scheme. It
 // does not have to be trusted by other Verifiers. The security parameter t is
 // the number of shares required to reconstruct the secret. MinimumT() provides
@@ -208,7 +172,7 @@ func (d *Dealer) EncryptedDeals() ([]*EncryptedDeal, error) {
 // it returns a Justification. This Justification must be broadcast to every
 // participant. If it's an invalid complaint, it returns an error about the
 // complaint. The verifiers will also ignore an invalid Complaint.
-func (d *Dealer) ProcessResponse(r *Response) (*Justification, error) {
+func (d *Dealer) ProcessResponse(r *vss.Response) (*vss.Justification, error) {
 	if err := d.verifyResponse(r); err != nil {
 		return nil, err
 	}
@@ -217,13 +181,19 @@ func (d *Dealer) ProcessResponse(r *Response) (*Justification, error) {
 		return nil, nil
 	}
 
-	j := &Justification{
+	j := &vss.Justification{
 		SessionID: d.sessionID,
 		// index is guaranteed to be good because of d.verifyResponse before
 		Index: r.Index,
 		Deal:  d.deals[int(r.Index)],
 	}
-	sig, err := schnorr.Sign(d.suite, d.long, j.Hash(d.suite))
+
+	msg, err := j.Hash(d.suite)
+	if err != nil {
+		return nil, err
+	}
+
+	sig, err := schnorr.Sign(d.suite, d.long, msg)
 	if err != nil {
 		return nil, err
 	}
@@ -336,7 +306,7 @@ func NewVerifier(suite vss.Suite, longterm kyber.Scalar, dealerKey kyber.Point,
 // broadcasted to every other participants including the dealer.
 // If the deal has already been received, or the signature generation of the
 // response failed, it returns an error without any responses.
-func (v *Verifier) ProcessEncryptedDeal(e *EncryptedDeal) (*Response, error) {
+func (v *Verifier) ProcessEncryptedDeal(e *EncryptedDeal) (*vss.Response, error) {
 	d, err := v.decryptDeal(e)
 	if err != nil {
 		return nil, err
@@ -352,20 +322,25 @@ func (v *Verifier) ProcessEncryptedDeal(e *EncryptedDeal) (*Response, error) {
 		return nil, err
 	}
 
-	r := &Response{
+	r := &vss.Response{
 		SessionID:      sid,
 		Index:          uint32(v.index),
-		StatusApproved: StatusApproval,
+		StatusApproved: vss.StatusApproval,
 	}
 	if err = v.VerifyDeal(d, true); err != nil {
-		r.StatusApproved = StatusComplaint
+		r.StatusApproved = vss.StatusComplaint
 	}
 
 	if errors.Is(err, errDealAlreadyProcessed) {
 		return nil, err
 	}
 
-	if r.Signature, err = schnorr.Sign(v.suite, v.longterm, r.Hash(v.suite)); err != nil {
+	msg, err := r.Hash(v.suite)
+	if err != nil {
+		return nil, err
+	}
+
+	if r.Signature, err = schnorr.Sign(v.suite, v.longterm, msg); err != nil {
 		return nil, err
 	}
 
@@ -410,7 +385,7 @@ var ErrNoDealBeforeResponse = errors.New("verifier: need to receive deal before 
 // verifier should expect to see a Justification from the Dealer. It returns an
 // error if it's not a valid response.
 // Call `v.DealCertified()` to check if the whole protocol is finished.
-func (v *Verifier) ProcessResponse(resp *Response) error {
+func (v *Verifier) ProcessResponse(resp *vss.Response) error {
 	if v.Aggregator.deal == nil {
 		return ErrNoDealBeforeResponse
 	}
@@ -437,7 +412,7 @@ func (v *Verifier) Deal() *vss.Deal {
 // something went wrong during the verification. If it is the case, that
 // probably means the Dealer is acting maliciously. In order to be sure, call
 // `v.DealCertified()`.
-func (v *Verifier) ProcessJustification(dr *Justification) error {
+func (v *Verifier) ProcessJustification(dr *vss.Justification) error {
 	return v.Aggregator.verifyJustification(dr)
 }
 
@@ -486,9 +461,9 @@ func (v *Verifier) SetTimeout() {
 // UnsafeSetResponseDKG is an UNSAFE bypass method to allow DKG to use VSS
 // that works on basis of approval only.
 func (v *Verifier) UnsafeSetResponseDKG(idx uint32, approval bool) {
-	r := &Response{
+	r := &vss.Response{
 		SessionID:      v.Aggregator.sid,
-		Index:          uint32(idx),
+		Index:          idx,
 		StatusApproved: approval,
 	}
 
@@ -504,7 +479,7 @@ type Aggregator struct {
 	verifiers []kyber.Point
 	commits   []kyber.Point
 
-	responses map[uint32]*Response
+	responses map[uint32]*vss.Response
 	sid       []byte
 	deal      *vss.Deal
 	t         int
@@ -527,7 +502,7 @@ func newAggregator(
 		commits:   commitments,
 		t:         t,
 		sid:       sid,
-		responses: make(map[uint32]*Response),
+		responses: make(map[uint32]*vss.Response),
 	}
 	return agg
 }
@@ -538,7 +513,7 @@ func NewEmptyAggregator(suite vss.Suite, verifiers []kyber.Point) *Aggregator {
 	return &Aggregator{
 		suite:     suite,
 		verifiers: verifiers,
-		responses: make(map[uint32]*Response),
+		responses: make(map[uint32]*vss.Response),
 	}
 }
 
@@ -599,11 +574,11 @@ func (a *Aggregator) SetThreshold(t int) {
 // ProcessResponse verifies the validity of the given response and stores it
 // internall. It is  the public version of verifyResponse created this way to
 // allow higher-level package to use these functionalities.
-func (a *Aggregator) ProcessResponse(r *Response) error {
+func (a *Aggregator) ProcessResponse(r *vss.Response) error {
 	return a.verifyResponse(r)
 }
 
-func (a *Aggregator) verifyResponse(r *Response) error {
+func (a *Aggregator) verifyResponse(r *vss.Response) error {
 	if a.sid != nil && !bytes.Equal(r.SessionID, a.sid) {
 		return errors.New("vss: receiving inconsistent sessionID in response")
 	}
@@ -613,14 +588,19 @@ func (a *Aggregator) verifyResponse(r *Response) error {
 		return errors.New("vss: index out of bounds in response")
 	}
 
-	if err := schnorr.Verify(a.suite, pub, r.Hash(a.suite), r.Signature); err != nil {
+	msg, err := r.Hash(a.suite)
+	if err != nil {
+		return err
+	}
+
+	if err := schnorr.Verify(a.suite, pub, msg, r.Signature); err != nil {
 		return err
 	}
 
 	return a.addResponse(r)
 }
 
-func (a *Aggregator) verifyJustification(j *Justification) error {
+func (a *Aggregator) verifyJustification(j *vss.Justification) error {
 	if _, ok := findPub(a.verifiers, j.Index); !ok {
 		return errors.New("vss: index out of bounds in justification")
 	}
@@ -637,11 +617,11 @@ func (a *Aggregator) verifyJustification(j *Justification) error {
 		a.badDealer = true
 		return err
 	}
-	r.StatusApproved = StatusApproval
+	r.StatusApproved = vss.StatusApproval
 	return nil
 }
 
-func (a *Aggregator) addResponse(r *Response) error {
+func (a *Aggregator) addResponse(r *vss.Response) error {
 	if _, ok := findPub(a.verifiers, r.Index); !ok {
 		return errors.New("vss: index out of bounds in Complaint")
 	}
@@ -654,7 +634,7 @@ func (a *Aggregator) addResponse(r *Response) error {
 
 // Responses returns the list of responses received and processed by this
 // aggregator
-func (a *Aggregator) Responses() map[uint32]*Response {
+func (a *Aggregator) Responses() map[uint32]*vss.Response {
 	return a.responses
 }
 
@@ -750,25 +730,4 @@ func sessionID(suite vss.Suite, dealer kyber.Point, verifiers, commitments []kyb
 
 	err = binary.Write(h, binary.LittleEndian, uint32(t))
 	return h.Sum(nil), err
-}
-
-// Hash returns the Hash representation of the Response
-func (r *Response) Hash(s vss.Suite) []byte {
-	h := s.Hash()
-	_, _ = h.Write([]byte("response"))
-	_, _ = h.Write(r.SessionID)
-	_ = binary.Write(h, binary.LittleEndian, r.Index)
-	_ = binary.Write(h, binary.LittleEndian, r.StatusApproved)
-	return h.Sum(nil)
-}
-
-// Hash returns the hash of a Justification.
-func (j *Justification) Hash(s vss.Suite) []byte {
-	h := s.Hash()
-	_, _ = h.Write([]byte("justification"))
-	_, _ = h.Write(j.SessionID)
-	_ = binary.Write(h, binary.LittleEndian, j.Index)
-	buff, _ := protobuf.Encode(j.Deal)
-	_, _ = h.Write(buff)
-	return h.Sum(nil)
 }

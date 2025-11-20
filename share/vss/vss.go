@@ -1,6 +1,7 @@
 package vss
 
 import (
+	"encoding/binary"
 	"reflect"
 
 	"go.dedis.ch/kyber/v4"
@@ -37,4 +38,88 @@ func (d *Deal) Decode(s Suite, buff []byte) error {
 	constructors[reflect.TypeOf(&point).Elem()] = func() interface{} { return s.Point() }
 	constructors[reflect.TypeOf(&secret).Elem()] = func() interface{} { return s.Scalar() }
 	return protobuf.DecodeWithConstructors(buff, d, constructors)
+}
+
+// Response is sent by the verifiers to all participants and holds each
+// individual validation or refusal of a Deal.
+type Response struct {
+	// SessionID related to this run of the protocol
+	SessionID []byte
+	// Index of the verifier issuing this Response from the new set of nodes
+	Index uint32
+	// false = NO APPROVAL == Complaint , true = APPROVAL
+	StatusApproved bool
+	// Signature over the whole packet
+	Signature []byte
+}
+
+const (
+	// StatusComplaint is a constant value meaning that a verifier issues
+	// a Complaint against its Dealer.
+	StatusComplaint bool = false
+	// StatusApproval is a constant value meaning that a verifier agrees with
+	// the share it received.
+	StatusApproval bool = true
+)
+
+// Hash returns the Hash representation of the Response
+func (r *Response) Hash(s Suite) ([]byte, error) {
+	h := s.Hash()
+	_, err := h.Write([]byte("response"))
+	if err != nil {
+		return nil, err
+	}
+	_, err = h.Write(r.SessionID)
+	if err != nil {
+		return nil, err
+	}
+	err = binary.Write(h, binary.LittleEndian, r.Index)
+	if err != nil {
+		return nil, err
+	}
+	err = binary.Write(h, binary.LittleEndian, r.StatusApproved)
+	if err != nil {
+		return nil, err
+	}
+	return h.Sum(nil), nil
+}
+
+// Justification is a message that is broadcasted by the Dealer in response to
+// a Complaint. It contains the original Complaint as well as the shares
+// distributed to the complainer.
+type Justification struct {
+	// SessionID related to the current run of the protocol
+	SessionID []byte
+	// Index of the verifier who issued the Complaint,i.e. index of this Deal
+	Index uint32
+	// Deal in cleartext
+	Deal *Deal
+	// Signature over the whole packet
+	Signature []byte
+}
+
+// Hash returns the hash of a Justification.
+func (j *Justification) Hash(s Suite) ([]byte, error) {
+	h := s.Hash()
+	_, err := h.Write([]byte("justification"))
+	if err != nil {
+		return nil, err
+	}
+	_, err = h.Write(j.SessionID)
+	if err != nil {
+		return nil, err
+	}
+	err = binary.Write(h, binary.LittleEndian, j.Index)
+	if err != nil {
+		return nil, err
+	}
+	buff, err := protobuf.Encode(j.Deal)
+	if err != nil {
+		return nil, err
+	}
+	_, err = h.Write(buff)
+	if err != nil {
+		return nil, err
+	}
+	return h.Sum(nil), nil
 }

@@ -163,7 +163,7 @@ func genDistSecret() []*dkg.DistKeyShare {
 			if err != nil {
 				panic(err)
 			}
-			if !resp.Response.Approved {
+			if !resp.Response.StatusApproved {
 				panic("wrong approval")
 			}
 			resps = append(resps, resp)

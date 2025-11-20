@@ -9,7 +9,7 @@ import (
 	"go.dedis.ch/kyber/v4"
 	"go.dedis.ch/kyber/v4/group/edwards25519"
 	"go.dedis.ch/kyber/v4/share"
-	vss "go.dedis.ch/kyber/v4/share/vss/rabin"
+	"go.dedis.ch/kyber/v4/share/vss"
 	"go.dedis.ch/kyber/v4/sign/schnorr"
 )
 
@@ -107,8 +107,9 @@ func TestDKGProcessDeal(t *testing.T) {
 
 	// good deal
 	resp, err = rec.ProcessDeal(deal)
+	require.NoError(t, err)
 	assert.NotNil(t, resp)
-	assert.Equal(t, true, resp.Response.Approved)
+	assert.Equal(t, true, resp.Response.StatusApproved)
 	assert.Nil(t, err)
 	_, ok := rec.verifiers[deal.Index]
 	require.True(t, ok)
@@ -142,7 +143,7 @@ func TestDKGProcessResponse(t *testing.T) {
 	resp, err := rec.ProcessDeal(encD)
 	assert.Nil(t, err)
 	require.NotNil(t, resp)
-	assert.Equal(t, false, resp.Response.Approved)
+	assert.Equal(t, false, resp.Response.StatusApproved)
 	deal.RndShare.V = goodSecret
 
 	// no verifier tied to Response
@@ -184,7 +185,7 @@ func TestDKGProcessResponse(t *testing.T) {
 	resp12, err := rec.ProcessDeal(deals2[idxRec])
 	assert.NotNil(t, resp12)
 	assert.Nil(t, err)
-	assert.Equal(t, false, resp12.Response.Approved)
+	assert.Equal(t, false, resp12.Response.StatusApproved)
 
 	deal21.RndShare.V = goodRnd21
 	deals2, err = dkg2.Deals()
@@ -209,7 +210,7 @@ func TestDKGProcessResponse(t *testing.T) {
 
 	// hack because all is local, and resp has been modified locally by dkg2's
 	// dealer, the status has become "justified"
-	resp12.Response.Approved = false
+	resp12.Response.StatusApproved = false
 	err = dkg.ProcessJustification(j)
 	assert.Nil(t, err)
 
@@ -504,7 +505,7 @@ func TestSetTimeout(t *testing.T) {
 		for i, d := range deals {
 			resp, err := dkgs[i].ProcessDeal(d)
 			require.Nil(t, err)
-			require.True(t, resp.Response.Approved)
+			require.True(t, resp.Response.StatusApproved)
 			resps = append(resps, resp)
 		}
 	}
@@ -666,14 +667,14 @@ func fullExchange(t *testing.T) {
 		for i, d := range deals {
 			resp, err := dkgs[i].ProcessDeal(d)
 			require.Nil(t, err)
-			require.Equal(t, true, resp.Response.Approved)
+			require.Equal(t, true, resp.Response.StatusApproved)
 			resps = append(resps, resp)
 		}
 	}
 	// 2. Broadcast responses
 	for _, resp := range resps {
 		for _, dkg := range dkgs {
-			// ignore all messages from ourself
+			// ignore all messages from ourselves
 			if resp.Response.Index == dkg.index {
 				continue
 			}
