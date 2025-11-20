@@ -86,7 +86,7 @@ type Deal struct {
 	// Index of the Dealer in the list of participants
 	Index uint32
 	// Deal issued for another participant
-	Deal *rvss.EncryptedDeal
+	Deal *vss.EncryptedDeal
 }
 
 // Response holds the Response from another participant as well as the index of

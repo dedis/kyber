@@ -554,11 +554,11 @@ func TestVSSSessionID(t *testing.T) {
 }
 
 func TestVSSFindPub(t *testing.T) {
-	p, ok := findPub(verifiersPub, 0)
+	p, ok := vss.FindPub(verifiersPub, 0)
 	assert.True(t, ok)
 	assert.Equal(t, verifiersPub[0], p)
 
-	p, ok = findPub(verifiersPub, uint32(len(verifiersPub)))
+	p, ok = vss.FindPub(verifiersPub, uint32(len(verifiersPub)))
 	assert.False(t, ok)
 	assert.Nil(t, p)
 }

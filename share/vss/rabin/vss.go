@@ -64,19 +64,6 @@ type Dealer struct {
 	*aggregator
 }
 
-// EncryptedDeal contains the deal in a encrypted form only decipherable by the
-// correct recipient. The encryption is performed in a similar manner as what is
-// done in TLS. The dealer generates a temporary key pair, signs it with its
-// longterm secret key.
-type EncryptedDeal struct {
-	// Ephemeral Diffie Hellman key
-	DHKey kyber.Point
-	// Signature of the DH key by the longterm key of the dealer
-	Signature []byte
-	// AEAD encryption of the deal marshalled by protobuf
-	Cipher []byte
-}
-
 // NewDealer returns a Dealer capable of leading the secret sharing scheme. It
 // does not have to be trusted by other Verifiers. The security parameter t is
 // the number of shares required to reconstruct the secret. MinimumT() provides
@@ -151,8 +138,8 @@ func (d *Dealer) PlaintextDeal(i int) (*vss.Deal, error) {
 // ephemeral key and the verifier's public key.
 // This shared key is then fed into a HKDF whose output is the key to a AEAD
 // (AES256-GCM) scheme to encrypt the deal.
-func (d *Dealer) EncryptedDeal(i int) (*EncryptedDeal, error) {
-	vPub, ok := findPub(d.verifiers, uint32(i))
+func (d *Dealer) EncryptedDeal(i int) (*vss.EncryptedDeal, error) {
+	vPub, ok := vss.FindPub(d.verifiers, uint32(i))
 	if !ok {
 		return nil, errors.New("dealer: wrong index to generate encrypted deal")
 	}
@@ -178,7 +165,7 @@ func (d *Dealer) EncryptedDeal(i int) (*EncryptedDeal, error) {
 		return nil, err
 	}
 	encrypted := gcm.Seal(nil, nonce, dealBuff, d.hkdfContext)
-	return &EncryptedDeal{
+	return &vss.EncryptedDeal{
 		DHKey:     dhPublic,
 		Signature: signature,
 		Cipher:    encrypted,
@@ -188,8 +175,8 @@ func (d *Dealer) EncryptedDeal(i int) (*EncryptedDeal, error) {
 // EncryptedDeals calls `EncryptedDeal` for each index of the verifier and
 // returns the list of encrypted deals. Each index in the returned slice
 // corresponds to the index in the list of verifiers.
-func (d *Dealer) EncryptedDeals() ([]*EncryptedDeal, error) {
-	deals := make([]*EncryptedDeal, len(d.verifiers))
+func (d *Dealer) EncryptedDeals() ([]*vss.EncryptedDeal, error) {
+	deals := make([]*vss.EncryptedDeal, len(d.verifiers))
 	var err error
 	for i := range d.verifiers {
 		deals[i], err = d.EncryptedDeal(i)
@@ -332,7 +319,7 @@ func NewVerifier(suite vss.Suite, longterm kyber.Scalar, dealerKey kyber.Point,
 // broadcasted to every other participants including the dealer.
 // If the deal has already been received, or the signature generation of the
 // response failed, it returns an error without any responses.
-func (v *Verifier) ProcessEncryptedDeal(e *EncryptedDeal) (*vss.Response, error) {
+func (v *Verifier) ProcessEncryptedDeal(e *vss.EncryptedDeal) (*vss.Response, error) {
 	d, err := v.decryptDeal(e)
 	if err != nil {
 		return nil, err
@@ -361,7 +348,7 @@ func (v *Verifier) ProcessEncryptedDeal(e *EncryptedDeal) (*vss.Response, error)
 		r.StatusApproved = vss.StatusComplaint
 	}
 
-	if errors.Is(err, errDealAlreadyProcessed) {
+	if errors.Is(err, vss.ErrDealAlreadyProcessed) {
 		return nil, err
 	}
 
@@ -380,7 +367,7 @@ func (v *Verifier) ProcessEncryptedDeal(e *EncryptedDeal) (*vss.Response, error)
 	return r, nil
 }
 
-func (v *Verifier) decryptDeal(e *EncryptedDeal) (*vss.Deal, error) {
+func (v *Verifier) decryptDeal(e *vss.EncryptedDeal) (*vss.Deal, error) {
 	ephBuff, err := e.DHKey.MarshalBinary()
 	if err != nil {
 		return nil, err
@@ -507,14 +494,12 @@ func newAggregator(
 	return agg
 }
 
-var errDealAlreadyProcessed = errors.New("vss: verifier already received a deal")
-
 // VerifyDeal analyzes the deal and returns an error if it's incorrect. If
 // inclusion is true, it also returns an error if it the second time this struct
 // analyzes a Deal.
 func (a *aggregator) VerifyDeal(d *vss.Deal, inclusion bool) error {
 	if a.deal != nil && inclusion {
-		return errDealAlreadyProcessed
+		return vss.ErrDealAlreadyProcessed
 
 	}
 	if a.deal == nil {
@@ -573,7 +558,7 @@ func (a *aggregator) verifyResponse(r *vss.Response) error {
 		return errors.New("vss: receiving inconsistent sessionID in response")
 	}
 
-	pub, ok := findPub(a.verifiers, r.Index)
+	pub, ok := vss.FindPub(a.verifiers, r.Index)
 	if !ok {
 		return errors.New("vss: index out of bounds in response")
 	}
@@ -591,7 +576,7 @@ func (a *aggregator) verifyResponse(r *vss.Response) error {
 }
 
 func (a *aggregator) verifyJustification(j *vss.Justification) error {
-	if _, ok := findPub(a.verifiers, j.Index); !ok {
+	if _, ok := vss.FindPub(a.verifiers, j.Index); !ok {
 		return errors.New("vss: index out of bounds in justification")
 	}
 	r, ok := a.responses[j.Index]
@@ -612,7 +597,7 @@ func (a *aggregator) verifyJustification(j *vss.Justification) error {
 }
 
 func (a *aggregator) addResponse(r *vss.Response) error {
-	if _, ok := findPub(a.verifiers, r.Index); !ok {
+	if _, ok := vss.FindPub(a.verifiers, r.Index); !ok {
 		return errors.New("vss: index out of bounds in Complaint")
 	}
 	if _, ok := a.responses[r.Index]; ok {
@@ -660,7 +645,7 @@ func (a *aggregator) DealCertified() bool {
 func (a *aggregator) UnsafeSetResponseDKG(idx uint32, approval bool) {
 	r := &vss.Response{
 		SessionID:      a.sid,
-		Index:          uint32(idx),
+		Index:          idx,
 		StatusApproved: approval,
 	}
 
@@ -688,14 +673,6 @@ func deriveH(suite vss.Suite, verifiers []kyber.Point) kyber.Point {
 	}
 	base := suite.Point().Pick(suite.XOF(b.Bytes()))
 	return base
-}
-
-func findPub(verifiers []kyber.Point, idx uint32) (kyber.Point, bool) {
-	iidx := int(idx)
-	if iidx >= len(verifiers) {
-		return nil, false
-	}
-	return verifiers[iidx], true
 }
 
 func sessionID(suite vss.Suite, dealer kyber.Point, verifiers, commitments []kyber.Point, t int) ([]byte, error) {

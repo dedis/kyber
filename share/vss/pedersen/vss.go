@@ -38,19 +38,6 @@ type Dealer struct {
 	*Aggregator
 }
 
-// EncryptedDeal contains the deal in a encrypted form only decipherable by the
-// correct recipient. The encryption is performed in a similar manner as what is
-// done in TLS. The dealer generates a temporary key pair, signs it with its
-// longterm secret key.
-type EncryptedDeal struct {
-	// Ephemeral Diffie Hellman key
-	DHKey []byte
-	// Signature of the DH key by the longterm key of the dealer
-	Signature []byte
-	// AEAD encryption of the deal marshalled by protobuf
-	Cipher []byte
-}
-
 // NewDealer returns a Dealer capable of leading the secret sharing scheme. It
 // does not have to be trusted by other Verifiers. The security parameter t is
 // the number of shares required to reconstruct the secret. MinimumT() provides
@@ -118,7 +105,7 @@ func (d *Dealer) PlaintextDeal(i int) (*vss.Deal, error) {
 // ephemeral key and the verifier's public key.
 // This shared key is then fed into a HKDF whose output is the key to a AEAD
 // (AES256-GCM) scheme to encrypt the deal.
-func (d *Dealer) EncryptedDeal(i int) (*EncryptedDeal, error) {
+func (d *Dealer) EncryptedDeal(i int) (*vss.EncryptedDeal, error) {
 	vPub, ok := findPub(d.verifiers, uint32(i))
 	if !ok {
 		return nil, errors.New("dealer: wrong index to generate encrypted deal")
@@ -145,9 +132,8 @@ func (d *Dealer) EncryptedDeal(i int) (*EncryptedDeal, error) {
 		return nil, err
 	}
 	encrypted := gcm.Seal(nil, nonce, dealBuff, d.hkdfContext)
-	dhBytes, _ := dhPublic.MarshalBinary()
-	return &EncryptedDeal{
-		DHKey:     dhBytes,
+	return &vss.EncryptedDeal{
+		DHKey:     dhPublic,
 		Signature: signature,
 		Cipher:    encrypted,
 	}, nil
@@ -156,8 +142,8 @@ func (d *Dealer) EncryptedDeal(i int) (*EncryptedDeal, error) {
 // EncryptedDeals calls `EncryptedDeal` for each index of the verifier and
 // returns the list of encrypted deals. Each index in the returned slice
 // corresponds to the index in the list of verifiers.
-func (d *Dealer) EncryptedDeals() ([]*EncryptedDeal, error) {
-	deals := make([]*EncryptedDeal, len(d.verifiers))
+func (d *Dealer) EncryptedDeals() ([]*vss.EncryptedDeal, error) {
+	deals := make([]*vss.EncryptedDeal, len(d.verifiers))
 	var err error
 	for i := range d.verifiers {
 		deals[i], err = d.EncryptedDeal(i)
@@ -306,7 +292,7 @@ func NewVerifier(suite vss.Suite, longterm kyber.Scalar, dealerKey kyber.Point,
 // broadcasted to every other participants including the dealer.
 // If the deal has already been received, or the signature generation of the
 // response failed, it returns an error without any responses.
-func (v *Verifier) ProcessEncryptedDeal(e *EncryptedDeal) (*vss.Response, error) {
+func (v *Verifier) ProcessEncryptedDeal(e *vss.EncryptedDeal) (*vss.Response, error) {
 	d, err := v.decryptDeal(e)
 	if err != nil {
 		return nil, err
@@ -350,18 +336,18 @@ func (v *Verifier) ProcessEncryptedDeal(e *EncryptedDeal) (*vss.Response, error)
 	return r, nil
 }
 
-func (v *Verifier) decryptDeal(e *EncryptedDeal) (*vss.Deal, error) {
+func (v *Verifier) decryptDeal(e *vss.EncryptedDeal) (*vss.Deal, error) {
+	ephBuff, err := e.DHKey.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
 	// verify signature
-	if err := schnorr.Verify(v.suite, v.dealer, e.DHKey, e.Signature); err != nil {
+	if err := schnorr.Verify(v.suite, v.dealer, ephBuff, e.Signature); err != nil {
 		return nil, err
 	}
 
 	// compute shared key and AES526-GCM cipher
-	dhKey := v.suite.Point()
-	if err := dhKey.UnmarshalBinary(e.DHKey); err != nil {
-		return nil, err
-	}
-	pre := vss.DhExchange(v.suite, v.longterm, dhKey)
+	pre := vss.DhExchange(v.suite, v.longterm, e.DHKey)
 	gcm, err := vss.NewAEAD(v.suite.Hash, pre, v.hkdfContext)
 	if err != nil {
 		return nil, err

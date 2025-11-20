@@ -2,6 +2,7 @@ package vss
 
 import (
 	"encoding/binary"
+	"errors"
 	"reflect"
 
 	"go.dedis.ch/kyber/v4"
@@ -123,3 +124,26 @@ func (j *Justification) Hash(s Suite) ([]byte, error) {
 	}
 	return h.Sum(nil), nil
 }
+
+// EncryptedDeal contains the deal in a encrypted form only decipherable by the
+// correct recipient. The encryption is performed in a similar manner as what is
+// done in TLS. The dealer generates a temporary key pair, signs it with its
+// longterm secret key.
+type EncryptedDeal struct {
+	// Ephemeral Diffie Hellman key
+	DHKey kyber.Point
+	// Signature of the DH key by the longterm key of the dealer
+	Signature []byte
+	// AEAD encryption of the deal marshalled by protobuf
+	Cipher []byte
+}
+
+func FindPub(verifiers []kyber.Point, idx uint32) (kyber.Point, bool) {
+	iidx := int(idx)
+	if iidx >= len(verifiers) {
+		return nil, false
+	}
+	return verifiers[iidx], true
+}
+
+var ErrDealAlreadyProcessed = errors.New("vss: verifier already received a deal")
