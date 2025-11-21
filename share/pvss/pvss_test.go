@@ -44,7 +44,7 @@ type KED struct {
 	D []*PubVerShare // good decrypted shares
 }
 
-func ComputeKED(conf Config, l int, pubPoly *share.PubPoly, encShares []*PubVerShare, sH []kyber.Point) (*KED, error) {
+func ComputeKED(conf Config, l uint32, pubPoly *share.PubPoly, encShares []*PubVerShare, sH []kyber.Point) (*KED, error) {
 	var K []kyber.Point  // good public keys
 	var E []*PubVerShare // good encrypted shares
 	var D []*PubVerShare // good decrypted shares
@@ -92,7 +92,7 @@ func RunPVSS(n, t uint32) (Config, kyber.Scalar, *KED, error) {
 		return conf, secret, nil, err
 	}
 
-	ked, err := ComputeKED(conf, int(n), pubPoly, encShares, sH)
+	ked, err := ComputeKED(conf, n, pubPoly, encShares, sH)
 	return conf, secret, ked, err
 }
 
@@ -128,7 +128,7 @@ func TestComputePolyCommitments(test *testing.T) {
 	require.NoError(test, err)
 
 	_, com := pubPoly.Info()
-	actualComm := computeCommitments(conf.suite, int(n), com)
+	actualComm := computeCommitments(conf.suite, n, com)
 
 	require.Equal(test, n, uint32(len(expectedComm)))
 	require.Equal(test, len(expectedComm), len(actualComm))
@@ -162,7 +162,8 @@ func TestPVSSDelete(test *testing.T) {
 	pubPoly, encShares, sH, err := EncryptAndShare(conf, secret)
 	require.NoError(test, err)
 
-	ked, err := ComputeKED(conf, len(conf.X), pubPoly, encShares, sH)
+	l := uint32(len(conf.X))
+	ked, err := ComputeKED(conf, l, pubPoly, encShares, sH)
 	require.NoError(test, err)
 
 	// Corrupt some of the decrypted shares
@@ -254,11 +255,11 @@ func TestPVSSBatch(test *testing.T) {
 	Z3 := []*PubVerShare{E0[3], E1[3], E2[3]}
 
 	globalChallenges := make([]kyber.Scalar, 3)
-	globalChallenges[0], err = computeGlobalChallenge(suite, int(n), p0, e0)
+	globalChallenges[0], err = computeGlobalChallenge(suite, n, p0, e0)
 	require.NoError(test, err)
-	globalChallenges[1], err = computeGlobalChallenge(suite, int(n), p1, e1)
+	globalChallenges[1], err = computeGlobalChallenge(suite, n, p1, e1)
 	require.NoError(test, err)
-	globalChallenges[2], err = computeGlobalChallenge(suite, int(n), p2, e2)
+	globalChallenges[2], err = computeGlobalChallenge(suite, n, p2, e2)
 	require.NoError(test, err)
 
 	// (2) Share batch decryption (trustees)
