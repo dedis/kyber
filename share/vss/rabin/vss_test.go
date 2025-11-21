@@ -618,7 +618,7 @@ func genAll() (*vss.Dealer, []*vss.Verifier) {
 	dealer := genDealer()
 	var verifiers = make([]*vss.Verifier, nbVerifiers)
 	for i := 0; i < nbVerifiers; i++ {
-		aggregator := NewAggregator(suite, dealerPub, verifiersPub, dealer.Commits(), dealer.Threshold(), dealer.Sid())
+		aggregator := NewEmptyAggregator(suite, verifiersPub)
 		v, _ := vss.NewVerifier(suite, verifiersSec[i], dealerPub, verifiersPub, aggregator)
 		verifiers[i] = v
 	}
