@@ -329,8 +329,9 @@ func (i *Int) ByteOrder() kyber.ByteOrder {
 }
 
 // GroupOrder returns the order of the underlying group
-func (i *Int) GroupOrder() *big.Int {
-	return big.NewInt(0).Set(i.M.Modulus)
+func (i *Int) GroupOrder() *compatible_mod.Mod {
+	mod := new(compatible_mod.Mod)
+	return mod.SetBytes(i.M.Bytes())
 }
 
 // MarshalSize returns the length in bytes of encoded integers with modulus M.
