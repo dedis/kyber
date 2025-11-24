@@ -91,12 +91,12 @@ func EncShares(
 	return encShares, pubPoly, nil
 }
 
-func computeCommitments(suite Suite, n int, polyComs []kyber.Point) []kyber.Point {
+func computeCommitments(suite Suite, n uint32, polyComs []kyber.Point) []kyber.Point {
 	coms := make([]kyber.Point, n)
 
 	// Compute Xi = C0 + iC1 + (i^2)C2 + ... + (i^(t-1))C_(t-1) for i in [1, ..., n]
 	// Using Horner's method: Xi = C0 + i(C1 + i(C2 + i(....)))
-	for i := 0; i < n; i++ {
+	for i := uint32(0); i < n; i++ {
 		ith := suite.Scalar().SetInt64(int64(i) + 1)
 		acc := suite.Point().Null()
 
@@ -113,7 +113,8 @@ func computeCommitments(suite Suite, n int, polyComs []kyber.Point) []kyber.Poin
 	return coms
 }
 
-func computeGlobalChallenge(suite Suite, n int, commit *share.PubPoly, encShares []*PubVerShare) (kyber.Scalar, error) {
+func computeGlobalChallenge(suite Suite, n uint32, commit *share.PubPoly,
+	encShares []*PubVerShare) (kyber.Scalar, error) {
 	_, polyComs := commit.Info()
 	coms := computeCommitments(suite, n, polyComs)
 
@@ -178,7 +179,7 @@ func VerifyEncShareBatch(
 	var E []*PubVerShare // good encrypted shares
 
 	// Need to compute the global challenge and verify the encrypted shares
-	expGlobalChallenge, err := computeGlobalChallenge(suite, len(X), commit, encShares)
+	expGlobalChallenge, err := computeGlobalChallenge(suite, uint32(len(X)), commit, encShares)
 	if err != nil {
 		return nil, nil, err
 	}

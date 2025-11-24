@@ -3,7 +3,7 @@ package vss
 import (
 	"crypto/rand"
 	"fmt"
-	mathRand "math/rand"
+	"math/big"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -127,10 +127,12 @@ func TestVSSDealerNew(t *testing.T) {
 }
 
 func TestVSSVerifierNew(t *testing.T) {
-	randIdx := uint32(mathRand.Int() % len(verifiersPub))
+	randInt, err := rand.Int(rand.Reader, big.NewInt(int64(len(verifiersPub))))
+	require.NoError(t, err)
+	randIdx := randInt.Uint64()
 	v, err := NewVerifier(suite, verifiersSec[randIdx], dealerPub, verifiersPub)
 	assert.NoError(t, err)
-	assert.Equal(t, randIdx, v.index)
+	assert.Equal(t, randIdx, uint64(v.index))
 
 	wrongKey := suite.Scalar().Pick(rng)
 	_, err = NewVerifier(suite, wrongKey, dealerPub, verifiersPub)
@@ -144,6 +146,7 @@ func TestVSSShare(t *testing.T) {
 	require.Nil(t, err)
 
 	resp, err := ver.ProcessEncryptedDeal(deal)
+	require.NoError(t, err)
 	require.NotNil(t, resp)
 	require.Equal(t, StatusApproval, resp.StatusApproved)
 	require.Nil(t, err)
@@ -249,6 +252,7 @@ func TestVSSVerifierReceiveDeal(t *testing.T) {
 
 	// correct deal
 	resp, err := v.ProcessEncryptedDeal(encD)
+	require.NoError(t, err)
 	require.NotNil(t, resp)
 	assert.Equal(t, StatusApproval, resp.StatusApproved)
 	assert.Nil(t, err)
@@ -301,6 +305,7 @@ func TestVSSVerifierReceiveDeal(t *testing.T) {
 	v.Aggregator.deal = nil
 	delete(v.Aggregator.responses, uint32(v.index))
 	resp, err = v.ProcessEncryptedDeal(encD)
+	require.NoError(t, err)
 	assert.NotNil(t, resp)
 	assert.Equal(t, StatusComplaint, resp.StatusApproved)
 	assert.Nil(t, err)
@@ -316,6 +321,7 @@ func TestVSSAggregatorVerifyJustification(t *testing.T) {
 	d.SecShare.V = wrongV
 	encD, _ := dealer.EncryptedDeal(0)
 	resp, err := v.ProcessEncryptedDeal(encD)
+	require.NoError(t, err)
 	assert.NotNil(t, resp)
 	assert.Equal(t, StatusComplaint, resp.StatusApproved)
 	assert.Nil(t, err)
