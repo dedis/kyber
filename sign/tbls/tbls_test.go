@@ -15,7 +15,7 @@ func TestTBLS(test *testing.T) {
 }
 
 func FuzzTBLS(f *testing.F) {
-	f.Fuzz(func(t *testing.T, msg []byte, n int) {
+	f.Fuzz(func(t *testing.T, msg []byte, n uint32) {
 		if (n < 1) || (n > 100) {
 			t.Skip("n must be between 1 and 100")
 		}
@@ -26,7 +26,7 @@ func FuzzTBLS(f *testing.F) {
 	})
 }
 
-func TBLSRoutine(test *testing.T, msg []byte, n int) {
+func TBLSRoutine(test *testing.T, msg []byte, n uint32) {
 	// Use a deterministic seed for the random stream
 	stream := blake2xb.New(msg)
 	suite := bn256.NewSuiteRand(stream)

@@ -218,7 +218,7 @@ func TestExpandMessageXMDSHA512(t *testing.T) {
 func TestExpandMessageXOFSHAKE128ShortDST(t *testing.T) {
 	dst := "QUUX-V01-CS02-with-expander-SHAKE128"
 	h := sha3.NewShake128()
-	outputLength := []int{32, 128}
+	outputLength := []int64{32, 128}
 
 	expectedHex32byte := []string{
 		"86518c9cd86581486e9485aa74ab35ba150d1c75c88e26b7043e44e2acd735a2",
@@ -254,7 +254,7 @@ func TestExpandMessageXOFSHAKE128ShortDST(t *testing.T) {
 func TestExpandMessageXOFSHAKE128LongDST(t *testing.T) {
 	dst := "QUUX-V01-CS02-with-expander-SHAKE128-long-DST-111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111"
 	h := sha3.NewShake128()
-	outputLength := []int{32, 128}
+	outputLength := []int64{32, 128}
 
 	expectedHex32byte := []string{
 		"827c6216330a122352312bccc0c8d6e7a146c5257a776dbd9ad9d75cd880fc53",

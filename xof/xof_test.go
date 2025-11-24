@@ -45,7 +45,7 @@ func testEncDec(t *testing.T, s kyber.XOFFactory, size int) {
 	s2 := s.XOF(key)
 
 	src := make([]byte, size)
-	copy(src, []byte("hello"))
+	copy(src, "hello")
 
 	dst := make([]byte, len(src)+1)
 	dst[len(dst)-1] = 0xff
