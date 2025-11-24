@@ -6,6 +6,7 @@ import (
 	"crypto/rsa"
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	"go.dedis.ch/kyber/v4/compatible/bigmod"
 )
 
@@ -14,6 +15,8 @@ import (
 // symbol names in the assembly files. See Issue 1.
 func TestLinkWithStdlib(t *testing.T) {
 	bigmod.NewNat()
-	k, _ := rsa.GenerateKey(rand.Reader, 512)
-	rsa.SignPSS(rand.Reader, k, crypto.SHA256, make([]byte, 32), nil)
+	k, err := rsa.GenerateKey(rand.Reader, 1024)
+	require.NoError(t, err)
+	_, err = rsa.SignPSS(rand.Reader, k, crypto.SHA256, make([]byte, 32), nil)
+	require.NoError(t, err)
 }
