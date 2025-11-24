@@ -40,7 +40,7 @@ jobs:
         os: [windows-latest, ubuntu-latest, macos-latest]
         size: ['64b', '32b']
         golang: ['1.25.4']
-        tag : ['varTime', 'constantTime']
+        tag : ['', 'constantTime']
         exclude:
           - os: windows-latest
             size: '32b'
@@ -95,11 +95,10 @@ jobs:
     - name: Test with coverage
       if: ${{ matrix.os == 'ubuntu-latest' && matrix.size == '64b' }}
       run: |
-        # 1) default build (no tags)
-        go test -tags ${{matrix.tag}} \
+        go test -tags ${{ matrix.tag }} \
         -json -covermode=count \
-        -coverprofile=profile-${{matrix.tag}}.cov ./... \
-        > report-${{matrix.tag}}.jsonl
+        -coverprofile=profile.cov ./... \
+        > report.jsonl
 
 
     - name: SonarQube Scan
