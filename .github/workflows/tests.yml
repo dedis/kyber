@@ -40,8 +40,7 @@ jobs:
         os: [windows-latest, ubuntu-latest, macos-latest]
         size: ['64b', '32b']
         golang: ['1.25.4']
-        tag : ['', 'constantTime']
-        tag : ['', 'constantTime']
+        tag : ['varTime', 'constantTime']
         exclude:
           - os: windows-latest
             size: '32b'
@@ -97,26 +96,10 @@ jobs:
       if: ${{ matrix.os == 'ubuntu-latest' && matrix.size == '64b' }}
       run: |
         # 1) default build (no tags)
-        go test -json -covermode=count \
-        -coverprofile=profile-default.cov ./... \
-        > report-default.jsonl
-        
-        # 2) constantTime build
-        go test -tags constantTime \
+        go test -tags ${{matrix.tag}} \
         -json -covermode=count \
-        -coverprofile=profile-constantTime.cov ./... \
-        > report-constantTime.jsonl
-        
-        # 3) install gocovmerge
-        go install github.com/wadey/gocovmerge@latest
-        
-        # 4) merge coverage profiles
-        gocovmerge profile-default.cov profile-constantTime.cov \
-        > profile.cov
-        
-        # 5) merge JSON‑lines test output
-        cat report-default.jsonl report-constantTime.jsonl \
-        > report.jsonl
+        -coverprofile=profile-${{matrix.tag}}.cov ./... \
+        > report-${{matrix.tag}}.jsonl
 
 
     - name: SonarQube Scan
