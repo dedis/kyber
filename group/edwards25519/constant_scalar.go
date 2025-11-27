@@ -10,10 +10,11 @@ import (
 	"crypto/subtle"
 	"encoding/hex"
 	"errors"
-	"github.com/cronokirby/saferith"
+
 	"go.dedis.ch/kyber/v4/compatible"
+	"go.dedis.ch/kyber/v4/compatible/compatible_mod"
+
 	"io"
-	"math/big"
 
 	"go.dedis.ch/kyber/v4"
 	"go.dedis.ch/kyber/v4/group/internal/marshalling"
@@ -60,11 +61,11 @@ func (s *scalar) setInt(i *mod.Int) kyber.Scalar {
 
 // SetInt64 sets the scalar to a small integer value.
 func (s *scalar) SetInt64(v int64) kyber.Scalar {
-	return s.setInt(mod.NewInt64(v, saferith.ModulusFromNat(primeOrder.Abs())))
+	return s.setInt(mod.NewInt64(v, primeOrder.ToCompatibleMod()))
 }
 
 func (s *scalar) toInt() *mod.Int {
-	return mod.NewIntBytes(s.v[:], saferith.ModulusFromNat(primeOrder.Abs()), defaultEndianess)
+	return mod.NewIntBytes(s.v[:], primeOrder.ToCompatibleMod(), defaultEndianess)
 }
 
 // Set to the additive identity (0)
@@ -138,13 +139,14 @@ func (s *scalar) Inv(a kyber.Scalar) kyber.Scalar {
 
 // Set to a fresh random or pseudo-random scalar
 func (s *scalar) Pick(rand cipher.Stream) kyber.Scalar {
-	i := mod.NewInt(random.Int(primeOrder, rand).Abs(), saferith.ModulusFromNat(primeOrder.Abs()))
+	primeOrderMod := primeOrder.ToCompatibleMod()
+	i := mod.NewInt(compatible.FromBigInt(random.Int(primeOrder.ToBigInt(), rand), primeOrderMod), primeOrderMod)
 	return s.setInt(i)
 }
 
 // SetBytes s to b, interpreted as a little endian integer.
 func (s *scalar) SetBytes(b []byte) kyber.Scalar {
-	return s.setInt(mod.NewIntBytes(b, saferith.ModulusFromNat(primeOrder.Abs()), defaultEndianess))
+	return s.setInt(mod.NewIntBytes(b, primeOrder.ToCompatibleMod(), defaultEndianess))
 }
 
 // ByteOrder return the byte representation type (big or little endian)
@@ -153,8 +155,8 @@ func (s *scalar) ByteOrder() kyber.ByteOrder {
 }
 
 // GroupOrder returns the order of the underlying group
-func (s *scalar) GroupOrder() *big.Int {
-	return primeOrder.ToBigInt()
+func (s *scalar) GroupOrder() *compatible_mod.Mod {
+	return primeOrder.ToCompatibleMod()
 }
 
 // String returns the string representation of this scalar (fixed length of 32 bytes, little endian).
@@ -204,7 +206,7 @@ func (s *scalar) UnmarshalFrom(r io.Reader) (int, error) {
 
 func newScalarInt(i *compatible.Int) *scalar {
 	s := scalar{}
-	s.setInt(mod.NewInt(i.Abs(), saferith.ModulusFromNat(fullOrder.Abs())))
+	s.setInt(mod.NewInt(i, fullOrder.ToCompatibleMod()))
 	return &s
 }
 
@@ -2273,7 +2275,7 @@ func (s *scalar) IsCanonical(sb []byte) bool {
 		return true
 	}
 
-	L := primeOrder.Bytes()
+	L := primeOrder.ToCompatibleMod().Bytes()
 	for i, j := 0, 31; i < j; i, j = i+1, j-1 {
 		L[i], L[j] = L[j], L[i]
 	}
