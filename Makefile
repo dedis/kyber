@@ -21,3 +21,7 @@ coverage: tidy
 # pushing code
 check: lint test
 	echo "check done"
+
+build: tidy
+	go build ./...
+	go build -tags constantTime ./...
