@@ -1,5 +1,4 @@
 *.iml
-*.bck.yml
 *.o
 *.pyc
 *.swp

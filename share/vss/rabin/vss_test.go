@@ -93,7 +93,7 @@ func TestVSSVerifierNew(t *testing.T) {
 	randIdx := uint32(rand.Int() % len(verifiersPub))
 	v, err := NewVerifier(suite, verifiersSec[randIdx], dealerPub, verifiersPub)
 	assert.NoError(t, err)
-	assert.Equal(t, uint32(randIdx), v.index)
+	assert.Equal(t, randIdx, v.index)
 
 	wrongKey := suite.Scalar().Pick(suite.RandomStream())
 	_, err = NewVerifier(suite, wrongKey, dealerPub, verifiersPub)

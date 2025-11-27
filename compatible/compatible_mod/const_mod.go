@@ -11,30 +11,18 @@ type Mod struct {
 	bigmod.Modulus
 }
 
-//func NewInt(x int64) *Mod {
-//	if x <= 1 {
-//		panic("negative number")
-//	}
-//	mod, err := bigmod.NewModulusFromNat(bigmod.NewNat().SetUint(uint(x)))
-//	if err != nil {
-//		panic(err)
-//	}
-//	return mod
-//
-//}
-
 func (m *Mod) Nat() *bigmod.Nat {
 	return m.Modulus.Nat()
 }
 
 // vartime function
-func (z *Mod) SetString(s string, base int) (*Mod, bool) {
+func (m *Mod) SetString(s string, base int) (*Mod, bool) {
 	bigFromS, ok := new(big.Int).SetString(s, base)
 	if !ok {
 		panic("invalid string, cannot convert to a Modulus")
 	}
-	z = FromBigInt(bigFromS)
-	return z, true
+	m = FromBigInt(bigFromS)
+	return m, true
 }
 
 func FromString(s string, base int) (*Mod, bool) {
@@ -46,7 +34,7 @@ func FromString(s string, base int) (*Mod, bool) {
 	return z, true
 }
 
-func (z *Mod) SetBytes(b []byte) *Mod {
+func (m *Mod) SetBytes(b []byte) *Mod {
 	modulus, err := bigmod.NewModulus(b)
 	if err != nil {
 		panic(err)
@@ -55,11 +43,14 @@ func (z *Mod) SetBytes(b []byte) *Mod {
 }
 
 // one usage in group/edwards22519/point_test.go @ TestPointIsCanonical
-func (z *Mod) Bytes() []byte {
-	return z.Modulus.Nat().Bytes(&z.Modulus)
+func (m *Mod) Bytes() []byte {
+	return m.Modulus.Nat().Bytes(&m.Modulus)
 }
 
 func NewInt(x int64) *Mod {
+	if x < 1 {
+		panic("negative number")
+	}
 	mod, err := bigmod.NewModulusFromNat(bigmod.NewNat().SetUint(uint(x)))
 	if err != nil {
 		panic(err)
@@ -75,16 +66,16 @@ func FromBigInt(x *big.Int) *Mod {
 	return &Mod{*modulus}
 }
 
-func (z *Mod) ToBigInt() *big.Int {
-	return big.NewInt(0).SetBytes(z.Bytes())
+func (m *Mod) ToBigInt() *big.Int {
+	return big.NewInt(0).SetBytes(m.Bytes())
 }
 
-func (z *Mod) SetBigInt(big *big.Int) *Mod {
-	return z.SetBytes(big.Bytes())
+func (m *Mod) SetBigInt(big *big.Int) *Mod {
+	return m.SetBytes(big.Bytes())
 }
 
-func (z *Mod) Bit(i int) uint {
-	return z.Modulus.Nat().Bit(i)
+func (m *Mod) Bit(i int) uint {
+	return m.Modulus.Nat().Bit(i)
 }
 
-func (z *Mod) String() string { return z.ToBigInt().String() }
+func (m *Mod) String() string { return m.ToBigInt().String() }

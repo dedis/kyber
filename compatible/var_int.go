@@ -53,12 +53,6 @@ func (z *Int) Mul(a, b *Int, mod *compatible_mod.Mod) *Int {
 	return z
 }
 
-//func (z *Int) Div(a, b *Int, mod *compatible_mod.Mod) *Int {
-//	z.Int.Div(&a.Int, &b.Int)
-//	z.Int.Mod(&z.Int, &mod.Int)
-//	return z
-//}
-
 func (z *Int) Sub(a, b *Int, mod *compatible_mod.Mod) *Int {
 	z.Int.Sub(&a.Int, &b.Int)
 	z.Int.Mod(&z.Int, &mod.Int)

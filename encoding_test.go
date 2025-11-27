@@ -2,10 +2,12 @@ package kyber
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/assert"
-	"go.dedis.ch/protobuf"
 	"math"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"go.dedis.ch/protobuf"
 )
 
 type intWrapper struct {
@@ -90,27 +92,22 @@ func TestInt64AndIntDecoding(t *testing.T) {
 	a := int64Wrapper{Value: 2}
 	b := intWrapper{Value: 2}
 	aEncoded, err := protobuf.Encode(&a)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	bEncoded, err := protobuf.Encode(&b)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	fmt.Println("a : ", aEncoded, "b : ", bEncoded)
 	assert.Equal(t, aEncoded, bEncoded)
 
 	var aDecoded intWrapper
 	err = protobuf.Decode(aEncoded, &aDecoded)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	var bDecoded intWrapper
 	err = protobuf.Decode(bEncoded, &bDecoded)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	assert.Equal(t, aDecoded.Value, bDecoded.Value)
 	//assert.Equal(t, aDecoded.Value, b.Value)
 }

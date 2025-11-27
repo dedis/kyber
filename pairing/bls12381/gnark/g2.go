@@ -5,10 +5,11 @@ package gnark
 import (
 	"crypto/cipher"
 	"fmt"
-	bls12381 "github.com/consensys/gnark-crypto/ecc/bls12-381"
-	"go.dedis.ch/kyber/v4"
 	"io"
 	"math/big"
+
+	bls12381 "github.com/consensys/gnark-crypto/ecc/bls12-381"
+	"go.dedis.ch/kyber/v4"
 )
 
 var _ kyber.SubGroupElement = &G2Elt{}

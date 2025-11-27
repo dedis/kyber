@@ -32,5 +32,3 @@ func (z *Mod) ToBigInt() *big.Int {
 func FromBigInt(x *big.Int) *Mod {
 	return &Mod{*x}
 }
-
-// func Add(x, y *Int, _ int) *Int { return big.Add(x, y) }

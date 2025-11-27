@@ -13,7 +13,6 @@ lint: tidy
 
 test: tidy
 	go test ./...
-	# go test -tags constantTime ./...
 
 coverage: tidy
 	go test -json -covermode=count -coverprofile=profile.cov ./... > report.jsonl
