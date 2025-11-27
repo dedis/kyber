@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"crypto/rand"
 	"fmt"
-	"go.dedis.ch/kyber/v4/compatible"
 	"math/big"
 	"strconv"
 	"strings"
 	"testing"
+
+	"go.dedis.ch/kyber/v4/compatible"
 )
 
 const size = 32
@@ -139,10 +140,10 @@ func TestInt(t *testing.T) {
 			r := strings.NewReader(readerStream)
 			cipher := New(r, rand.Reader)
 
-			randomInt := Int(modulus.ToBigInt(), cipher)
+			randomInt := Int(modulus.ToCompatibleMod(), cipher)
 
 			// Check if the generated BigInt is less than the modulus
-			if randomInt.Cmp(modulus.ToBigInt()) >= 0 {
+			if randomInt.Cmp(modulus) >= 0 {
 				t.Errorf("Generated BigInt %v is not less than the modulus %v", randomInt, modulus)
 			}
 		})

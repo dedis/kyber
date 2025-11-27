@@ -141,7 +141,7 @@ func (s *scalar) Inv(a kyber.Scalar) kyber.Scalar {
 // Set to a fresh random or pseudo-random scalar
 func (s *scalar) Pick(rand cipher.Stream) kyber.Scalar {
 	modulusPrimeOrder := primeOrder.ToCompatibleMod()
-	randomInt := compatible.FromBigInt(random.Int(primeOrder.ToBigInt(), rand), modulusPrimeOrder)
+	randomInt := random.Int(primeOrder.ToCompatibleMod(), rand)
 	i := mod.NewInt(randomInt, modulusPrimeOrder)
 	return s.setInt(i)
 }

@@ -5,10 +5,11 @@ package compatible
 import (
 	rand2 "crypto/rand"
 	"fmt"
-	"go.dedis.ch/kyber/v4/compatible/bigmod"
-	"go.dedis.ch/kyber/v4/compatible/compatible_mod"
 	"io"
 	"math/big"
+
+	"go.dedis.ch/kyber/v4/compatible/bigmod"
+	"go.dedis.ch/kyber/v4/compatible/compatible_mod"
 )
 
 type Int struct {
@@ -17,6 +18,10 @@ type Int struct {
 
 func FromNat(x *bigmod.Nat) *Int {
 	return &Int{*x}
+}
+
+func FromCompatibleMod(mod *compatible_mod.Mod) *Int {
+	return &Int{Int: *mod.Nat()}
 }
 
 func NewInt(x int64) *Int {
@@ -33,6 +38,10 @@ func NewUint(x uint64) *Int {
 	}
 	var z = bigmod.NewNat().SetUint(uint(x))
 	return &Int{*z}
+}
+
+func (z *Int) Int64() int64 {
+	return z.ToBigInt().Int64()
 }
 
 // Vartime function. Only to be used if the size of s is public

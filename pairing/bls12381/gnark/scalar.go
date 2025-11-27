@@ -4,9 +4,10 @@ package gnark
 
 import (
 	"crypto/cipher"
+	"io"
+
 	"go.dedis.ch/kyber/v4/compatible"
 	"go.dedis.ch/kyber/v4/compatible/compatible_mod"
-	"io"
 
 	fr "github.com/consensys/gnark-crypto/ecc/bls12-381/fr"
 	"go.dedis.ch/kyber/v4"
@@ -96,7 +97,8 @@ func (s *Scalar) Inv(a kyber.Scalar) kyber.Scalar {
 }
 
 func (s *Scalar) Pick(stream cipher.Stream) kyber.Scalar {
-	randomInt := random.Int(fr.Modulus(), stream)
+	mod := compatible_mod.FromBigInt(fr.Modulus())
+	randomInt := random.Int(mod, stream).ToBigInt()
 	s.inner.SetBigInt(randomInt)
 	return s
 }

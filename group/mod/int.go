@@ -8,10 +8,11 @@ import (
 	"crypto/cipher"
 	"encoding/hex"
 	"errors"
-	"go.dedis.ch/kyber/v4/compatible"
-	"go.dedis.ch/kyber/v4/compatible/compatible_mod"
 	"io"
 	"math/big"
+
+	"go.dedis.ch/kyber/v4/compatible"
+	"go.dedis.ch/kyber/v4/compatible/compatible_mod"
 
 	"go.dedis.ch/kyber/v4"
 	"go.dedis.ch/kyber/v4/group/internal/marshalling"
@@ -113,7 +114,7 @@ func (i *Int) String() string {
 // Returns (i,true) on success, or
 // (nil,false) if either string fails to parse.
 func (i *Int) SetString(n, d string, base int) (*Int, bool) {
-	
+
 	if _, ok := i.V.SetString(n, "", base); !ok {
 		return nil, false
 	}
@@ -292,8 +293,8 @@ func (i *Int) Sqrt(as kyber.Scalar) bool {
 // Pick a [pseudo-]random integer modulo M
 // using bits from the given stream cipher.
 func (i *Int) Pick(rand cipher.Stream) kyber.Scalar {
-	randomInt := random.Int(&i.M.Int, rand)
-	i.V.Set(compatible.FromBigInt(randomInt, nil))
+	randomInt := random.Int(i.M, rand)
+	i.V.Set(randomInt)
 	return i
 }
 

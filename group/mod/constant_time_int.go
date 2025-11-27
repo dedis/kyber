@@ -8,12 +8,13 @@ import (
 	"crypto/cipher"
 	"encoding/hex"
 	"errors"
+	"io"
+
 	"go.dedis.ch/kyber/v4"
 	"go.dedis.ch/kyber/v4/compatible"
 	"go.dedis.ch/kyber/v4/compatible/compatible_mod"
 	"go.dedis.ch/kyber/v4/group/internal/marshalling"
 	"go.dedis.ch/kyber/v4/util/random"
-	"io"
 )
 
 var marshalScalarID = [8]byte{'m', 'o', 'd', '.', 'i', 'n', 't', ' '}
@@ -315,11 +316,8 @@ func (i *Int) Exp(a kyber.Scalar, e *compatible.Int) kyber.Scalar {
 // Pick a [pseudo-]random integer, modulo M,
 // using bits from the given stream cipher.
 func (i *Int) Pick(rand cipher.Stream) kyber.Scalar {
-	modulusBig := i.M.ToBigInt()
-
-	randomBig := random.Int(modulusBig, rand)
-
-	i.V = *compatible.FromBigInt(randomBig, i.M)
+	randomInt := random.Int(i.M, rand)
+	i.V = *randomInt
 	return i
 }
 
