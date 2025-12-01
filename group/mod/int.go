@@ -394,7 +394,7 @@ func (i *Int) SetBytes(a []byte) kyber.Scalar {
 	if i.BO == kyber.LittleEndian {
 		buff = reverse(nil, a)
 	}
-	i.V.SetBytes(buff, i.M)
+	i.V.SetBytesMod(buff, i.M)
 	return i
 }
 

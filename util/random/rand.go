@@ -35,12 +35,11 @@ func Bits(bitlen uint, exact bool, rand cipher.Stream) []byte {
 
 // Int chooses a uniform random big.Int less than a given modulus
 func Int(mod *compatible_mod.Mod, rand cipher.Stream) *compatible.Int {
-	bitlen := uint(mod.BitLen())
+	bitLength := uint(mod.BitLen())
 	i := new(compatible.Int)
-	modInt := compatible.FromCompatibleMod(mod)
 	for {
-		i.SetBytes(Bits(bitlen, false, rand), mod)
-		if i.Sign() > 0 && i.Cmp(modInt) < 0 {
+		_, err := i.SetBytesWithCheck(Bits(bitLength, false, rand), mod)
+		if err == nil {
 			return i
 		}
 	}

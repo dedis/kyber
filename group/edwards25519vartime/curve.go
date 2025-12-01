@@ -223,7 +223,7 @@ func (c *curve) decodePoint(bb []byte, x, y *mod.Int) error {
 
 	// Extract the y-coordinate
 	y.M = c.P.ToCompatibleMod()
-	y.V.SetBytes(b, y.M)
+	y.V.SetBytes(b)
 
 	// Compute the corresponding x-coordinate
 	if !c.solveForX(x, y) {

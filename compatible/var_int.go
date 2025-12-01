@@ -4,9 +4,11 @@ package compatible
 
 import (
 	"crypto/rand"
-	"go.dedis.ch/kyber/v4/compatible/compatible_mod"
+	"errors"
 	"io"
 	"math/big"
+
+	"go.dedis.ch/kyber/v4/compatible/compatible_mod"
 )
 
 type Int struct {
@@ -75,10 +77,21 @@ func (z *Int) Mod(x *Int, y *compatible_mod.Mod) *Int {
 	return z
 }
 
-func (z *Int) SetBytes(buf []byte, mod *compatible_mod.Mod) *Int {
-	z.Int.SetBytes(buf)
+// SetBytesMod sets the byte of this Int and then mods the result to the
+// given modulus. Ensures that the resulting Int is less than the given
+// modulus.
+func (z *Int) SetBytesMod(buf []byte, mod *compatible_mod.Mod) *Int {
+	z.SetBytes(buf)
 	z.Int.Mod(&z.Int, &mod.Int)
 	return z
+}
+
+func (z *Int) SetBytesWithCheck(buf []byte, mod *compatible_mod.Mod) (*Int, error) {
+	z.SetBytes(buf)
+	if mod.Cmp(&z.Int) <= 0 {
+		return z, errors.New("setting bytes overflows the modulus")
+	}
+	return z, nil
 }
 
 func (x *Int) Cmp(y *Int) (r int) {

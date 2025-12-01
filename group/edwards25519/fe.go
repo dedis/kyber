@@ -5,6 +5,7 @@ package edwards25519
 
 import (
 	"fmt"
+
 	"go.dedis.ch/kyber/v4/compatible"
 )
 
@@ -260,7 +261,7 @@ func feToBn(dst *compatible.Int, src *fieldElement) {
 		b[i], b[l-i] = b[l-i], b[i]
 	}
 	//todo, what's the modulus here?
-	dst.SetBytes(b[:], prime)
+	dst.SetBytesMod(b[:], prime)
 }
 
 // feFromBn converts a compatible.Int to a fieldElement

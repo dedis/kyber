@@ -375,8 +375,8 @@ func (i *Int) UnmarshalBinary(buf []byte) error {
 	if i.BO == kyber.LittleEndian {
 		buf = reverse(nil, buf)
 	}
-	i.V.SetBytes(buf, i.M)
-	return nil
+	_, err := i.V.SetBytesWithCheck(buf, i.M)
+	return err
 }
 
 // MarshalTo encodes this Int to the given Writer.

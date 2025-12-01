@@ -215,12 +215,23 @@ func (z *Int) Mul(a, b *Int, mod *compatible_mod.Mod) *Int {
 	return z
 }
 
-func (z *Int) SetBytes(buf []byte, mod *compatible_mod.Mod) *Int {
-	_, err := z.Int.SetBytes(buf, &mod.Modulus)
-	if err != nil {
-		panic(err)
-	}
+// SetBytesMod sets the byte of this Int and then mods the result to the
+// given modulus. Ensures that the resulting Int is less than the given
+// modulus.
+func (z *Int) SetBytesMod(buf []byte, mod *compatible_mod.Mod) *Int {
+	_, _ = z.Int.SetBytes(buf, &mod.Modulus)
+	modZ := NewInt(0).Mod(z, mod)
+	z.Int = modZ.Int
 	return z
+}
+
+// SetBytesWithCheck attempts to set the bytes of this int and returns an error if
+// the byte value is larger or equal to the modulus.
+// This method simply calls bigmod.Nat.SetBytes() and return an error
+// is this method return an error
+func (z *Int) SetBytesWithCheck(buf []byte, mod *compatible_mod.Mod) (*Int, error) {
+	_, err := z.Int.SetBytes(buf, &mod.Modulus)
+	return z, err
 }
 
 func (z *Int) SetBytesBigBuffer(b []byte, m *compatible_mod.Mod) *Int {

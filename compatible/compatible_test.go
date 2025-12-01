@@ -3,10 +3,13 @@
 package compatible
 
 import (
-	"github.com/stretchr/testify/assert"
-	"go.dedis.ch/kyber/v4/compatible/compatible_mod"
+	"encoding/binary"
 	"math/big"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"go.dedis.ch/kyber/v4/compatible/compatible_mod"
 )
 
 func TestBigIntToNatConversion(t *testing.T) {
@@ -206,4 +209,23 @@ func TestSimpleMultiplication(t *testing.T) {
 	m := compatible_mod.NewInt(171)
 	a := NewInt(0).Mul(NewInt(33), NewInt(100), m)
 	assert.Equal(t, a.String(), "51")
+}
+
+// TestSetBytesMod tries to call SetBytesMod() and expect
+// that the value returned is indeed mod and no errors
+// occurred
+func TestSetBytesMod(t *testing.T) {
+	a := int64(999)
+	p := int64(100)
+	aExpected := a % p
+
+	// Turn a into bytes
+	aBytes := make([]byte, 8)
+	_, err := binary.Encode(aBytes, binary.BigEndian, a)
+	require.NoError(t, err)
+
+	pMod := compatible_mod.NewInt(p)
+	aInt := new(Int).SetBytesMod(aBytes, pMod)
+
+	assert.Equal(t, aExpected, aInt.Int64())
 }
