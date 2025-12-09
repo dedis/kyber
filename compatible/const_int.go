@@ -218,9 +218,19 @@ func (z *Int) Mul(a, b *Int, mod *compatible_mod.Mod) *Int {
 // given modulus. Ensures that the resulting Int is less than the given
 // modulus.
 func (z *Int) SetBytesMod(buf []byte, mod *compatible_mod.Mod) *Int {
-	_, _ = z.Int.SetBytes(buf, &mod.Modulus)
-	modZ := NewInt(0).Mod(z, mod)
-	z.Int = modZ.Int
+	// To create the Nat that will be reduced, we need a modulus big enough for it
+	bigBuffer := make([]byte, len(buf)+1)
+	bigBuffer[0] = 1
+	bigBufferMod, _ := bigmod.NewModulus(bigBuffer)
+
+	y, err := bigmod.NewNat().SetBytes(buf, bigBufferMod)
+	if err != nil {
+		panic(err)
+	}
+
+	yReduced := bigmod.NewNat().Mod(y, &mod.Modulus)
+
+	z.Int.Set(yReduced)
 	return z
 }
 
@@ -277,11 +287,7 @@ func (z *Int) ToCompatibleMod() *compatible_mod.Mod {
 
 // this function is vartime
 func FromBigInt(z *big.Int, m *compatible_mod.Mod) *Int {
-	nat, err := bigmod.NewNat().SetBytes(z.Bytes(), &m.Modulus)
-	if err != nil {
-		fmt.Println(err)
-	}
-	return &Int{*nat}
+	return new(Int).SetBytesMod(z.Bytes(), m)
 }
 
 // this function is vartime
