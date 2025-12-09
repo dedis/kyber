@@ -59,7 +59,8 @@ func Param1174() *Param {
 	p.D.SetInt64(-1174)
 
 	// Full-group generator is (4/V,3/5)
-	mi.InitString("4", "19225777642111670230408712442205514783403012708409058383774613284963344096", 10, p.P.ToCompatibleMod())
+	mi.InitString("4", "19225777642111670230408712442205514783403012708409058383774613284963344096",
+		10, p.P.ToCompatibleMod())
 	p.FBX.Set(&mi.V)
 	mi.InitString("3", "5", 10, p.P.ToCompatibleMod())
 	p.FBY.Set(&mi.V)

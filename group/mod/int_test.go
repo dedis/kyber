@@ -6,11 +6,12 @@ import (
 	"crypto/cipher"
 	"encoding/hex"
 	"fmt"
-	"go.dedis.ch/kyber/v4/compatible"
-	"go.dedis.ch/kyber/v4/compatible/compatible_mod"
 	"math/big"
 	"strings"
 	"testing"
+
+	"go.dedis.ch/kyber/v4/compatible"
+	"go.dedis.ch/kyber/v4/compatible/compatible_mod"
 
 	"github.com/stretchr/testify/assert"
 	"go.dedis.ch/kyber/v4"
@@ -283,7 +284,6 @@ func TestMultiplicationFullOrder(t *testing.T) {
 
 	var bigFullOrder = fullOrder.ToBigInt()
 	var bigCalculatedFullOrder = primeOrder.ToBigInt().Mul(primeOrder.ToBigInt(), cofactor.ToBigInt())
-	fmt.Println(bigFullOrder, bigCalculatedFullOrder)
 	assert.Equal(t, bigFullOrder, bigCalculatedFullOrder)
 }
 

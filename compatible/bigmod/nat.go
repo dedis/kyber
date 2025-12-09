@@ -457,14 +457,14 @@ func (x *Nat) BitLenVarTime() int {
 // its value. bits.Len and bits.LeadingZeros use a lookup table for the
 // low-order bits on some architectures.
 func bitLen(n uint) int {
-	len := 0
+	length := 0
 	// We assume, here and elsewhere, that comparison to zero is constant time
 	// with respect to different non-zero values.
 	for n != 0 {
-		len++
+		length++
 		n >>= 1
 	}
-	return len
+	return length
 }
 
 // Modulus is used for modular arithmetic, precomputing relevant constants.
