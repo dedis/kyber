@@ -104,8 +104,8 @@ func (z *Int) SetBytesWithCheck(buf []byte, mod *compatible_mod.Mod) (*Int, erro
 	return z, nil
 }
 
-func (x *Int) Cmp(y *Int) (r int) {
-	return x.Int.Cmp(&y.Int)
+func (z *Int) Cmp(y *Int) (r int) {
+	return z.Int.Cmp(&y.Int)
 }
 
 func (z *Int) Exp(x, y *Int, m *compatible_mod.Mod) *Int {
