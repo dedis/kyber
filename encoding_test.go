@@ -1,7 +1,6 @@
 package kyber
 
 import (
-	"fmt"
 	"math"
 	"testing"
 
@@ -29,13 +28,9 @@ func TestIntAndInt64Encoding(t *testing.T) {
 	b := int64Wrapper{Value: 10}
 
 	aEncoded, err := protobuf.Encode(&a)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	bEncoded, err := protobuf.Encode(&b)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	assert.Equal(t, aEncoded, bEncoded)
 }
@@ -44,16 +39,10 @@ func TestUInt32AndInt32Encoding(t *testing.T) {
 	u := int32Wrapper{Value: 1}
 	s := uint32Wrapper{Value: 1}
 	uEncoded, err := protobuf.Encode(&s)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	sEncoded, err := protobuf.Encode(&u)
-	if err != nil {
-		t.Fatal(err)
-	}
-	fmt.Println("u : ", uEncoded, "s : ", sEncoded)
-
+	require.NoError(t, err)
 	assert.NotEqual(t, uEncoded, sEncoded)
 }
 
@@ -61,14 +50,9 @@ func TestInt32AndIntEncoding(t *testing.T) {
 	a := int32Wrapper{Value: 2}
 	b := intWrapper{Value: 2}
 	aEncoded, err := protobuf.Encode(&a)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	bEncoded, err := protobuf.Encode(&b)
-	if err != nil {
-		t.Fatal(err)
-	}
-	fmt.Println("a : ", aEncoded, "b : ", bEncoded)
+	require.NoError(t, err)
 	assert.Equal(t, aEncoded, bEncoded)
 }
 
@@ -76,69 +60,35 @@ func TestInt32AndInt64Encoding(t *testing.T) {
 	a := int32Wrapper{Value: math.MaxInt32}
 	b := int64Wrapper{Value: math.MaxInt32}
 	aEncoded, err := protobuf.Encode(&a)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	bEncoded, err := protobuf.Encode(&b)
-	if err != nil {
-		t.Fatal(err)
-	}
-	fmt.Println("a : ", aEncoded, "b : ", bEncoded)
+	require.NoError(t, err)
 	assert.Equal(t, aEncoded, bEncoded)
 
 }
 
-func TestInt64AndIntDecoding(t *testing.T) {
+func TestInt64AndInt32Decoding(t *testing.T) {
 	a := int64Wrapper{Value: 2}
-	b := intWrapper{Value: 2}
+	b := int32Wrapper{Value: 2}
+
 	aEncoded, err := protobuf.Encode(&a)
 	require.NoError(t, err)
 
 	bEncoded, err := protobuf.Encode(&b)
 	require.NoError(t, err)
 
-	fmt.Println("a : ", aEncoded, "b : ", bEncoded)
 	assert.Equal(t, aEncoded, bEncoded)
 
-	var aDecoded intWrapper
+	var aDecoded int32Wrapper
 	err = protobuf.Decode(aEncoded, &aDecoded)
 	require.NoError(t, err)
 
-	var bDecoded intWrapper
+	var bDecoded int32Wrapper
 	err = protobuf.Decode(bEncoded, &bDecoded)
 	require.NoError(t, err)
 
 	assert.Equal(t, aDecoded.Value, bDecoded.Value)
-	//assert.Equal(t, aDecoded.Value, b.Value)
 }
-
-//func TestBinaryInt64AndIntEncoding(t *testing.T) {
-//	a := int64Wrapper{Value: 2}
-//	b := intWrapper{Value: 2}
-//	aEncoded, err := protobuf.Encode(&a)
-//	if err != nil {
-//		t.Fatal(err)
-//	}
-//	bEncoded, err := protobuf.Encode(&b)
-//	if err != nil {
-//		t.Fatal(err)
-//	}
-//
-//	f, err := os.OpenFile("/123.txt", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0600)
-//	if err != nil {
-//		panic(err)
-//	}
-//	defer f.Close()
-//	err = binary.Write(f, binary.LittleEndian, aEncoded)
-//	if err != nil {
-//		panic(err)
-//	}
-//	err = binary.Write(f, binary.LittleEndian, bEncoded)
-//	if err != nil {
-//		panic(err)
-//	}
-//	f.
-//}
 
 // zig-zag encoding for signed integers, does it also happen with Kyber structs?
 // varint encoding, is it a problem for constant-time, how is the data processed before being sent?
