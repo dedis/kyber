@@ -272,6 +272,7 @@ linters:
       - third_party$
       - builtin$
       - examples$
+      - compatible/bigmod/*
 issues:
   max-same-issues: 50
 formatters:
