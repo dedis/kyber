@@ -2,8 +2,9 @@ package edwards25519
 
 import (
 	"fmt"
-	"go.dedis.ch/kyber/v4/group/mod"
 	"testing"
+
+	"go.dedis.ch/kyber/v4/group/mod"
 
 	"github.com/stretchr/testify/require"
 	"go.dedis.ch/kyber/v4"
@@ -116,7 +117,7 @@ func TestScalar_Marshal(t *testing.T) {
 }
 
 func TestSetInt(t *testing.T) {
-	am := mod.NewInt64(1, primeOrder.ToCompatibleMod())
+	am := mod.NewInt64(1, primeOrder)
 	s := new(scalar).setInt(am)
 	fmt.Println(s.String(), am)
 }

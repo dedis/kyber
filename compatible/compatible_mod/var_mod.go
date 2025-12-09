@@ -3,6 +3,7 @@
 package compatible_mod
 
 import (
+	"errors"
 	"math/big"
 )
 
@@ -18,6 +19,14 @@ func (z *Mod) SetString(s string, base int) (*Mod, bool) {
 	_, t := z.Int.SetString(s, base)
 	//fmt.Println("	debug: ", t)
 	return z, t
+}
+
+func FromString(s string, base int) (*Mod, error) {
+	bigFromS, ok := new(big.Int).SetString(s, base)
+	if !ok {
+		return nil, errors.New("invalid string, cannot convert to a Modulus")
+	}
+	return &Mod{*bigFromS}, nil
 }
 
 func (z *Mod) SetBytes(buf []byte) *Mod {

@@ -60,13 +60,11 @@ func (s *scalar) setInt(i *mod.Int) kyber.Scalar {
 
 // SetInt64 sets the scalar to a small integer value.
 func (s *scalar) SetInt64(v int64) kyber.Scalar {
-	modulusPrimeOrder := primeOrder.ToCompatibleMod()
-	return s.setInt(mod.NewInt64(v, modulusPrimeOrder))
+	return s.setInt(mod.NewInt64(v, primeOrder))
 }
 
 func (s *scalar) toInt() *mod.Int {
-	modulusPrimeOrder := primeOrder.ToCompatibleMod()
-	return mod.NewIntBytes(s.v[:], modulusPrimeOrder, defaultEndianess)
+	return mod.NewIntBytes(s.v[:], primeOrder, defaultEndianess)
 }
 
 // Set to the additive identity (0)
@@ -140,16 +138,14 @@ func (s *scalar) Inv(a kyber.Scalar) kyber.Scalar {
 
 // Set to a fresh random or pseudo-random scalar
 func (s *scalar) Pick(rand cipher.Stream) kyber.Scalar {
-	modulusPrimeOrder := primeOrder.ToCompatibleMod()
-	randomInt := random.Int(primeOrder.ToCompatibleMod(), rand)
-	i := mod.NewInt(randomInt, modulusPrimeOrder)
+	randomInt := random.Int(primeOrder, rand)
+	i := mod.NewInt(randomInt, primeOrder)
 	return s.setInt(i)
 }
 
 // SetBytes s to b, interpreted as a little endian integer.
 func (s *scalar) SetBytes(b []byte) kyber.Scalar {
-	modulusPrimeOrder := primeOrder.ToCompatibleMod()
-	return s.setInt(mod.NewIntBytes(b, modulusPrimeOrder, defaultEndianess))
+	return s.setInt(mod.NewIntBytes(b, primeOrder, defaultEndianess))
 }
 
 // ByteOrder return the byte representation type (big or little endian)
@@ -159,9 +155,7 @@ func (s *scalar) ByteOrder() kyber.ByteOrder {
 
 // GroupOrder returns the order of the underlying group
 func (s *scalar) GroupOrder() *compatible_mod.Mod {
-
-	modulusPrimeOrder := primeOrder.ToCompatibleMod()
-	return modulusPrimeOrder
+	return primeOrder
 }
 
 // String returns the string representation of this scalar (fixed length of 32 bytes, little endian).
@@ -210,9 +204,8 @@ func (s *scalar) UnmarshalFrom(r io.Reader) (int, error) {
 }
 
 func newScalarInt(i *compatible.Int) *scalar {
-	modulusFullOrder := fullOrder.ToCompatibleMod()
 	s := scalar{}
-	s.setInt(mod.NewInt(i, modulusFullOrder))
+	s.setInt(mod.NewInt(i, fullOrder))
 	return &s
 }
 
@@ -2281,7 +2274,7 @@ func (s *scalar) IsCanonical(sb []byte) bool {
 		return true
 	}
 
-	L := primeOrder.ToCompatibleMod().Bytes()
+	L := primeOrder.Bytes()
 	for i, j := 0, 31; i < j; i, j = i+1, j-1 {
 		L[i], L[j] = L[j], L[i]
 	}

@@ -19,6 +19,10 @@ func NewInt(x int64) *Int {
 	return &Int{*big.NewInt(x)}
 }
 
+func NewUint(x uint64) *Int {
+	return &Int{*new(big.Int).SetUint64(x)}
+}
+
 func Jacobi(x, y *Int) int { return big.Jacobi(&x.Int, &y.Int) }
 
 func Prime(randR io.Reader, bits int) (*Int, error) {
@@ -49,6 +53,10 @@ func (z *Int) SetString(s, _ string, base int) (*Int, bool) {
 	return z, err
 }
 
+func (z *Int) SetStringM(s string, _ *compatible_mod.Mod, base int) (*Int, bool) {
+	return z.SetString(s, s, base)
+}
+
 func (z *Int) Mul(a, b *Int, mod *compatible_mod.Mod) *Int {
 	z.Int.Mul(&a.Int, &b.Int)
 	z.Int.Mod(&z.Int, &mod.Int)
@@ -72,6 +80,8 @@ func (z *Int) SetUint64(x uint64) *Int {
 	return z
 }
 
+// Mod computes x mod y, sets the receiver to this result and return
+// the receiver
 func (z *Int) Mod(x *Int, y *compatible_mod.Mod) *Int {
 	z.Int.Mod(&x.Int, &y.Int)
 	return z
