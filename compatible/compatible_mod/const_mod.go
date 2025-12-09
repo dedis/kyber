@@ -3,8 +3,9 @@
 package compatible_mod
 
 import (
-	"go.dedis.ch/kyber/v4/compatible/bigmod"
 	"math/big"
+
+	"go.dedis.ch/kyber/v4/compatible/bigmod"
 )
 
 type Mod struct {

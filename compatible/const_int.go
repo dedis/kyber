@@ -4,7 +4,6 @@ package compatible
 
 import (
 	rand2 "crypto/rand"
-	"fmt"
 	"io"
 	"math/big"
 
@@ -170,7 +169,7 @@ func Prime(rand io.Reader, bits int) (*Int, error) {
 func (z *Int) String() string { return z.ToBigInt().String() }
 func (z *Int) Exp(x, y *Int, m *compatible_mod.Mod) *Int {
 	// Exp requires y to be reduced modulo m
-	y.Int.Mod(&y.Int, &m.Modulus)
+	y.Mod(y, m)
 	z.Int.Exp(&x.Int, y.Bytes(m), &m.Modulus)
 	return z
 }
@@ -242,8 +241,11 @@ func (z *Int) SetBytesBigBuffer(b []byte, m *compatible_mod.Mod) *Int {
 	return FromNat(nat)
 }
 
+// Mod computes x mod y, sets the receiver to this result and return
+// the receiver
 func (z *Int) Mod(x *Int, y *compatible_mod.Mod) *Int {
-	z.Int.Mod(&x.Int, &y.Modulus)
+	// Create a new Int and assign to z since bigmod.Nat.Mod() will overwrite the receiver
+	z.Int = *bigmod.NewNat().Mod(&x.Int, &y.Modulus)
 	return z
 }
 
