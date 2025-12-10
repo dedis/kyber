@@ -9,7 +9,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.dedis.ch/kyber/v4/compatible/compatible_mod"
+	"go.dedis.ch/kyber/v4/compatible/compatiblemod"
 )
 
 func TestBigIntToNatConversion(t *testing.T) {
@@ -18,7 +18,7 @@ func TestBigIntToNatConversion(t *testing.T) {
 	bigMod, _ := new(big.Int).SetString("115792089237316195423570985008687907853269984665640564039457584007913129639935", 10)
 
 	// Convert to nat
-	natMod := compatible_mod.FromBigInt(bigMod)
+	natMod := compatiblemod.FromBigInt(bigMod)
 	natValue := FromBigInt(bigValue, natMod)
 
 	// Convert back to big.Int
@@ -40,7 +40,7 @@ func TestBit(t *testing.T) {
 	bigMod, _ := new(big.Int).SetString("115792089237316195423570985008687907853269984665640564039457584007913129639935", 10)
 
 	// Convert to nat
-	natMod := compatible_mod.FromBigInt(bigMod)
+	natMod := compatiblemod.FromBigInt(bigMod)
 	natValue := FromBigInt(bigValue, natMod)
 
 	// Convert back to big.Int
@@ -66,7 +66,7 @@ func TestFillBytes(t *testing.T) {
 	bigMod, _ := new(big.Int).SetString("115792089237316195423570985008687907853269984665640564039457584007913129639935", 10)
 
 	// Convert to nat
-	natMod := compatible_mod.FromBigInt(bigMod)
+	natMod := compatiblemod.FromBigInt(bigMod)
 	natValue := FromBigInt(bigValue, natMod)
 
 	// Create byte slices of equal length for both implementations
@@ -90,7 +90,7 @@ func TestStringConversion(t *testing.T) {
 	bigMod, _ := new(big.Int).SetString("115792089237316195423570985008687907853269984665640564039457584007913129639935", 10)
 
 	// Convert to nat
-	natMod, _ := compatible_mod.FromString("115792089237316195423570985008687907853269984665640564039457584007913129639935", 10)
+	natMod, _ := compatiblemod.FromString("115792089237316195423570985008687907853269984665640564039457584007913129639935", 10)
 	natValue, _ := new(Int).SetString("7237005577332262213973186563042994240857116359379907606001950938285454250987", "115792089237316195423570985008687907853269984665640564039457584007913129639935", 10)
 
 	// Convert back to big.Int
@@ -111,7 +111,7 @@ func TestStringMConversion(t *testing.T) {
 	bigMod, _ := new(big.Int).SetString("115792089237316195423570985008687907853269984665640564039457584007913129639935", 10)
 
 	// Convert to nat
-	natMod, _ := compatible_mod.FromString("115792089237316195423570985008687907853269984665640564039457584007913129639935", 10)
+	natMod, _ := compatiblemod.FromString("115792089237316195423570985008687907853269984665640564039457584007913129639935", 10)
 	natValue, _ := new(Int).SetStringM("7237005577332262213973186563042994240857116359379907606001950938285454250987", natMod, 10)
 
 	// Convert back to big.Int
@@ -146,7 +146,7 @@ func TestModInverse(t *testing.T) {
 		hasBigInverse := bigInverse != nil
 
 		// Compatible implementation
-		natMod := compatible_mod.FromBigInt(bigMod)
+		natMod := compatiblemod.FromBigInt(bigMod)
 		natValue := FromBigInt(bigValue, natMod)
 		natInverse := NewInt(0).ModInverse(natValue, natMod)
 		hasNatInverse := natInverse != nil
@@ -199,14 +199,14 @@ func TestMultiplication(t *testing.T) {
 }
 
 func TestSimpleMod(t *testing.T) {
-	mod := compatible_mod.NewInt(171)
+	mod := compatiblemod.NewInt(171)
 	initial := NewInt(330)
 	a := NewInt(0).Mod(initial, mod)
 	assert.Equal(t, a.String(), "159")
 }
 
 func TestSimpleMultiplication(t *testing.T) {
-	m := compatible_mod.NewInt(171)
+	m := compatiblemod.NewInt(171)
 	a := NewInt(0).Mul(NewInt(33), NewInt(100), m)
 	assert.Equal(t, a.String(), "51")
 }

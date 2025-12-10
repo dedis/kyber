@@ -5,7 +5,7 @@ import (
 
 	"github.com/cloudflare/circl/ecc/bls12381"
 	"go.dedis.ch/kyber/v4"
-	"go.dedis.ch/kyber/v4/compatible/compatible_mod"
+	"go.dedis.ch/kyber/v4/compatible/compatiblemod"
 
 	"io"
 )
@@ -122,7 +122,7 @@ func (s *Scalar) ByteOrder() kyber.ByteOrder {
 	return kyber.BigEndian
 }
 
-func (s *Scalar) GroupOrder() *compatible_mod.Mod {
-	mod := new(compatible_mod.Mod)
+func (s *Scalar) GroupOrder() *compatiblemod.Mod {
+	mod := new(compatiblemod.Mod)
 	return mod.SetBytes(bls12381.Order())
 }

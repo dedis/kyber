@@ -2,7 +2,7 @@ package kyber
 
 import (
 	"crypto/cipher"
-	"go.dedis.ch/kyber/v4/compatible/compatible_mod"
+	"go.dedis.ch/kyber/v4/compatible/compatiblemod"
 )
 
 // ByteOrder denotes the endianness of the operation.
@@ -72,8 +72,8 @@ type Scalar interface {
 	ByteOrder() ByteOrder
 
 	// GroupOrder returns the order of the underlying group
-	// todo should this return a compatible_mod.Mod? Is the size of the groupOrder secret?
-	GroupOrder() *compatible_mod.Mod
+	// todo should this return a compatiblemod.Mod? Is the size of the groupOrder secret?
+	GroupOrder() *compatiblemod.Mod
 }
 
 // Point represents an element of a public-key cryptographic Group.

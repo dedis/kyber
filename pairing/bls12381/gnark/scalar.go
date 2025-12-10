@@ -7,7 +7,7 @@ import (
 	"io"
 
 	"go.dedis.ch/kyber/v4/compatible"
-	"go.dedis.ch/kyber/v4/compatible/compatible_mod"
+	"go.dedis.ch/kyber/v4/compatible/compatiblemod"
 
 	fr "github.com/consensys/gnark-crypto/ecc/bls12-381/fr"
 	"go.dedis.ch/kyber/v4"
@@ -97,7 +97,7 @@ func (s *Scalar) Inv(a kyber.Scalar) kyber.Scalar {
 }
 
 func (s *Scalar) Pick(stream cipher.Stream) kyber.Scalar {
-	mod := compatible_mod.FromBigInt(fr.Modulus())
+	mod := compatiblemod.FromBigInt(fr.Modulus())
 	randomInt := random.Int(mod, stream).ToBigInt()
 	s.inner.SetBigInt(randomInt)
 	return s
@@ -109,6 +109,6 @@ func (s *Scalar) ByteOrder() kyber.ByteOrder {
 	return kyber.BigEndian
 }
 
-func (s *Scalar) GroupOrder() *compatible_mod.Mod {
+func (s *Scalar) GroupOrder() *compatiblemod.Mod {
 	return compatible.FromBigInt(fr.Modulus(), nil).ToCompatibleMod()
 }

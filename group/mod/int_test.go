@@ -11,14 +11,14 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"go.dedis.ch/kyber/v4/compatible"
-	"go.dedis.ch/kyber/v4/compatible/compatible_mod"
+	"go.dedis.ch/kyber/v4/compatible/compatiblemod"
 
 	"github.com/stretchr/testify/assert"
 	"go.dedis.ch/kyber/v4"
 )
 
 func TestIntEndianness(t *testing.T) {
-	modulo := compatible_mod.NewInt(65535)
+	modulo := compatiblemod.NewInt(65535)
 	var v int64 = 65500
 	// Let's assume it is bigendian and test that
 	i := new(Int).Init64(v, modulo)
@@ -67,7 +67,7 @@ func TestIntEndianness(t *testing.T) {
 func TestIntEndianBytes(t *testing.T) {
 	modulo, err := hex.DecodeString("1000")
 	require.NoError(t, err)
-	moduloI := new(compatible_mod.Mod).SetBytes(modulo)
+	moduloI := new(compatiblemod.Mod).SetBytes(modulo)
 	v, err := hex.DecodeString("10")
 	require.NoError(t, err)
 
@@ -78,7 +78,7 @@ func TestIntEndianBytes(t *testing.T) {
 }
 
 func TestInits(t *testing.T) {
-	i1 := NewInt64(int64(65500), compatible_mod.NewInt(65535))
+	i1 := NewInt64(int64(65500), compatiblemod.NewInt(65535))
 	i2 := NewInt(&i1.V, i1.M)
 	assert.True(t, i1.Equal(i2))
 	b, _ := i1.MarshalBinary()
@@ -89,7 +89,7 @@ func TestInits(t *testing.T) {
 }
 
 func TestIntClone(t *testing.T) {
-	moduloI := new(compatible_mod.Mod).SetBytes([]byte{0x10, 0})
+	moduloI := new(compatiblemod.Mod).SetBytes([]byte{0x10, 0})
 	base := new(Int).InitBytes([]byte{0x10}, moduloI, kyber.BigEndian)
 
 	clone := base.Clone()
@@ -100,7 +100,7 @@ func TestIntClone(t *testing.T) {
 }
 
 func TestSetString7mod17(t *testing.T) {
-	mod := compatible_mod.NewInt(17)
+	mod := compatiblemod.NewInt(17)
 	initial := compatible.NewInt(3)
 	i := NewInt(initial, mod)
 	i.SetString("7", "", 16)
@@ -108,7 +108,7 @@ func TestSetString7mod17(t *testing.T) {
 }
 
 func TestSetString199291mod9991211391(t *testing.T) {
-	mod := compatible_mod.NewInt(9991211391)
+	mod := compatiblemod.NewInt(9991211391)
 	initial := compatible.NewInt(199291) // in decimal
 	i := NewInt(initial, mod)
 	i.SetString("199291", "", 16) // in hex
@@ -116,7 +116,7 @@ func TestSetString199291mod9991211391(t *testing.T) {
 }
 
 func TestAdditions(t *testing.T) {
-	mod := compatible_mod.NewInt(17)
+	mod := compatiblemod.NewInt(17)
 	initial := compatible.NewInt(3)
 	i := NewInt(initial, mod)
 	i.Add(i, i)
@@ -132,7 +132,7 @@ func TestAdditions(t *testing.T) {
 }
 
 func TestSubtraction(t *testing.T) {
-	mod := compatible_mod.NewInt(171)
+	mod := compatiblemod.NewInt(171)
 	initial := compatible.NewInt(33)
 	initialMinus := compatible.NewInt(100)
 	i := NewInt(initial, mod)
@@ -142,7 +142,7 @@ func TestSubtraction(t *testing.T) {
 }
 
 func TestMultiplication(t *testing.T) {
-	mod := compatible_mod.NewInt(171)
+	mod := compatiblemod.NewInt(171)
 	initial := compatible.NewInt(33)
 	initialMul := compatible.NewInt(100)
 	i := NewInt(initial, mod)
@@ -152,7 +152,7 @@ func TestMultiplication(t *testing.T) {
 }
 
 func TestDivision(t *testing.T) {
-	mod := compatible_mod.NewInt(181)
+	mod := compatiblemod.NewInt(181)
 	initial := compatible.NewInt(51)
 	initialDiv := compatible.NewInt(100)
 	i := NewInt(initial, mod)
@@ -162,7 +162,7 @@ func TestDivision(t *testing.T) {
 }
 
 func TestComparisons(t *testing.T) {
-	mod := compatible_mod.NewInt(171)
+	mod := compatiblemod.NewInt(171)
 	numbers := []int64{0, 1, 13, 100, 21, 170, 110, 85, 35, 42}
 
 	for i, n1 := range numbers {
@@ -187,14 +187,14 @@ func TestComparisons(t *testing.T) {
 }
 
 func TestSimpleInit(t *testing.T) {
-	mod := compatible_mod.NewInt(171)
+	mod := compatiblemod.NewInt(171)
 	initial := compatible.NewInt(33)
 	i := NewInt(initial, mod)
 	assert.Equal(t, "21", i.String())
 }
 
 func TestSimpleInit2(t *testing.T) {
-	mod := compatible_mod.NewInt(171)
+	mod := compatiblemod.NewInt(171)
 	initial := compatible.NewInt(33)
 	i := NewInt(initial, mod)
 	assert.Equal(t, "21", i.String())
@@ -204,7 +204,7 @@ func TestSimpleInit2(t *testing.T) {
 
 func TestPick(t *testing.T) {
 
-	mod := compatible_mod.NewInt(171)
+	mod := compatiblemod.NewInt(171)
 	key := make([]byte, 32)
 	block, err := aes.NewCipher(key)
 	require.NoError(t, err)
@@ -243,16 +243,16 @@ func TestModInverse(t *testing.T) {
 		hasBigInverse := bigInverse != nil
 
 		// Compatible implementation
-		natMod := compatible_mod.FromBigInt(bigMod)
+		natMod := compatiblemod.FromBigInt(bigMod)
 		natValue := compatible.FromBigInt(bigValue, natMod)
 		nat := NewInt(natValue, natMod)
 		natInverse := NewInt(natValue, natMod).Inv(nat)
 		hasNatInverse := natInverse != nil
 
-		require.NotEqual(t, tc.hasInverse, hasBigInverse, "big.Int ModInverse existence mismatch for %v mod %v: got %v, want %v",
+		require.Equal(t, tc.hasInverse, hasBigInverse, "big.Int ModInverse existence mismatch for %v mod %v: got %v, want %v",
 			tc.value, tc.modulus, hasBigInverse, tc.hasInverse)
 
-		require.NotEqual(t, hasNatInverse, tc.hasInverse, "Compatible ModInverse existence mismatch for %v mod %v: got %v, want %v",
+		require.Equal(t, hasNatInverse, tc.hasInverse, "Compatible ModInverse existence mismatch for %v mod %v: got %v, want %v",
 			tc.value, tc.modulus, hasNatInverse, tc.hasInverse)
 
 		if tc.hasInverse {
@@ -286,14 +286,14 @@ func TestMultiplicationFullOrder(t *testing.T) {
 }
 
 func TestNegativeInitialization(t *testing.T) {
-	a := NewInt64(-1, compatible_mod.NewInt(97)) // mod 97
-	assert.Equal(t, a.String(), "60")            // [96]10 = [60]16
+	a := NewInt64(-1, compatiblemod.NewInt(97)) // mod 97
+	assert.Equal(t, a.String(), "60")           // [96]10 = [60]16
 }
 
 func TestSetBytesBigBuf(t *testing.T) {
 	buf := make([]byte, 32)
 	buf[0] = 1
-	mod := compatible_mod.NewInt(17)
+	mod := compatiblemod.NewInt(17)
 	number := NewIntBytes(buf, mod, kyber.LittleEndian)
 
 	modBigInt := new(big.Int).SetUint64(17)

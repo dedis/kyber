@@ -8,7 +8,7 @@ import (
 	"math/big"
 
 	"go.dedis.ch/kyber/v4/compatible/bigmod"
-	"go.dedis.ch/kyber/v4/compatible/compatible_mod"
+	"go.dedis.ch/kyber/v4/compatible/compatiblemod"
 )
 
 type Int struct {
@@ -19,7 +19,7 @@ func FromNat(x *bigmod.Nat) *Int {
 	return &Int{*x}
 }
 
-func FromCompatibleMod(mod *compatible_mod.Mod) *Int {
+func FromCompatibleMod(mod *compatiblemod.Mod) *Int {
 	return &Int{Int: *mod.Nat()}
 }
 
@@ -51,14 +51,14 @@ func (z *Int) SetString(s, sm string, base int) (*Int, bool) {
 	if !ok {
 		panic("invalid string for the value")
 	}
-	m, _ := compatible_mod.FromString(sm, base)
+	m, _ := compatiblemod.FromString(sm, base)
 	res := FromBigInt(bigFromS, m)
 	z.Int = res.Int
 	return z, true
 }
 
 // SetStringM sets z to s modulo m (s must be bigger than m, the program panics otherwise)
-func (z *Int) SetStringM(s string, m *compatible_mod.Mod, base int) (*Int, bool) {
+func (z *Int) SetStringM(s string, m *compatiblemod.Mod, base int) (*Int, bool) {
 	bigFromS, ok := new(big.Int).SetString(s, base)
 	if !ok {
 		panic("invalid string for the value")
@@ -68,7 +68,7 @@ func (z *Int) SetStringM(s string, m *compatible_mod.Mod, base int) (*Int, bool)
 	return z, true
 }
 
-func (z *Int) Bytes(m *compatible_mod.Mod) []byte {
+func (z *Int) Bytes(m *compatiblemod.Mod) []byte {
 	return z.Int.Bytes(&m.Modulus)
 }
 
@@ -79,7 +79,7 @@ func (z *Int) bytesVartime() []byte {
 
 // ModInverse sets z to the multiplicative inverse of g in the ring ℤ/nℤ
 // Requires n to be prime (uses Fermat: g^(n-2) mod n).
-func (z *Int) ModInverse(g *Int, n *compatible_mod.Mod) *Int {
+func (z *Int) ModInverse(g *Int, n *compatiblemod.Mod) *Int {
 	//if n.ToBigInt().ProbablyPrime(10) == false {
 	//	panic("n is not prime")
 	//}
@@ -108,7 +108,7 @@ func (z *Int) ModInverse(g *Int, n *compatible_mod.Mod) *Int {
 	return z.Set(res)
 }
 
-func (z *Int) ModInverseVartime(g *Int, n *compatible_mod.Mod) *Int {
+func (z *Int) ModInverseVartime(g *Int, n *compatiblemod.Mod) *Int {
 	z.Int.InverseVarTime(&g.Int, &n.Modulus)
 	return z
 }
@@ -162,12 +162,12 @@ func Prime(rand io.Reader, bits int) (*Int, error) {
 	}
 	m := big.NewInt(0)
 	m.SetBit(m, bits+1, 1)
-	mod := compatible_mod.FromBigInt(m)
+	mod := compatiblemod.FromBigInt(m)
 
 	return FromBigInt(bigRandom, mod), nil
 }
 func (z *Int) String() string { return z.ToBigInt().String() }
-func (z *Int) Exp(x, y *Int, m *compatible_mod.Mod) *Int {
+func (z *Int) Exp(x, y *Int, m *compatiblemod.Mod) *Int {
 	// Exp requires y to be reduced modulo m
 	y.Mod(y, m)
 	z.Int.Exp(&x.Int, y.Bytes(m), &m.Modulus)
@@ -194,13 +194,13 @@ func (z *Int) SetUint64(v uint64) *Int {
 	return z
 }
 
-func (z *Int) Add(a, b *Int, mod *compatible_mod.Mod) *Int {
+func (z *Int) Add(a, b *Int, mod *compatiblemod.Mod) *Int {
 	z.Set(a)
 	z.Int.Add(&b.Int, &mod.Modulus)
 	return z
 }
 
-func (z *Int) Sub(a, b *Int, mod *compatible_mod.Mod) *Int {
+func (z *Int) Sub(a, b *Int, mod *compatiblemod.Mod) *Int {
 	z.Set(a)
 	z.Int.Sub(&b.Int, &mod.Modulus)
 	return z
@@ -208,7 +208,7 @@ func (z *Int) Sub(a, b *Int, mod *compatible_mod.Mod) *Int {
 
 // This functions ... sometimes bugs if you look at the receiver directly rather than at the
 // return value. I suspect it depends on the implementation of the Set method
-func (z *Int) Mul(a, b *Int, mod *compatible_mod.Mod) *Int {
+func (z *Int) Mul(a, b *Int, mod *compatiblemod.Mod) *Int {
 	z.Set(a)
 	z.Int = *z.Int.Mul(&b.Int, &mod.Modulus)
 	return z
@@ -217,7 +217,7 @@ func (z *Int) Mul(a, b *Int, mod *compatible_mod.Mod) *Int {
 // SetBytesMod sets the byte of this Int and then mods the result to the
 // given modulus. Ensures that the resulting Int is less than the given
 // modulus.
-func (z *Int) SetBytesMod(buf []byte, mod *compatible_mod.Mod) *Int {
+func (z *Int) SetBytesMod(buf []byte, mod *compatiblemod.Mod) *Int {
 	// To create the Nat that will be reduced, we need a modulus big enough for it
 	bigBuffer := make([]byte, len(buf)+1)
 	bigBuffer[0] = 1
@@ -238,12 +238,12 @@ func (z *Int) SetBytesMod(buf []byte, mod *compatible_mod.Mod) *Int {
 // the byte value is larger or equal to the modulus.
 // This method simply calls bigmod.Nat.SetBytes() and return an error
 // is this method return an error
-func (z *Int) SetBytesWithCheck(buf []byte, mod *compatible_mod.Mod) (*Int, error) {
+func (z *Int) SetBytesWithCheck(buf []byte, mod *compatiblemod.Mod) (*Int, error) {
 	_, err := z.Int.SetBytes(buf, &mod.Modulus)
 	return z, err
 }
 
-func (z *Int) SetBytesBigBuffer(b []byte, m *compatible_mod.Mod) *Int {
+func (z *Int) SetBytesBigBuffer(b []byte, m *compatiblemod.Mod) *Int {
 	nat, err := z.Int.SetBytesBigBuffer(b, &m.Modulus)
 	if err != nil {
 		panic(err)
@@ -253,7 +253,7 @@ func (z *Int) SetBytesBigBuffer(b []byte, m *compatible_mod.Mod) *Int {
 
 // Mod computes x mod y, sets the receiver to this result and return
 // the receiver
-func (z *Int) Mod(x *Int, y *compatible_mod.Mod) *Int {
+func (z *Int) Mod(x *Int, y *compatiblemod.Mod) *Int {
 	// Create a new Int and assign to z since bigmod.Nat.Mod() will overwrite the receiver
 	z.Int = *bigmod.NewNat().Mod(&x.Int, &y.Modulus)
 	return z
@@ -277,16 +277,16 @@ func (z *Int) Abs(x *Int) *Int {
 	return z.Set(x)
 }
 
-func (z *Int) ToCompatibleMod() *compatible_mod.Mod {
+func (z *Int) ToCompatibleMod() *compatiblemod.Mod {
 	mod, err := bigmod.NewModulusFromNat(&z.Int)
 	if err != nil {
 		panic(err)
 	}
-	return &compatible_mod.Mod{Modulus: *mod}
+	return &compatiblemod.Mod{Modulus: *mod}
 }
 
 // this function is vartime
-func FromBigInt(z *big.Int, m *compatible_mod.Mod) *Int {
+func FromBigInt(z *big.Int, m *compatiblemod.Mod) *Int {
 	return new(Int).SetBytesMod(z.Bytes(), m)
 }
 

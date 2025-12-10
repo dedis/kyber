@@ -12,7 +12,7 @@ import (
 	"math/big"
 
 	"go.dedis.ch/kyber/v4/compatible"
-	"go.dedis.ch/kyber/v4/compatible/compatible_mod"
+	"go.dedis.ch/kyber/v4/compatible/compatiblemod"
 
 	"go.dedis.ch/kyber/v4"
 	"go.dedis.ch/kyber/v4/group/internal/marshalling"
@@ -41,36 +41,36 @@ var marshalScalarID = [8]byte{'m', 'o', 'd', '.', 'i', 'n', 't', ' '}
 // For efficiency the modulus field M is a pointer,
 // whose target is assumed never to change.
 type Int struct {
-	V  compatible.Int      // Integer value from 0 through M-1
-	M  *compatible_mod.Mod // Modulus for finite field arithmetic
-	BO kyber.ByteOrder     // Endianness which will be used on input and output
+	V  compatible.Int     // Integer value from 0 through M-1
+	M  *compatiblemod.Mod // Modulus for finite field arithmetic
+	BO kyber.ByteOrder    // Endianness which will be used on input and output
 }
 
 // NewInt creaters a new Int with a given compatible.Int and a compatible.Mod modulus.
-func NewInt(v *compatible.Int, m *compatible_mod.Mod) *Int {
+func NewInt(v *compatible.Int, m *compatiblemod.Mod) *Int {
 	return new(Int).Init(v, m)
 }
 
 // NewInt64 creates a new Int with a given int64 value and compatible.Mod modulus.
-func NewInt64(v int64, m *compatible_mod.Mod) *Int {
+func NewInt64(v int64, m *compatiblemod.Mod) *Int {
 	return new(Int).Init64(v, m)
 }
 
 // NewIntBytes creates a new Int with a given slice of bytes and a compatible.Mod
 // modulus.
-func NewIntBytes(a []byte, m *compatible_mod.Mod, byteOrder kyber.ByteOrder) *Int {
+func NewIntBytes(a []byte, m *compatiblemod.Mod, byteOrder kyber.ByteOrder) *Int {
 	return new(Int).InitBytes(a, m, byteOrder)
 }
 
 // NewIntString creates a new Int with a given string and a compatible.Mod modulus.
 // The value is set to a rational fraction n/d in a given base.
-func NewIntString(n, d string, base int, m *compatible_mod.Mod) *Int {
+func NewIntString(n, d string, base int, m *compatiblemod.Mod) *Int {
 	return new(Int).InitString(n, d, base, m)
 }
 
 // Init a Int with a given compatible.Int value and modulus pointer.
 // Note that the value is copied; the modulus is not.
-func (i *Int) Init(v *compatible.Int, m *compatible_mod.Mod) *Int {
+func (i *Int) Init(v *compatible.Int, m *compatiblemod.Mod) *Int {
 	i.M = m
 	i.BO = kyber.BigEndian
 	i.V.Mod(v, m)
@@ -78,7 +78,7 @@ func (i *Int) Init(v *compatible.Int, m *compatible_mod.Mod) *Int {
 }
 
 // Init64 creates an Int with an int64 value and compatible.Int modulus.
-func (i *Int) Init64(v int64, m *compatible_mod.Mod) *Int {
+func (i *Int) Init64(v int64, m *compatiblemod.Mod) *Int {
 	i.M = m
 	i.BO = kyber.BigEndian
 	i.V.Mod(compatible.NewInt(v), m)
@@ -86,7 +86,7 @@ func (i *Int) Init64(v int64, m *compatible_mod.Mod) *Int {
 }
 
 // InitBytes init the Int to a number represented in a big-endian byte string.
-func (i *Int) InitBytes(a []byte, m *compatible_mod.Mod, byteOrder kyber.ByteOrder) *Int {
+func (i *Int) InitBytes(a []byte, m *compatiblemod.Mod, byteOrder kyber.ByteOrder) *Int {
 	i.M = m
 	i.BO = byteOrder
 	i.SetBytes(a)
@@ -95,7 +95,7 @@ func (i *Int) InitBytes(a []byte, m *compatible_mod.Mod, byteOrder kyber.ByteOrd
 
 // InitString inits the Int to a rational fraction n/d
 // specified with a pair of strings in a given base.
-func (i *Int) InitString(n, d string, base int, m *compatible_mod.Mod) *Int {
+func (i *Int) InitString(n, d string, base int, m *compatiblemod.Mod) *Int {
 	i.M = m
 	i.BO = kyber.BigEndian
 	if _, ok := i.SetString(n, d, base); !ok {
@@ -304,7 +304,7 @@ func (i *Int) ByteOrder() kyber.ByteOrder {
 }
 
 // GroupOrder returns the order of the underlying group
-func (i *Int) GroupOrder() *compatible_mod.Mod {
+func (i *Int) GroupOrder() *compatiblemod.Mod {
 	return i.M
 }
 

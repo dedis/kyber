@@ -7,14 +7,14 @@ import (
 	"math/big"
 
 	"go.dedis.ch/kyber/v4/compatible"
-	"go.dedis.ch/kyber/v4/compatible/compatible_mod"
+	"go.dedis.ch/kyber/v4/compatible/compatiblemod"
 )
 
 // prime modulus of underlying field = 2^255 - 19
-var prime, _ = new(compatible_mod.Mod).SetString("57896044618658097711785492504343953926634992332820282019728792003956564819949", 10)
+var prime, _ = new(compatiblemod.Mod).SetString("57896044618658097711785492504343953926634992332820282019728792003956564819949", 10)
 
 // prime order of base point = 2^252 + 27742317777372353535851937790883648493
-var primeOrder, _ = new(compatible_mod.Mod).SetString("7237005577332262213973186563042994240857116359379907606001950938285454250989", 10)
+var primeOrder, _ = new(compatiblemod.Mod).SetString("7237005577332262213973186563042994240857116359379907606001950938285454250989", 10)
 
 // `l_minus_2` is the order of base point minus two, i.e. 2^252 +
 // 27742317777372353535851937790883648493 - 2, in little-endian form
@@ -28,7 +28,7 @@ var cofactor = new(compatible.Int).SetUint64(8)
 // use big.Int as intermediary which is not a security issue given that this
 // order is well known and public
 var fullOrderBigInt = new(big.Int).Mul(primeOrder.ToBigInt(), cofactor.ToBigInt())
-var fullOrder = new(compatible_mod.Mod).SetBytes(fullOrderBigInt.Bytes())
+var fullOrder = new(compatiblemod.Mod).SetBytes(fullOrderBigInt.Bytes())
 
 // scalar versions of these, usable for multiplication
 var primeOrderScalar = newScalarInt(compatible.FromCompatibleMod(primeOrder))

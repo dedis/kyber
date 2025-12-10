@@ -1,6 +1,6 @@
 //go:build !constantTime
 
-package compatible_mod
+package compatiblemod
 
 import (
 	"errors"

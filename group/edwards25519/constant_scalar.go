@@ -12,7 +12,7 @@ import (
 	"errors"
 
 	"go.dedis.ch/kyber/v4/compatible"
-	"go.dedis.ch/kyber/v4/compatible/compatible_mod"
+	"go.dedis.ch/kyber/v4/compatible/compatiblemod"
 
 	"io"
 
@@ -154,7 +154,7 @@ func (s *scalar) ByteOrder() kyber.ByteOrder {
 }
 
 // GroupOrder returns the order of the underlying group
-func (s *scalar) GroupOrder() *compatible_mod.Mod {
+func (s *scalar) GroupOrder() *compatiblemod.Mod {
 	return primeOrder
 }
 

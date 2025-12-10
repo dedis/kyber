@@ -26,7 +26,7 @@ import (
 	"math/big"
 
 	"go.dedis.ch/kyber/v4/compatible"
-	"go.dedis.ch/kyber/v4/compatible/compatible_mod"
+	"go.dedis.ch/kyber/v4/compatible/compatiblemod"
 
 	"go.dedis.ch/kyber/v4"
 	"go.dedis.ch/kyber/v4/group/internal/marshalling"
@@ -467,7 +467,7 @@ func expandMessageXOF(h sha3.ShakeHash, m []byte, domainSeparator string, byteLe
 func i2OSP(x int64, xLen uint32) ([]byte, error) {
 	b := compatible.NewInt(x)
 	// todo, check this modulus! Maybe something like math.MaxInt8 << 8 * (xLen - 1)
-	s := b.Bytes(compatible_mod.NewInt(int64(math.MaxInt8)))
+	s := b.Bytes(compatiblemod.NewInt(int64(math.MaxInt8)))
 	if uint32(len(s)) > xLen {
 		return nil, fmt.Errorf("input %d superior to max length %d", len(s), xLen)
 	}
