@@ -119,7 +119,7 @@ func TestScalar_Marshal(t *testing.T) {
 func TestSetInt(t *testing.T) {
 	am := mod.NewInt64(1, primeOrder)
 	s := new(scalar).setInt(am)
-	fmt.Println(s.String(), am)
+	require.Equal(t, s, new(scalar).One())
 }
 
 func TestSetBytesLE(t *testing.T) {

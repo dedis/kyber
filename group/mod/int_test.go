@@ -5,11 +5,11 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"encoding/hex"
-	"fmt"
 	"math/big"
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	"go.dedis.ch/kyber/v4/compatible"
 	"go.dedis.ch/kyber/v4/compatible/compatible_mod"
 
@@ -25,16 +25,16 @@ func TestIntEndianness(t *testing.T) {
 	assert.Equal(t, i.BO, kyber.BigEndian)
 
 	buff1, err := i.MarshalBinary()
-	assert.Nil(t, err)
+	require.NoError(t, err)
 	i.BO = kyber.BigEndian
 	buff2, err := i.MarshalBinary()
-	assert.Nil(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, buff1, buff2)
 
 	// Let's change endianness and check the result
 	i.BO = kyber.LittleEndian
 	buff3, err := i.MarshalBinary()
-	assert.Nil(t, err)
+	require.NoError(t, err)
 	assert.NotEqual(t, buff2, buff3)
 
 	// let's try LittleEndian function
@@ -48,25 +48,28 @@ func TestIntEndianness(t *testing.T) {
 	i = new(Int).Init64(v, modulo)
 	i2 := NewInt64(0, modulo)
 	buff, _ := i.MarshalBinary()
-	assert.Nil(t, i2.UnmarshalBinary(buff))
+	err = i2.UnmarshalBinary(buff)
+	require.NoError(t, err)
 	assert.True(t, i.Equal(i2))
 
 	i.BO = kyber.LittleEndian
 	buff, _ = i.MarshalBinary()
 	i2.BO = kyber.LittleEndian
-	assert.Nil(t, i2.UnmarshalBinary(buff))
+	err = i2.UnmarshalBinary(buff)
+	require.NoError(t, err)
 	assert.True(t, i.Equal(i2))
 
 	i2.BO = kyber.BigEndian
-	assert.Nil(t, i2.UnmarshalBinary(buff))
+	err = i2.UnmarshalBinary(buff)
+	require.NoError(t, err)
 	assert.False(t, i.Equal(i2))
 }
 func TestIntEndianBytes(t *testing.T) {
 	modulo, err := hex.DecodeString("1000")
-	assert.Nil(t, err)
+	require.NoError(t, err)
 	moduloI := new(compatible_mod.Mod).SetBytes(modulo)
 	v, err := hex.DecodeString("10")
-	assert.Nil(t, err)
+	require.NoError(t, err)
 
 	i := new(Int).InitBytes(v, moduloI, kyber.BigEndian)
 
@@ -93,9 +96,7 @@ func TestIntClone(t *testing.T) {
 	clone.Add(clone, clone)
 	b1, _ := clone.MarshalBinary()
 	b2, _ := base.MarshalBinary()
-	if bytes.Equal(b1, b2) {
-		t.Error("Should not be equal")
-	}
+	require.False(t, bytes.Equal(b1, b2), "b1 and b2 should be equal")
 }
 
 func TestSetString7mod17(t *testing.T) {
@@ -206,7 +207,7 @@ func TestPick(t *testing.T) {
 	mod := compatible_mod.NewInt(171)
 	key := make([]byte, 32)
 	block, err := aes.NewCipher(key)
-	assert.Nil(t, err)
+	require.NoError(t, err)
 
 	stream := cipher.NewCTR(block, make([]byte, block.BlockSize()))
 
@@ -248,18 +249,15 @@ func TestModInverse(t *testing.T) {
 		natInverse := NewInt(natValue, natMod).Inv(nat)
 		hasNatInverse := natInverse != nil
 
-		if hasBigInverse != tc.hasInverse {
-			t.Errorf("big.Int ModInverse existence mismatch for %v mod %v: got %v, want %v",
-				tc.value, tc.modulus, hasBigInverse, tc.hasInverse)
-		}
+		require.NotEqual(t, tc.hasInverse, hasBigInverse, "big.Int ModInverse existence mismatch for %v mod %v: got %v, want %v",
+			tc.value, tc.modulus, hasBigInverse, tc.hasInverse)
 
-		if hasNatInverse != tc.hasInverse {
-			t.Errorf("Compatible ModInverse existence mismatch for %v mod %v: got %v, want %v",
-				tc.value, tc.modulus, hasNatInverse, tc.hasInverse)
-		}
+		require.NotEqual(t, hasNatInverse, tc.hasInverse, "Compatible ModInverse existence mismatch for %v mod %v: got %v, want %v",
+			tc.value, tc.modulus, hasNatInverse, tc.hasInverse)
 
 		if tc.hasInverse {
 			inverseAsBig := natInverse.(*Int).V.ToBigInt()
+			require.NotNil(t, bigInverse)
 			if bigInverse.Cmp(inverseAsBig) != 0 {
 				t.Errorf("ModInverse result mismatch for %v mod %v: got %v, want %v",
 					tc.value, tc.modulus, inverseAsBig, bigInverse)
@@ -298,6 +296,9 @@ func TestSetBytesBigBuf(t *testing.T) {
 	mod := compatible_mod.NewInt(17)
 	number := NewIntBytes(buf, mod, kyber.LittleEndian)
 
-	fmt.Println(number.String())
+	modBigInt := new(big.Int).SetUint64(17)
+	numberBigInt := new(big.Int).SetBytes(buf)
+	numberBigInt.Mod(numberBigInt, modBigInt)
 
+	require.Equal(t, numberBigInt.Int64(), number.V.Int64())
 }
