@@ -95,7 +95,13 @@ jobs:
     - name: Test with coverage
       if: ${{ matrix.os == 'ubuntu-latest' && matrix.size == '64b' }}
       run: |
-        go test -tags ${{ matrix.tag }} \
+        TAG= "${{ matrix.tag }}"
+        ARGS=""
+        if [ -n "${{ matrix.tag }}" ]; then
+          ARGS="-tags $TAG"
+        fi
+        
+        go test $ARGS \
         -json -covermode=count \
         -coverprofile=profile.cov ./... \
         > report.jsonl
