@@ -3,12 +3,12 @@
 package compatible
 
 import (
-	"encoding/binary"
 	"math/big"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.dedis.ch/kyber/v4/compatible/bigmod"
 	"go.dedis.ch/kyber/v4/compatible/compatiblemod"
 )
 
@@ -151,22 +151,20 @@ func TestModInverse(t *testing.T) {
 		natInverse := NewInt(0).ModInverse(natValue, natMod)
 		hasNatInverse := natInverse != nil
 
-		//fmt.Println(bigMod, natMod, bigValue, natValue, bigInverse, natInverse, hasBigInverse, hasNatInverse, tc.hasInverse)
-		if hasBigInverse != tc.hasInverse {
-			t.Errorf("big.Int ModInverse existence mismatch for %v mod %v: got %v, want %v",
-				tc.value, tc.modulus, hasBigInverse, tc.hasInverse)
-		}
+		require.Equal(t, tc.hasInverse, hasBigInverse,
+			"big.Int ModInverse existence mismatch for %v mod %v: got %v, want %v",
+			tc.value, tc.modulus, hasBigInverse, tc.hasInverse)
 
-		if hasNatInverse != tc.hasInverse {
-			t.Errorf("Compatible ModInverse existence mismatch for %v mod %v: got %v, want %v",
-				tc.value, tc.modulus, hasNatInverse, tc.hasInverse)
-		}
+		require.Equal(t, hasNatInverse, tc.hasInverse,
+			"Compatible ModInverse existence mismatch for %v mod %v: got %v, want %v",
+			tc.value, tc.modulus, hasNatInverse, tc.hasInverse)
 
 		if tc.hasInverse {
-			if bigInverse.Cmp(natInverse.ToBigInt()) != 0 {
-				t.Errorf("ModInverse result mismatch for %v mod %v: got %v, want %v",
-					tc.value, tc.modulus, natInverse.ToBigInt(), bigInverse)
-			}
+			require.NotNil(t, natInverse)
+			require.NotNil(t, bigInverse)
+			cmp := bigInverse.Cmp(natInverse.ToBigInt()) == 0
+			require.True(t, cmp, "ModInverse result mismatch for %v mod %v: got %v, want %v",
+				tc.value, tc.modulus, natInverse.ToBigInt(), bigInverse)
 		}
 	}
 }
@@ -205,27 +203,46 @@ func TestSimpleMod(t *testing.T) {
 	assert.Equal(t, a.String(), "159")
 }
 
+// TestModBigValue tries to reduce some value y
+// to a modulo m that is much smaller
+func TestModBigValue(t *testing.T) {
+	m := compatiblemod.NewInt(10)
+	yString := "827558546416454053910646459967499077875692070827048470514597884" +
+		"3068036293136545469041005834638038226287677059608122477063777890173496873433711927663608414"
+	yMod, ok := new(compatiblemod.Mod).SetString(yString, 10)
+	require.True(t, ok)
+	y := FromNat(yMod.Nat())
+
+	res := y.Mod(y, m)
+	require.Equal(t, bigmod.Yes, m.Modulus.Nat().CmpGeq(&res.Int))
+
+	// Compare to math/big to validate
+	mBigInt := big.NewInt(10)
+	yBigInt, ok := new(big.Int).SetString(yString, 10)
+	require.True(t, ok)
+	expected := yBigInt.Mod(yBigInt, mBigInt)
+	require.Equal(t, 0, expected.Cmp(res.ToBigInt()))
+}
+
 func TestSimpleMultiplication(t *testing.T) {
 	m := compatiblemod.NewInt(171)
 	a := NewInt(0).Mul(NewInt(33), NewInt(100), m)
 	assert.Equal(t, a.String(), "51")
 }
 
-// TestSetBytesMod tries to call SetBytesMod() and expect
-// that the value returned is indeed mod and no errors
-// occurred
+// TestSetBytesMod tries to call SetBytesMod() and expect that
+// the value returned is correctly modded and no errors occurred
 func TestSetBytesMod(t *testing.T) {
-	a := int64(999)
-	p := int64(100)
-	aExpected := a % p
+	m := compatiblemod.NewInt(10)
+	yString := "827558546416454053910646459967499077875692070827048470514597884"
+	// Use math/big to get the bytes and also validate the result
+	yBigInt, ok := new(big.Int).SetString(yString, 10)
+	require.True(t, ok)
+	mBigInt := big.NewInt(10)
 
-	// Turn a into bytes
-	aBytes := make([]byte, 8)
-	_, err := binary.Encode(aBytes, binary.BigEndian, a)
-	require.NoError(t, err)
+	y := new(Int).SetBytesMod(yBigInt.Bytes(), m)
 
-	pMod := compatible_mod.NewInt(p)
-	aInt := new(Int).SetBytesMod(aBytes, pMod)
-
-	assert.Equal(t, aExpected, aInt.Int64())
+	// Validate the result using math/big
+	expected := yBigInt.Mod(yBigInt, mBigInt)
+	require.Equal(t, 0, expected.Cmp(y.ToBigInt()))
 }
