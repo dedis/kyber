@@ -4,7 +4,7 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, labeled]
   push:
-    branches: [ master ]
+    branches: [ master, int32-repro ]
 
 concurrency:
   group: ci-${{ github.ref }}-test
@@ -95,7 +95,7 @@ jobs:
     - name: Test with coverage
       if: ${{ matrix.os == 'ubuntu-latest' && matrix.size == '64b' }}
       run: |
-        TAG= "${{ matrix.tag }}"
+        TAG="${{ matrix.tag }}"
         ARGS=""
         if [ -n "${{ matrix.tag }}" ]; then
           ARGS="-tags $TAG"
