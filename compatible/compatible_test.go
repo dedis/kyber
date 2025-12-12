@@ -226,8 +226,10 @@ func TestModBigValue(t *testing.T) {
 
 func TestSimpleMultiplication(t *testing.T) {
 	m := compatiblemod.NewInt(171)
-	a := NewInt(0).Mul(NewInt(33), NewInt(100), m)
-	assert.Equal(t, a.String(), "51")
+	a := NewInt(33)
+	b := NewInt(100)
+	res := a.Mul(a, b, m)
+	assert.Equal(t, res.String(), "51")
 }
 
 // TestSetBytesMod tries to call SetBytesMod() and expect that

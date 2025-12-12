@@ -206,11 +206,9 @@ func (z *Int) Sub(a, b *Int, mod *compatiblemod.Mod) *Int {
 	return z
 }
 
-// This functions ... sometimes bugs if you look at the receiver directly rather than at the
-// return value. I suspect it depends on the implementation of the Set method
+// Mul sets the receiver to the result of a * b mod m and returns the receiver
 func (z *Int) Mul(a, b *Int, mod *compatiblemod.Mod) *Int {
-	z.Set(a)
-	z.Int = *z.Int.Mul(&b.Int, &mod.Modulus)
+	z.Int = *bigmod.NewNat().Set(&a.Int).Mul(&b.Int, &mod.Modulus)
 	return z
 }
 
