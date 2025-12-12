@@ -217,7 +217,10 @@ func (z *Int) Mul(a, b *Int, mod *compatiblemod.Mod) *Int {
 // modulus.
 func (z *Int) SetBytesMod(buf []byte, mod *compatiblemod.Mod) *Int {
 	// To create the Nat that will be reduced, we need a modulus big enough for it
-	bigBuffer := make([]byte, len(buf)+1)
+	// take max between the buffer and the mod byte size to avoid using
+	// a mod smaller than the actual modulus
+	bufferSize := max(len(buf), len(mod.Bytes()))
+	bigBuffer := make([]byte, bufferSize+1) // +1 to ensure the modulus is larger than the buffer value
 	bigBuffer[0] = 1
 	bigBufferMod, _ := bigmod.NewModulus(bigBuffer)
 
