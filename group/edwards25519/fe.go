@@ -260,7 +260,8 @@ func feToBn(dst *compatible.Int, src *fieldElement) {
 	for i := 0; i < half; i++ {
 		b[i], b[l-i] = b[l-i], b[i]
 	}
-	//todo, what's the modulus here?
+
+	// Since field elements are in the field GF(2^255-19), we can always reduce mod prime (which is 2^255-19)
 	dst.SetBytesMod(b[:], prime)
 }
 

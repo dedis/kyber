@@ -1,9 +1,10 @@
 package edwards25519
 
 import (
-	"go.dedis.ch/kyber/v4/compatible"
 	"math/big"
 	"testing"
+
+	"go.dedis.ch/kyber/v4/compatible"
 
 	"github.com/stretchr/testify/assert"
 	"go.dedis.ch/kyber/v4/xof/blake2xb"
