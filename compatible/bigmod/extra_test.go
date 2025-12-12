@@ -15,7 +15,7 @@ import (
 // symbol names in the assembly files. See Issue 1.
 func TestLinkWithStdlib(t *testing.T) {
 	bigmod.NewNat()
-	k, err := rsa.GenerateKey(rand.Reader, 1024)
+	k, err := rsa.GenerateKey(rand.Reader, 2048)
 	require.NoError(t, err)
 	_, err = rsa.SignPSS(rand.Reader, k, crypto.SHA256, make([]byte, 32), nil)
 	require.NoError(t, err)
