@@ -88,6 +88,24 @@ func TestInits(t *testing.T) {
 	assert.True(t, i1.Equal(i4))
 }
 
+func TestInt_Int64(t *testing.T) {
+	int64Value := int64(9223372036854775806) // max int64 - 1
+	compatInt := compatible.NewInt(int64Value)
+	mod, _ := compatiblemod.FromString("9223372036854775807", 10) // max int64
+	i := NewInt(compatInt, mod)
+
+	require.Equal(t, int64Value, i.Int64())
+}
+
+func TestInt_Uint64(t *testing.T) {
+	uint64Value := uint64(18446744073709551614) // max uint64 - 1
+	compatInt := new(compatible.Int).SetUint64(uint64Value)
+	mod, _ := compatiblemod.FromString("18446744073709551615", 10) // max uint64
+	i := NewInt(compatInt, mod)
+
+	require.Equal(t, uint64Value, i.Uint64())
+}
+
 func TestIntClone(t *testing.T) {
 	moduloI := new(compatiblemod.Mod).SetBytes([]byte{0x10, 0})
 	base := new(Int).InitBytes([]byte{0x10}, moduloI, kyber.BigEndian)

@@ -207,6 +207,12 @@ func (i *Int) SetInt64(v int64) kyber.Scalar {
 	return i
 }
 
+// Int64 returns the int64 representation of the value.
+// If the value is not representable in an int64 the result is undefined.
+func (i *Int) Int64() int64 {
+	return i.V.Int64()
+}
+
 // SetUint64 sets the Int to an arbitrary uint64 value.
 // The modulus must already be initialized.
 func (i *Int) SetUint64(v uint64) kyber.Scalar {
@@ -214,12 +220,11 @@ func (i *Int) SetUint64(v uint64) kyber.Scalar {
 	return i
 }
 
-//
-//// Uint64 returns the uint64 representation of the value.
-//// If the value is not representable in an uint64 the result is undefined.
-//func (i *Int) Uint64() uint64 {
-//	return i.V.()
-//}
+// Uint64 returns the uint64 representation of the value.
+// If the value is not representable in an uint64 the result is undefined.
+func (i *Int) Uint64() uint64 {
+	return i.V.Uint64()
+}
 
 // Add sets the target to a + b mod M, where M is a's modulus..
 func (i *Int) Add(a, b kyber.Scalar) kyber.Scalar {
