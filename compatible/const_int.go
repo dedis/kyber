@@ -43,6 +43,10 @@ func (z *Int) Int64() int64 {
 	return z.ToBigInt().Int64()
 }
 
+func (z *Int) Uint64() uint64 {
+	return z.ToBigInt().Uint64()
+}
+
 // Vartime function. Only to be used if the size of s is public
 // The function also requires to pass a string to set the modulus, which determines the announced length of the Nat
 // SetString sets z to s modulo m (s must be bigger than m, the program panics otherwise)

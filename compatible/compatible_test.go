@@ -34,6 +34,18 @@ func TestBigIntToNatConversion(t *testing.T) {
 
 }
 
+func TestInt_Uint64(t *testing.T) {
+	uint64Value := uint64(18446744073709551614) // max uint64 - 1
+	i := new(Int).SetUint64(uint64Value)
+	require.Equal(t, uint64Value, i.Uint64())
+}
+
+func TestInt_Int64(t *testing.T) {
+	int64Value := int64(9223372036854775806) // max uint64 - 1
+	i := NewInt(int64Value)
+	require.Equal(t, int64Value, i.Int64())
+}
+
 func TestBit(t *testing.T) {
 	// Create a test big integer
 	bigValue, _ := new(big.Int).SetString("7237005577332262213973186563042994240857116359379907606001950938285454250987", 10)
