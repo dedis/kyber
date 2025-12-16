@@ -3,6 +3,7 @@
 package compatiblemod
 
 import (
+	"encoding/binary"
 	"math/big"
 
 	"go.dedis.ch/kyber/v4/compatible/bigmod"
@@ -52,7 +53,19 @@ func NewInt(x int64) *Mod {
 	if x < 1 {
 		panic("negative number")
 	}
-	mod, err := bigmod.NewModulusFromNat(bigmod.NewNat().SetUint(uint(x)))
+	xBytes := make([]byte, 8)
+	binary.BigEndian.PutUint64(xBytes, uint64(x))
+	mod, err := bigmod.NewModulus(xBytes)
+	if err != nil {
+		panic(err)
+	}
+	return &Mod{*mod}
+}
+
+// NewModulusProduct creates a new modulus as the result of
+// the multiplication of the two input byte arrays
+func NewModulusProduct(a, b []byte) *Mod {
+	mod, err := bigmod.NewModulusProduct(a, b)
 	if err != nil {
 		panic(err)
 	}

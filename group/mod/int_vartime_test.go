@@ -3,15 +3,17 @@
 package mod
 
 import (
+	"testing"
+
 	"github.com/stretchr/testify/require"
 	"go.dedis.ch/kyber/v4/compatible"
-	"testing"
+	"go.dedis.ch/kyber/v4/compatible/compatiblemod"
 )
 
 func TestInit128bits(t *testing.T) {
 	i := compatible.NewInt(0).Lsh(&compatible.NewInt(1).Int, 128)
 	i = i.Sub(i, &compatible.NewInt(1).Int)
-	m := compatible.FromBigInt(i, nil).ToCompatibleMod()
+	m := compatiblemod.FromBigInt(i)
 
 	i1 := NewInt(compatible.NewInt(1), m)
 	// size in bytes

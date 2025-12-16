@@ -4,8 +4,6 @@
 package edwards25519
 
 import (
-	"math/big"
-
 	"go.dedis.ch/kyber/v4/compatible"
 	"go.dedis.ch/kyber/v4/compatible/compatiblemod"
 )
@@ -21,18 +19,14 @@ var primeOrder, _ = new(compatiblemod.Mod).SetString("72370055773322622139731865
 // This is needed to compute constant time modular inversion of scalars.
 var lMinus2, _ = new(compatible.Int).SetStringM("7237005577332262213973186563042994240857116359379907606001950938285454250987", primeOrder, 10)
 
-// cofactor of the curve, as a ModInt
-var cofactor = new(compatible.Int).SetUint64(8)
+var cofactor = compatiblemod.NewInt(8)
 
 // order of the full group including the cofactor
-// use big.Int as intermediary which is not a security issue given that this
-// order is well known and public
-var fullOrderBigInt = new(big.Int).Mul(primeOrder.ToBigInt(), cofactor.ToBigInt())
-var fullOrder = new(compatiblemod.Mod).SetBytes(fullOrderBigInt.Bytes())
+var fullOrder = compatiblemod.NewModulusProduct(primeOrder.Bytes(), cofactor.Bytes())
 
 // scalar versions of these, usable for multiplication
 var primeOrderScalar = newScalarInt(compatible.FromCompatibleMod(primeOrder))
-var cofactorScalar = newScalarInt(cofactor)
+var cofactorScalar = new(scalar).SetInt64(8)
 
 // identity point
 var nullPoint = new(point).Null()

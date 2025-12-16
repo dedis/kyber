@@ -10,7 +10,7 @@ import (
 	"math/big"
 
 	"go.dedis.ch/kyber/v4"
-	"go.dedis.ch/kyber/v4/compatible"
+	"go.dedis.ch/kyber/v4/compatible/compatiblemod"
 	"go.dedis.ch/kyber/v4/group/internal/marshalling"
 	"go.dedis.ch/kyber/v4/group/mod"
 	"go.dedis.ch/kyber/v4/util/random"
@@ -228,7 +228,7 @@ func (c *curve) ScalarLen() int { return (c.p.N.BitLen() + 7) / 8 }
 // the bytes as a big-endian integer, so as to be compatible with the
 // Go standard library's big.Int type.
 func (c *curve) Scalar() kyber.Scalar {
-	return mod.NewInt64(0, compatible.FromBigInt(c.p.N, nil).ToCompatibleMod())
+	return mod.NewInt64(0, compatiblemod.FromBigInt(c.p.N))
 }
 
 // Number of bytes required to store one coordinate on this curve

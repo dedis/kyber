@@ -285,21 +285,12 @@ func TestModInverse(t *testing.T) {
 }
 
 func TestMultiplicationFullOrder(t *testing.T) {
-	var twoExp256String = "115792089237316195423570985008687907853269984665640564039457584007913129639938"
-	var twoExp256m1String = "115792089237316195423570985008687907853269984665640564039457584007913129639937"
-	// twoExp256m1 is 2^256 - 1, used as the modulus for cofactor * primeOrder
-	var twoExp256m1, _ = new(compatible.Int).SetString(twoExp256m1String, twoExp256String, 10)
-
-	// todo, check the modulus for the multiplication here
-	// order of the full group including the cofactor
-
-	// prime order of base point = 2^252 + 27742317777372353535851937790883648493
-	var primeOrder, _ = new(compatible.Int).SetString("7237005577332262213973186563042994240857116359379907606001950938285454250989", twoExp256m1String, 10)
-	var cofactor = new(compatible.Int).SetUint64(8)
-	var fullOrder = compatible.NewInt(0).Mul(primeOrder, cofactor, twoExp256m1.ToCompatibleMod())
+	var primeOrder, _ = new(compatiblemod.Mod).SetString("7237005577332262213973186563042994240857116359379907606001950938285454250989", 10)
+	var cofactorMod = compatiblemod.NewInt(8)
+	var fullOrder = compatiblemod.NewModulusProduct(primeOrder.Bytes(), cofactorMod.Bytes())
 
 	var bigFullOrder = fullOrder.ToBigInt()
-	var bigCalculatedFullOrder = primeOrder.ToBigInt().Mul(primeOrder.ToBigInt(), cofactor.ToBigInt())
+	var bigCalculatedFullOrder = primeOrder.ToBigInt().Mul(primeOrder.ToBigInt(), cofactorMod.ToBigInt())
 	assert.Equal(t, bigFullOrder, bigCalculatedFullOrder)
 }
 

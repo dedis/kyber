@@ -7,11 +7,11 @@ import (
 	"crypto/dsa"
 	"errors"
 	"fmt"
-	"go.dedis.ch/kyber/v4/compatible"
 	"io"
 	"math/big"
 
 	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v4/compatible/compatiblemod"
 	"go.dedis.ch/kyber/v4/group/internal/marshalling"
 	"go.dedis.ch/kyber/v4/group/mod"
 	"go.dedis.ch/kyber/v4/util/random"
@@ -211,7 +211,7 @@ func (g *ResidueGroup) ScalarLen() int { return (g.Q.BitLen() + 7) / 8 }
 // Scalar creates a Scalar associated with this Residue group,
 // with an initial value of nil.
 func (g *ResidueGroup) Scalar() kyber.Scalar {
-	return mod.NewInt64(0, compatible.FromBigInt(g.Q, nil).ToCompatibleMod())
+	return mod.NewInt64(0, compatiblemod.FromBigInt(g.Q))
 }
 
 // PointLen returns the number of bytes in the encoding of a Point

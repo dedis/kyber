@@ -6,7 +6,6 @@ import (
 	"crypto/cipher"
 	"io"
 
-	"go.dedis.ch/kyber/v4/compatible"
 	"go.dedis.ch/kyber/v4/compatible/compatiblemod"
 
 	fr "github.com/consensys/gnark-crypto/ecc/bls12-381/fr"
@@ -110,5 +109,5 @@ func (s *Scalar) ByteOrder() kyber.ByteOrder {
 }
 
 func (s *Scalar) GroupOrder() *compatiblemod.Mod {
-	return compatible.FromBigInt(fr.Modulus(), nil).ToCompatibleMod()
+	return compatiblemod.FromBigInt(fr.Modulus())
 }

@@ -3,8 +3,9 @@
 package bn256
 
 import (
-	"go.dedis.ch/kyber/v4/compatible"
 	"math/big"
+
+	"go.dedis.ch/kyber/v4/compatible/compatiblemod"
 )
 
 func bigFromBase10(s string) *big.Int {
@@ -17,12 +18,12 @@ var u = bigFromBase10("6518589491078791937")
 
 // p is a prime over which we form a basic field: 36u⁴+36u³+24u²+6u+1.
 var p = bigFromBase10("65000549695646603732796438742359905742825358107623003571877145026864184071783")
-var pMod = compatible.FromBigInt(p, nil).ToCompatibleMod()
+var pMod = compatiblemod.FromBigInt(p)
 
 // Order is the number of elements in both G₁ and G₂: 36u⁴+36u³+18u²+6u+1.
 // order-1 = (2**5) * 3 * 5743 * 280941149 * 130979359433191 * 491513138693455212421542731357 * 6518589491078791937
 var Order = bigFromBase10("65000549695646603732796438742359905742570406053903786389881062969044166799969")
-var OrderMod = compatible.FromBigInt(Order, nil).ToCompatibleMod()
+var OrderMod = compatiblemod.FromBigInt(Order)
 
 // xiToPMinus1Over6 is ξ^((p-1)/6) where ξ = i+3.
 var xiToPMinus1Over6 = &gfP2{

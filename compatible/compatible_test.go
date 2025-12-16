@@ -190,21 +190,18 @@ func TestSet(t *testing.T) {
 	assert.Equal(t, z, a)
 }
 
+// TestMultiplication test a multiplication a * b mod c
 func TestMultiplication(t *testing.T) {
+	aInt := int64(17)
+	bInt := int64(19)
+	cInt := int64(23)
+	expected := (aInt * bInt) % cInt
 	a := NewInt(17)
 	b := NewInt(19)
-	c := NewInt(23)
-	res := NewInt(29).Mul(a, b, c.ToCompatibleMod())
-	aBig := a.ToBigInt()
-	bBig := b.ToBigInt()
-	cBig := c.ToBigInt()
-	resBig := new(big.Int)
-	resBig.Mul(aBig, bBig)
-	resBig.Mod(resBig, cBig)
-	if resBig.Cmp(res.ToBigInt()) != 0 {
-		t.Errorf("Multiplication result mismatch: got %v, want %v", resBig, res.ToBigInt())
-	}
-	assert.Equal(t, resBig, res.ToBigInt())
+	c := compatiblemod.NewInt(23)
+	res := NewInt(0).Mul(a, b, c)
+
+	require.Equal(t, expected, res.Int64())
 	assert.Equal(t, res.String(), "1")
 }
 

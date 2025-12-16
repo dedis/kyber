@@ -21,6 +21,15 @@ func (z *Mod) SetString(s string, base int) (*Mod, bool) {
 	return z, t
 }
 
+// NewModulusProduct creates a new modulus as the result of
+// the multiplication of the two input byte arrays
+func NewModulusProduct(a, b []byte) *Mod {
+	aInt := new(big.Int).SetBytes(a)
+	bInt := new(big.Int).SetBytes(b)
+	mod := big.NewInt(0).Mul(aInt, bInt)
+	return &Mod{*mod}
+}
+
 func FromString(s string, base int) (*Mod, error) {
 	bigFromS, ok := new(big.Int).SetString(s, base)
 	if !ok {
