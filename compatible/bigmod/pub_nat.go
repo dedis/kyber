@@ -39,9 +39,6 @@ func (x *Nat) SetBytesBigBuffer(b []byte, m *Modulus) (*Nat, error) {
 	}
 	return x, nil
 }
-func NewModulusFromNat(n *Nat) (*Modulus, error) {
-	return newModulus(n)
-}
 
 // todo check this
 func (x *Nat) BitLenAnnounced() int {

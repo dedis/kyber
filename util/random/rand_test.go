@@ -4,12 +4,14 @@ import (
 	"bytes"
 	"crypto/rand"
 	"fmt"
+	"io"
 	"math/big"
 	"strconv"
 	"strings"
 	"testing"
 
-	"go.dedis.ch/kyber/v4/compatible"
+	"github.com/stretchr/testify/require"
+	"go.dedis.ch/kyber/v4/compatible/compatiblemod"
 )
 
 const size = 32
@@ -132,20 +134,29 @@ func TestInt(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(fmt.Sprintf("modulusBitlen: %d", tc.modulusBitLen), func(t *testing.T) {
-			modulus, err := compatible.Prime(rand.Reader, int(tc.modulusBitLen))
-			if err != nil {
-				t.Fatalf("Failed to generate random prime: %v", err)
-			}
+			modulus, err := randomPrimeModulus(rand.Reader, int(tc.modulusBitLen))
+			require.NoError(t, err)
 
 			r := strings.NewReader(readerStream)
 			cipher := New(r, rand.Reader)
 
-			randomInt := Int(modulus.ToCompatibleMod(), cipher)
+			randomInt := Int(modulus, cipher)
 
 			// Check if the generated BigInt is less than the modulus
-			if randomInt.Cmp(modulus) >= 0 {
-				t.Errorf("Generated BigInt %v is not less than the modulus %v", randomInt, modulus)
-			}
+			require.False(t, randomInt.CmpGeqMod(modulus),
+				"Generated BigInt %v is not less than the modulus %v", randomInt, modulus)
 		})
 	}
+}
+
+// randomPrime var-time wrapper around crypto/rand
+// Generates a random prime from the stream with the given amount of
+// bits
+func randomPrimeModulus(r io.Reader, bits int) (*compatiblemod.Mod, error) {
+	bigRandom, err := rand.Prime(r, bits)
+	if err != nil {
+		return nil, err
+	}
+	mod := new(compatiblemod.Mod).SetBytes(bigRandom.Bytes())
+	return mod, nil
 }

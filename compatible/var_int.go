@@ -135,3 +135,8 @@ func (z *Int) SetBit(x *Int, i int, b uint) *Int {
 func (z *Int) Bytes(_ *compatiblemod.Mod) []byte {
 	return z.Int.Bytes()
 }
+
+// CmpGeqMod returns true if z >= mod otherwise 0
+func (z *Int) CmpGeqMod(mod *compatiblemod.Mod) bool {
+	return z.Int.Cmp(&mod.Int) >= 0
+}

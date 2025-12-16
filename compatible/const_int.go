@@ -76,11 +76,6 @@ func (z *Int) Bytes(m *compatiblemod.Mod) []byte {
 	return z.Int.Bytes(&m.Modulus)
 }
 
-// leaks the size of z
-func (z *Int) bytesVartime() []byte {
-	return z.Int.Bytes(&z.ToCompatibleMod().Modulus)
-}
-
 // ModInverse sets z to the multiplicative inverse of g in the ring ℤ/nℤ
 // Requires n to be prime (uses Fermat: g^(n-2) mod n).
 func (z *Int) ModInverse(g *Int, n *compatiblemod.Mod) *Int {
@@ -282,20 +277,14 @@ func (z *Int) Abs(x *Int) *Int {
 	return z.Set(x)
 }
 
-func (z *Int) ToCompatibleMod() *compatiblemod.Mod {
-	mod, err := bigmod.NewModulusFromNat(&z.Int)
-	if err != nil {
-		panic(err)
-	}
-	return &compatiblemod.Mod{Modulus: *mod}
-}
-
-// this function is vartime
+// FromBigInt creates an Int from the given big.Int
+// this function is var-time
 func FromBigInt(z *big.Int, m *compatiblemod.Mod) *Int {
 	return new(Int).SetBytesMod(z.Bytes(), m)
 }
 
-// this function is vartime
+// ToBigInt returns this Int as a big.Int.
+// this function is var-time
 func (z *Int) ToBigInt() *big.Int {
 	if z.IsZero() {
 		return big.NewInt(0)
@@ -303,5 +292,18 @@ func (z *Int) ToBigInt() *big.Int {
 	if z.Equal(NewInt(1)) {
 		return big.NewInt(1)
 	}
-	return big.NewInt(0).SetBytes(z.bytesVartime())
+
+	// Create a modulo bigger than this int to be able to call SetBytes with it
+	intByteSize := z.BitLen()/8 + 1
+	modBytes := make([]byte, intByteSize+1)
+	modBytes[0] = 1
+	mod := new(compatiblemod.Mod).SetBytes(modBytes)
+
+	zBytes := z.Bytes(mod)
+	return big.NewInt(0).SetBytes(zBytes)
+}
+
+// CmpGeqMod returns true if z >= mod otherwise 0
+func (z *Int) CmpGeqMod(mod *compatiblemod.Mod) bool {
+	return z.Int.CmpGeq(mod.Nat()) == 1
 }
