@@ -100,8 +100,7 @@ func NewIntString(n, d string, base int, m *compatiblemod.Mod) *Int {
 func (i *Int) Init(v *compatible.Int, m *compatiblemod.Mod) *Int {
 	i.M = m
 	i.BO = kyber.BigEndian
-	i.V = *compatible.NewInt(0).Mod(v, m)
-
+	i.V.Mod(v, m)
 	return i
 }
 
@@ -441,7 +440,6 @@ func (i *Int) LittleEndian(minByte, maxBytes int) []byte {
 		panic("Int not representable in max bytes")
 	}
 	buf := make([]byte, pad)
-	// todo, check if this must be changed for constant-time execution
 	reverse(buf[:act], vBytes)
 	return buf
 }
