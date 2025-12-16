@@ -1,3 +1,5 @@
+//go:build !constantTime
+
 package p256
 
 import (
@@ -9,6 +11,7 @@ import (
 	"math/big"
 
 	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v4/compatible/compatiblemod"
 	"go.dedis.ch/kyber/v4/group/internal/marshalling"
 	"go.dedis.ch/kyber/v4/group/mod"
 	"go.dedis.ch/kyber/v4/util/random"
@@ -57,6 +60,7 @@ func (P *residuePoint) Clone() kyber.Point {
 }
 
 func (P *residuePoint) Valid() bool {
+	//todo check if it works in constant time
 	return P.Int.Sign() > 0 && P.Int.Cmp(P.g.P) < 0 &&
 		new(big.Int).Exp(&P.Int, P.g.Q, P.g.P).Cmp(one) == 0
 }
@@ -133,7 +137,7 @@ func (P *residuePoint) Mul(s kyber.Scalar, B kyber.Point) kyber.Point {
 	}
 	// to protect against golang/go#22830
 	var tmp big.Int
-	tmp.Exp(&B.(*residuePoint).Int, &s.(*mod.Int).V, P.g.P)
+	tmp.Exp(&B.(*residuePoint).Int, &s.(*mod.Int).V.Int, P.g.P)
 	P.Int = tmp
 	return P
 }
@@ -207,7 +211,7 @@ func (g *ResidueGroup) ScalarLen() int { return (g.Q.BitLen() + 7) / 8 }
 // Scalar creates a Scalar associated with this Residue group,
 // with an initial value of nil.
 func (g *ResidueGroup) Scalar() kyber.Scalar {
-	return mod.NewInt64(0, g.Q)
+	return mod.NewInt64(0, compatiblemod.FromBigInt(g.Q))
 }
 
 // PointLen returns the number of bytes in the encoding of a Point
@@ -241,6 +245,7 @@ func (g *ResidueGroup) Valid() bool {
 	n := new(big.Int)
 	n.Mul(g.Q, g.R)
 	n.Add(n, one)
+	// todo check for constant time
 	if n.Cmp(g.P) != 0 {
 		return false
 	}

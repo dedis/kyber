@@ -1,9 +1,11 @@
+//go:build !constantTime
+
 package edwards25519vartime
 
 import (
 	"crypto/cipher"
+	"go.dedis.ch/kyber/v4/compatible"
 	"io"
-	"math/big"
 
 	"go.dedis.ch/kyber/v4"
 	"go.dedis.ch/kyber/v4/group/internal/marshalling"
@@ -15,11 +17,11 @@ type projPoint struct {
 	c       *ProjectiveCurve
 }
 
-func (P *projPoint) initXY(x, y *big.Int, c kyber.Group) {
+func (P *projPoint) initXY(x, y *compatible.Int, c kyber.Group) {
 	P.c = c.(*ProjectiveCurve) //nolint:errcheck // Design pattern to emulate generics
-	P.X.Init(x, &P.c.P)
-	P.Y.Init(y, &P.c.P)
-	P.Z.Init64(1, &P.c.P)
+	P.X.Init(x, P.c.P.ToCompatibleMod())
+	P.Y.Init(y, P.c.P.ToCompatibleMod())
+	P.Z.Init64(1, P.c.P.ToCompatibleMod())
 }
 
 func (P *projPoint) getXY() (x, y *mod.Int) {
@@ -42,7 +44,7 @@ func (P *projPoint) MarshalBinary() ([]byte, error) {
 }
 
 func (P *projPoint) UnmarshalBinary(b []byte) error {
-	P.Z.Init64(1, &P.c.P)
+	P.Z.Init64(1, P.c.P.ToCompatibleMod())
 	return P.c.decodePoint(b, &P.X, &P.Y)
 }
 

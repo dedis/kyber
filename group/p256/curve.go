@@ -1,3 +1,5 @@
+//go:build !constantTime
+
 package p256
 
 import (
@@ -8,6 +10,7 @@ import (
 	"math/big"
 
 	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v4/compatible/compatiblemod"
 	"go.dedis.ch/kyber/v4/group/internal/marshalling"
 	"go.dedis.ch/kyber/v4/group/mod"
 	"go.dedis.ch/kyber/v4/util/random"
@@ -37,8 +40,8 @@ func (P *curvePoint) Equal(P2 kyber.Point) bool {
 }
 
 func (P *curvePoint) Null() kyber.Point {
-	P.x = new(big.Int).SetInt64(0)
-	P.y = new(big.Int).SetInt64(0)
+	P.x = big.NewInt(0)
+	P.y = big.NewInt(0)
 	return P
 }
 
@@ -159,9 +162,9 @@ func (P *curvePoint) Mul(s kyber.Scalar, B kyber.Point) kyber.Point {
 	cs := s.(*mod.Int) //nolint:errcheck // Design pattern to emulate generics
 	if B != nil {
 		cb := B.(*curvePoint) //nolint:errcheck // Design pattern to emulate generics
-		P.x, P.y = P.c.ScalarMult(cb.x, cb.y, cs.V.Bytes())
+		P.x, P.y = P.c.ScalarMult(cb.x, cb.y, cs.V.Bytes(nil))
 	} else {
-		P.x, P.y = P.c.ScalarBaseMult(cs.V.Bytes())
+		P.x, P.y = P.c.ScalarBaseMult(cs.V.Bytes(nil))
 	}
 	return P
 }
@@ -225,7 +228,7 @@ func (c *curve) ScalarLen() int { return (c.p.N.BitLen() + 7) / 8 }
 // the bytes as a big-endian integer, so as to be compatible with the
 // Go standard library's big.Int type.
 func (c *curve) Scalar() kyber.Scalar {
-	return mod.NewInt64(0, c.p.N)
+	return mod.NewInt64(0, compatiblemod.FromBigInt(c.p.N))
 }
 
 // Number of bytes required to store one coordinate on this curve

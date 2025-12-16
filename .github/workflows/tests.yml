@@ -4,7 +4,7 @@ on:
   pull_request_target:
     types: [opened, synchronize, reopened, labeled]
   push:
-    branches: [ master ]
+    branches: [ master, int32-repro ]
 
 concurrency:
   group: ci-${{ github.ref }}-test
@@ -40,6 +40,7 @@ jobs:
         os: [windows-latest, ubuntu-latest, macos-latest]
         size: ['64b', '32b']
         golang: ['1.25.4']
+        tag : ['', 'constantTime']
         exclude:
           - os: windows-latest
             size: '32b'
@@ -93,7 +94,18 @@ jobs:
 
     - name: Test with coverage
       if: ${{ matrix.os == 'ubuntu-latest' && matrix.size == '64b' }}
-      run: make coverage
+      run: |
+        TAG="${{ matrix.tag }}"
+        ARGS=""
+        if [ -n "${{ matrix.tag }}" ]; then
+          ARGS="-tags $TAG"
+        fi
+        
+        go test $ARGS \
+        -json -covermode=count \
+        -coverprofile=profile.cov ./... \
+        > report.jsonl
+
 
     - name: SonarQube Scan
       if: ${{ matrix.os == 'ubuntu-latest' && matrix.size == '64b' }}

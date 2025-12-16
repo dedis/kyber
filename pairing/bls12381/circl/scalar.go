@@ -2,11 +2,12 @@ package circl
 
 import (
 	"crypto/cipher"
-	"io"
-	"math/big"
 
-	bls12381 "github.com/cloudflare/circl/ecc/bls12381"
+	"github.com/cloudflare/circl/ecc/bls12381"
 	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v4/compatible/compatiblemod"
+
+	"io"
 )
 
 var _ kyber.Scalar = &Scalar{}
@@ -121,6 +122,7 @@ func (s *Scalar) ByteOrder() kyber.ByteOrder {
 	return kyber.BigEndian
 }
 
-func (s *Scalar) GroupOrder() *big.Int {
-	return big.NewInt(0).SetBytes(bls12381.Order())
+func (s *Scalar) GroupOrder() *compatiblemod.Mod {
+	mod := new(compatiblemod.Mod)
+	return mod.SetBytes(bls12381.Order())
 }

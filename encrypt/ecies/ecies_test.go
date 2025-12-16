@@ -1,3 +1,5 @@
+//go:build !constantTime
+
 package ecies
 
 import (
@@ -5,10 +7,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"go.dedis.ch/kyber/v4"
 	"go.dedis.ch/kyber/v4/group/edwards25519"
-	"go.dedis.ch/kyber/v4/group/edwards25519vartime"
-	"go.dedis.ch/kyber/v4/group/p256"
 	"go.dedis.ch/kyber/v4/util/random"
 )
 
@@ -50,16 +49,6 @@ func TestECIESFailCiphertext(t *testing.T) {
 }
 
 func BenchmarkECIES(b *testing.B) {
-	suites := []struct {
-		kyber.Group
-	}{
-		{edwards25519.NewBlakeSHA256Ed25519()},
-		{edwards25519vartime.NewBlakeSHA256Ed25519(false)},
-		{edwards25519vartime.NewBlakeSHA256Ed25519(true)},
-		{p256.NewBlakeSHA256P256()},
-		{p256.NewBlakeSHA256QR512()},
-	}
-
 	message := make([]byte, 100_000)
 	_, _ = rand.Read(message)
 	rand := random.New()

@@ -25,6 +25,9 @@ import (
 	"math"
 	"math/big"
 
+	"go.dedis.ch/kyber/v4/compatible"
+	"go.dedis.ch/kyber/v4/compatible/compatiblemod"
+
 	"go.dedis.ch/kyber/v4"
 	"go.dedis.ch/kyber/v4/group/internal/marshalling"
 	"golang.org/x/crypto/sha3"
@@ -307,7 +310,6 @@ func (P *point) Hash(m []byte, dst string) kyber.Point {
 	q0 := mapToCurveElligator2Ed25519(u[0])
 	q1 := mapToCurveElligator2Ed25519(u[1])
 	P.Add(q0, q1)
-
 	// Clear cofactor
 	P.Mul(cofactorScalar, P)
 
@@ -324,8 +326,13 @@ func hashToField(m []byte, dst string, count int) []fieldElement {
 	u := make([]fieldElement, count)
 	for i := 0; i < count; i++ {
 		elmOffset := l * i
-		tv := big.NewInt(0).SetBytes(uniformBytes[elmOffset : elmOffset+l])
-		tv = tv.Mod(tv, prime)
+		// todo, what's this?
+		// 	tv := compatible.NewInt(0).SetBytes(uniformBytes[elmOffset:elmOffset+l], prime)
+		// says that prime has a smaller size than l
+		// should we fix the modulus to be  1 << l ? Is it fine to pass through big.Int?
+		tvBig := big.NewInt(0).SetBytes(uniformBytes[elmOffset : elmOffset+l])
+		tvBig.Mod(tvBig, prime.ToBigInt())
+		tv := compatible.FromBigInt(tvBig, prime)
 		fe := fieldElement{}
 		feFromBn(&fe, tv)
 		u[i] = fe
@@ -458,8 +465,9 @@ func expandMessageXOF(h sha3.ShakeHash, m []byte, domainSeparator string, byteLe
 }
 
 func i2OSP(x int64, xLen uint32) ([]byte, error) {
-	b := big.NewInt(x)
-	s := b.Bytes()
+	b := compatible.NewInt(x)
+	// todo, check this modulus! Maybe something like math.MaxInt8 << 8 * (xLen - 1)
+	s := b.Bytes(compatiblemod.NewInt(int64(math.MaxInt8)))
 	if uint32(len(s)) > xLen {
 		return nil, fmt.Errorf("input %d superior to max length %d", len(s), xLen)
 	}
@@ -499,7 +507,9 @@ func curve25519Elligator2(u fieldElement) (xn, xd, yn, yd fieldElement) {
 	// Computed with sagemath
 	c2 := fieldElement{34513073, 25610706, 9377949, 3500415, 12389472, 33281959, 41962654, 31548777, 326685, 11406482}
 	c3 := fieldElement{34513072, 25610706, 9377949, 3500415, 12389472, 33281959, 41962654, 31548777, 326685, 11406482}
-	c4, _ := new(big.Int).SetString("7237005577332262213973186563042994240829374041602535252466099000494570602493", 10)
+	c4, _ := new(compatible.Int).SetStringM(
+		"7237005577332262213973186563042994240829374041602535252466099000494570602493",
+		primeOrder, 10)
 
 	// Temporary variables
 	var tv1, tv2, tv3, x1n, gxd, gx1, gx2 fieldElement
@@ -522,9 +532,9 @@ func curve25519Elligator2(u fieldElement) (xn, xd, yn, yd fieldElement) {
 	feMul(&tv2, &tv2, &tv3) // tv2 = tv2 * tv3
 
 	// compute y11 = tv2 ^ c4
-	tv2Big := big.NewInt(0)
+	tv2Big := compatible.NewInt(0)
 	feToBn(tv2Big, &tv2)
-	y11Big := big.NewInt(0).Exp(tv2Big, c4, prime)
+	y11Big := compatible.NewInt(0).Exp(tv2Big, c4, prime)
 	feFromBn(&y11, y11Big)
 
 	feMul(&y11, &y11, &tv3) // y11 = y11 * tv3

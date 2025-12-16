@@ -9,7 +9,9 @@ import (
 	"encoding/hex"
 	"errors"
 	"io"
-	"math/big"
+
+	"go.dedis.ch/kyber/v4/compatible"
+	"go.dedis.ch/kyber/v4/compatible/compatiblemod"
 
 	"go.dedis.ch/kyber/v4"
 	"go.dedis.ch/kyber/v4/group/internal/marshalling"
@@ -134,7 +136,8 @@ func (s *scalar) Inv(a kyber.Scalar) kyber.Scalar {
 
 // Set to a fresh random or pseudo-random scalar
 func (s *scalar) Pick(rand cipher.Stream) kyber.Scalar {
-	i := mod.NewInt(random.Int(primeOrder, rand), primeOrder)
+	randomInt := random.Int(primeOrder, rand)
+	i := mod.NewInt(randomInt, primeOrder)
 	return s.setInt(i)
 }
 
@@ -149,8 +152,8 @@ func (s *scalar) ByteOrder() kyber.ByteOrder {
 }
 
 // GroupOrder returns the order of the underlying group
-func (s *scalar) GroupOrder() *big.Int {
-	return big.NewInt(0).SetBytes(primeOrder.Bytes())
+func (s *scalar) GroupOrder() *compatiblemod.Mod {
+	return primeOrder
 }
 
 // String returns the string representation of this scalar (fixed length of 32 bytes, little endian).
@@ -198,7 +201,7 @@ func (s *scalar) UnmarshalFrom(r io.Reader) (int, error) {
 	return marshalling.ScalarUnmarshalFrom(s, r)
 }
 
-func newScalarInt(i *big.Int) *scalar {
+func newScalarInt(i *compatible.Int) *scalar {
 	s := scalar{}
 	s.setInt(mod.NewInt(i, fullOrder))
 	return &s

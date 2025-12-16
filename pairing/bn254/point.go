@@ -1,3 +1,5 @@
+//go:build !constantTime
+
 package bn254
 
 import (
@@ -43,9 +45,9 @@ func (p *pointG1) Base() kyber.Point {
 }
 
 func (p *pointG1) Pick(rand cipher.Stream) kyber.Point {
-	s := mod.NewInt64(0, Order).Pick(rand)
+	s := mod.NewInt64(0, OrderMod).Pick(rand)
 	p.Base()
-	p.g.Mul(p.g, &s.(*mod.Int).V)
+	p.g.Mul(p.g, &s.(*mod.Int).V.Int)
 	return p
 }
 
@@ -102,7 +104,7 @@ func (p *pointG1) Mul(s kyber.Scalar, q kyber.Point) kyber.Point {
 	if q == nil {
 		q = newPointG1(p.dst).Base()
 	}
-	t := s.(*mod.Int).V
+	t := s.(*mod.Int).V.Int
 	r := q.(*pointG1).g
 	p.g.Mul(r, &t)
 	return p
@@ -364,9 +366,9 @@ func (p *pointG2) Base() kyber.Point {
 }
 
 func (p *pointG2) Pick(rand cipher.Stream) kyber.Point {
-	s := mod.NewInt64(0, Order).Pick(rand)
+	s := mod.NewInt64(0, OrderMod).Pick(rand)
 	p.Base()
-	p.g.Mul(p.g, &s.(*mod.Int).V)
+	p.g.Mul(p.g, &s.(*mod.Int).V.Int)
 	return p
 }
 
@@ -417,7 +419,7 @@ func (p *pointG2) Mul(s kyber.Scalar, q kyber.Point) kyber.Point {
 	if q == nil {
 		q = newPointG2(p.dst).Base()
 	}
-	t := s.(*mod.Int).V
+	t := s.(*mod.Int).V.Int
 	r := q.(*pointG2).g
 	p.g.Mul(r, &t)
 	return p
@@ -561,9 +563,9 @@ func (p *pointGT) Base() kyber.Point {
 }
 
 func (p *pointGT) Pick(rand cipher.Stream) kyber.Point {
-	s := mod.NewInt64(0, Order).Pick(rand)
+	s := mod.NewInt64(0, OrderMod).Pick(rand)
 	p.Base()
-	p.g.Exp(p.g, &s.(*mod.Int).V)
+	p.g.Exp(p.g, &s.(*mod.Int).V.Int)
 	return p
 }
 
@@ -614,7 +616,7 @@ func (p *pointGT) Mul(s kyber.Scalar, q kyber.Point) kyber.Point {
 	if q == nil {
 		q = newPointGT().Base()
 	}
-	t := s.(*mod.Int).V
+	t := s.(*mod.Int).V.Int
 	r := q.(*pointGT).g
 	p.g.Exp(r, &t)
 	return p

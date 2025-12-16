@@ -5,7 +5,7 @@ import (
 	"crypto/sha512"
 	"encoding/hex"
 	"fmt"
-	"math/big"
+	"go.dedis.ch/kyber/v4/compatible"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -311,8 +311,8 @@ func TestHashToField(t *testing.T) {
 	j := 0
 	for i := 0; i < len(inputsTestVectRFC9380); i++ {
 		u := hashToField([]byte(inputsTestVectRFC9380[i]), dst, 2)
-		u0Actual := big.NewInt(0)
-		u1Actual := big.NewInt(0)
+		u0Actual := compatible.NewInt(0)
+		u1Actual := compatible.NewInt(0)
 
 		feToBn(u0Actual, &u[0])
 		feToBn(u1Actual, &u[1])
@@ -346,8 +346,8 @@ func TestHashToPoint(t *testing.T) {
 
 	j := 0
 	var x, y, rec fieldElement
-	bX := big.NewInt(0)
-	bY := big.NewInt(0)
+	bX := compatible.NewInt(0)
+	bY := compatible.NewInt(0)
 
 	for i := 0; i < len(inputsTestVectRFC9380); i++ {
 		p.Hash([]byte(inputsTestVectRFC9380[i]), dst)
