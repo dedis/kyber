@@ -15,6 +15,10 @@ func NewInt(x int64) *Mod {
 	return &Mod{*big.NewInt(x)}
 }
 
+func NewUint(x uint64) *Mod {
+	return &Mod{*big.NewInt(0).SetUint64(x)}
+}
+
 func (z *Mod) SetString(s string, base int) (*Mod, bool) {
 	_, t := z.Int.SetString(s, base)
 	//fmt.Println("	debug: ", t)

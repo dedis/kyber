@@ -466,13 +466,15 @@ func expandMessageXOF(h sha3.ShakeHash, m []byte, domainSeparator string, byteLe
 
 func i2OSP(x int64, xLen uint32) ([]byte, error) {
 	b := compatible.NewInt(x)
-	// todo, check this modulus! Maybe something like math.MaxInt8 << 8 * (xLen - 1)
-	s := b.Bytes(compatiblemod.NewInt(int64(math.MaxInt8)))
-	if uint32(len(s)) > xLen {
-		return nil, fmt.Errorf("input %d superior to max length %d", len(s), xLen)
+	// create modulus int as the biggest value representable on xLen bytes
+	modInt := uint64((1 << (8 * xLen)) - 1)
+	if uint64(x) > modInt {
+		return nil, fmt.Errorf("input %d cannot be represented on %d bytes", x, xLen)
 	}
+	// Use the modulus to get the bytes of x
+	s := b.Bytes(compatiblemod.NewUint(modInt))
 
-	pad := make([]byte, (xLen - uint32(len(s))))
+	pad := make([]byte, xLen-uint32(len(s)))
 	return append(pad, s...), nil
 }
 
