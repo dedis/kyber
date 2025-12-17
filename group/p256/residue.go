@@ -60,7 +60,6 @@ func (P *residuePoint) Clone() kyber.Point {
 }
 
 func (P *residuePoint) Valid() bool {
-	//todo check if it works in constant time
 	return P.Int.Sign() > 0 && P.Int.Cmp(P.g.P) < 0 &&
 		new(big.Int).Exp(&P.Int, P.g.Q, P.g.P).Cmp(one) == 0
 }
@@ -245,7 +244,6 @@ func (g *ResidueGroup) Valid() bool {
 	n := new(big.Int)
 	n.Mul(g.Q, g.R)
 	n.Add(n, one)
-	// todo check for constant time
 	if n.Cmp(g.P) != 0 {
 		return false
 	}
