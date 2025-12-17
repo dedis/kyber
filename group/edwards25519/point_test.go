@@ -5,8 +5,9 @@ import (
 	"crypto/sha512"
 	"encoding/hex"
 	"fmt"
-	"go.dedis.ch/kyber/v4/compatible"
 	"testing"
+
+	"go.dedis.ch/kyber/v4/compatible"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -249,6 +250,27 @@ func TestExpandMessageXOFSHAKE128ShortDST(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, expectedHex128byte[i], hex.EncodeToString(res))
 	}
+}
+
+func TestPoint_i2OSP(t *testing.T) {
+	// Test a value with a byte size that fits on the output byte length
+	value := int64(255) // 0xFF -> fits on 1 byte
+	xLen := uint32(1)
+	res, err := i2OSP(value, xLen)
+	assert.NoError(t, err)
+	assert.Equal(t, xLen, uint32(len(res)))
+
+	// Test a value with a byte size that does not fit on the output byte length
+	value2 := int64(256)         // 0x100 -> fits on 2 bytes
+	assert.NotPanics(t, func() { // Call should not panic but return an error
+		_, err = i2OSP(value2, xLen)
+		assert.Error(t, err)
+	})
+
+	xLen2 := uint32(2)
+	res2, err := i2OSP(value2, xLen2)
+	assert.NoError(t, err)
+	assert.Equal(t, xLen2, uint32(len(res2)))
 }
 
 func TestExpandMessageXOFSHAKE128LongDST(t *testing.T) {
