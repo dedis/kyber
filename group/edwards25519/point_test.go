@@ -93,7 +93,7 @@ func TestPointIsCanonical(t *testing.T) {
 // Test vectors from: https://datatracker.ietf.org/doc/rfc9380
 func TestExpandMessageXMDSHA256ShortDST(t *testing.T) {
 	dst := "QUUX-V01-CS02-with-expander-SHA256-128"
-	outputLength := []int{32, 128}
+	outputLength := []uint64{32, 128}
 
 	expectedHex32byte := []string{
 		"68a985b87eb6b46952128911f2a4412bbc302a9d759667f87f7a21d803f07235",
@@ -135,7 +135,7 @@ func TestExpandMessageXMDSHA256ShortDST(t *testing.T) {
 // Test vectors from: https://datatracker.ietf.org/doc/rfc9380
 func TestExpandMessageXMDSHA256LongDST(t *testing.T) {
 	dst := "QUUX-V01-CS02-with-expander-SHA256-128-long-DST-1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111"
-	outputLength := []int{32, 128}
+	outputLength := []uint64{32, 128}
 
 	expectedHex32byte := []string{
 		"e8dc0c8b686b7ef2074086fbdd2f30e3f8bfbd3bdf177f73f04b97ce618a3ed3",
@@ -179,7 +179,7 @@ func TestExpandMessageXMDSHA512(t *testing.T) {
 	dst := "QUUX-V01-CS02-with-expander-SHA512-256"
 	h := sha512.New()
 
-	outputLength := []int{32, 128}
+	outputLength := []uint64{32, 128}
 
 	expectedHex32byte := []string{
 		"6b9a7312411d92f921c6f68ca0b6380730a1a4d982c507211a90964c394179ba",
@@ -219,7 +219,7 @@ func TestExpandMessageXMDSHA512(t *testing.T) {
 func TestExpandMessageXOFSHAKE128ShortDST(t *testing.T) {
 	dst := "QUUX-V01-CS02-with-expander-SHAKE128"
 	h := sha3.NewShake128()
-	outputLength := []int64{32, 128}
+	outputLength := []uint64{32, 128}
 
 	expectedHex32byte := []string{
 		"86518c9cd86581486e9485aa74ab35ba150d1c75c88e26b7043e44e2acd735a2",
@@ -254,14 +254,14 @@ func TestExpandMessageXOFSHAKE128ShortDST(t *testing.T) {
 
 func TestPoint_i2OSP(t *testing.T) {
 	// Test a value with a byte size that fits on the output byte length
-	value := int64(255) // 0xFF -> fits on 1 byte
+	value := uint64(255) // 0xFF -> fits on 1 byte
 	xLen := uint32(1)
 	res, err := i2OSP(value, xLen)
 	assert.NoError(t, err)
 	assert.Equal(t, xLen, uint32(len(res)))
 
 	// Test a value with a byte size that does not fit on the output byte length
-	value2 := int64(256)         // 0x100 -> fits on 2 bytes
+	value2 := uint64(256)        // 0x100 -> fits on 2 bytes
 	assert.NotPanics(t, func() { // Call should not panic but return an error
 		_, err = i2OSP(value2, xLen)
 		assert.Error(t, err)
@@ -276,7 +276,7 @@ func TestPoint_i2OSP(t *testing.T) {
 func TestExpandMessageXOFSHAKE128LongDST(t *testing.T) {
 	dst := "QUUX-V01-CS02-with-expander-SHAKE128-long-DST-111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111"
 	h := sha3.NewShake128()
-	outputLength := []int64{32, 128}
+	outputLength := []uint64{32, 128}
 
 	expectedHex32byte := []string{
 		"827c6216330a122352312bccc0c8d6e7a146c5257a776dbd9ad9d75cd880fc53",
