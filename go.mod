@@ -1,9 +1,9 @@
 module go.dedis.ch/kyber/v4
 
-go 1.21
+go 1.22.0
 
 require (
-	github.com/cloudflare/circl v1.3.9
+	github.com/cloudflare/circl v1.6.1
 	github.com/consensys/gnark-crypto v0.12.1
 	github.com/jonboulle/clockwork v0.4.0
 	github.com/kilic/bls12-381 v0.1.0
