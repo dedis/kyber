@@ -15,7 +15,7 @@ import (
 //go:generate go run . -out ../nat_amd64.s -pkg bigmod
 
 func main() {
-	Package("filippo.io/bigmod")
+	Package("go.dedis.ch/kyber/v4/compatible/bigmod")
 	ConstraintExpr("!purego")
 
 	addMulVVW(1024)
