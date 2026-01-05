@@ -316,15 +316,15 @@ func (P *point) Hash(m []byte, dst string) kyber.Point {
 	return P
 }
 
-func hashToField(m []byte, dst string, count int) []fieldElement {
+func hashToField(m []byte, dst string, count uint64) []fieldElement {
 	// L param in RFC9380 section 5
 	// https://datatracker.ietf.org/doc/html/rfc9380#name-hashing-to-a-finite-field
-	l := 48
+	l := uint64(48)
 	byteLen := count * l
 	uniformBytes, _ := expandMessageXMD(sha512.New(), m, dst, byteLen)
 
 	u := make([]fieldElement, count)
-	for i := 0; i < count; i++ {
+	for i := uint64(0); i < count; i++ {
 		elmOffset := l * i
 		// todo, what's this?
 		// 	tv := compatible.NewInt(0).SetBytes(uniformBytes[elmOffset:elmOffset+l], prime)
@@ -341,9 +341,9 @@ func hashToField(m []byte, dst string, count int) []fieldElement {
 	return u
 }
 
-func expandMessageXMD(h hash.Hash, m []byte, domainSeparator string, byteLen int) ([]byte, error) {
+func expandMessageXMD(h hash.Hash, m []byte, domainSeparator string, byteLen uint64) ([]byte, error) {
 	r := float64(byteLen) / float64(h.Size()>>3)
-	ell := int64(math.Ceil(r))
+	ell := uint64(math.Ceil(r))
 	if ell > 255 || ell < 0 || byteLen > 65535 || len(domainSeparator) == 0 {
 		return nil, errors.New("invalid parameters")
 	}
@@ -356,15 +356,15 @@ func expandMessageXMD(h hash.Hash, m []byte, domainSeparator string, byteLen int
 		domainSeparator = string(h.Sum(nil))
 	}
 
-	padDom, err := i2OSP(int64(len(domainSeparator)), 1)
+	padDom, err := i2OSP(uint64(len(domainSeparator)), 1)
 	if err != nil {
 		return nil, err
 	}
 
 	dstPrime := append([]byte(domainSeparator), padDom...)
-	byteLenStr, _ := i2OSP(int64(byteLen), 2)
+	byteLenStr, _ := i2OSP(byteLen, 2)
 	zeroPad, _ := i2OSP(0, 1)
-	zPad, _ := i2OSP(0, uint32(h.BlockSize()))
+	zPad, _ := i2OSP(0, int32(h.BlockSize()))
 
 	// mPrime = Z_pad || msg || l_i_b_str || I2OSP(0, 1) || DST_prim
 	mPrime := make([]byte, 0, len(zPad)+len(m)+len(byteLenStr)+len(zeroPad)+len(dstPrime))
@@ -387,10 +387,10 @@ func expandMessageXMD(h hash.Hash, m []byte, domainSeparator string, byteLen int
 	h.Write(dstPrime)
 	b1 := h.Sum(nil)
 
-	bFinal := make([]byte, 0, int64(len(b1))*(ell+1))
+	bFinal := make([]byte, 0, uint64(len(b1))*(ell+1))
 	bFinal = append(bFinal, b1...)
 	bPred := b1
-	for i := int64(2); i <= ell; i++ {
+	for i := uint64(2); i <= ell; i++ {
 		x, err := byteXor(bPred, b0, bPred)
 		if err != nil {
 			return nil, err
@@ -409,7 +409,7 @@ func expandMessageXMD(h hash.Hash, m []byte, domainSeparator string, byteLen int
 	return bFinal[:byteLen], nil
 }
 
-func expandMessageXOF(h sha3.ShakeHash, m []byte, domainSeparator string, byteLen int64) ([]byte, error) {
+func expandMessageXOF(h sha3.ShakeHash, m []byte, domainSeparator string, byteLen uint64) ([]byte, error) {
 	if byteLen > 65535 || len(domainSeparator) == 0 {
 		return nil, errors.New("invalid parameters")
 	}
@@ -434,7 +434,7 @@ func expandMessageXOF(h sha3.ShakeHash, m []byte, domainSeparator string, byteLe
 		domainSeparator = string(dst)
 	}
 
-	dstPad, err := i2OSP(int64(len(domainSeparator)), 1)
+	dstPad, err := i2OSP(uint64(len(domainSeparator)), 1)
 	if err != nil {
 		return nil, err
 	}
@@ -457,22 +457,29 @@ func expandMessageXOF(h sha3.ShakeHash, m []byte, domainSeparator string, byteLe
 		return nil, err
 	}
 
-	if int64(n) != byteLen {
+	if uint64(n) != byteLen {
 		return nil, fmt.Errorf("read %d byte instead of expected %d from xof", n, byteLen)
 	}
 
 	return uniformBytes, nil
 }
 
-func i2OSP(x int64, xLen uint32) ([]byte, error) {
-	b := compatible.NewInt(x)
-	// todo, check this modulus! Maybe something like math.MaxInt8 << 8 * (xLen - 1)
-	s := b.Bytes(compatiblemod.NewInt(int64(math.MaxInt8)))
-	if uint32(len(s)) > xLen {
-		return nil, fmt.Errorf("input %d superior to max length %d", len(s), xLen)
+// i2OSP converts a nonnegative integer to a byte array of a
+// specified length. Implementation from [RFC8017]
+func i2OSP(x uint64, xLen int32) ([]byte, error) {
+	if xLen < 1 {
+		return nil, errors.New("cannot convert an integer onto an array of size less than 1")
 	}
+	b := new(compatible.Int).SetUint64(x)
+	// create modulus int as the biggest value representable on xLen bytes
+	modInt := uint64((1 << (8 * uint32(xLen))) - 1)
+	if x > modInt {
+		return nil, fmt.Errorf("input %d cannot be represented on %d bytes", x, xLen)
+	}
+	// Use the modulus to get the bytes of x
+	s := b.Bytes(compatiblemod.NewUint(modInt))
 
-	pad := make([]byte, (xLen - uint32(len(s))))
+	pad := make([]byte, xLen-int32(len(s)))
 	return append(pad, s...), nil
 }
 

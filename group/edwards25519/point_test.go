@@ -3,10 +3,13 @@ package edwards25519
 import (
 	"crypto/sha256"
 	"crypto/sha512"
+	"encoding/binary"
 	"encoding/hex"
 	"fmt"
-	"go.dedis.ch/kyber/v4/compatible"
+	"math"
 	"testing"
+
+	"go.dedis.ch/kyber/v4/compatible"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -92,7 +95,7 @@ func TestPointIsCanonical(t *testing.T) {
 // Test vectors from: https://datatracker.ietf.org/doc/rfc9380
 func TestExpandMessageXMDSHA256ShortDST(t *testing.T) {
 	dst := "QUUX-V01-CS02-with-expander-SHA256-128"
-	outputLength := []int{32, 128}
+	outputLength := []uint64{32, 128}
 
 	expectedHex32byte := []string{
 		"68a985b87eb6b46952128911f2a4412bbc302a9d759667f87f7a21d803f07235",
@@ -134,7 +137,7 @@ func TestExpandMessageXMDSHA256ShortDST(t *testing.T) {
 // Test vectors from: https://datatracker.ietf.org/doc/rfc9380
 func TestExpandMessageXMDSHA256LongDST(t *testing.T) {
 	dst := "QUUX-V01-CS02-with-expander-SHA256-128-long-DST-1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111"
-	outputLength := []int{32, 128}
+	outputLength := []uint64{32, 128}
 
 	expectedHex32byte := []string{
 		"e8dc0c8b686b7ef2074086fbdd2f30e3f8bfbd3bdf177f73f04b97ce618a3ed3",
@@ -178,7 +181,7 @@ func TestExpandMessageXMDSHA512(t *testing.T) {
 	dst := "QUUX-V01-CS02-with-expander-SHA512-256"
 	h := sha512.New()
 
-	outputLength := []int{32, 128}
+	outputLength := []uint64{32, 128}
 
 	expectedHex32byte := []string{
 		"6b9a7312411d92f921c6f68ca0b6380730a1a4d982c507211a90964c394179ba",
@@ -218,7 +221,7 @@ func TestExpandMessageXMDSHA512(t *testing.T) {
 func TestExpandMessageXOFSHAKE128ShortDST(t *testing.T) {
 	dst := "QUUX-V01-CS02-with-expander-SHAKE128"
 	h := sha3.NewShake128()
-	outputLength := []int64{32, 128}
+	outputLength := []uint64{32, 128}
 
 	expectedHex32byte := []string{
 		"86518c9cd86581486e9485aa74ab35ba150d1c75c88e26b7043e44e2acd735a2",
@@ -251,10 +254,83 @@ func TestExpandMessageXOFSHAKE128ShortDST(t *testing.T) {
 	}
 }
 
+// testI2OSP call i2OSP with an integer matching the given byte size representation iLen
+// and using xLen as the requested byte size for the output array.
+// Returns the byte array and error if an error occurred.
+func testI2OSP(iLen uint32, xLen int32) ([]byte, error) {
+
+	value := uint64((1 << (iLen * 8)) - 1)
+
+	res, err := i2OSP(value, xLen)
+
+	return res, err
+}
+
+// TestPoint_i2OSP_Simple tests i2OSP in a simple context
+// of trying to convert an integer that fits on 1 byte on
+// a one byte array. This should work without errors and
+// the resulting array have the expected byte size (1).
+func TestPoint_i2OSP_Simple(t *testing.T) {
+	xLen := int32(1)
+	res, err := testI2OSP(1, xLen)
+	assert.NoError(t, err)
+	assert.Equal(t, xLen, int32(len(res)))
+}
+
+// TestPoint_i2OSP_Unfit test i2OSP in a context
+// where the integer passed has a byte size representation
+// larger than the byte size passed as argument.
+// It is expected to fail gracefully using an error.
+func TestPoint_i2OSP_Unfit(t *testing.T) {
+	// Requested byte size for the output array
+	xLen := int32(1)
+	// Byte size of the integer to convert
+	iLen := uint32(2)
+	_, err := testI2OSP(iLen, xLen)
+	assert.Error(t, err)
+}
+
+// TestPoint_i2OSP_Large tries to call i2OSP with
+// the largest possible integer (8 bytes) to be
+// converted on a very big byte array (max int16)
+// It should run without errors and return an array
+// of the expected size (max int16)
+func TestPoint_i2OSP_Large(t *testing.T) {
+	xLen := int32(math.MaxInt16)
+	iLen := uint32(8)
+	res, err := testI2OSP(iLen, xLen)
+	assert.NoError(t, err)
+	assert.Equal(t, xLen, int32(len(res)))
+}
+
+// FuzzI2OSP_Input fuzzes the output byte array size and expect
+// that for any size, converting an integer of the same or smaller
+// byte size should work without errors and return an array of
+// the expected byte size.
+func FuzzI2OSP_ByteSize(f *testing.F) {
+	f.Fuzz(func(t *testing.T, xLen int32) {
+		iLen := xLen % 8 // largest number is uint64 i.e. 8 bytes
+		res, err := testI2OSP(uint32(iLen), xLen)
+		assert.NoError(t, err)
+		assert.Equal(t, 8, len(res))
+	})
+}
+
+// FuzzI2OSP_Input fuzzes the input integer of i2OSP as an uint64 and tries to
+// convert it on 8 bytes and expects the result to match
+func FuzzI2OSP_Input(f *testing.F) {
+	f.Fuzz(func(t *testing.T, data uint64) {
+		res, err := i2OSP(data, 8)
+		assert.NoError(t, err)
+		assert.Equal(t, 8, len(res))
+		assert.Equal(t, data, binary.BigEndian.Uint64(res))
+	})
+}
+
 func TestExpandMessageXOFSHAKE128LongDST(t *testing.T) {
 	dst := "QUUX-V01-CS02-with-expander-SHAKE128-long-DST-111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111"
 	h := sha3.NewShake128()
-	outputLength := []int64{32, 128}
+	outputLength := []uint64{32, 128}
 
 	expectedHex32byte := []string{
 		"827c6216330a122352312bccc0c8d6e7a146c5257a776dbd9ad9d75cd880fc53",

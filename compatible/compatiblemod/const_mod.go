@@ -62,6 +62,19 @@ func NewInt(x int64) *Mod {
 	return &Mod{*mod}
 }
 
+func NewUint(x uint64) *Mod {
+	if x < 1 {
+		panic("Modulus needs to be larger than 1")
+	}
+	xBytes := make([]byte, 8)
+	binary.BigEndian.PutUint64(xBytes, uint64(x))
+	mod, err := bigmod.NewModulus(xBytes)
+	if err != nil {
+		panic(err)
+	}
+	return &Mod{*mod}
+}
+
 // NewModulusProduct creates a new modulus as the result of
 // the multiplication of the two input byte arrays
 func NewModulusProduct(a, b []byte) *Mod {
