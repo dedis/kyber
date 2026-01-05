@@ -3,8 +3,10 @@ package edwards25519
 import (
 	"crypto/sha256"
 	"crypto/sha512"
+	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"math"
 	"testing"
 
 	"go.dedis.ch/kyber/v4/compatible"
@@ -252,25 +254,77 @@ func TestExpandMessageXOFSHAKE128ShortDST(t *testing.T) {
 	}
 }
 
-func TestPoint_i2OSP(t *testing.T) {
-	// Test a value with a byte size that fits on the output byte length
-	value := uint64(255) // 0xFF -> fits on 1 byte
-	xLen := uint32(1)
+// testI2OSP call i2OSP with an integer matching the given byte size representation iLen
+// and using xLen as the requested byte size for the output array.
+// Returns the byte array and error if an error occurred.
+func testI2OSP(iLen, xLen uint32) ([]byte, error) {
+
+	value := uint64((1 << (iLen * 8)) - 1)
+
 	res, err := i2OSP(value, xLen)
+
+	return res, err
+}
+
+// TestPoint_i2OSP_Simple tests i2OSP in a simple context
+// of trying to convert an integer that fits on 1 byte on
+// a one byte array. This should work without errors and
+// the resulting array have the expected byte size (1).
+func TestPoint_i2OSP_Simple(t *testing.T) {
+	xLen := uint32(1)
+	res, err := testI2OSP(1, xLen)
 	assert.NoError(t, err)
 	assert.Equal(t, xLen, uint32(len(res)))
+}
 
-	// Test a value with a byte size that does not fit on the output byte length
-	value2 := uint64(256)        // 0x100 -> fits on 2 bytes
-	assert.NotPanics(t, func() { // Call should not panic but return an error
-		_, err = i2OSP(value2, xLen)
-		assert.Error(t, err)
-	})
+// TestPoint_i2OSP_Unfit test i2OSP in a context
+// where the integer passed has a byte size representation
+// larger than the byte size passed as argument.
+// It is expected to fail gracefully using an error.
+func TestPoint_i2OSP_Unfit(t *testing.T) {
+	// Requested byte size for the output array
+	xLen := uint32(1)
+	// Byte size of the integer to convert
+	iLen := uint32(2)
+	_, err := testI2OSP(iLen, xLen)
+	assert.Error(t, err)
+}
 
-	xLen2 := uint32(2)
-	res2, err := i2OSP(value2, xLen2)
+// TestPoint_i2OSP_MaxBytes tries to call i2OSP with
+// the largest possible integer (8 bytes) to be
+// converted on the largest possible byte array (max uint32)
+// It should run without errors and return an array
+// of the expected size (max uint32)
+func TestPoint_i2OSP_MaxBytes(t *testing.T) {
+	xLen := uint32(math.MaxUint32)
+	iLen := uint32(8)
+	res, err := testI2OSP(iLen, xLen)
 	assert.NoError(t, err)
-	assert.Equal(t, xLen2, uint32(len(res2)))
+	assert.Equal(t, xLen, uint32(len(res)))
+}
+
+// FuzzI2OSP_Input fuzzes the output byte array size and expect
+// that for any size, converting an integer of the same or smaller
+// byte size should work without errors and return an array of
+// the expected byte size.
+func FuzzI2OSP_ByteSize(f *testing.F) {
+	f.Fuzz(func(t *testing.T, xLen uint32) {
+		iLen := xLen % 8 // largest number is uint64 i.e. 8 bytes
+		res, err := testI2OSP(iLen, xLen)
+		assert.NoError(t, err)
+		assert.Equal(t, 8, len(res))
+	})
+}
+
+// FuzzI2OSP_Input fuzzes the input integer of i2OSP as an uint64 and tries to
+// convert it on 8 bytes and expects the result to match
+func FuzzI2OSP_Input(f *testing.F) {
+	f.Fuzz(func(t *testing.T, data uint64) {
+		res, err := i2OSP(data, 8)
+		assert.NoError(t, err)
+		assert.Equal(t, 8, len(res))
+		assert.Equal(t, data, binary.BigEndian.Uint64(res))
+	})
 }
 
 func TestExpandMessageXOFSHAKE128LongDST(t *testing.T) {
