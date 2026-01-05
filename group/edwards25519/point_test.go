@@ -257,7 +257,7 @@ func TestExpandMessageXOFSHAKE128ShortDST(t *testing.T) {
 // testI2OSP call i2OSP with an integer matching the given byte size representation iLen
 // and using xLen as the requested byte size for the output array.
 // Returns the byte array and error if an error occurred.
-func testI2OSP(iLen, xLen uint32) ([]byte, error) {
+func testI2OSP(iLen uint32, xLen int32) ([]byte, error) {
 
 	value := uint64((1 << (iLen * 8)) - 1)
 
@@ -271,10 +271,10 @@ func testI2OSP(iLen, xLen uint32) ([]byte, error) {
 // a one byte array. This should work without errors and
 // the resulting array have the expected byte size (1).
 func TestPoint_i2OSP_Simple(t *testing.T) {
-	xLen := uint32(1)
+	xLen := int32(1)
 	res, err := testI2OSP(1, xLen)
 	assert.NoError(t, err)
-	assert.Equal(t, xLen, uint32(len(res)))
+	assert.Equal(t, xLen, int32(len(res)))
 }
 
 // TestPoint_i2OSP_Unfit test i2OSP in a context
@@ -283,24 +283,24 @@ func TestPoint_i2OSP_Simple(t *testing.T) {
 // It is expected to fail gracefully using an error.
 func TestPoint_i2OSP_Unfit(t *testing.T) {
 	// Requested byte size for the output array
-	xLen := uint32(1)
+	xLen := int32(1)
 	// Byte size of the integer to convert
 	iLen := uint32(2)
 	_, err := testI2OSP(iLen, xLen)
 	assert.Error(t, err)
 }
 
-// TestPoint_i2OSP_MaxBytes tries to call i2OSP with
+// TestPoint_i2OSP_Large tries to call i2OSP with
 // the largest possible integer (8 bytes) to be
-// converted on the largest possible byte array (max uint32)
+// converted on a very big byte array (max int16)
 // It should run without errors and return an array
-// of the expected size (max uint32)
-func TestPoint_i2OSP_MaxBytes(t *testing.T) {
-	xLen := uint32(math.MaxUint32)
+// of the expected size (max int16)
+func TestPoint_i2OSP_Large(t *testing.T) {
+	xLen := int32(math.MaxInt16)
 	iLen := uint32(8)
 	res, err := testI2OSP(iLen, xLen)
 	assert.NoError(t, err)
-	assert.Equal(t, xLen, uint32(len(res)))
+	assert.Equal(t, xLen, int32(len(res)))
 }
 
 // FuzzI2OSP_Input fuzzes the output byte array size and expect
@@ -308,9 +308,9 @@ func TestPoint_i2OSP_MaxBytes(t *testing.T) {
 // byte size should work without errors and return an array of
 // the expected byte size.
 func FuzzI2OSP_ByteSize(f *testing.F) {
-	f.Fuzz(func(t *testing.T, xLen uint32) {
+	f.Fuzz(func(t *testing.T, xLen int32) {
 		iLen := xLen % 8 // largest number is uint64 i.e. 8 bytes
-		res, err := testI2OSP(iLen, xLen)
+		res, err := testI2OSP(uint32(iLen), xLen)
 		assert.NoError(t, err)
 		assert.Equal(t, 8, len(res))
 	})

@@ -364,7 +364,7 @@ func expandMessageXMD(h hash.Hash, m []byte, domainSeparator string, byteLen uin
 	dstPrime := append([]byte(domainSeparator), padDom...)
 	byteLenStr, _ := i2OSP(byteLen, 2)
 	zeroPad, _ := i2OSP(0, 1)
-	zPad, _ := i2OSP(0, uint32(h.BlockSize()))
+	zPad, _ := i2OSP(0, int32(h.BlockSize()))
 
 	// mPrime = Z_pad || msg || l_i_b_str || I2OSP(0, 1) || DST_prim
 	mPrime := make([]byte, 0, len(zPad)+len(m)+len(byteLenStr)+len(zeroPad)+len(dstPrime))
@@ -466,17 +466,20 @@ func expandMessageXOF(h sha3.ShakeHash, m []byte, domainSeparator string, byteLe
 
 // i2OSP converts a nonnegative integer to a byte array of a
 // specified length. Implementation from [RFC8017]
-func i2OSP(x uint64, xLen uint32) ([]byte, error) {
+func i2OSP(x uint64, xLen int32) ([]byte, error) {
+	if xLen < 1 {
+		return nil, errors.New("cannot convert an integer onto an array of size less than 1")
+	}
 	b := new(compatible.Int).SetUint64(x)
 	// create modulus int as the biggest value representable on xLen bytes
-	modInt := uint64((1 << (8 * xLen)) - 1)
+	modInt := uint64((1 << (8 * uint32(xLen))) - 1)
 	if x > modInt {
 		return nil, fmt.Errorf("input %d cannot be represented on %d bytes", x, xLen)
 	}
 	// Use the modulus to get the bytes of x
 	s := b.Bytes(compatiblemod.NewUint(modInt))
 
-	pad := make([]byte, xLen-uint32(len(s)))
+	pad := make([]byte, xLen-int32(len(s)))
 	return append(pad, s...), nil
 }
 
