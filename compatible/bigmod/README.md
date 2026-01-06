@@ -1,5 +1,9 @@
 This package is a copy of the original bigmod package `filippo.io/bigmod` used in go. 
-Below is the original README from the original package.
+This package has been copied in order to be modified for our usage. We make
+a few method for comparing natural numbers public as well as the `choice` struct (which 
+is often used as return type to these comparisons). 
+The file `pub_nat.go` contains all these changes.<br>
+Below is the README from the original package.
 
 Package bigmod implements constant-time big integer arithmetic modulo large
 moduli. Unlike math/big, this package is suitable for implementing
