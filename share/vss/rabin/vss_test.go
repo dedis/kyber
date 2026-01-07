@@ -1,8 +1,8 @@
 package vss
 
 import (
-	cryptorand "crypto/rand"
-	"math/rand"
+	"crypto/rand"
+	"math/big"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -91,10 +91,11 @@ func TestVSSDealerNew(t *testing.T) {
 }
 
 func TestVSSVerifierNew(t *testing.T) {
-	randIdx := uint32(rand.Int() % len(verifiersPub))
-	v, err := NewVerifier(suite, verifiersSec[randIdx], dealerPub, verifiersPub)
+	randIdx, err := rand.Int(rand.Reader, big.NewInt(int64(len(verifiersPub))))
+	require.NoError(t, err)
+	v, err := NewVerifier(suite, verifiersSec[randIdx.Int64()], dealerPub, verifiersPub)
 	assert.NoError(t, err)
-	assert.Equal(t, randIdx, v.index)
+	assert.Equal(t, randIdx.Uint64(), uint64(v.index))
 
 	wrongKey := suite.Scalar().Pick(suite.RandomStream())
 	_, err = NewVerifier(suite, wrongKey, dealerPub, verifiersPub)
@@ -600,7 +601,7 @@ func genAll() (*Dealer, []*Verifier) {
 
 func randomBytes(n int) []byte {
 	var buff = make([]byte, n)
-	_, err := cryptorand.Read(buff)
+	_, err := rand.Read(buff)
 	if err != nil {
 		panic(err)
 	}
