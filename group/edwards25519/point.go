@@ -484,7 +484,7 @@ func i2OSP(x uint64, xLen int32) ([]byte, error) {
 }
 
 func byteXor(dst, b1, b2 []byte) ([]byte, error) {
-	if !(len(dst) == len(b1) && len(b2) == len(b1)) {
+	if len(dst) != len(b1) || len(b2) != len(b1) {
 		return nil, errors.New("incompatible lengths")
 	}
 

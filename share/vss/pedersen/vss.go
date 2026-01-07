@@ -703,7 +703,7 @@ func (a *Aggregator) DealCertified() bool {
 	if a.timeout {
 		return baseCondition && !tooMuchAbsents
 	}
-	return baseCondition && !(absentVerifiers > 0)
+	return baseCondition && absentVerifiers <= 0
 }
 
 // MissingResponses returns the indexes of the expected but missing responses.
