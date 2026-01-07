@@ -484,8 +484,8 @@ func (op *orPred) commit(prf *proof, w kyber.Scalar, pv []kyber.Scalar) error {
 	prf.pp[op] = pp
 
 	// Choose pre-challenges for our subs.
-	switch {
-	case w == nil:
+	switch w {
+	case nil:
 		// We're on a proof-obligated branch;
 		// choose random pre-challenges for only non-obligated subs.
 		choice, ok := prf.choice[op]
