@@ -65,21 +65,21 @@ func NewSuite() *Suite {
 // NewSuiteG1 returns a G1 suite.
 func NewSuiteG1() *Suite {
 	s := NewSuite()
-	s.commonSuite.Group = &groupG1{commonSuite: &commonSuite{}}
+	s.Group = &groupG1{commonSuite: &commonSuite{}}
 	return s
 }
 
 // NewSuiteG2 returns a G2 suite.
 func NewSuiteG2() *Suite {
 	s := NewSuite()
-	s.commonSuite.Group = &groupG2{commonSuite: &commonSuite{}}
+	s.Group = &groupG2{commonSuite: &commonSuite{}}
 	return s
 }
 
 // NewSuiteGT returns a GT suite.
 func NewSuiteGT() *Suite {
 	s := NewSuite()
-	s.commonSuite.Group = &groupGT{commonSuite: &commonSuite{}}
+	s.Group = &groupGT{commonSuite: &commonSuite{}}
 	return s
 }
 

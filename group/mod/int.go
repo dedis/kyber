@@ -351,7 +351,7 @@ func (i *Int) UnmarshalBinary(buf []byte) error {
 	if i.BO == kyber.LittleEndian {
 		buf = reverse(nil, buf)
 	}
-	i.V.Int.SetBytes(buf)
+	i.V.SetBytes(buf)
 	if i.V.Cmp(compatible.FromCompatibleMod(i.M)) >= 0 {
 		return errors.New("UnmarshalBinary: value out of range")
 	}

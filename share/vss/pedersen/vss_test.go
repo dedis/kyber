@@ -291,10 +291,10 @@ func TestVSSVerifierReceiveDeal(t *testing.T) {
 	resp, err = v.ProcessEncryptedDeal(encD)
 	assert.Nil(t, resp)
 	assert.Error(t, err)
-	v.Aggregator.deal = nil
+	v.deal = nil
 
 	// approval already existing from same origin, should never happen right ?
-	v.Aggregator.responses[uint32(v.index)] = &Response{StatusApproved: StatusApproval}
+	v.responses[uint32(v.index)] = &Response{StatusApproved: StatusApproval}
 	d.Commitments[0] = suite.Point().Pick(rng)
 	resp, err = v.ProcessEncryptedDeal(encD)
 	assert.Nil(t, resp)
@@ -302,8 +302,8 @@ func TestVSSVerifierReceiveDeal(t *testing.T) {
 	d.Commitments[0] = goodCommit
 
 	// valid complaint
-	v.Aggregator.deal = nil
-	delete(v.Aggregator.responses, uint32(v.index))
+	v.deal = nil
+	delete(v.responses, uint32(v.index))
 	resp, err = v.ProcessEncryptedDeal(encD)
 	require.NoError(t, err)
 	assert.NotNil(t, resp)
@@ -337,9 +337,9 @@ func TestVSSAggregatorVerifyJustification(t *testing.T) {
 	j.Deal.SecShare.V = wrongV
 	err = v.ProcessJustification(j)
 	assert.Error(t, err)
-	assert.True(t, v.Aggregator.badDealer)
+	assert.True(t, v.badDealer)
 	j.Deal.SecShare.V = goodV
-	v.Aggregator.badDealer = false
+	v.badDealer = false
 
 	// valid complaint
 	assert.Nil(t, v.ProcessJustification(j))
@@ -352,9 +352,9 @@ func TestVSSAggregatorVerifyJustification(t *testing.T) {
 	resp.SessionID = dealer.sid
 
 	// no complaints for this justification before
-	delete(v.Aggregator.responses, uint32(v.index))
+	delete(v.responses, uint32(v.index))
 	assert.Error(t, v.ProcessJustification(j))
-	v.Aggregator.responses[uint32(v.index)] = resp
+	v.responses[uint32(v.index)] = resp
 
 }
 
@@ -377,15 +377,15 @@ func TestVSSAggregatorVerifyResponseDuplicate(t *testing.T) {
 
 	err = v1.ProcessResponse(resp2)
 	assert.Nil(t, err)
-	r, ok := v1.Aggregator.responses[uint32(v2.index)]
+	r, ok := v1.responses[uint32(v2.index)]
 	assert.True(t, ok)
 	assert.Equal(t, resp2, r)
 
 	err = v1.ProcessResponse(resp2)
 	assert.Error(t, err)
 
-	delete(v1.Aggregator.responses, uint32(v2.index))
-	v1.Aggregator.responses[uint32(v2.index)] = &Response{StatusApproved: StatusApproval}
+	delete(v1.responses, uint32(v2.index))
+	v1.responses[uint32(v2.index)] = &Response{StatusApproved: StatusApproval}
 	err = v1.ProcessResponse(resp2)
 	assert.Error(t, err)
 }

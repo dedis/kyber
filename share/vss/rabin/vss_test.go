@@ -265,10 +265,10 @@ func TestVSSVerifierReceiveDeal(t *testing.T) {
 	resp, err = v.ProcessEncryptedDeal(encD)
 	assert.Nil(t, resp)
 	assert.Error(t, err)
-	v.aggregator.deal = nil
+	v.deal = nil
 
 	// approval already existing from same origin, should never happen right ?
-	v.aggregator.responses[v.index] = &Response{Approved: true}
+	v.responses[v.index] = &Response{Approved: true}
 	d.Commitments[0] = suite.Point().Pick(suite.RandomStream())
 	resp, err = v.ProcessEncryptedDeal(encD)
 	assert.Nil(t, resp)
@@ -276,8 +276,8 @@ func TestVSSVerifierReceiveDeal(t *testing.T) {
 	d.Commitments[0] = goodCommit
 
 	// valid complaint
-	v.aggregator.deal = nil
-	delete(v.aggregator.responses, v.index)
+	v.deal = nil
+	delete(v.responses, v.index)
 	d.RndShare.V = suite.Scalar().SetBytes(randomBytes(32))
 	resp, err = v.ProcessEncryptedDeal(encD)
 	assert.NotNil(t, resp)
@@ -310,9 +310,9 @@ func TestVSSAggregatorVerifyJustification(t *testing.T) {
 	j.Deal.SecShare.V = wrongV
 	err = v.ProcessJustification(j)
 	assert.Error(t, err)
-	assert.True(t, v.aggregator.badDealer)
+	assert.True(t, v.badDealer)
 	j.Deal.SecShare.V = goodV
-	v.aggregator.badDealer = false
+	v.badDealer = false
 
 	// valid complaint
 	assert.Nil(t, v.ProcessJustification(j))
@@ -325,9 +325,9 @@ func TestVSSAggregatorVerifyJustification(t *testing.T) {
 	resp.SessionID = dealer.sid
 
 	// no complaints for this justification before
-	delete(v.aggregator.responses, v.index)
+	delete(v.responses, v.index)
 	assert.Error(t, v.ProcessJustification(j))
-	v.aggregator.responses[v.index] = resp
+	v.responses[v.index] = resp
 
 }
 
@@ -350,15 +350,15 @@ func TestVSSAggregatorVerifyResponseDuplicate(t *testing.T) {
 
 	err = v1.ProcessResponse(resp2)
 	assert.Nil(t, err)
-	r, ok := v1.aggregator.responses[v2.index]
+	r, ok := v1.responses[v2.index]
 	assert.True(t, ok)
 	assert.Equal(t, resp2, r)
 
 	err = v1.ProcessResponse(resp2)
 	assert.Error(t, err)
 
-	delete(v1.aggregator.responses, v2.index)
-	v1.aggregator.responses[v2.index] = &Response{Approved: true}
+	delete(v1.responses, v2.index)
+	v1.responses[v2.index] = &Response{Approved: true}
 	err = v1.ProcessResponse(resp2)
 	assert.Error(t, err)
 }

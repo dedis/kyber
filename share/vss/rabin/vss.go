@@ -309,7 +309,7 @@ func (d *Dealer) SessionID() []byte {
 // it calls cleanVerifiers which will take care of all Verifiers who have not
 // responded until now.
 func (d *Dealer) SetTimeout() {
-	d.aggregator.cleanVerifiers()
+	d.cleanVerifiers()
 }
 
 // Verifier receives a Deal from a Dealer, can reply with a Complaint, and can
@@ -410,7 +410,7 @@ func (v *Verifier) ProcessEncryptedDeal(e *EncryptedDeal) (*Response, error) {
 		return nil, err
 	}
 
-	if err = v.aggregator.addResponse(r); err != nil {
+	if err = v.addResponse(r); err != nil {
 		return nil, err
 	}
 	return r, nil
@@ -447,7 +447,7 @@ func (v *Verifier) decryptDeal(e *EncryptedDeal) (*Deal, error) {
 // error if it's not a valid response.
 // Call `v.DealCertified()` to check if the whole protocol is finished.
 func (v *Verifier) ProcessResponse(resp *Response) error {
-	return v.aggregator.verifyResponse(resp)
+	return v.verifyResponse(resp)
 }
 
 // Deal returns the Deal that this verifier has received. It returns
@@ -464,7 +464,7 @@ func (v *Verifier) Deal() *Deal {
 // probably means the Dealer is acting maliciously. In order to be sure, call
 // `v.EnoughApprovals()` and if true, `v.DealCertified()`.
 func (v *Verifier) ProcessJustification(dr *Justification) error {
-	return v.aggregator.verifyJustification(dr)
+	return v.verifyJustification(dr)
 }
 
 // Key returns the longterm key pair this verifier is using during this protocol
@@ -505,7 +505,7 @@ func RecoverSecret(suite Suite, deals []*Deal, n, t uint32) (kyber.Scalar, error
 // it calls cleanVerifiers which will take care of all Verifiers who have not
 // responded until now.
 func (v *Verifier) SetTimeout() {
-	v.aggregator.cleanVerifiers()
+	v.cleanVerifiers()
 }
 
 // aggregator is used to collect all deals, and responses for one protocol run.
