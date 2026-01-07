@@ -4,7 +4,6 @@ package p256
 
 import (
 	"crypto/cipher"
-	"crypto/dsa"
 	"errors"
 	"fmt"
 	"io"
@@ -169,6 +168,14 @@ func (P *residuePoint) UnmarshalFrom(r io.Reader) (int, error) {
 	return marshalling.PointUnmarshalFrom(P, r)
 }
 
+// Parameters represents the domain parameters for a key. These parameters can
+// be shared across many keys. The bit length of Q must be a multiple of 8.
+// This struct is copy-pasted directly from crypto/dsa since it is deprecated,
+// and we want to avoid dependencies on it.
+type Parameters struct {
+	P, Q, G *big.Int
+}
+
 /*
 A ResidueGroup represents a DSA-style modular integer arithmetic group,
 defined by two primes P and Q and an integer R, such that P = Q*R+1.
@@ -195,7 +202,7 @@ As a result, the Point.Pick() method should be expected to work efficiently
 ONLY on quadratic residue groups in which R=2.
 */
 type ResidueGroup struct {
-	dsa.Parameters
+	Parameters
 	R *big.Int
 }
 
