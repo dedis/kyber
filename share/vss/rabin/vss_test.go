@@ -1,6 +1,7 @@
 package vss
 
 import (
+	cryptorand "crypto/rand"
 	"math/rand"
 	"testing"
 
@@ -599,7 +600,7 @@ func genAll() (*Dealer, []*Verifier) {
 
 func randomBytes(n int) []byte {
 	var buff = make([]byte, n)
-	_, err := rand.Read(buff)
+	_, err := cryptorand.Read(buff)
 	if err != nil {
 		panic(err)
 	}

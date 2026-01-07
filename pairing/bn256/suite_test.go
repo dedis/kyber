@@ -12,6 +12,7 @@ import (
 	"go.dedis.ch/kyber/v4/group/mod"
 	"go.dedis.ch/kyber/v4/util/random"
 	"go.dedis.ch/protobuf"
+	//nolint:staticcheck // bn256 is deprecated. We need this package for our implementation.
 	"golang.org/x/crypto/bn256"
 )
 
