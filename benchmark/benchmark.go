@@ -99,7 +99,8 @@ func benchmarkSign(sigType string) map[string]interface{} {
 	benchMessage := []byte("Hello World!")
 	keys := []int{1, 10, 100}
 
-	if sigType == "anon" {
+	switch sigType {
+	case "anon":
 		// Generate keys
 		for _, i := range keys {
 			results["keygen"][fmt.Sprintf("%d", i)] = testing.Benchmark(func(b *testing.B) {
@@ -125,7 +126,8 @@ func benchmarkSign(sigType string) map[string]interface{} {
 					b.N, benchMessage)
 			})
 		}
-	} else if sigType == "bls" {
+
+	case "bls":
 		// Key generation
 		for _, i := range keys {
 			scheme := bls.NewSchemeOnG1(newSignatureSuite())
