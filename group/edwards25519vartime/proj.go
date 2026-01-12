@@ -4,6 +4,8 @@ package edwards25519vartime
 
 import (
 	"crypto/cipher"
+	"errors"
+
 	"go.dedis.ch/kyber/v4/compatible"
 	"io"
 
@@ -11,6 +13,8 @@ import (
 	"go.dedis.ch/kyber/v4/group/internal/marshalling"
 	"go.dedis.ch/kyber/v4/group/mod"
 )
+
+var ErrTypeCast = errors.New("invalid type cast")
 
 type projPoint struct {
 	X, Y, Z mod.Int
@@ -216,7 +220,11 @@ func (P *projPoint) double() {
 
 // Multiply point p by scalar s using the repeated doubling method.
 func (P *projPoint) Mul(s kyber.Scalar, G kyber.Point) kyber.Point {
-	v := s.(*mod.Int).V
+	sInt, ok := s.(*mod.Int)
+	if !ok {
+		panic(ErrTypeCast)
+	}
+	v := sInt.V
 	if G == nil {
 		return P.Base().Mul(s, P)
 	}
