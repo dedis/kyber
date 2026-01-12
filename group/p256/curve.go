@@ -156,7 +156,12 @@ func (P *curvePoint) Sub(A, B kyber.Point) kyber.Point {
 func (P *curvePoint) Neg(A kyber.Point) kyber.Point {
 	s := P.c.Scalar().One()
 	s.Neg(s)
-	return P.Mul(s, A).(*curvePoint)
+	negated := P.Mul(s, A)
+	negatedToCurvePoint, ok := negated.(*curvePoint)
+	if !ok {
+		panic(ErrTypeCast)
+	}
+	return negatedToCurvePoint
 }
 
 func (P *curvePoint) Mul(s kyber.Scalar, B kyber.Point) kyber.Point {
@@ -265,8 +270,12 @@ func (c *curve) Point() kyber.Point {
 }
 
 func (P *curvePoint) Set(A kyber.Point) kyber.Point {
-	P.x = A.(*curvePoint).x
-	P.y = A.(*curvePoint).y
+	aCurvePoint, ok := A.(*curvePoint)
+	if !ok {
+		panic(ErrTypeCast)
+	}
+	P.x = aCurvePoint.x
+	P.y = aCurvePoint.y
 	return P
 }
 

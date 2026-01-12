@@ -16,6 +16,8 @@ import (
 	"go.dedis.ch/kyber/v4/util/random"
 )
 
+var ErrTypeCast = errors.New("invalid type cast")
+
 var one = big.NewInt(1)
 var two = big.NewInt(2)
 
@@ -35,7 +37,11 @@ func isPrime(i *big.Int) bool {
 func (P *residuePoint) String() string { return P.Int.String() }
 
 func (P *residuePoint) Equal(p2 kyber.Point) bool {
-	return P.Cmp(&p2.(*residuePoint).Int) == 0
+	p2Residue, ok := p2.(*residuePoint)
+	if !ok {
+		panic(ErrTypeCast)
+	}
+	return P.Cmp(&p2Residue.Int) == 0
 }
 
 func (P *residuePoint) Null() kyber.Point {
@@ -49,8 +55,12 @@ func (P *residuePoint) Base() kyber.Point {
 }
 
 func (P *residuePoint) Set(P2 kyber.Point) kyber.Point {
-	P.g = P2.(*residuePoint).g
-	P.Int = P2.(*residuePoint).Int
+	p2Residue, ok := P2.(*residuePoint)
+	if !ok {
+		panic(ErrTypeCast)
+	}
+	P.g = p2Residue.g
+	P.Int = p2Residue.Int
 	return P
 }
 
@@ -112,20 +122,40 @@ func (P *residuePoint) Data() ([]byte, error) {
 }
 
 func (P *residuePoint) Add(A, B kyber.Point) kyber.Point {
-	P.Int.Mul(&A.(*residuePoint).Int, &B.(*residuePoint).Int)
+	aResidue, ok := A.(*residuePoint)
+	if !ok {
+		panic(ErrTypeCast)
+	}
+	bResidue, ok := B.(*residuePoint)
+	if !ok {
+		panic(ErrTypeCast)
+	}
+	P.Int.Mul(&aResidue.Int, &bResidue.Int)
 	P.Mod(&P.Int, P.g.P)
 	return P
 }
 
 func (P *residuePoint) Sub(A, B kyber.Point) kyber.Point {
-	binv := new(big.Int).ModInverse(&B.(*residuePoint).Int, P.g.P)
-	P.Int.Mul(&A.(*residuePoint).Int, binv)
+	aResidue, ok := A.(*residuePoint)
+	if !ok {
+		panic(ErrTypeCast)
+	}
+	bResidue, ok := B.(*residuePoint)
+	if !ok {
+		panic(ErrTypeCast)
+	}
+	binv := new(big.Int).ModInverse(&bResidue.Int, P.g.P)
+	P.Int.Mul(&aResidue.Int, binv)
 	P.Mod(&P.Int, P.g.P)
 	return P
 }
 
 func (P *residuePoint) Neg(A kyber.Point) kyber.Point {
-	P.ModInverse(&A.(*residuePoint).Int, P.g.P)
+	aResidue, ok := A.(*residuePoint)
+	if !ok {
+		panic(ErrTypeCast)
+	}
+	P.ModInverse(&aResidue.Int, P.g.P)
 	return P
 }
 
@@ -135,7 +165,15 @@ func (P *residuePoint) Mul(s kyber.Scalar, B kyber.Point) kyber.Point {
 	}
 	// to protect against golang/go#22830
 	var tmp big.Int
-	tmp.Exp(&B.(*residuePoint).Int, &s.(*mod.Int).V.Int, P.g.P)
+	bResidue, ok := B.(*residuePoint)
+	if !ok {
+		panic(ErrTypeCast)
+	}
+	sInt, ok := s.(*mod.Int)
+	if !ok {
+		panic(ErrTypeCast)
+	}
+	tmp.Exp(&bResidue.Int, &sInt.V.Int, P.g.P)
 	P.Int = tmp
 	return P
 }
