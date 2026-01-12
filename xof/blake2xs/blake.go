@@ -66,7 +66,11 @@ func (x *xof) Reseed() {
 
 	y := New(x.key)
 	// Steal the XOF implementation, and put it inside of x.
-	x.impl = y.(*xof).impl
+	yXof, ok := y.(*xof)
+	if !ok {
+		panic("y could not be casted to XOF")
+	}
+	x.impl = yXof.impl
 }
 
 func (x *xof) Reset() {
