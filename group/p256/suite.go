@@ -59,6 +59,6 @@ func (s *Suite128) New(t reflect.Type) interface{} {
 // compatible with the Go standard library's big.Int type.
 func NewBlakeSHA256P256() *Suite128 {
 	suite := new(Suite128)
-	suite.p256.Init()
+	suite.Init()
 	return suite
 }

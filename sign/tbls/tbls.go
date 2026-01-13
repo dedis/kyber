@@ -103,11 +103,11 @@ func (s *scheme) VerifyPartial(public *share.PubPoly, msg, sig []byte) error {
 	if err != nil {
 		return err
 	}
-	return s.Scheme.Verify(public.Eval(uint32(i)).V, msg, sh.Value())
+	return s.Verify(public.Eval(uint32(i)).V, msg, sh.Value())
 }
 
 func (s *scheme) VerifyRecovered(public kyber.Point, msg, sig []byte) error {
-	return s.Scheme.Verify(public, msg, sig)
+	return s.Verify(public, msg, sig)
 }
 
 // Recover reconstructs the full BLS signature S = x * H(m) from a threshold t
@@ -124,7 +124,7 @@ func (s *scheme) Recover(public *share.PubPoly, msg []byte, sigs [][]byte, t, n 
 			continue
 		}
 		idx := uint32(i)
-		if err = s.Scheme.Verify(public.Eval(idx).V, msg, sh.Value()); err != nil {
+		if err = s.Verify(public.Eval(idx).V, msg, sh.Value()); err != nil {
 			continue
 		}
 		point := s.sigGroup.Point()

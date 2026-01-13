@@ -6,6 +6,7 @@ import (
 	"crypto/cipher"
 	"crypto/elliptic"
 	"errors"
+	"fmt"
 	"io"
 	"math/big"
 
@@ -174,28 +175,41 @@ func (P *curvePoint) MarshalSize() int {
 	return 1 + 2*coordlen // uncompressed ANSI X9.62 representation
 }
 
+// MarshalBinary marshall this point into binary format according to
+// SEC 1, Version 2.0, Section 2.3.3
 func (P *curvePoint) MarshalBinary() ([]byte, error) {
-	return elliptic.Marshal(P.c, P.x, P.y), nil
+	// Note: explicit implementation since elliptic.Marshall is deprecated
+	byteLen := (P.c.Params().BitSize + 7) / 8
+
+	ret := make([]byte, 1+2*byteLen)
+	ret[0] = 4 // uncompressed point format
+
+	x := P.x.Bytes()
+	y := P.y.Bytes()
+
+	copy(ret[1+byteLen-len(x):], x)
+	copy(ret[1+2*byteLen-len(y):], y)
+
+	return ret, nil
 }
 
+// UnmarshalBinary unmarshalls the given buffer into the receiver according
+// to SEC 1, Version 2.0, Section 2.3.4
 func (P *curvePoint) UnmarshalBinary(buf []byte) error {
-	// Check whether all bytes after first one are 0, so we
-	// just return the initial point. Read everything to
-	// prevent timing-leakage.
-	var c byte
-	for _, b := range buf[1:] {
-		c |= b
+	// Note: explicit implementation since elliptic.Unmarshall is deprecated
+	byteLen := (P.c.Params().BitSize + 7) / 8
+	expectedLen := 1 + 2*byteLen
+
+	if len(buf) != expectedLen {
+		return fmt.Errorf("invalid data length: got %d, want %d", len(buf), expectedLen)
 	}
-	if c != 0 {
-		P.x, P.y = elliptic.Unmarshal(P.c, buf)
-		if P.x == nil || !P.Valid() {
-			return errors.New("invalid elliptic curve point")
-		}
-	} else {
-		// All bytes are 0, so we initialize x and y
-		P.x = big.NewInt(0)
-		P.y = big.NewInt(0)
+
+	if buf[0] != 4 {
+		return fmt.Errorf("invalid point format: expected uncompressed (4), got %d", buf[0])
 	}
+
+	P.x = new(big.Int).SetBytes(buf[1 : 1+byteLen])
+	P.y = new(big.Int).SetBytes(buf[1+byteLen : 1+2*byteLen])
 	return nil
 }
 

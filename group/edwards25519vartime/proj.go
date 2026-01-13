@@ -260,6 +260,6 @@ func (c *ProjectiveCurve) Point() kyber.Point {
 
 // Init initializes the curve with given parameters.
 func (c *ProjectiveCurve) Init(p *Param, fullGroup bool) *ProjectiveCurve {
-	c.curve.init(c, p, fullGroup, &c.null, &c.base)
+	c.init(c, p, fullGroup, &c.null, &c.base)
 	return c
 }

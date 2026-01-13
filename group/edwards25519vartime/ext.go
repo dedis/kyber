@@ -294,6 +294,6 @@ func (c *ExtendedCurve) Point() kyber.Point {
 
 // InitCurve initializes the curve with given parameters.
 func (c *ExtendedCurve) InitCurve(p *Param, fullGroup bool) *ExtendedCurve {
-	c.curve.init(c, p, fullGroup, &c.null, &c.base)
+	c.init(c, p, fullGroup, &c.null, &c.base)
 	return c
 }

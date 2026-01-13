@@ -279,7 +279,7 @@ func (d *Dealer) SessionID() []byte {
 // for this DKG protocol round. The caller is expected to call this after a long timeout
 // so each DKG node can still compute its share if enough Deals are valid.
 func (d *Dealer) SetTimeout() {
-	d.Aggregator.timeout = true
+	d.timeout = true
 }
 
 // PrivatePoly returns the private polynomial used to generate the deal. This
@@ -380,7 +380,7 @@ func (v *Verifier) ProcessEncryptedDeal(e *EncryptedDeal) (*Response, error) {
 		return nil, err
 	}
 
-	if err = v.Aggregator.addResponse(r); err != nil {
+	if err = v.addResponse(r); err != nil {
 		return nil, err
 	}
 	return r, nil
@@ -422,10 +422,10 @@ var ErrNoDealBeforeResponse = errors.New("verifier: need to receive deal before 
 // error if it's not a valid response.
 // Call `v.DealCertified()` to check if the whole protocol is finished.
 func (v *Verifier) ProcessResponse(resp *Response) error {
-	if v.Aggregator.deal == nil {
+	if v.deal == nil {
 		return ErrNoDealBeforeResponse
 	}
-	return v.Aggregator.verifyResponse(resp)
+	return v.verifyResponse(resp)
 }
 
 // Commits returns the commitments of the coefficients of the polynomial
@@ -449,7 +449,7 @@ func (v *Verifier) Deal() *Deal {
 // probably means the Dealer is acting maliciously. In order to be sure, call
 // `v.DealCertified()`.
 func (v *Verifier) ProcessJustification(dr *Justification) error {
-	return v.Aggregator.verifyJustification(dr)
+	return v.verifyJustification(dr)
 }
 
 // Key returns the longterm key pair this verifier is using during this protocol
@@ -491,20 +491,20 @@ func RecoverSecret(suite Suite, deals []*Deal, n, t uint32) (kyber.Scalar, error
 // enough deals were approved. One should call `DealCertified()` after this
 // method in order to know if the deal is valid or the protocol should abort.
 func (v *Verifier) SetTimeout() {
-	v.Aggregator.timeout = true
+	v.timeout = true
 }
 
 // UnsafeSetResponseDKG is an UNSAFE bypass method to allow DKG to use VSS
 // that works on basis of approval only.
 func (v *Verifier) UnsafeSetResponseDKG(idx uint32, approval bool) {
 	r := &Response{
-		SessionID:      v.Aggregator.sid,
+		SessionID:      v.sid,
 		Index:          idx,
 		StatusApproved: approval,
 	}
 
 	//nolint:errcheck // Unsafe function
-	v.Aggregator.addResponse(r)
+	v.addResponse(r)
 }
 
 // Aggregator is used to collect all deals, and responses for one protocol run.
@@ -703,7 +703,7 @@ func (a *Aggregator) DealCertified() bool {
 	if a.timeout {
 		return baseCondition && !tooMuchAbsents
 	}
-	return baseCondition && !(absentVerifiers > 0)
+	return baseCondition && absentVerifiers <= 0
 }
 
 // MissingResponses returns the indexes of the expected but missing responses.

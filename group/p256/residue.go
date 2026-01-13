@@ -4,7 +4,6 @@ package p256
 
 import (
 	"crypto/cipher"
-	"crypto/dsa"
 	"errors"
 	"fmt"
 	"io"
@@ -36,11 +35,11 @@ func isPrime(i *big.Int) bool {
 func (P *residuePoint) String() string { return P.Int.String() }
 
 func (P *residuePoint) Equal(p2 kyber.Point) bool {
-	return P.Int.Cmp(&p2.(*residuePoint).Int) == 0
+	return P.Cmp(&p2.(*residuePoint).Int) == 0
 }
 
 func (P *residuePoint) Null() kyber.Point {
-	P.Int.SetInt64(1)
+	P.SetInt64(1)
 	return P
 }
 
@@ -60,7 +59,7 @@ func (P *residuePoint) Clone() kyber.Point {
 }
 
 func (P *residuePoint) Valid() bool {
-	return P.Int.Sign() > 0 && P.Int.Cmp(P.g.P) < 0 &&
+	return P.Sign() > 0 && P.Cmp(P.g.P) < 0 &&
 		new(big.Int).Exp(&P.Int, P.g.Q, P.g.P).Cmp(one) == 0
 }
 
@@ -91,7 +90,7 @@ func (P *residuePoint) Embed(data []byte, rand cipher.Stream) kyber.Point {
 			b[l-2] = byte(dl >> 8)
 			copy(b[l-dl-2:l-2], data) // Copy in embedded data
 		}
-		P.Int.SetBytes(b)
+		P.SetBytes(b)
 		if P.Valid() {
 			return P
 		}
@@ -100,7 +99,7 @@ func (P *residuePoint) Embed(data []byte, rand cipher.Stream) kyber.Point {
 
 // Extract embedded data from a Residue group element
 func (P *residuePoint) Data() ([]byte, error) {
-	b := P.Int.Bytes()
+	b := P.Bytes()
 	l := P.g.PointLen()
 	if len(b) < l { // pad leading zero bytes if necessary
 		b = append(make([]byte, l-len(b)), b...)
@@ -114,19 +113,19 @@ func (P *residuePoint) Data() ([]byte, error) {
 
 func (P *residuePoint) Add(A, B kyber.Point) kyber.Point {
 	P.Int.Mul(&A.(*residuePoint).Int, &B.(*residuePoint).Int)
-	P.Int.Mod(&P.Int, P.g.P)
+	P.Mod(&P.Int, P.g.P)
 	return P
 }
 
 func (P *residuePoint) Sub(A, B kyber.Point) kyber.Point {
 	binv := new(big.Int).ModInverse(&B.(*residuePoint).Int, P.g.P)
 	P.Int.Mul(&A.(*residuePoint).Int, binv)
-	P.Int.Mod(&P.Int, P.g.P)
+	P.Mod(&P.Int, P.g.P)
 	return P
 }
 
 func (P *residuePoint) Neg(A kyber.Point) kyber.Point {
-	P.Int.ModInverse(&A.(*residuePoint).Int, P.g.P)
+	P.ModInverse(&A.(*residuePoint).Int, P.g.P)
 	return P
 }
 
@@ -146,7 +145,7 @@ func (P *residuePoint) MarshalSize() int {
 }
 
 func (P *residuePoint) MarshalBinary() ([]byte, error) {
-	b := P.Int.Bytes() // may be shorter than len(buf)
+	b := P.Bytes() // may be shorter than len(buf)
 	if pre := P.MarshalSize() - len(b); pre != 0 {
 		return append(make([]byte, pre), b...), nil
 	}
@@ -154,7 +153,7 @@ func (P *residuePoint) MarshalBinary() ([]byte, error) {
 }
 
 func (P *residuePoint) UnmarshalBinary(data []byte) error {
-	P.Int.SetBytes(data)
+	P.SetBytes(data)
 	if !P.Valid() {
 		return errors.New("invalid Residue group element")
 	}
@@ -167,6 +166,14 @@ func (P *residuePoint) MarshalTo(w io.Writer) (int, error) {
 
 func (P *residuePoint) UnmarshalFrom(r io.Reader) (int, error) {
 	return marshalling.PointUnmarshalFrom(P, r)
+}
+
+// Parameters represents the domain parameters for a key. These parameters can
+// be shared across many keys. The bit length of Q must be a multiple of 8.
+// This struct is copy-pasted directly from crypto/dsa since it is deprecated,
+// and we want to avoid dependencies on it.
+type Parameters struct {
+	P, Q, G *big.Int
 }
 
 /*
@@ -195,7 +202,7 @@ As a result, the Point.Pick() method should be expected to work efficiently
 ONLY on quadratic residue groups in which R=2.
 */
 type ResidueGroup struct {
-	dsa.Parameters
+	Parameters
 	R *big.Int
 }
 

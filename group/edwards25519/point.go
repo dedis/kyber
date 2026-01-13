@@ -344,7 +344,7 @@ func hashToField(m []byte, dst string, count uint64) []fieldElement {
 func expandMessageXMD(h hash.Hash, m []byte, domainSeparator string, byteLen uint64) ([]byte, error) {
 	r := float64(byteLen) / float64(h.Size()>>3)
 	ell := uint64(math.Ceil(r))
-	if ell > 255 || ell < 0 || byteLen > 65535 || len(domainSeparator) == 0 {
+	if ell > 255 || byteLen > 65535 || len(domainSeparator) == 0 {
 		return nil, errors.New("invalid parameters")
 	}
 
@@ -484,7 +484,7 @@ func i2OSP(x uint64, xLen int32) ([]byte, error) {
 }
 
 func byteXor(dst, b1, b2 []byte) ([]byte, error) {
-	if !(len(dst) == len(b1) && len(b2) == len(b1)) {
+	if len(dst) != len(b1) || len(b2) != len(b1) {
 		return nil, errors.New("incompatible lengths")
 	}
 
