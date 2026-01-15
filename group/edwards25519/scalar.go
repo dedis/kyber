@@ -19,6 +19,8 @@ import (
 	"go.dedis.ch/kyber/v4/util/random"
 )
 
+var ErrTypeCast = errors.New("invalid type cast")
+
 // This code is a port of the public domain, "ref10" implementation of ed25519
 // from SUPERCOP. More information at https://bench.cr.yp.to/supercop.html.
 
@@ -34,13 +36,21 @@ type scalar struct {
 // Equality test for two Scalars derived from the same Group
 func (s *scalar) Equal(s2 kyber.Scalar) bool {
 	v1 := s.v[:]
-	v2 := s2.(*scalar).v[:]
+	s2Scalar, ok := s2.(*scalar)
+	if !ok {
+		panic(ErrTypeCast)
+	}
+	v2 := s2Scalar.v[:]
 	return subtle.ConstantTimeCompare(v1, v2) != 0
 }
 
 // Set equal to another Scalar a
 func (s *scalar) Set(a kyber.Scalar) kyber.Scalar {
-	s.v = a.(*scalar).v
+	aScalar, ok := a.(*scalar)
+	if !ok {
+		panic(ErrTypeCast)
+	}
+	s.v = aScalar.v
 	return s
 }
 
@@ -79,13 +89,29 @@ func (s *scalar) One() kyber.Scalar {
 
 // Set to the modular sum of scalars a and b
 func (s *scalar) Add(a, b kyber.Scalar) kyber.Scalar {
-	scAdd(&s.v, &a.(*scalar).v, &b.(*scalar).v)
+	aScalar, ok := a.(*scalar)
+	if !ok {
+		panic(ErrTypeCast)
+	}
+	bScalar, ok := b.(*scalar)
+	if !ok {
+		panic(ErrTypeCast)
+	}
+	scAdd(&s.v, &aScalar.v, &bScalar.v)
 	return s
 }
 
 // Set to the modular difference a - b
 func (s *scalar) Sub(a, b kyber.Scalar) kyber.Scalar {
-	scSub(&s.v, &a.(*scalar).v, &b.(*scalar).v)
+	aScalar, ok := a.(*scalar)
+	if !ok {
+		panic(ErrTypeCast)
+	}
+	bScalar, ok := b.(*scalar)
+	if !ok {
+		panic(ErrTypeCast)
+	}
+	scSub(&s.v, &aScalar.v, &bScalar.v)
 	return s
 }
 
@@ -93,13 +119,25 @@ func (s *scalar) Sub(a, b kyber.Scalar) kyber.Scalar {
 func (s *scalar) Neg(a kyber.Scalar) kyber.Scalar {
 	var z scalar
 	z.Zero()
-	scSub(&s.v, &z.v, &a.(*scalar).v)
+	aScalar, ok := a.(*scalar)
+	if !ok {
+		panic(ErrTypeCast)
+	}
+	scSub(&s.v, &z.v, &aScalar.v)
 	return s
 }
 
 // Set to the modular product of scalars a and b
 func (s *scalar) Mul(a, b kyber.Scalar) kyber.Scalar {
-	scMul(&s.v, &a.(*scalar).v, &b.(*scalar).v)
+	aScalar, ok := a.(*scalar)
+	if !ok {
+		panic(ErrTypeCast)
+	}
+	bScalar, ok := b.(*scalar)
+	if !ok {
+		panic(ErrTypeCast)
+	}
+	scMul(&s.v, &aScalar.v, &bScalar.v)
 	return s
 }
 
@@ -107,7 +145,11 @@ func (s *scalar) Mul(a, b kyber.Scalar) kyber.Scalar {
 func (s *scalar) Div(a, b kyber.Scalar) kyber.Scalar {
 	var i scalar
 	i.Inv(b)
-	scMul(&s.v, &a.(*scalar).v, &i.v)
+	aScalar, ok := a.(*scalar)
+	if !ok {
+		panic(ErrTypeCast)
+	}
+	scMul(&s.v, &aScalar.v, &i.v)
 	return s
 }
 

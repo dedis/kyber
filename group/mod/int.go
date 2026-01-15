@@ -131,12 +131,22 @@ func (i *Int) SetString(n, d string, base int) (*Int, bool) {
 
 // Cmp compares two Ints for equality or inequality
 func (i *Int) Cmp(s2 kyber.Scalar) int {
-	return i.V.Cmp(&s2.(*Int).V)
+	s2Int, ok := s2.(*Int)
+	if !ok {
+		// s2 is not an Int
+		panic("cannot be casted to Int and thus cannot be compared")
+	}
+	return i.V.Cmp(&s2Int.V)
 }
 
 // Equal returns true if the two Ints are equal
 func (i *Int) Equal(s2 kyber.Scalar) bool {
-	return i.V.Cmp(&s2.(*Int).V) == 0
+	s2Int, ok := s2.(*Int)
+	if !ok {
+		// s2 is not an Int
+		return false
+	}
+	return i.V.Cmp(&s2Int.V) == 0
 }
 
 // Nonzero returns true if the integer value is nonzero.
@@ -253,9 +263,12 @@ func (i *Int) Div(a, b kyber.Scalar) kyber.Scalar {
 
 // Inv sets the target to the modular inverse of a with respect to modulus M.
 func (i *Int) Inv(a kyber.Scalar) kyber.Scalar {
-	ai := a.(*Int) //nolint:errcheck // Design pattern to emulate generics
-	i.M = ai.M
-	i.V.ModInverse(&a.(*Int).V, i.M)
+	aInt, ok := a.(*Int)
+	if !ok {
+		panic("could not cast to int")
+	}
+	i.M = aInt.M
+	i.V.ModInverse(&aInt.V, i.M)
 	return i
 }
 

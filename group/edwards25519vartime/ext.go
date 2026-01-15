@@ -238,7 +238,11 @@ func (P *extPoint) double() {
 // switching between projective and extended coordinates during
 // scalar multiplication.
 func (P *extPoint) Mul(s kyber.Scalar, G kyber.Point) kyber.Point {
-	v := s.(*mod.Int).V
+	sInt, ok := s.(*mod.Int)
+	if !ok {
+		panic(ErrTypeCast)
+	}
+	v := sInt.V
 	if G == nil {
 		return P.Base().Mul(s, P)
 	}

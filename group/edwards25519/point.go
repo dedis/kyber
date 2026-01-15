@@ -82,7 +82,11 @@ func (P *point) Equal(P2 kyber.Point) bool {
 
 	var b1, b2 [32]byte
 	P.ge.ToBytes(&b1)
-	P2.(*point).ge.ToBytes(&b2)
+	p2Point, ok := P2.(*point)
+	if !ok {
+		panic(ErrTypeCast)
+	}
+	p2Point.ge.ToBytes(&b2)
 	for i := range b1 {
 		if b1[i] != b2[i] {
 			return false
@@ -93,7 +97,11 @@ func (P *point) Equal(P2 kyber.Point) bool {
 
 // Set point to be equal to P2.
 func (P *point) Set(P2 kyber.Point) kyber.Point {
-	P.ge = P2.(*point).ge
+	p2Point, ok := P2.(*point)
+	if !ok {
+		panic(ErrTypeCast)
+	}
+	P.ge = p2Point.ge
 	return P
 }
 
@@ -218,22 +226,34 @@ func (P *point) Sub(P1, P2 kyber.Point) kyber.Point {
 // Neg finds the negative of point A.
 // For Edwards curves, the negative of (x,y) is (-x,y).
 func (P *point) Neg(A kyber.Point) kyber.Point {
-	P.ge.Neg(&A.(*point).ge)
+	aPoint, ok := A.(*point)
+	if !ok {
+		panic(ErrTypeCast)
+	}
+	P.ge.Neg(&aPoint.ge)
 	return P
 }
 
 // Mul multiplies point p by scalar s using the repeated doubling method.
 func (P *point) Mul(s kyber.Scalar, A kyber.Point) kyber.Point {
 
-	a := &s.(*scalar).v
+	sScalar, ok := s.(*scalar)
+	if !ok {
+		panic(ErrTypeCast)
+	}
+	a := &sScalar.v
 
 	if A == nil {
 		geScalarMultBase(&P.ge, a)
 	} else {
+		aPoint, ok := A.(*point)
+		if !ok {
+			panic(ErrTypeCast)
+		}
 		if P.varTime {
-			geScalarMultVartime(&P.ge, a, &A.(*point).ge)
+			geScalarMultVartime(&P.ge, a, &aPoint.ge)
 		} else {
-			geScalarMult(&P.ge, a, &A.(*point).ge)
+			geScalarMult(&P.ge, a, &aPoint.ge)
 		}
 	}
 
