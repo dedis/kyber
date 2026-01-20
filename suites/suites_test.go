@@ -1,3 +1,5 @@
+//go:build !constantTime
+
 package suites
 
 import (
@@ -25,7 +27,6 @@ func TestSuites_Find(t *testing.T) {
 		require.NotNil(t, s, "missing "+name)
 	}
 }
-
 func TestSuites_ConstTime(t *testing.T) {
 	RequireConstantTime()
 	defer func() { requireConstTime = false }()

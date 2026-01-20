@@ -3,17 +3,10 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"go.dedis.ch/kyber/v4/pairing/bls12381/circl"
-	"go.dedis.ch/kyber/v4/pairing/bls12381/gnark"
-	"go.dedis.ch/kyber/v4/pairing/bls12381/kilic"
 	"os"
 	"testing"
 
-	"go.dedis.ch/kyber/v4"
 	"go.dedis.ch/kyber/v4/group/edwards25519"
-	nist "go.dedis.ch/kyber/v4/group/p256"
-	"go.dedis.ch/kyber/v4/pairing/bn254"
-	"go.dedis.ch/kyber/v4/pairing/bn256"
 	"go.dedis.ch/kyber/v4/sign/anon"
 	"go.dedis.ch/kyber/v4/sign/bls"
 	"go.dedis.ch/kyber/v4/util/test"
@@ -21,15 +14,6 @@ import (
 
 var (
 	outputFile = "../docs/benchmark-app/src/data/data.json"
-	suites     = []kyber.Group{
-		nist.NewBlakeSHA256P256(), nist.NewBlakeSHA256QR512(),
-		bn256.NewSuiteG1(),
-		bn254.NewSuiteG1(),
-		edwards25519.NewBlakeSHA256Ed25519(),
-		circl.NewSuiteBLS12381(),
-		gnark.NewSuiteBLS12381(),
-		kilic.NewSuiteBLS12381(),
-	}
 	signatures = []string{"anon", "bls"}
 )
 
@@ -115,7 +99,8 @@ func benchmarkSign(sigType string) map[string]interface{} {
 	benchMessage := []byte("Hello World!")
 	keys := []int{1, 10, 100}
 
-	if sigType == "anon" {
+	switch sigType {
+	case "anon":
 		// Generate keys
 		for _, i := range keys {
 			results["keygen"][fmt.Sprintf("%d", i)] = testing.Benchmark(func(b *testing.B) {
@@ -141,10 +126,11 @@ func benchmarkSign(sigType string) map[string]interface{} {
 					b.N, benchMessage)
 			})
 		}
-	} else if sigType == "bls" {
+
+	case "bls":
 		// Key generation
 		for _, i := range keys {
-			scheme := bls.NewSchemeOnG1(bn256.NewSuite())
+			scheme := bls.NewSchemeOnG1(newSignatureSuite())
 			results["keygen"][fmt.Sprintf("%d", i)] = testing.Benchmark(func(b *testing.B) {
 				test.BenchCreateKeys(b, scheme, i)
 			})

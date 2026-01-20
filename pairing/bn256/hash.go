@@ -1,3 +1,5 @@
+//go:build !constantTime
+
 package bn256
 
 import "go.dedis.ch/kyber/v4"

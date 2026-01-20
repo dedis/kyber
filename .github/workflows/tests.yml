@@ -4,7 +4,6 @@ on:
   pull_request_target:
     types: [opened, synchronize, reopened, labeled]
   push:
-    branches: [ master ]
 
 concurrency:
   group: ci-${{ github.ref }}-test
@@ -39,7 +38,8 @@ jobs:
       matrix:
         os: [windows-latest, ubuntu-latest, macos-latest]
         size: ['64b', '32b']
-        golang: ['1.21.10', '1.22.3']
+        golang: ['1.25.4']
+        tag : ['', 'constantTime']
         exclude:
           - os: windows-latest
             size: '32b'
@@ -53,14 +53,14 @@ jobs:
 
     steps:
     - name: Set up Go ${{ matrix.golang }}
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v6
       if: ${{ matrix.size == '64b' }}
       with:
         go-version: ${{ matrix.golang }}
         check-latest: false
 
     - name: Check out code into the Go module directory
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       with:
         ref: ${{ github.event.pull_request.head.sha }}
         fetch-depth: 0
@@ -93,13 +93,23 @@ jobs:
 
     - name: Test with coverage
       if: ${{ matrix.os == 'ubuntu-latest' && matrix.size == '64b' }}
-      run: make coverage
+      run: |
+        TAG="${{ matrix.tag }}"
+        ARGS=""
+        if [ -n "${{ matrix.tag }}" ]; then
+          ARGS="-tags $TAG"
+        fi
+        
+        go test $ARGS \
+        -json -covermode=count \
+        -coverprofile=profile.cov ./... \
+        > report.jsonl
 
-    - name: SonarCloud scan
+
+    - name: SonarQube Scan
       if: ${{ matrix.os == 'ubuntu-latest' && matrix.size == '64b' }}
-      uses: sonarsource/sonarcloud-github-action@master
+      uses: SonarSource/sonarqube-scan-action@fd88b7d7ccbaefd23d8f36f73b59db7a3d246602  #v6.0.0
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       with:
         args: >

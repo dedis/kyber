@@ -1,3 +1,5 @@
+//go:build !constantTime
+
 package p256
 
 import (
@@ -69,7 +71,7 @@ func (curve *p256) sqrt(c *big.Int) *big.Int {
 
 // Init initializes standard Curve instances
 func (curve *p256) Init() curve {
-	curve.curve.Curve = elliptic.P256()
+	curve.Curve = elliptic.P256()
 	curve.p = curve.Params()
 	curve.curveOps = curve
 	return curve.curve
