@@ -4,6 +4,7 @@ package bn254
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"testing"
 
@@ -73,9 +74,9 @@ func TestG1(t *testing.T) {
 
 	_, _, g1Aff, _ := gnark_bn.Generators()
 	pb := g1Aff.ScalarMultiplicationBase(&k.(*mod.Int).V.Int)
-	mb := pb.RawBytes()
+	mb := pb.Marshal()
 
-	require.Equal(t, fmt.Sprintf("%x", ma), fmt.Sprintf("%x", mb))
+	require.Equal(t, hex.EncodeToString(ma), hex.EncodeToString(mb))
 }
 
 func TestG1Marshal(t *testing.T) {
@@ -130,9 +131,9 @@ func TestG2(t *testing.T) {
 
 	_, _, _, g2Aff := gnark_bn.Generators()
 	pb := g2Aff.ScalarMultiplication(&g2Aff, &k.(*mod.Int).V.Int)
-	mb := pb.RawBytes()
+	mb := pb.Marshal()
 
-	require.Equal(t, fmt.Sprintf("%x", ma), fmt.Sprintf("%x", mb))
+	require.Equal(t, hex.EncodeToString(ma), hex.EncodeToString(mb))
 }
 
 func TestG2Marshal(t *testing.T) {

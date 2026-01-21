@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math"
+	"strings"
 	"testing"
 
 	"go.dedis.ch/kyber/v4/compatible"
@@ -49,7 +50,9 @@ func TestPointHasSmallOrder(t *testing.T) {
 		p := point{}
 		err := p.UnmarshalBinary(key)
 		require.Nil(t, err)
-		require.True(t, p.HasSmallOrder(), fmt.Sprintf("%s should be considered to have a small order", hex.EncodeToString(key)))
+		s := []string{hex.EncodeToString(key),
+			" should be considered to have a small order"}
+		require.True(t, p.HasSmallOrder(), strings.Join(s, ""))
 	}
 }
 

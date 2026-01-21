@@ -78,7 +78,7 @@ func (m *Mask) Len() int {
 // SetMask replaces the current mask by the new one if the length matches.
 func (m *Mask) SetMask(mask []byte) error {
 	if m.Len() != len(mask) {
-		return fmt.Errorf("mismatching mask lengths")
+		return errors.New("mismatching mask lengths")
 	}
 
 	m.mask = mask

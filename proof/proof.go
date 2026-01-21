@@ -7,6 +7,7 @@ package proof
 
 import (
 	"errors"
+	"strings"
 
 	"go.dedis.ch/kyber/v4"
 )
@@ -176,17 +177,19 @@ func (rp *repPred) String() string {
 }
 
 func (rp *repPred) precString(_ int) string {
-	s := rp.P + "="
+	var b strings.Builder
+	b.WriteString(rp.P)
+	b.WriteString("=")
 	for i := range rp.T {
 		if i > 0 {
-			s += "+"
+			b.WriteString("+")
 		}
 		t := &rp.T[i]
-		s += t.S
-		s += "*"
-		s += t.B
+		b.WriteString(t.S)
+		b.WriteString("*")
+		b.WriteString(t.B)
 	}
-	return s
+	return b.String()
 }
 
 func (rp *repPred) enumVars(prf *proof) {
