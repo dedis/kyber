@@ -6,6 +6,7 @@ import (
 	"crypto/cipher"
 	"crypto/sha512"
 	"fmt"
+
 	"go.dedis.ch/kyber/v4"
 	"go.dedis.ch/kyber/v4/group/edwards25519"
 )
@@ -155,7 +156,11 @@ func VerifyWithChecks(pub, msg, sig []byte) error {
 		IsCanonical(b []byte) bool
 	}
 
-	if !group.Scalar().(scalarCanCheckCanonical).IsCanonical(sig[32:]) {
+	scalarCanonical, ok := group.Scalar().(scalarCanCheckCanonical)
+	if !ok {
+		return fmt.Errorf("could not cast group scalar to canonical")
+	}
+	if !scalarCanonical.IsCanonical(sig[32:]) {
 		return fmt.Errorf("error: %w", ErrSignatureNotCanonical)
 	}
 
@@ -165,13 +170,18 @@ func VerifyWithChecks(pub, msg, sig []byte) error {
 	}
 
 	R := group.Point()
-	if !R.(pointCanCheckCanonicalAndSmallOrder).IsCanonical(sig[:32]) {
+	RCastToPoint, ok := R.(pointCanCheckCanonicalAndSmallOrder)
+	if !ok {
+		return ErrPointRInvalid
+	}
+
+	if !RCastToPoint.IsCanonical(sig[:32]) {
 		return fmt.Errorf("error: %w", ErrPointRNotCanonical)
 	}
 	if err := R.UnmarshalBinary(sig[:32]); err != nil {
 		return fmt.Errorf("error: %w: %w", ErrPointRInvalid, err)
 	}
-	if R.(pointCanCheckCanonicalAndSmallOrder).HasSmallOrder() {
+	if RCastToPoint.HasSmallOrder() {
 		return fmt.Errorf("error: %w", ErrPointRSmallOrder)
 	}
 
@@ -181,13 +191,17 @@ func VerifyWithChecks(pub, msg, sig []byte) error {
 	}
 
 	public := group.Point()
-	if !public.(pointCanCheckCanonicalAndSmallOrder).IsCanonical(pub) {
+	publicCastToPoint, ok := public.(pointCanCheckCanonicalAndSmallOrder)
+	if !ok {
+		return ErrPKInvalid
+	}
+	if !publicCastToPoint.IsCanonical(pub) {
 		return fmt.Errorf("error: %w", ErrPKNotCanonical)
 	}
 	if err := public.UnmarshalBinary(pub); err != nil {
 		return fmt.Errorf("error: %w: %w", ErrPKInvalid, err)
 	}
-	if public.(pointCanCheckCanonicalAndSmallOrder).HasSmallOrder() {
+	if publicCastToPoint.HasSmallOrder() {
 		return fmt.Errorf("error: %w", ErrPKSmallOrder)
 	}
 

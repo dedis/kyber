@@ -1,3 +1,5 @@
+//go:build !constantTime
+
 package edwards25519vartime
 
 import (
@@ -55,7 +57,7 @@ func (s *SuiteEd25519) RandomStream() cipher.Stream {
 //
 // The scalars created by this group implement kyber.Scalar's SetBytes
 // method, interpreting the bytes as a big-endian integer, so as to be
-// compatible with the Go standard library's big.Int type.
+// compatible with the Go standard library's compatible.Int type.
 func NewBlakeSHA256Ed25519(fullGroup bool) *SuiteEd25519 {
 	suite := new(SuiteEd25519)
 	suite.Init(ParamEd25519(), fullGroup)

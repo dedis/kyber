@@ -1,3 +1,5 @@
+//go:build !constantTime
+
 package edwards25519vartime
 
 import (
@@ -5,21 +7,21 @@ import (
 	"crypto/sha512"
 	"errors"
 	"fmt"
-	"math/big"
 
 	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v4/compatible"
 	"go.dedis.ch/kyber/v4/group/mod"
 	"go.dedis.ch/kyber/v4/util/random"
 )
 
-var zero = big.NewInt(0)
-var one = big.NewInt(1)
+var zero = compatible.NewInt(0)
+var one = compatible.NewInt(1)
 
 // Extension of Point interface for elliptic curve X,Y coordinate access
 type point interface {
 	kyber.Point
 
-	initXY(x, y *big.Int, curve kyber.Group)
+	initXY(x, y *compatible.Int, curve kyber.Group)
 
 	getXY() (x, y *mod.Int)
 }
@@ -57,7 +59,7 @@ func (c *curve) ScalarLen() int {
 
 // Create a new Scalar for this curve.
 func (c *curve) Scalar() kyber.Scalar {
-	return mod.NewInt64(0, &c.order.V)
+	return mod.NewInt64(0, c.order.V.ToCompatibleMod())
 }
 
 // Returns the size in bytes of an encoded Point on this curve.
@@ -82,7 +84,7 @@ func (c *curve) NewKey(stream cipher.Stream) kyber.Scalar {
 }
 
 func (c *curve) initBasePoint(self kyber.Group, p *Param, fullGroup bool, Base point) {
-	var bx, by *big.Int
+	var bx, by *compatible.Int
 	if fullGroup {
 		bx, by = &p.FBX, &p.FBY
 		Base.initXY(&p.FBX, &p.FBY, self)
@@ -94,7 +96,7 @@ func (c *curve) initBasePoint(self kyber.Group, p *Param, fullGroup bool, Base p
 		// No standard base point was defined, so pick one.
 		// Find the lowest-numbered y-coordinate that works.
 		var x, y mod.Int
-		for y.Init64(2, &c.P); ; y.Add(&y, &c.one) {
+		for y.Init64(2, c.P.ToCompatibleMod()); ; y.Add(&y, &c.one) {
 			if !c.solveForX(&x, &y) {
 				continue // try another y
 			}
@@ -124,13 +126,13 @@ func (c *curve) init(self kyber.Group, p *Param, fullGroup bool,
 	c.Param = *p
 	c.full = fullGroup
 	c.null = null
-
+	pPMod := p.P.ToCompatibleMod()
 	// Edwards curve parameters as ModInts for convenience
-	c.a.Init(&p.A, &p.P)
-	c.d.Init(&p.D, &p.P)
-
+	c.a.Init(&p.A, pPMod)
+	c.d.Init(&p.D, pPMod)
+	cPMod := c.P.ToCompatibleMod()
 	// Cofactor
-	c.cofact.Init64(int64(p.R), &c.P)
+	c.cofact.Init64(int64(p.R), cPMod)
 
 	// Determine the modulus for scalars on this curve.
 	// Note that we do NOT initialize c.order with Init(),
@@ -140,14 +142,14 @@ func (c *curve) init(self kyber.Group, p *Param, fullGroup bool,
 	// but the scalar's modulus isn't needed for point multiplication.
 	if fullGroup {
 		// Scalar modulus is prime-order times the cofactor
-		c.order.V.SetInt64(int64(p.R)).Mul(&c.order.V, &p.Q)
+		c.order.V.SetInt64(int64(p.R)).Int.Mul(&c.order.V.Int, &p.Q.Int)
 	} else {
 		c.order.V.Set(&p.Q) // Prime-order subgroup
 	}
 
 	// Useful ModInt constants for this curve
-	c.zero.Init64(0, &c.P)
-	c.one.Init64(1, &c.P)
+	c.zero.Init64(0, cPMod)
+	c.one.Init64(1, cPMod)
 
 	// Identity element is (0,1)
 	null.initXY(zero, one, self)
@@ -220,8 +222,8 @@ func (c *curve) decodePoint(bb []byte, x, y *mod.Int) error {
 	b[0] &^= 0x80
 
 	// Extract the y-coordinate
+	y.M = c.P.ToCompatibleMod()
 	y.V.SetBytes(b)
-	y.M = &c.P
 
 	// Compute the corresponding x-coordinate
 	if !c.solveForX(x, y) {
@@ -320,7 +322,7 @@ func (c *curve) embed(P point, data []byte, rand cipher.Stream) {
 		xsign := b[0] >> 7                    // save x-coordinate sign bit
 		b[0] &^= 0xff << uint(c.P.BitLen()&7) // clear high bits
 
-		y.M = &c.P // set y-coordinate
+		y.M = c.P.ToCompatibleMod() // set y-coordinate
 		y.SetBytes(b)
 
 		if !c.solveForX(&x, &y) { // Corresponding x-coordinate?

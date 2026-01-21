@@ -1,3 +1,5 @@
+//go:build !constantTime
+
 package bn254
 
 import (
@@ -68,11 +70,11 @@ func (g *groupGT) Point() kyber.Point {
 type common struct{}
 
 func (c *common) ScalarLen() int {
-	return mod.NewInt64(0, Order).MarshalSize()
+	return mod.NewInt64(0, OrderMod).MarshalSize()
 }
 
 func (c *common) Scalar() kyber.Scalar {
-	return mod.NewInt64(0, Order)
+	return mod.NewInt64(0, OrderMod)
 }
 
 func (c *common) PrimeOrder() bool {
@@ -80,5 +82,5 @@ func (c *common) PrimeOrder() bool {
 }
 
 func (c *common) NewKey(rand cipher.Stream) kyber.Scalar {
-	return mod.NewInt64(0, Order).Pick(rand)
+	return mod.NewInt64(0, OrderMod).Pick(rand)
 }

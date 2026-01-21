@@ -1,3 +1,5 @@
+//go:build !constantTime
+
 package bn254
 
 import (
@@ -70,7 +72,7 @@ func TestG1(t *testing.T) {
 	require.Nil(t, err)
 
 	_, _, g1Aff, _ := gnark_bn.Generators()
-	pb := g1Aff.ScalarMultiplicationBase(&k.(*mod.Int).V)
+	pb := g1Aff.ScalarMultiplicationBase(&k.(*mod.Int).V.Int)
 	mb := pb.RawBytes()
 
 	require.Equal(t, fmt.Sprintf("%x", ma), fmt.Sprintf("%x", mb))
@@ -127,7 +129,7 @@ func TestG2(t *testing.T) {
 	require.Nil(t, err)
 
 	_, _, _, g2Aff := gnark_bn.Generators()
-	pb := g2Aff.ScalarMultiplication(&g2Aff, &k.(*mod.Int).V)
+	pb := g2Aff.ScalarMultiplication(&g2Aff, &k.(*mod.Int).V.Int)
 	mb := pb.RawBytes()
 
 	require.Equal(t, fmt.Sprintf("%x", ma), fmt.Sprintf("%x", mb))
@@ -194,7 +196,7 @@ func TestGT(t *testing.T) {
 	if uerr != nil {
 		t.Fatal("unmarshal not ok")
 	}
-	pb.Exp(pb, &k.(*mod.Int).V) // Scalar multiplication
+	pb.Exp(pb, &k.(*mod.Int).V.Int) // Scalar multiplication
 	mb := pb.Marshal()
 	require.Equal(t, ma, mb)
 }

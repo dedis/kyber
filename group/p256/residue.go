@@ -1,18 +1,22 @@
+//go:build !constantTime
+
 package p256
 
 import (
 	"crypto/cipher"
-	"crypto/dsa"
 	"errors"
 	"fmt"
 	"io"
 	"math/big"
 
 	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v4/compatible/compatiblemod"
 	"go.dedis.ch/kyber/v4/group/internal/marshalling"
 	"go.dedis.ch/kyber/v4/group/mod"
 	"go.dedis.ch/kyber/v4/util/random"
 )
+
+var ErrTypeCast = errors.New("invalid type cast")
 
 var one = big.NewInt(1)
 var two = big.NewInt(2)
@@ -33,11 +37,15 @@ func isPrime(i *big.Int) bool {
 func (P *residuePoint) String() string { return P.Int.String() }
 
 func (P *residuePoint) Equal(p2 kyber.Point) bool {
-	return P.Int.Cmp(&p2.(*residuePoint).Int) == 0
+	p2Residue, ok := p2.(*residuePoint)
+	if !ok {
+		panic(ErrTypeCast)
+	}
+	return P.Cmp(&p2Residue.Int) == 0
 }
 
 func (P *residuePoint) Null() kyber.Point {
-	P.Int.SetInt64(1)
+	P.SetInt64(1)
 	return P
 }
 
@@ -47,8 +55,12 @@ func (P *residuePoint) Base() kyber.Point {
 }
 
 func (P *residuePoint) Set(P2 kyber.Point) kyber.Point {
-	P.g = P2.(*residuePoint).g
-	P.Int = P2.(*residuePoint).Int
+	p2Residue, ok := P2.(*residuePoint)
+	if !ok {
+		panic(ErrTypeCast)
+	}
+	P.g = p2Residue.g
+	P.Int = p2Residue.Int
 	return P
 }
 
@@ -57,7 +69,7 @@ func (P *residuePoint) Clone() kyber.Point {
 }
 
 func (P *residuePoint) Valid() bool {
-	return P.Int.Sign() > 0 && P.Int.Cmp(P.g.P) < 0 &&
+	return P.Sign() > 0 && P.Cmp(P.g.P) < 0 &&
 		new(big.Int).Exp(&P.Int, P.g.Q, P.g.P).Cmp(one) == 0
 }
 
@@ -88,7 +100,7 @@ func (P *residuePoint) Embed(data []byte, rand cipher.Stream) kyber.Point {
 			b[l-2] = byte(dl >> 8)
 			copy(b[l-dl-2:l-2], data) // Copy in embedded data
 		}
-		P.Int.SetBytes(b)
+		P.SetBytes(b)
 		if P.Valid() {
 			return P
 		}
@@ -97,7 +109,7 @@ func (P *residuePoint) Embed(data []byte, rand cipher.Stream) kyber.Point {
 
 // Extract embedded data from a Residue group element
 func (P *residuePoint) Data() ([]byte, error) {
-	b := P.Int.Bytes()
+	b := P.Bytes()
 	l := P.g.PointLen()
 	if len(b) < l { // pad leading zero bytes if necessary
 		b = append(make([]byte, l-len(b)), b...)
@@ -110,20 +122,40 @@ func (P *residuePoint) Data() ([]byte, error) {
 }
 
 func (P *residuePoint) Add(A, B kyber.Point) kyber.Point {
-	P.Int.Mul(&A.(*residuePoint).Int, &B.(*residuePoint).Int)
-	P.Int.Mod(&P.Int, P.g.P)
+	aResidue, ok := A.(*residuePoint)
+	if !ok {
+		panic(ErrTypeCast)
+	}
+	bResidue, ok := B.(*residuePoint)
+	if !ok {
+		panic(ErrTypeCast)
+	}
+	P.Int.Mul(&aResidue.Int, &bResidue.Int)
+	P.Mod(&P.Int, P.g.P)
 	return P
 }
 
 func (P *residuePoint) Sub(A, B kyber.Point) kyber.Point {
-	binv := new(big.Int).ModInverse(&B.(*residuePoint).Int, P.g.P)
-	P.Int.Mul(&A.(*residuePoint).Int, binv)
-	P.Int.Mod(&P.Int, P.g.P)
+	aResidue, ok := A.(*residuePoint)
+	if !ok {
+		panic(ErrTypeCast)
+	}
+	bResidue, ok := B.(*residuePoint)
+	if !ok {
+		panic(ErrTypeCast)
+	}
+	binv := new(big.Int).ModInverse(&bResidue.Int, P.g.P)
+	P.Int.Mul(&aResidue.Int, binv)
+	P.Mod(&P.Int, P.g.P)
 	return P
 }
 
 func (P *residuePoint) Neg(A kyber.Point) kyber.Point {
-	P.Int.ModInverse(&A.(*residuePoint).Int, P.g.P)
+	aResidue, ok := A.(*residuePoint)
+	if !ok {
+		panic(ErrTypeCast)
+	}
+	P.ModInverse(&aResidue.Int, P.g.P)
 	return P
 }
 
@@ -133,7 +165,15 @@ func (P *residuePoint) Mul(s kyber.Scalar, B kyber.Point) kyber.Point {
 	}
 	// to protect against golang/go#22830
 	var tmp big.Int
-	tmp.Exp(&B.(*residuePoint).Int, &s.(*mod.Int).V, P.g.P)
+	bResidue, ok := B.(*residuePoint)
+	if !ok {
+		panic(ErrTypeCast)
+	}
+	sInt, ok := s.(*mod.Int)
+	if !ok {
+		panic(ErrTypeCast)
+	}
+	tmp.Exp(&bResidue.Int, &sInt.V.Int, P.g.P)
 	P.Int = tmp
 	return P
 }
@@ -143,7 +183,7 @@ func (P *residuePoint) MarshalSize() int {
 }
 
 func (P *residuePoint) MarshalBinary() ([]byte, error) {
-	b := P.Int.Bytes() // may be shorter than len(buf)
+	b := P.Bytes() // may be shorter than len(buf)
 	if pre := P.MarshalSize() - len(b); pre != 0 {
 		return append(make([]byte, pre), b...), nil
 	}
@@ -151,7 +191,7 @@ func (P *residuePoint) MarshalBinary() ([]byte, error) {
 }
 
 func (P *residuePoint) UnmarshalBinary(data []byte) error {
-	P.Int.SetBytes(data)
+	P.SetBytes(data)
 	if !P.Valid() {
 		return errors.New("invalid Residue group element")
 	}
@@ -164,6 +204,14 @@ func (P *residuePoint) MarshalTo(w io.Writer) (int, error) {
 
 func (P *residuePoint) UnmarshalFrom(r io.Reader) (int, error) {
 	return marshalling.PointUnmarshalFrom(P, r)
+}
+
+// Parameters represents the domain parameters for a key. These parameters can
+// be shared across many keys. The bit length of Q must be a multiple of 8.
+// This struct is copy-pasted directly from crypto/dsa since it is deprecated,
+// and we want to avoid dependencies on it.
+type Parameters struct {
+	P, Q, G *big.Int
 }
 
 /*
@@ -192,7 +240,7 @@ As a result, the Point.Pick() method should be expected to work efficiently
 ONLY on quadratic residue groups in which R=2.
 */
 type ResidueGroup struct {
-	dsa.Parameters
+	Parameters
 	R *big.Int
 }
 
@@ -207,7 +255,7 @@ func (g *ResidueGroup) ScalarLen() int { return (g.Q.BitLen() + 7) / 8 }
 // Scalar creates a Scalar associated with this Residue group,
 // with an initial value of nil.
 func (g *ResidueGroup) Scalar() kyber.Scalar {
-	return mod.NewInt64(0, g.Q)
+	return mod.NewInt64(0, compatiblemod.FromBigInt(g.Q))
 }
 
 // PointLen returns the number of bytes in the encoding of a Point
