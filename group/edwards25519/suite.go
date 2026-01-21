@@ -18,6 +18,7 @@ import (
 // and XOFFactory.
 type SuiteEd25519 struct {
 	Curve
+
 	r cipher.Stream
 }
 

@@ -263,7 +263,7 @@ func (p *Protocol) startFast() {
 				// may not be the right time or haven't received enough msg from
 				// previous phase
 				if !toFinish() {
-					p.Info("newJust", "fast moving to finish phase phase", fmt.Sprintf("got %d resps", justifs.Len()))
+					p.Info("newJust", "fast moving to finish phase", fmt.Sprintf("got %d resps", justifs.Len()))
 					return
 				}
 			}

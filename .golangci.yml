@@ -16,50 +16,50 @@ linters:
     - asciicheck # Checks that all code identifiers does not have non-ASCII symbols in the name. [fast]
     - bidichk # Checks for dangerous unicode character sequences. [fast]
     - bodyclose # Checks whether HTTP response body is closed successfully.
-    #- canonicalheader # Canonicalheader checks whether net/http.Header uses canonical header. [auto-fix]
-    #- containedctx # Containedctx is a linter that detects struct contained context.Context field.
+    - canonicalheader # Canonicalheader checks whether net/http.Header uses canonical header. [auto-fix]
+    - containedctx # Containedctx is a linter that detects struct contained context.Context field.
     - contextcheck # Check whether the function uses a non-inherited context.
-    #- copyloopvar # A linter detects places where loop variables are copied. [fast, auto-fix]
+    - copyloopvar # A linter detects places where loop variables are copied. [fast, auto-fix]
     - cyclop # Checks function and package cyclomatic complexity. [fast]
-    #- decorder # Check declaration order and count of types, constants, variables and functions. [fast]
+    - decorder # Check declaration order and count of types, constants, variables and functions. [fast]
     #- depguard # Go linter that checks if package imports are in a list of acceptable packages. [fast]
     #- dogsled # Checks assignments with too many blank identifiers (e.g. x, _, _, _, := f()). [fast]
     - dupl # Detects duplicate fragments of code. [fast]
-    #- dupword # Checks for duplicate words in the source code. [fast, auto-fix]
+    - dupword # Checks for duplicate words in the source code. [fast, auto-fix]
     - durationcheck # Check for two durations multiplied together.
     #- embeddedstructfieldcheck # Embedded types should be at the top of the field list of a struct, and there must be an empty line separating embedded fields from regular fields. [fast]    #- errchkjson # [don't see profit + I'm against of omitting errors like in the first example https://github.com/breml/errchkjson] checks types passed to the json encoding functions. Reports unsupported types and optionally reports occasions, where the check for the returned error can be omitted
     #- err113 # Check errors handling expressions. [auto-fix]
-    #- errchkjson # Checks types passed to the json encoding functions. Reports unsupported types and reports occurrences where the check for the returned error can be omitted.
+    - errchkjson # Checks types passed to the json encoding functions. Reports unsupported types and reports occurrences where the check for the returned error can be omitted.
     - errname # Checks that sentinel errors are prefixed with the `Err` and error types are suffixed with the `Error`.
     - errorlint # Find code that can cause problems with the error wrapping scheme introduced in Go 1.13. [auto-fix]
     #- execinquery # checks query string in Query function which reads your Go src files and warning it finds
     - exhaustive # Check exhaustiveness of enum switch statements.
     #- exhaustruct # Checks if all structure fields are initialized.
-    #- exptostd # Detects functions from golang.org/x/exp/ that can be replaced by std functions. [auto-fix]
-    #- fatcontext # Detects nested contexts in loops and function literals. [auto-fix]
+    - exptostd # Detects functions from golang.org/x/exp/ that can be replaced by std functions. [auto-fix]
+    - fatcontext # Detects nested contexts in loops and function literals. [auto-fix]
     - forbidigo # Forbids identifiers.
     #- forcetypeassert # Find forced type assertions.
     #- funcorder # Checks the order of functions, methods, and constructors. [fast]
-    #- funlen # Checks for long functions. [fast]
+    - funlen # Checks for long functions. [fast]
     #- ginkgolinter # Enforces standards of using ginkgo and gomega. [auto-fix]
-    #- gocheckcompilerdirectives # Checks that go compiler directive comments (//go:) are valid. [fast]
+    - gocheckcompilerdirectives # Checks that go compiler directive comments (//go:) are valid. [fast]
     #- gochecknoglobals # Check that no global variables exist.
     #- gochecknoinits # Checks that no init functions are present in Go code. [fast]
-    #- gochecksumtype # Run exhaustiveness checks on Go "sum types".
+    - gochecksumtype # Run exhaustiveness checks on Go "sum types".
     #- gocognit # Computes and checks the cognitive complexity of functions. [fast]
-    #- goconst # Finds repeated strings that could be replaced by a constant.
+    - goconst # Finds repeated strings that could be replaced by a constant.
     #- gocritic # Provides diagnostics that check for bugs, performance and style issues. [auto-fix]
-    #- gocyclo # Computes and checks the cyclomatic complexity of functions. [fast]
+    - gocyclo # Computes and checks the cyclomatic complexity of functions. [fast]
     #- godoclint # Checks Golang's documentation practice (godoc). [fast]
     #- godot # Check if comments end in a period. [fast, auto-fix]
     #- godox # Detects usage of FIXME, TODO and other keywords inside comments. [fast]
     #- goheader # Check if file header matches to pattern. [fast, auto-fix]
     #- gomoddirectives # Manage the use of 'replace', 'retract', and 'excludes' directives in go.mod. [fast]
-    #- gomodguard # Allow and blocklist linter for direct Go module dependencies. This is different from depguard where there are different block types for example version constraints and module recommendations. [fast]
-    #- goprintffuncname # Checks that printf-like functions are named with `f` at the end. [fast]
+    - gomodguard # Allow and blocklist linter for direct Go module dependencies. This is different from depguard where there are different block types for example version constraints and module recommendations. [fast]
+    - goprintffuncname # Checks that printf-like functions are named with `f` at the end. [fast]
     #- gosec # Inspects source code for security problems.
     #- gosmopolitan # Report certain i18n/l10n anti-patterns in your Go codebase.
-    #- grouper # Analyze expression groups. [fast]
+    - grouper # Analyze expression groups. [fast]
     #- iface # Detect the incorrect use of interfaces, helping developers avoid interface pollution. [auto-fix]
     #- importas # Enforces consistent import aliases. [auto-fix]
     #- inamedparam # Reports interfaces with unnamed method parameters. [fast]

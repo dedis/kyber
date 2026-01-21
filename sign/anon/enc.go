@@ -88,7 +88,7 @@ func decryptKey(
 	}
 
 	// Regenerate and check the rest of the header,
-	// to ensure that that any of the anonymitySet members could decrypt it
+	// to ensure that any of the anonymitySet members could decrypt it
 	hdr := header(suite, X, x, Xb, xb, anonymitySet)
 	hdrlen := len(hdr)
 	if hdrlen != Xblen+seclen*nkeys {

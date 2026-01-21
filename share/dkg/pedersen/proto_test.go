@@ -93,7 +93,7 @@ func NewTestBoard(index uint32, n uint32, network *TestNetwork) *TestBoard {
 
 func (t *TestBoard) PushDeals(d *DealBundle) {
 	if t.badDeal {
-		d.Deals[0].EncryptedShare = []byte("bad bad bad")
+		d.Deals[0].EncryptedShare = []byte("this is really bad")
 	}
 	if t.badSig {
 		d.Signature = []byte("bad signature my friend")

@@ -369,6 +369,7 @@ func TestDKGComplaintCommits(t *testing.T) {
 	assert.Nil(t, rc)
 	assert.Error(t, err)
 
+	//nolint:dupword // cc.Signature
 	/*
 		TODO find a way to be the malicious guys,i.e.
 		make a deal which validates, but revealing the commitments coefficients makes
@@ -396,7 +397,6 @@ func TestDKGComplaintCommits(t *testing.T) {
 		cc.Deal.Signature = goodDSig
 		cc.Signature = goodCCSig
 	*/
-
 }
 
 func TestDKGReconstructCommits(t *testing.T) {

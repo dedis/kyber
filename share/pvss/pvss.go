@@ -277,7 +277,7 @@ func VerifyDecShare(suite Suite, G, X kyber.Point, encShare *PubVerShare, decSha
 }
 
 // VerifyDecShareBatch provides the same functionality as VerifyDecShare but for
-// slices of decrypted shares. The function returns the the valid decrypted shares.
+// slices of decrypted shares. The function returns the valid decrypted shares.
 func VerifyDecShareBatch(
 	suite Suite,
 	G kyber.Point,

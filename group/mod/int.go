@@ -323,7 +323,7 @@ func (i *Int) GroupOrder() *compatiblemod.Mod {
 
 // MarshalSize returns the length in bytes of encoded integers with modulus M.
 // The length of encoded Ints depends only on the size of the modulus,
-// and not on the the value of the encoded integer,
+// and not on the value of the encoded integer,
 // making the encoding is fixed-length for simplicity and security.
 func (i *Int) MarshalSize() int {
 	return (i.M.BitLen() + 7) / 8
@@ -398,7 +398,7 @@ func (i *Int) BigEndian(minBytes, maxBytes int) []byte {
 	return buf
 }
 
-// SetBytes set the value value to a number represented
+// SetBytes set the value to a number represented
 // by a byte string.
 // Endianness depends on the endianess set in i.
 func (i *Int) SetBytes(a []byte) kyber.Scalar {
