@@ -74,7 +74,7 @@ linters:
     - mirror # Reports wrong mirror patterns of bytes/strings usage. [auto-fix]
     - misspell # Finds commonly misspelled English words. [fast, auto-fix]
     #- mnd # An analyzer to detect magic numbers. [fast]
-    #- modernize # A suite of analyzers that suggest simplifications to Go code, using modern language and library features.
+    - modernize # A suite of analyzers that suggest simplifications to Go code, using modern language and library features.
     #- musttag # Enforce field tags in (un)marshaled structs.
     - nakedret # Checks that functions with naked returns are not longer than a maximum size (can be zero). [fast, auto-fix]
     - nestif # Reports deeply nested if statements. [fast]

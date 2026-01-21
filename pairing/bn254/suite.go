@@ -163,7 +163,7 @@ type commonSuite struct {
 }
 
 // New implements the kyber.Encoding interface.
-func (c *commonSuite) New(t reflect.Type) interface{} {
+func (c *commonSuite) New(t reflect.Type) any {
 	if c.Group == nil {
 		panic("cannot create Point from NewGroup - please use bn254.NewGroupG1")
 	}
@@ -186,12 +186,12 @@ func (c *commonSuite) New(t reflect.Type) interface{} {
 }
 
 // Read is the default implementation of kyber.Encoding interface Read.
-func (c *commonSuite) Read(r io.Reader, objs ...interface{}) error {
+func (c *commonSuite) Read(r io.Reader, objs ...any) error {
 	return fixbuf.Read(r, c, objs...)
 }
 
 // Write is the default implementation of kyber.Encoding interface Write.
-func (c *commonSuite) Write(w io.Writer, objs ...interface{}) error {
+func (c *commonSuite) Write(w io.Writer, objs ...any) error {
 	return fixbuf.Write(w, objs...)
 }
 

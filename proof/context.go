@@ -33,9 +33,9 @@ type Verifier func(ctx VerifierContext) error
 // such as the Neff shuffle, may also use this interface;
 // in this case the prover simply calls PubRand() multiple times.
 type ProverContext interface {
-	Put(message interface{}) error        // Send message to verifier
-	PubRand(message ...interface{}) error // Get public randomness
-	PriRand(message ...interface{}) error // Get private randomness
+	Put(message any) error        // Send message to verifier
+	PubRand(message ...any) error // Get public randomness
+	PriRand(message ...any) error // Get private randomness
 }
 
 // VerifierContext represents the kyber.environment
@@ -50,6 +50,6 @@ type ProverContext interface {
 // in both non-interactive proofs (e.g., via HashProve)
 // and in interactive proofs (e.g., via DeniableProver).
 type VerifierContext interface {
-	Get(message interface{}) error        // Receive message from prover
-	PubRand(message ...interface{}) error // Get public randomness
+	Get(message any) error        // Receive message from prover
+	PubRand(message ...any) error // Get public randomness
 }

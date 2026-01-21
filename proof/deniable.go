@@ -223,14 +223,14 @@ func (dp *deniableProver) challengeStep() error {
 	return err
 }
 
-func (dp *deniableProver) Put(message interface{}) error {
+func (dp *deniableProver) Put(message any) error {
 	// Add onto accumulated prover message
 	return dp.suite.Write(dp.msg, message)
 }
 
 // Prover will call this after Put()ing all commits for a given step,
 // to get the master challenge to be used in its challenge/responses.
-func (dp *deniableProver) PubRand(data ...interface{}) error {
+func (dp *deniableProver) PubRand(data ...any) error {
 
 	if _, err := dp.proofStep(); err != nil { // finish proof step
 		return err
@@ -242,7 +242,7 @@ func (dp *deniableProver) PubRand(data ...interface{}) error {
 }
 
 // Get private randomness
-func (dp *deniableProver) PriRand(data ...interface{}) error {
+func (dp *deniableProver) PriRand(data ...any) error {
 	if err := dp.suite.Read(dp.prirand, data...); err != nil {
 		return fmt.Errorf("error reading random stream: %v", err.Error())
 	}
@@ -288,12 +288,12 @@ func (dv *deniableVerifier) getProof() {
 }
 
 // Read structured data from the proof
-func (dv *deniableVerifier) Get(message interface{}) error {
+func (dv *deniableVerifier) Get(message any) error {
 	return dv.suite.Read(dv.prbuf, message)
 }
 
 // Get the next public random challenge.
-func (dv *deniableVerifier) PubRand(data ...interface{}) error {
+func (dv *deniableVerifier) PubRand(data ...any) error {
 
 	// Signal that we need the next challenge
 	dv.done <- false
