@@ -278,18 +278,18 @@ func (P *point) HasSmallOrder() bool {
 
 	var c [5]byte
 
-	for j := 0; j < 31; j++ {
-		for i := 0; i < 5; i++ {
+	for j := range 31 {
+		for i := range 5 {
 			c[i] |= s[j] ^ weakKeys[i][j]
 		}
 	}
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		c[i] |= (s[31] & 0x7f) ^ weakKeys[i][31]
 	}
 
 	// Constant time verification if one or more of the c's are zero
 	var k uint16
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		k |= uint16(c[i]) - 1
 	}
 
@@ -344,7 +344,7 @@ func hashToField(m []byte, dst string, count uint64) []fieldElement {
 	uniformBytes, _ := expandMessageXMD(sha512.New(), m, dst, byteLen)
 
 	u := make([]fieldElement, count)
-	for i := uint64(0); i < count; i++ {
+	for i := range count {
 		elmOffset := l * i
 		// todo, what's this?
 		// 	tv := compatible.NewInt(0).SetBytes(uniformBytes[elmOffset:elmOffset+l], prime)

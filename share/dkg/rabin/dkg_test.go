@@ -25,7 +25,7 @@ var dkgs []*DistKeyGenerator
 func init() {
 	partPubs = make([]kyber.Point, nbParticipants)
 	partSec = make([]kyber.Scalar, nbParticipants)
-	for i := uint32(0); i < nbParticipants; i++ {
+	for i := range nbParticipants {
 		sec, pub := genPair()
 		partPubs[i] = pub
 		partSec[i] = sec
@@ -623,7 +623,7 @@ func TestDistKeyShare(t *testing.T) {
 
 func dkgGen() []*DistKeyGenerator {
 	dkgs := make([]*DistKeyGenerator, nbParticipants)
-	for i := uint32(0); i < nbParticipants; i++ {
+	for i := range nbParticipants {
 		dkg, err := NewDistKeyGenerator(suite, partSec[i], partPubs, nbParticipants/2+1)
 		if err != nil {
 			panic(err)

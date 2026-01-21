@@ -71,7 +71,7 @@ func TestPointIsCanonical(t *testing.T) {
 	point := point{}
 	actualNonCanonicalCount := 0
 	expectedNonCanonicalCount := 24
-	for i := 0; i < 19; i++ {
+	for i := range 19 {
 		buffer[0] = byte(237 + i)
 		buffer[31] = byte(127)
 
@@ -119,7 +119,7 @@ func TestExpandMessageXMDSHA256ShortDST(t *testing.T) {
 	h := sha256.New()
 
 	// Short
-	for i := 0; i < len(inputsTestVectRFC9380); i++ {
+	for i := range inputsTestVectRFC9380 {
 		res, err := expandMessageXMD(h, []byte(inputsTestVectRFC9380[i]), dst, outputLength[0])
 		resHex := hex.EncodeToString(res)
 
@@ -128,7 +128,7 @@ func TestExpandMessageXMDSHA256ShortDST(t *testing.T) {
 	}
 
 	// Long
-	for i := 0; i < len(inputsTestVectRFC9380); i++ {
+	for i := range inputsTestVectRFC9380 {
 		res, err := expandMessageXMD(h, []byte(inputsTestVectRFC9380[i]), dst, outputLength[1])
 		resHex := hex.EncodeToString(res)
 
@@ -161,7 +161,7 @@ func TestExpandMessageXMDSHA256LongDST(t *testing.T) {
 	h := sha256.New()
 
 	// Short
-	for i := 0; i < len(inputsTestVectRFC9380); i++ {
+	for i := range inputsTestVectRFC9380 {
 		res, err := expandMessageXMD(h, []byte(inputsTestVectRFC9380[i]), dst, outputLength[0])
 		resHex := hex.EncodeToString(res)
 
@@ -170,7 +170,7 @@ func TestExpandMessageXMDSHA256LongDST(t *testing.T) {
 	}
 
 	// Long
-	for i := 0; i < len(inputsTestVectRFC9380); i++ {
+	for i := range inputsTestVectRFC9380 {
 		res, err := expandMessageXMD(h, []byte(inputsTestVectRFC9380[i]), dst, outputLength[1])
 		resHex := hex.EncodeToString(res)
 
@@ -203,7 +203,7 @@ func TestExpandMessageXMDSHA512(t *testing.T) {
 	}
 
 	// Short
-	for i := 0; i < len(inputsTestVectRFC9380); i++ {
+	for i := range inputsTestVectRFC9380 {
 		res, err := expandMessageXMD(h, []byte(inputsTestVectRFC9380[i]), dst, outputLength[0])
 		resHex := hex.EncodeToString(res)
 
@@ -212,7 +212,7 @@ func TestExpandMessageXMDSHA512(t *testing.T) {
 	}
 
 	// Long
-	for i := 0; i < len(inputsTestVectRFC9380); i++ {
+	for i := range inputsTestVectRFC9380 {
 		res, err := expandMessageXMD(h, []byte(inputsTestVectRFC9380[i]), dst, outputLength[1])
 		resHex := hex.EncodeToString(res)
 
@@ -243,14 +243,14 @@ func TestExpandMessageXOFSHAKE128ShortDST(t *testing.T) {
 	}
 
 	// Short
-	for i := 0; i < len(inputsTestVectRFC9380); i++ {
+	for i := range inputsTestVectRFC9380 {
 		res, err := expandMessageXOF(h, []byte(inputsTestVectRFC9380[i]), dst, outputLength[0])
 		assert.NoError(t, err)
 		assert.Equal(t, expectedHex32byte[i], hex.EncodeToString(res))
 	}
 
 	// Long
-	for i := 0; i < len(inputsTestVectRFC9380); i++ {
+	for i := range inputsTestVectRFC9380 {
 		res, err := expandMessageXOF(h, []byte(inputsTestVectRFC9380[i]), dst, outputLength[1])
 		assert.NoError(t, err)
 		assert.Equal(t, expectedHex128byte[i], hex.EncodeToString(res))
@@ -352,14 +352,14 @@ func TestExpandMessageXOFSHAKE128LongDST(t *testing.T) {
 	}
 
 	// Short
-	for i := 0; i < len(inputsTestVectRFC9380); i++ {
+	for i := range inputsTestVectRFC9380 {
 		res, err := expandMessageXOF(h, []byte(inputsTestVectRFC9380[i]), dst, outputLength[0])
 		assert.NoError(t, err)
 		assert.Equal(t, expectedHex32byte[i], hex.EncodeToString(res))
 	}
 
 	// Long
-	for i := 0; i < len(inputsTestVectRFC9380); i++ {
+	for i := range inputsTestVectRFC9380 {
 		res, err := expandMessageXOF(h, []byte(inputsTestVectRFC9380[i]), dst, outputLength[1])
 		assert.NoError(t, err)
 		assert.Equal(t, expectedHex128byte[i], hex.EncodeToString(res))
@@ -388,7 +388,7 @@ func TestHashToField(t *testing.T) {
 	}
 
 	j := 0
-	for i := 0; i < len(inputsTestVectRFC9380); i++ {
+	for i := range inputsTestVectRFC9380 {
 		u := hashToField([]byte(inputsTestVectRFC9380[i]), dst, 2)
 		u0Actual := compatible.NewInt(0)
 		u1Actual := compatible.NewInt(0)
@@ -428,7 +428,7 @@ func TestHashToPoint(t *testing.T) {
 	bX := compatible.NewInt(0)
 	bY := compatible.NewInt(0)
 
-	for i := 0; i < len(inputsTestVectRFC9380); i++ {
+	for i := range inputsTestVectRFC9380 {
 		p.Hash([]byte(inputsTestVectRFC9380[i]), dst)
 
 		feInvert(&rec, &p.ge.Z)

@@ -58,7 +58,7 @@ func testEmbed(t *testing.T, g kyber.Group, rand cipher.Stream, points *[]kyber.
 func testPointSet(t *testing.T, g kyber.Group, rand cipher.Stream) {
 	N := 1000
 	null := g.Point().Null()
-	for i := 0; i < N; i++ {
+	for range N {
 		P1 := g.Point().Pick(rand)
 		P2 := g.Point()
 		P2.Set(P1)
@@ -77,7 +77,7 @@ func testPointSet(t *testing.T, g kyber.Group, rand cipher.Stream) {
 func testPointClone(t *testing.T, g kyber.Group, rand cipher.Stream) {
 	N := 1000
 	null := g.Point().Null()
-	for i := 0; i < N; i++ {
+	for range N {
 		P1 := g.Point().Pick(rand)
 		P2 := P1.Clone()
 		if !P1.Equal(P2) {
@@ -96,7 +96,7 @@ func testScalarSet(t *testing.T, g kyber.Group, rand cipher.Stream) {
 	N := 1000
 	zero := g.Scalar().Zero()
 	one := g.Scalar().One()
-	for i := 0; i < N; i++ {
+	for range N {
 		s1 := g.Scalar().Pick(rand)
 		s2 := g.Scalar().Set(s1)
 		if !s1.Equal(s2) {
@@ -115,7 +115,7 @@ func testScalarClone(t *testing.T, g kyber.Group, rand cipher.Stream) {
 	N := 1000
 	zero := g.Scalar().Zero()
 	one := g.Scalar().One()
-	for i := 0; i < N; i++ {
+	for range N {
 		s1 := g.Scalar().Pick(rand)
 		s2 := s1.Clone()
 		if !s1.Equal(s2) {
@@ -264,7 +264,7 @@ func testRandomlyPickedPoint(
 ) []kyber.Point {
 	pzero := g.Point().Null()
 	last := gen
-	for i := 0; i < 5; i++ {
+	for range 5 {
 		rgen := g.Point().Pick(rand)
 		if rgen.Equal(last) {
 			t.Errorf("Pick() not producing unique points: got %v twice", rgen)
@@ -292,7 +292,7 @@ func testRandomlyPickedPoint(
 
 func testEncodingDecoding(t *testing.T, g kyber.Group, ptmp kyber.Point, stmp kyber.Scalar, rand cipher.Stream) {
 	buf := new(bytes.Buffer)
-	for i := 0; i < 5; i++ {
+	for range 5 {
 		buf.Reset()
 		s := g.Scalar().Pick(rand)
 		if _, err := s.MarshalTo(buf); err != nil {

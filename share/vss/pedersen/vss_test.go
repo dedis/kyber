@@ -177,7 +177,7 @@ func TestVSSAggregatorDealCertified(t *testing.T) {
 	dealer := genDealer()
 	aggr := dealer.Aggregator
 
-	for i := uint32(0); i < aggr.t; i++ {
+	for i := range aggr.t {
 		aggr.responses[uint32(i)] = &Response{StatusApproved: StatusApproval}
 	}
 
@@ -196,8 +196,8 @@ func TestVSSAggregatorDealCertified(t *testing.T) {
 
 	// inconsistent state on purpose
 	// too much complaints
-	for i := uint32(0); i < aggr.t; i++ {
-		aggr.responses[uint32(i)] = &Response{StatusApproved: StatusComplaint}
+	for i := range aggr.t {
+		aggr.responses[i] = &Response{StatusApproved: StatusComplaint}
 	}
 	assert.False(t, aggr.DealCertified())
 }
@@ -436,13 +436,13 @@ func TestVSSAggregatorAllResponses(t *testing.T) {
 	dealer := genDealer()
 	aggr := dealer.Aggregator
 
-	for i := uint32(0); i < aggr.t; i++ {
-		aggr.responses[uint32(i)] = &Response{StatusApproved: StatusApproval}
+	for i := range aggr.t {
+		aggr.responses[i] = &Response{StatusApproved: StatusApproval}
 	}
 	assert.False(t, aggr.DealCertified())
 
 	for i := aggr.t; i < nbVerifiers; i++ {
-		aggr.responses[uint32(i)] = &Response{StatusApproved: StatusApproval}
+		aggr.responses[i] = &Response{StatusApproved: StatusApproval}
 	}
 
 	assert.True(t, aggr.DealCertified())
@@ -453,8 +453,8 @@ func TestVSSDealerTimeout(t *testing.T) {
 	dealer := genDealer()
 	aggr := dealer.Aggregator
 
-	for i := uint32(0); i < aggr.t; i++ {
-		aggr.responses[uint32(i)] = &Response{StatusApproved: StatusApproval}
+	for i := range aggr.t {
+		aggr.responses[i] = &Response{StatusApproved: StatusApproval}
 	}
 	require.False(t, aggr.DealCertified())
 
@@ -482,8 +482,8 @@ func TestVSSVerifierTimeout(t *testing.T) {
 	aggr := v.Aggregator
 
 	// Add t responses
-	for i := uint32(0); i < aggr.t; i++ {
-		aggr.responses[uint32(i)] = &Response{StatusApproved: StatusApproval}
+	for i := range aggr.t {
+		aggr.responses[i] = &Response{StatusApproved: StatusApproval}
 	}
 	assert.False(t, aggr.DealCertified())
 
@@ -607,7 +607,7 @@ func genPair() (kyber.Scalar, kyber.Point) {
 func genCommits(n uint32) ([]kyber.Scalar, []kyber.Point) {
 	var secrets = make([]kyber.Scalar, n)
 	var publics = make([]kyber.Point, n)
-	for i := uint32(0); i < n; i++ {
+	for i := range n {
 		secrets[i], publics[i] = genPair()
 	}
 	return secrets, publics
@@ -621,7 +621,7 @@ func genDealer() *Dealer {
 func genAll() (*Dealer, []*Verifier) {
 	dealer := genDealer()
 	var verifiers = make([]*Verifier, nbVerifiers)
-	for i := uint32(0); i < nbVerifiers; i++ {
+	for i := range nbVerifiers {
 		v, _ := NewVerifier(suite, verifiersSec[i], dealerPub, verifiersPub)
 		verifiers[i] = v
 	}

@@ -20,7 +20,7 @@ type TestNetwork struct {
 
 func NewTestNetwork(n uint32) *TestNetwork {
 	t := &TestNetwork{}
-	for i := uint32(0); i < n; i++ {
+	for i := range n {
 		t.boards = append(t.boards, NewTestBoard(i, n, t))
 	}
 	return t
@@ -170,7 +170,7 @@ func TestProtoFull(t *testing.T) {
 		// responses, and then they send the justifications, if any.
 		// since there is no faults we expect to receive the result only after two
 		// periods.
-		for i := 0; i < 2; i++ {
+		for range 2 {
 			time.Sleep(period + 100*time.Millisecond)
 			synctest.Wait()
 		}
@@ -180,13 +180,13 @@ func TestProtoFull(t *testing.T) {
 		for optRes := range resCh {
 			require.NoError(t, optRes.Error)
 			results = append(results, optRes.Result)
-			if len(results) == int(n) {
+			if uint32(len(results)) == n {
 				break
 			}
 		}
 		testResults(t, suite, thr, n, results)
 		// we let the phaser finish all phases
-		for i := 0; i < 2; i++ {
+		for range 2 {
 			time.Sleep(period + 100*time.Millisecond)
 			synctest.Wait()
 		}
@@ -233,7 +233,7 @@ func TestProtoResharing(t *testing.T) {
 		// responses, and then they send the justifications, if any.
 		// since there is no faults we expect to receive the result only after two
 		// periods.
-		for i := 0; i < 2; i++ {
+		for range 2 {
 			time.Sleep(period + 100*time.Millisecond)
 		}
 
@@ -242,13 +242,13 @@ func TestProtoResharing(t *testing.T) {
 		for optRes := range resCh {
 			require.NoError(t, optRes.Error)
 			results = append(results, optRes.Result)
-			if len(results) == int(n) {
+			if uint32(len(results)) == n {
 				break
 			}
 		}
 		testResults(t, suite, thr, n, results)
 		// we let the phaser finish all phases
-		for i := 0; i < 2; i++ {
+		for range 2 {
 			time.Sleep(period + 100*time.Millisecond)
 			synctest.Wait()
 		}
@@ -296,7 +296,7 @@ func TestProtoResharing(t *testing.T) {
 		// period, then they send their responses. Second period to receive the
 		// responses, and then they send the justifications, if any. A third period
 		// is needed to receive all justifications.
-		for i := 0; i < 3; i++ {
+		for range 3 {
 			time.Sleep(period + 100*time.Millisecond)
 			synctest.Wait()
 		}
@@ -307,7 +307,7 @@ func TestProtoResharing(t *testing.T) {
 			require.NoError(t, optRes.Error)
 			results = append(results, optRes.Result)
 			t.Logf("GOT %d RESULTS\n", len(results))
-			if len(results) == int(newN) {
+			if uint32(len(results)) == newN {
 				break
 			}
 		}
@@ -354,7 +354,7 @@ func TestProtoThreshold(t *testing.T) {
 		// period, then they send their responses. Second period to receive the
 		// responses, and then they send the justifications, if any. A third period
 		// is needed to receive all justifications.
-		for i := 0; i < 3; i++ {
+		for range 3 {
 			time.Sleep(period + 100*time.Millisecond)
 			synctest.Wait()
 		}
@@ -363,7 +363,7 @@ func TestProtoThreshold(t *testing.T) {
 		for optRes := range resCh {
 			require.NoError(t, optRes.Error)
 			results = append(results, optRes.Result)
-			if len(results) == int(realN) {
+			if uint32(len(results)) == realN {
 				break
 			}
 		}
@@ -411,7 +411,7 @@ func TestProtoFullFast(t *testing.T) {
 		for optRes := range resCh {
 			require.NoError(t, optRes.Error)
 			results = append(results, optRes.Result)
-			if len(results) == int(n) {
+			if uint32(len(results)) == n {
 				break
 			}
 		}
@@ -467,7 +467,7 @@ func TestProtoResharingAbsent(t *testing.T) {
 		// responses, and then they send the justifications, if any.
 		// since there is no faults we expect to receive the result only after two
 		// periods.
-		for i := 0; i < 2; i++ {
+		for range 2 {
 			time.Sleep(period + 100*time.Millisecond)
 			synctest.Wait()
 		}
@@ -477,7 +477,7 @@ func TestProtoResharingAbsent(t *testing.T) {
 		for optRes := range resCh {
 			require.NoError(t, optRes.Error)
 			results = append(results, optRes.Result)
-			if len(results) == int(n) {
+			if uint32(len(results)) == n {
 				break
 			}
 		}
@@ -526,7 +526,7 @@ func TestProtoResharingAbsent(t *testing.T) {
 		// period, then they send their responses. Second period to receive the
 		// responses, and then they send the justifications, if any. A third period
 		// is needed to receive all justifications.
-		for i := 0; i < 3; i++ {
+		for range 3 {
 			time.Sleep(period + 100*time.Millisecond)
 			synctest.Wait()
 		}
@@ -543,7 +543,7 @@ func TestProtoResharingAbsent(t *testing.T) {
 			}
 			results = append(results, optRes.Result)
 			t.Logf("GOT %d RESULTS\n", len(results))
-			if len(results) == int(newN-1) {
+			if uint32(len(results)) == newN {
 				break
 			}
 		}
@@ -593,7 +593,7 @@ func TestProtoThresholdFast(t *testing.T) {
 		// is needed to receive all justifications.
 		// NOTE the first period is ignored by the protocol but timer still sends
 		// it.
-		for i := 0; i < 3; i++ {
+		for range 3 {
 			time.Sleep(period + 100*time.Millisecond)
 			synctest.Wait()
 		}
@@ -602,7 +602,7 @@ func TestProtoThresholdFast(t *testing.T) {
 		for optRes := range resCh {
 			require.NoError(t, optRes.Error)
 			results = append(results, optRes.Result)
-			if len(results) == int(n-1) {
+			if uint32(len(results)) == n-1 {
 				break
 			}
 		}
@@ -694,7 +694,7 @@ func TestProtoSkip(t *testing.T) {
 			go node.phaser.Start()
 		}
 		// we go through 2 periods
-		for i := 0; i < 2; i++ {
+		for range 2 {
 			time.Sleep(period + 100*time.Millisecond)
 			synctest.Wait()
 		}
@@ -703,7 +703,7 @@ func TestProtoSkip(t *testing.T) {
 		for optRes := range resCh {
 			require.NoError(t, optRes.Error)
 			results = append(results, optRes.Result)
-			if len(results) == int(n) {
+			if uint32(len(results)) == n {
 				break
 			}
 		}
