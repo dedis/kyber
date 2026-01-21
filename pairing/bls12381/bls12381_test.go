@@ -459,9 +459,7 @@ func TestKyberPairingG2(t *testing.T) {
 		bH := s.G2().Point().Mul(b, nil)
 		ab := s.G1().Scalar().Mul(a, b)
 		abG := s.G1().Point().Mul(ab, nil)
-		// e(aG, bG) = e(G,H)^(ab)
 		p1 := s.Pair(aG, bH)
-		// e((ab)G,H) = e(G,H)^(ab)
 		p2 := s.Pair(abG, s.G2().Point().Base())
 		require.True(t, p1.Equal(p2))
 		require.True(t, s.ValidatePairing(aG, bH, abG.Clone(), s.G2().Point().Base()))
@@ -650,9 +648,7 @@ func BenchmarkPairingSeparate(bb *testing.B) {
 			bbb.ResetTimer()
 			for i := 0; i < bbb.N; i++ {
 
-				// e(aG, bG) = e(G,H)^(ab)
 				p1 := s.Pair(aG, bH)
-				// e((ab)G,H) = e(G,H)^(ab)
 				p2 := s.Pair(abG, s.G2().Point().Base())
 				if !p1.Equal(p2) {
 					panic("aie")
@@ -679,9 +675,7 @@ func BenchmarkPairingInv(bb *testing.B) {
 			abG := s.G1().Point().Mul(ab, nil)
 			bbb.ResetTimer()
 			for i := 0; i < bbb.N; i++ {
-				// e(aG, bH) = e(G,H)^(ab)
 				p1 := s.Pair(aG, bH)
-				// e((ab)G,H) = e(G,H)^(ab)
 				p2 := s.Pair(abG, s.G2().Point().Base())
 				if !p1.Equal(p2) {
 					panic("aie")

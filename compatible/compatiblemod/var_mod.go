@@ -21,7 +21,6 @@ func NewUint(x uint64) *Mod {
 
 func (z *Mod) SetString(s string, base int) (*Mod, bool) {
 	_, t := z.Int.SetString(s, base)
-	//fmt.Println("	debug: ", t)
 	return z, t
 }
 

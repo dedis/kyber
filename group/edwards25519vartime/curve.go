@@ -246,11 +246,11 @@ func (c *curve) decodePoint(bb []byte, x, y *mod.Int) error {
 func (c *curve) solveForX(x, y *mod.Int) bool {
 	var yy, t1, t2 mod.Int
 
-	yy.Mul(y, y)                     // yy = y^2
-	t1.Sub(&c.one, &yy)              // t1 = 1 - y^-2
-	t2.Mul(&c.d, &yy).Sub(&c.a, &t2) // t2 = a - d*y^2
-	t2.Div(&t1, &t2)                 // t2 = x^2
-	return x.Sqrt(&t2)               // may fail if not a square
+	yy.Mul(y, y)
+	t1.Sub(&c.one, &yy)
+	t2.Mul(&c.d, &yy).Sub(&c.a, &t2)
+	t2.Div(&t1, &t2)
+	return x.Sqrt(&t2) // may fail if not a square
 }
 
 // Test if a supposed point is on the curve,
@@ -260,12 +260,11 @@ func (c *curve) solveForX(x, y *mod.Int) bool {
 func (c *curve) onCurve(x, y *mod.Int) bool {
 	var xx, yy, l, r mod.Int
 
-	xx.Mul(x, x) // xx = x^2
-	yy.Mul(y, y) // yy = y^2
+	xx.Mul(x, x)
+	yy.Mul(y, y)
 
-	l.Mul(&c.a, &xx).Add(&l, &yy) // l = a*x^2 + y^2
+	l.Mul(&c.a, &xx).Add(&l, &yy)
 	r.Mul(&c.d, &xx).Mul(&r, &yy).Add(&c.one, &r)
-	// r = 1 + d*x^2*y^2
 	return l.Equal(&r)
 }
 

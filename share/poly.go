@@ -523,9 +523,9 @@ func lagrangeBasis(g kyber.Group, i uint32, xs map[uint32]kyber.Scalar) *PriPoly
 			continue
 		}
 		basis = basis.Mul(minusConst(g, xm))
-		den.Sub(xs[i], xm) // den = xi - xm
-		den.Inv(den)       // den = 1 / den
-		acc.Mul(acc, den)  // acc = acc * den
+		den.Sub(xs[i], xm)
+		den.Inv(den)
+		acc.Mul(acc, den)
 	}
 
 	// multiply all coefficients by the denominator

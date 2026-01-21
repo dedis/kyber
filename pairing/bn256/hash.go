@@ -20,7 +20,7 @@ func mapToCurve(t *gfP) kyber.Point {
 	// and then later x3 = 1 + (1 + B + t^2)^4/w0^2
 	w := &gfP{}
 
-	// a = (1 + B + t^2)
+	// Computing a = (1 + B + t^2)
 	a := &gfP{}
 	t2 := &gfP{}
 	gfpMul(t2, t, t)

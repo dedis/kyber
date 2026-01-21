@@ -77,9 +77,6 @@ func (z *Int) Bytes(m *compatiblemod.Mod) []byte {
 // ModInverse sets z to the multiplicative inverse of g in the ring ℤ/nℤ
 // Requires n to be prime (uses Fermat: g^(n-2) mod n).
 func (z *Int) ModInverse(g *Int, n *compatiblemod.Mod) *Int {
-	//if n.ToBigInt().ProbablyPrime(10) == false {
-	//	panic("n is not prime")
-	//}
 	p := FromNat(n.Nat())                 // p = modulus as *Int
 	exp := NewInt(0).Sub(p, NewInt(2), n) // exp = p - 2
 
@@ -145,10 +142,7 @@ func (z *Int) Text(base int) string { return z.ToBigInt().Text(base) }
 
 // one usage in rand.go, maybe can be replaced by big.Int directly
 func (z *Int) BitLen() int {
-	// to get the real length
 	return z.Int.BitLenVarTime()
-	// to get the announced value
-	// return z.Int.BitLenAnnounced()
 }
 
 // vartime wrapper around crypto/rand
@@ -178,7 +172,6 @@ func (z *Int) Equal(s2 *Int) bool {
 
 func (z *Int) Set(a *Int) *Int {
 	z.Int.Set(&a.Int)
-	//z.Int.Assign(1, &a.Int)
 	return z
 }
 

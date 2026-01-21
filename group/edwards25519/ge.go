@@ -116,18 +116,18 @@ func (p *extendedGroupElement) FromBytes(s []byte) bool {
 	feOne(&p.Z)
 	feSquare(&u, &p.Y)
 	feMul(&v, &u, &d)
-	feSub(&u, &u, &p.Z) // y = y^2-1
-	feAdd(&v, &v, &p.Z) // v = dy^2+1
+	feSub(&u, &u, &p.Z)
+	feAdd(&v, &v, &p.Z)
 
 	feSquare(&v3, &v)
-	feMul(&v3, &v3, &v) // v3 = v^3
+	feMul(&v3, &v3, &v)
 	feSquare(&p.X, &v3)
 	feMul(&p.X, &p.X, &v)
-	feMul(&p.X, &p.X, &u) // x = uv^7
+	feMul(&p.X, &p.X, &u)
 
-	fePow22523(&p.X, &p.X) // x = (uv^7)^((q-5)/8)
+	fePow22523(&p.X, &p.X)
 	feMul(&p.X, &p.X, &v3)
-	feMul(&p.X, &p.X, &u) // x = uv^3(uv^7)^((q-5)/8)
+	feMul(&p.X, &p.X, &u)
 
 	feSquare(&vxx, &p.X)
 	feMul(&vxx, &vxx, &v)
