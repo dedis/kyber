@@ -81,10 +81,7 @@ func (p *pointG1) EmbedLen() int {
 
 func (p *pointG1) Embed(data []byte, rand cipher.Stream) kyber.Point {
 	// How many bytes to embed?
-	dl := p.EmbedLen()
-	if dl > len(data) {
-		dl = len(data)
-	}
+	dl := min(p.EmbedLen(), len(data))
 
 	for {
 		// Pick a random point, with optional embedded data

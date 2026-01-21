@@ -299,10 +299,7 @@ func (c *curve) embedLen() int {
 func (c *curve) embed(P point, data []byte, rand cipher.Stream) {
 
 	// How much data to embed?
-	dl := c.embedLen()
-	if dl > len(data) {
-		dl = len(data)
-	}
+	dl := min(c.embedLen(), len(data))
 
 	// Retry until we find a valid point
 	var x, y mod.Int

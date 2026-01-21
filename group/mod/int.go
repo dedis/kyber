@@ -420,10 +420,7 @@ func (i *Int) LittleEndian(minByte, maxBytes int) []byte {
 	if vSize < act {
 		act = vSize
 	}
-	pad := act
-	if pad < minByte {
-		pad = minByte
-	}
+	pad := max(act, minByte)
 	if maxBytes != 0 && pad > maxBytes {
 		panic("Int not representable in max bytes")
 	}

@@ -143,18 +143,11 @@ func (s *Suite) ValidatePairing(p1, p2, inv1, inv2 kyber.Point) bool {
 	return s.Pair(p1, p2Norm).Equal(s.Pair(inv1, inv2Norm))
 }
 
-// Not used other than for reflect.TypeOf()
-var aScalar kyber.Scalar
-var aPoint kyber.Point
-var aPointG1 pointG1
-var aPointG2 pointG2
-var aPointGT pointGT
-
-var tScalar = reflect.TypeOf(&aScalar).Elem()
-var tPoint = reflect.TypeOf(&aPoint).Elem()
-var tPointG1 = reflect.TypeOf(&aPointG1).Elem()
-var tPointG2 = reflect.TypeOf(&aPointG2).Elem()
-var tPointGT = reflect.TypeOf(&aPointGT).Elem()
+var tScalar = reflect.TypeFor[kyber.Scalar]()
+var tPoint = reflect.TypeFor[kyber.Point]()
+var tPointG1 = reflect.TypeFor[pointG1]()
+var tPointG2 = reflect.TypeFor[pointG2]()
+var tPointGT = reflect.TypeFor[pointGT]()
 
 type commonSuite struct {
 	s cipher.Stream

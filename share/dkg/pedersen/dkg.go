@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"slices"
 
 	"go.dedis.ch/kyber/v4"
 	"go.dedis.ch/kyber/v4/encrypt/ecies"
@@ -503,7 +504,7 @@ func (d *DistKeyGenerator) ProcessDeals(bundles []*DealBundle) (*ResponseBundle,
 		// if the node is evicted, we don't even need to send a complaint or a
 		// response since every honest node evicts him as well.
 		// XXX Is that always true ? Should we send a complaint still ?
-		if contains(d.evicted, node.Index) {
+		if slices.Contains(d.evicted, node.Index) {
 			continue
 		}
 
@@ -638,7 +639,7 @@ func (d *DistKeyGenerator) ProcessResponses(bundles []*ResponseBundle) (
 			if d.canReceive && d.nidx == n.Index {
 				continue // we dont evict ourself
 			}
-			if !contains(allSent, n.Index) {
+			if !slices.Contains(allSent, n.Index) {
 				d.c.Error(fmt.Sprintf("Response not seen from node %d (eviction)", n.Index))
 				d.evictedHolders = append(d.evictedHolders, n.Index)
 			}
@@ -758,7 +759,7 @@ func (d *DistKeyGenerator) ProcessJustifications(bundles []*JustificationBundle)
 			d.c.Error("Invalid index - evicting dealer", bundle.DealerIndex)
 			continue
 		}
-		if contains(d.evicted, bundle.DealerIndex) {
+		if slices.Contains(d.evicted, bundle.DealerIndex) {
 			// already evicted node
 			d.c.Error("Already evicted dealer - evicting dealer", bundle.DealerIndex)
 			continue
@@ -828,7 +829,7 @@ func (d *DistKeyGenerator) ProcessJustifications(bundles []*JustificationBundle)
 	// check if there is enough dealer entries marked as all success
 	allGood := uint32(0)
 	for _, n := range d.c.OldNodes {
-		if contains(d.evicted, n.Index) {
+		if slices.Contains(d.evicted, n.Index) {
 			continue
 		}
 		if !d.statuses.AllTrue(n.Index) {
@@ -965,7 +966,7 @@ func (d *DistKeyGenerator) computeResharingResult() (*Result, error) {
 		}
 		// we also check if he has been misbehaving during the response phase
 		// only
-		if !invalid && !contains(d.evictedHolders, newNode.Index) {
+		if !invalid && !slices.Contains(d.evictedHolders, newNode.Index) {
 			qual = append(qual, newNode)
 		}
 	}
@@ -997,7 +998,7 @@ func (d *DistKeyGenerator) computeDKGResult() (*Result, error) {
 
 		// however we do need to check for evicted share holders since in this
 		// case (DKG) both are the same.
-		if contains(d.evictedHolders, n.Index) {
+		if slices.Contains(d.evictedHolders, n.Index) {
 			continue
 		}
 
@@ -1065,10 +1066,8 @@ func (d *DistKeyGenerator) checkIfEvicted(phase Phase) error {
 		arr = d.evicted
 		indexToUse = d.oidx
 	}
-	for _, idx := range arr {
-		if indexToUse == idx {
-			return ErrEvicted
-		}
+	if slices.Contains(arr, indexToUse) {
+		return ErrEvicted
 	}
 	return nil
 }
@@ -1098,15 +1097,6 @@ func MinimumT(n uint32) uint32 {
 func isIndexIncluded(list []Node, index uint32) bool {
 	for _, n := range list {
 		if n.Index == index {
-			return true
-		}
-	}
-	return false
-}
-
-func contains(nodes []Index, node Index) bool {
-	for _, idx := range nodes {
-		if node == idx {
 			return true
 		}
 	}

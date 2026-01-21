@@ -45,10 +45,7 @@ func testEmbed(t *testing.T, g kyber.Group, rand cipher.Stream, points *[]kyber.
 	if err != nil {
 		t.Errorf("Point extraction failed for %v: %v", p, err)
 	}
-	maxLen := g.Point().EmbedLen()
-	if maxLen > len(b) {
-		maxLen = len(b)
-	}
+	maxLen := min(g.Point().EmbedLen(), len(b))
 	if !bytes.Equal(append(x, b[maxLen:]...), b) {
 		t.Errorf("Point embedding corrupted the data")
 	}

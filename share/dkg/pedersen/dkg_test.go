@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
+	"slices"
 	"testing"
 
 	clock "github.com/jonboulle/clockwork"
@@ -254,7 +255,7 @@ func TestSelfEvictionDealer(t *testing.T) {
 			continue
 		}
 		require.NoError(t, err)
-		require.True(t, contains(node.dkg.evicted, dealerToEvict))
+		require.True(t, slices.Contains(node.dkg.evicted, dealerToEvict))
 	}
 }
 

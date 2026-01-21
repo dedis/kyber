@@ -1,6 +1,7 @@
 package dkg
 
 import (
+	"slices"
 	"testing"
 	"time"
 
@@ -39,12 +40,7 @@ func (n *TestNetwork) BoardFor(index uint32) *TestBoard {
 }
 
 func (n *TestNetwork) isNoop(i uint32) bool {
-	for _, j := range n.noops {
-		if i == j {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(n.noops, i)
 }
 
 func (n *TestNetwork) BroadcastDeal(a *DealBundle) {
