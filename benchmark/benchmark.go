@@ -19,7 +19,7 @@ var (
 )
 
 // BenchmarkGroup runs benchmarks for the given group and writes the results to a JSON file.
-func benchmarkGroup(name string, description string, gb *test.GroupBench) map[string]interface{} {
+func benchmarkGroup(name string, description string, gb *test.GroupBench) map[string]any {
 	fmt.Printf("Running benchmarks for group %s...\n", name)
 	results := make(map[string]map[string]testing.BenchmarkResult)
 
@@ -80,7 +80,7 @@ func benchmarkGroup(name string, description string, gb *test.GroupBench) map[st
 		gb.PointDecode(b.N)
 	})
 
-	result := map[string]interface{}{
+	result := map[string]any{
 		"group":       name,
 		"description": description,
 		"benchmarks":  results,
@@ -90,7 +90,7 @@ func benchmarkGroup(name string, description string, gb *test.GroupBench) map[st
 }
 
 // BenchmarkSign runs benchmarks for the some signature schemes.
-func benchmarkSign(sigType string) map[string]interface{} {
+func benchmarkSign(sigType string) map[string]any {
 	fmt.Printf("Running benchmarks for %s signature scheme...\n", sigType)
 	results := make(map[string]map[string]testing.BenchmarkResult)
 	results["keygen"] = make(map[string]testing.BenchmarkResult)
@@ -154,7 +154,7 @@ func benchmarkSign(sigType string) map[string]interface{} {
 		}
 	}
 
-	result := map[string]interface{}{
+	result := map[string]any{
 		"name":        sigType,
 		"description": "",
 		"benchmarks":  results,
@@ -165,7 +165,7 @@ func benchmarkSign(sigType string) map[string]interface{} {
 
 func main() {
 	// Write results to JSON file
-	results := make(map[string]map[string]map[string]interface{})
+	results := make(map[string]map[string]map[string]any)
 
 	file, err := os.Create(outputFile)
 	if err != nil {
@@ -178,7 +178,7 @@ func main() {
 	encoder.SetIndent("", "  ")
 
 	// Run benchmarks for each group
-	results["groups"] = make(map[string]map[string]interface{})
+	results["groups"] = make(map[string]map[string]any)
 	for _, suite := range suites {
 		groupBench := test.NewGroupBench(suite)
 		result := benchmarkGroup(suite.String(), "Description", groupBench)
@@ -186,7 +186,7 @@ func main() {
 	}
 
 	// Run benchmarks for signatures
-	results["sign"] = make(map[string]map[string]interface{})
+	results["sign"] = make(map[string]map[string]any)
 	for _, sigType := range signatures {
 		result := benchmarkSign(sigType)
 		results["sign"][sigType] = result

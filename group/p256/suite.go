@@ -37,16 +37,16 @@ func (s *Suite128) RandomStream() cipher.Stream {
 	return random.New()
 }
 
-func (s *Suite128) Read(r io.Reader, objs ...interface{}) error {
+func (s *Suite128) Read(r io.Reader, objs ...any) error {
 	return fixbuf.Read(r, s, objs...)
 }
 
-func (s *Suite128) Write(w io.Writer, objs ...interface{}) error {
+func (s *Suite128) Write(w io.Writer, objs ...any) error {
 	return fixbuf.Write(w, objs...)
 }
 
 // New implements the kyber.encoding interface
-func (s *Suite128) New(t reflect.Type) interface{} {
+func (s *Suite128) New(t reflect.Type) any {
 	return marshalling.GroupNew(s, t)
 }
 

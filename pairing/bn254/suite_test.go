@@ -336,12 +336,12 @@ func TestSuiteProtobuf(t *testing.T) {
 	bn2 := NewSuiteG2()
 	bnT := NewSuiteGT()
 
-	protobuf.RegisterInterface(func() interface{} { return bn1.Point() })
-	protobuf.RegisterInterface(func() interface{} { return bn1.Scalar() })
-	protobuf.RegisterInterface(func() interface{} { return bn2.Point() })
-	protobuf.RegisterInterface(func() interface{} { return bn2.Scalar() })
-	protobuf.RegisterInterface(func() interface{} { return bnT.Point() })
-	protobuf.RegisterInterface(func() interface{} { return bnT.Scalar() })
+	protobuf.RegisterInterface(func() any { return bn1.Point() })
+	protobuf.RegisterInterface(func() any { return bn1.Scalar() })
+	protobuf.RegisterInterface(func() any { return bn2.Point() })
+	protobuf.RegisterInterface(func() any { return bn2.Scalar() })
+	protobuf.RegisterInterface(func() any { return bnT.Point() })
+	protobuf.RegisterInterface(func() any { return bnT.Scalar() })
 
 	testTsr(t, NewSuiteG1())
 	testTsr(t, NewSuiteG2())

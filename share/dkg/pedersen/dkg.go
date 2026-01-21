@@ -1139,21 +1139,21 @@ func (d *DistKeyGenerator) sign(p Packet) ([]byte, error) {
 	return d.c.Auth.Sign(priv, msg)
 }
 
-func (d *DistKeyGenerator) Info(keyvals ...interface{}) {
+func (d *DistKeyGenerator) Info(keyvals ...any) {
 	d.c.Info("generator", keyvals)
 }
 
-func (d *DistKeyGenerator) Error(keyvals ...interface{}) {
+func (d *DistKeyGenerator) Error(keyvals ...any) {
 	d.c.Info("generator", keyvals)
 }
 
-func (c *Config) Info(keyvals ...interface{}) {
+func (c *Config) Info(keyvals ...any) {
 	if c.Log != nil {
 		c.Log.Info("dkg-log", keyvals)
 	}
 }
 
-func (c *Config) Error(keyvals ...interface{}) {
+func (c *Config) Error(keyvals ...any) {
 	if c.Log != nil {
 		c.Log.Error("dkg-log", keyvals)
 	}

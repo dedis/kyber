@@ -38,16 +38,16 @@ func (s QrSuite) RandomStream() cipher.Stream {
 	return random.New()
 }
 
-func (s *QrSuite) Read(r io.Reader, objs ...interface{}) error {
+func (s *QrSuite) Read(r io.Reader, objs ...any) error {
 	return fixbuf.Read(r, s, objs...)
 }
 
-func (s *QrSuite) Write(w io.Writer, objs ...interface{}) error {
+func (s *QrSuite) Write(w io.Writer, objs ...any) error {
 	return fixbuf.Write(w, objs...)
 }
 
 // New implements the kyber.encoding interface
-func (s *QrSuite) New(t reflect.Type) interface{} {
+func (s *QrSuite) New(t reflect.Type) any {
 	return marshalling.GroupNew(s, t)
 }
 

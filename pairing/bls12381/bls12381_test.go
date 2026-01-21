@@ -698,7 +698,7 @@ var (
 
 // Used to avoid compiler optimizations
 // https://www.practical-go-lessons.com/chap-34-benchmarks#:~:text=This%20variable%20is%20just%20here%20to%20avoid%20compiler%20optimization
-var result interface{}
+var result any
 
 func BenchmarkKilic(b *testing.B) {
 	BDNBenchmark(b, "kilic")

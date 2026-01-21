@@ -71,7 +71,7 @@ var tScalar = reflect.TypeOf(&aScalar).Elem()
 var tPoint = reflect.TypeOf(&aPoint).Elem()
 
 // GroupNew is the Default implementation of reflective constructor for Group
-func GroupNew(g kyber.Group, t reflect.Type) interface{} {
+func GroupNew(g kyber.Group, t reflect.Type) any {
 	switch t {
 	case tScalar:
 		return g.Scalar()

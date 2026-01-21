@@ -31,16 +31,16 @@ func (s *SuiteEd25519) XOF(seed []byte) kyber.XOF {
 	return blake2xb.New(seed)
 }
 
-func (s *SuiteEd25519) Read(r io.Reader, objs ...interface{}) error {
+func (s *SuiteEd25519) Read(r io.Reader, objs ...any) error {
 	return fixbuf.Read(r, s, objs...)
 }
 
-func (s *SuiteEd25519) Write(w io.Writer, objs ...interface{}) error {
+func (s *SuiteEd25519) Write(w io.Writer, objs ...any) error {
 	return fixbuf.Write(w, objs...)
 }
 
 // New implements the kyber.encoding interface
-func (s *SuiteEd25519) New(t reflect.Type) interface{} {
+func (s *SuiteEd25519) New(t reflect.Type) any {
 	return marshalling.GroupNew(s, t)
 }
 

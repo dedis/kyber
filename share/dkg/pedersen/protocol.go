@@ -95,11 +95,11 @@ func NewProtocol(c *Config, b Board, phaser Phaser, skipVerification bool) (*Pro
 	return p, nil
 }
 
-func (p *Protocol) Info(keyvals ...interface{}) {
+func (p *Protocol) Info(keyvals ...any) {
 	p.dkg.c.Info("dkg-step", keyvals)
 }
 
-func (p *Protocol) Error(keyvals ...interface{}) {
+func (p *Protocol) Error(keyvals ...any) {
 	p.dkg.c.Error("dkg-step", keyvals)
 }
 

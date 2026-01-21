@@ -776,8 +776,8 @@ func (d *Deal) decode(s Suite, buff []byte) error {
 	constructors := make(protobuf.Constructors)
 	var point kyber.Point
 	var secret kyber.Scalar
-	constructors[reflect.TypeOf(&point).Elem()] = func() interface{} { return s.Point() }
-	constructors[reflect.TypeOf(&secret).Elem()] = func() interface{} { return s.Scalar() }
+	constructors[reflect.TypeOf(&point).Elem()] = func() any { return s.Point() }
+	constructors[reflect.TypeOf(&secret).Elem()] = func() any { return s.Scalar() }
 	return protobuf.DecodeWithConstructors(buff, d, constructors)
 }
 
