@@ -3,6 +3,7 @@
 package dkg
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -256,7 +257,7 @@ func TestSelfEvictionShareHolder(t *testing.T) {
 
 	for _, node := range newTns {
 		_, _, err := node.dkg.ProcessResponses(responses)
-		require.True(t, contains(node.dkg.evictedHolders, newIndexToEvict))
+		require.True(t, slices.Contains(node.dkg.evictedHolders, newIndexToEvict))
 		if node.Index == newIndexToEvict {
 			require.Error(t, err)
 			continue

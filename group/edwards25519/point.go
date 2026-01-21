@@ -132,10 +132,7 @@ func (P *point) EmbedLen() int {
 func (P *point) Embed(data []byte, rand cipher.Stream) kyber.Point {
 
 	// How many bytes to embed?
-	dl := P.EmbedLen()
-	if dl > len(data) {
-		dl = len(data)
-	}
+	dl := min(P.EmbedLen(), len(data))
 
 	for {
 		// Pick a random point, with optional embedded data
@@ -508,7 +505,7 @@ func byteXor(dst, b1, b2 []byte) ([]byte, error) {
 		return nil, errors.New("incompatible lengths")
 	}
 
-	for i := 0; i < len(dst); i++ {
+	for i := range dst {
 		dst[i] = b1[i] ^ b2[i]
 	}
 

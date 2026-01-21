@@ -106,10 +106,7 @@ func (P *curvePoint) Pick(rand cipher.Stream) kyber.Point {
 // Remaining bits comprising the point are chosen randomly.
 func (P *curvePoint) Embed(data []byte, rand cipher.Stream) kyber.Point {
 	l := P.c.coordLen()
-	dl := P.EmbedLen()
-	if dl > len(data) {
-		dl = len(data)
-	}
+	dl := min(P.EmbedLen(), len(data))
 
 	for {
 		b := random.Bits(uint(P.c.p.P.BitLen()), false, rand)

@@ -63,12 +63,8 @@ func ScalarUnmarshalFrom(s kyber.Scalar, r io.Reader) (int, error) {
 	return n, s.UnmarshalBinary(buf)
 }
 
-// Not used other than for reflect.TypeOf()
-var aScalar kyber.Scalar
-var aPoint kyber.Point
-
-var tScalar = reflect.TypeOf(&aScalar).Elem()
-var tPoint = reflect.TypeOf(&aPoint).Elem()
+var tScalar = reflect.TypeFor[kyber.Scalar]()
+var tPoint = reflect.TypeFor[kyber.Point]()
 
 // GroupNew is the Default implementation of reflective constructor for Group
 func GroupNew(g kyber.Group, t reflect.Type) any {

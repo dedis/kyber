@@ -66,7 +66,7 @@ func BenchmarkBLSKeyCreation(b *testing.B) {
 	suite := bn256.NewSuite()
 	scheme := NewSchemeOnG1(suite)
 	b.ResetTimer()
-	for range b.N {
+	for b.Loop() {
 		scheme.NewKeyPair(random.New())
 	}
 }
@@ -77,7 +77,7 @@ func BenchmarkBLSSign(b *testing.B) {
 	private, _ := scheme.NewKeyPair(random.New())
 	msg := []byte("Hello many times Boneh-Lynn-Shacham")
 	b.ResetTimer()
-	for range b.N {
+	for b.Loop() {
 		_, err := scheme.Sign(private, msg)
 		require.Nil(b, err)
 	}

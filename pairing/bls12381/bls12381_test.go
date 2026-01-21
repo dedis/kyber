@@ -487,12 +487,10 @@ func TestRacePairings(_ *testing.T) {
 		aB := s.G2().Point().Mul(a, B.Clone())
 		wg := sync.WaitGroup{}
 		for range 10 {
-			wg.Add(1)
-			go func() {
+			wg.Go(func() {
 				//  e(p1,p2) =?= e(inv1^-1, inv2^-1)
 				s.ValidatePairing(aG, B, s.G1().Point(), aB)
-				wg.Done()
-			}()
+			})
 		}
 		wg.Wait()
 	}

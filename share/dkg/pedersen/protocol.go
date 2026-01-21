@@ -3,6 +3,7 @@ package dkg
 import (
 	"bytes"
 	"fmt"
+	"slices"
 	"time"
 )
 
@@ -381,12 +382,7 @@ func (s *set) Push(p Packet) {
 }
 
 func (s *set) isBad(idx Index) bool {
-	for _, i := range s.bad {
-		if idx == i {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(s.bad, idx)
 }
 
 func (s *set) ToDeals() []*DealBundle {
