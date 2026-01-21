@@ -1,0 +1,21 @@
+name: Go Generate
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+
+jobs:
+  generate:
+    name: generate
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v5
+    - uses: actions/setup-go@v6
+      with:
+        go-version: '1.25'
+    - name: Run go generate
+      run: go generate ./...
+
+    - name: Check for uncommitted changes
+      run: |
+        git diff --exit-code || (echo "Error: go generate produced changes. Please commit them." && exit 1)
