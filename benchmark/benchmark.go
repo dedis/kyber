@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strconv"
 	"testing"
 
 	"go.dedis.ch/kyber/v4/group/edwards25519"
@@ -103,7 +104,7 @@ func benchmarkSign(sigType string) map[string]interface{} {
 	case "anon":
 		// Generate keys
 		for _, i := range keys {
-			results["keygen"][fmt.Sprintf("%d", i)] = testing.Benchmark(func(b *testing.B) {
+			results["keygen"][strconv.Itoa(i)] = testing.Benchmark(func(b *testing.B) {
 				for j := 0; j < b.N; j++ {
 					anon.BenchGenKeys(edwards25519.NewBlakeSHA256Ed25519(), i)
 				}
@@ -113,14 +114,14 @@ func benchmarkSign(sigType string) map[string]interface{} {
 
 		// Signing
 		for _, i := range keys {
-			results["sign"][fmt.Sprintf("%d", i)] = testing.Benchmark(func(b *testing.B) {
+			results["sign"][strconv.Itoa(i)] = testing.Benchmark(func(b *testing.B) {
 				anon.BenchSign(edwards25519.NewBlakeSHA256Ed25519(), benchPubEd25519[:i], benchPriEd25519, b.N, benchMessage)
 			})
 		}
 
 		// Verification
 		for _, i := range keys {
-			results["verify"][fmt.Sprintf("%d", i)] = testing.Benchmark(func(b *testing.B) {
+			results["verify"][strconv.Itoa(i)] = testing.Benchmark(func(b *testing.B) {
 				anon.BenchVerify(edwards25519.NewBlakeSHA256Ed25519(), benchPubEd25519[:i],
 					anon.BenchGenSig(edwards25519.NewBlakeSHA256Ed25519(), i, benchMessage, benchPubEd25519, benchPriEd25519),
 					b.N, benchMessage)
@@ -131,14 +132,14 @@ func benchmarkSign(sigType string) map[string]interface{} {
 		// Key generation
 		for _, i := range keys {
 			scheme := bls.NewSchemeOnG1(newSignatureSuite())
-			results["keygen"][fmt.Sprintf("%d", i)] = testing.Benchmark(func(b *testing.B) {
+			results["keygen"][strconv.Itoa(i)] = testing.Benchmark(func(b *testing.B) {
 				test.BenchCreateKeys(b, scheme, i)
 			})
 		}
 
 		// Signing
 		for _, i := range keys {
-			results["sign"][fmt.Sprintf("%d", i)] = testing.Benchmark(func(b *testing.B) {
+			results["sign"][strconv.Itoa(i)] = testing.Benchmark(func(b *testing.B) {
 				scheme, _, privates, _, _ := test.PrepareBLS(i)
 				test.BenchSign(b, scheme, benchMessage, privates)
 			})
@@ -146,7 +147,7 @@ func benchmarkSign(sigType string) map[string]interface{} {
 
 		// Verification
 		for _, i := range keys {
-			results["verify"][fmt.Sprintf("%d", i)] = testing.Benchmark(func(b *testing.B) {
+			results["verify"][strconv.Itoa(i)] = testing.Benchmark(func(b *testing.B) {
 				scheme, publics, _, msgs, sigs := test.PrepareBLS(i)
 				test.BLSBenchVerify(b, sigs, scheme, publics, msgs)
 			})

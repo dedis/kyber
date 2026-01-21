@@ -47,7 +47,6 @@ package cosi
 
 import (
 	"errors"
-	"fmt"
 
 	"go.dedis.ch/kyber/v4"
 )
@@ -300,7 +299,7 @@ func (m *Mask) Len() int {
 // cosigners 0-7, bits 0-7 of byte 1 correspond to cosigners 8-15, etc.
 func (m *Mask) SetMask(mask []byte) error {
 	if m.Len() != len(mask) {
-		return fmt.Errorf("mismatching mask lengths")
+		return errors.New("mismatching mask lengths")
 	}
 	for i := range m.publics {
 		byt := i >> 3

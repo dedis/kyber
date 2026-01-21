@@ -128,7 +128,7 @@ func DecryptCCAonG1(s pairing.Suite, private kyber.Point, c *Ciphertext) ([]byte
 	}
 	rP := s.G1().Point().Mul(r, s.G1().Point().Base())
 	if !rP.Equal(c.U) {
-		return nil, fmt.Errorf("invalid proof: rP check failed")
+		return nil, errors.New("invalid proof: rP check failed")
 	}
 	return msg, nil
 }
@@ -225,7 +225,7 @@ func DecryptCCAonG2(s pairing.Suite, private kyber.Point, c *Ciphertext) ([]byte
 	}
 	rP := s.G2().Point().Mul(r, s.G2().Point().Base())
 	if !rP.Equal(c.U) {
-		return nil, fmt.Errorf("invalid proof: rP check failed")
+		return nil, errors.New("invalid proof: rP check failed")
 	}
 	return msg, nil
 }
@@ -277,7 +277,7 @@ func h3(s pairing.Suite, sigma, msg []byte) (kyber.Scalar, error) {
 		}
 	}
 	// if we didn't return in the for loop then something is wrong
-	return nil, fmt.Errorf("rejection sampling failure")
+	return nil, errors.New("rejection sampling failure")
 }
 
 func h4(s pairing.Suite, sigma []byte, length int) ([]byte, error) {

@@ -88,7 +88,7 @@ linters:
     #- nonamedreturns # Reports all named returns.
     - nosprintfhostport # Checks for misuse of Sprintf to construct a host with port in a URL. [fast]
     #- paralleltest # Detects missing usage of t.Parallel() method in your Go test.
-    #- perfsprint # Checks that fmt.Sprintf can be replaced with a faster alternative. [auto-fix]
+    - perfsprint # Checks that fmt.Sprintf can be replaced with a faster alternative. [auto-fix]
     #- prealloc # Find slice declarations that could potentially be pre-allocated. [fast]
     - predeclared # Find code that shadows one of Go's predeclared identifiers. [fast]
     #- promlinter # Check Prometheus metrics naming via promlint. [fast]
@@ -97,7 +97,7 @@ linters:
     #TODO: - recvcheck # Checks for receiver type consistency.
     - revive # Fast, configurable, extensible, flexible, and beautiful linter for Go. Drop-in replacement of golint. [auto-fix]
     #- rowserrcheck # Checks whether Rows.Err of rows is checked successfully.
-    #- sloglint # Ensure consistent code style when using log/slog. [auto-fix]
+    - sloglint # Ensure consistent code style when using log/slog. [auto-fix]
     #- spancheck # Checks for mistakes with OpenTelemetry/Census spans.
     #- sqlclosecheck # Checks that sql.Rows, sql.Stmt, sqlx.NamedStmt, pgx.Query are closed.
     #- tagalign # Check that struct tags are well aligned. [fast, auto-fix]

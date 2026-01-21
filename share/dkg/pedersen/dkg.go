@@ -329,7 +329,7 @@ func NewDistKeyHandler(c *Config) (*DistKeyGenerator, error) {
 
 func (d *DistKeyGenerator) Deals() (*DealBundle, error) {
 	if !d.canIssue {
-		return nil, fmt.Errorf("new members can't issue deals")
+		return nil, errors.New("new members can't issue deals")
 	}
 	if d.state != InitPhase {
 		return nil, fmt.Errorf("dkg not in the initial state, can't produce deals: %d", d.state)
@@ -559,7 +559,7 @@ func (d *DistKeyGenerator) ProcessResponses(bundles []*ResponseBundle) (
 
 	if !d.canReceive && d.state != DealPhase {
 		// if we are a old node that will leave
-		return nil, nil, fmt.Errorf("leaving node can process responses only after creating shares")
+		return nil, nil, errors.New("leaving node can process responses only after creating shares")
 	} else if d.state != ResponsePhase {
 		return nil, nil, fmt.Errorf("can only process responses after processing shares - current state %s", d.state)
 	}
@@ -1021,7 +1021,7 @@ func (d *DistKeyGenerator) computeDKGResult() (*Result, error) {
 		nodes = append(nodes, n)
 	}
 	if finalPub == nil {
-		return nil, fmt.Errorf("BUG: final public polynomial is nil")
+		return nil, errors.New("BUG: final public polynomial is nil")
 	}
 	_, commits := finalPub.Info()
 	return &Result{

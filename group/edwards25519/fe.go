@@ -4,7 +4,8 @@
 package edwards25519
 
 import (
-	"fmt"
+	"strconv"
+	"strings"
 
 	"go.dedis.ch/kyber/v4/compatible"
 )
@@ -1019,13 +1020,15 @@ func fePow22523(out, z *fieldElement) {
 }
 
 func (fe *fieldElement) String() string {
-	s := "fieldElement{"
+	var b strings.Builder
+	b.WriteString("fieldElement{")
+
 	for i := range fe {
 		if i > 0 {
-			s += ", "
+			b.WriteString(", ")
 		}
-		s += fmt.Sprintf("%d", fe[i])
+		b.WriteString(strconv.FormatInt(int64(fe[i]), 10))
 	}
-	s += "}"
-	return s
+	b.WriteString("}")
+	return b.String()
 }

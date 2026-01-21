@@ -92,22 +92,22 @@ func (s *StatusMatrix) String() string {
 	}
 	sort.Slice(dealerIdx, func(i, j int) bool { return dealerIdx[i] < dealerIdx[j] })
 	sort.Slice(sharesIdx, func(i, j int) bool { return sharesIdx[i] < sharesIdx[j] })
-	var str = ""
+	var b strings.Builder
 	for _, dealerIndex := range dealerIdx {
 		var statuses []string
 		for _, shareIndex := range sharesIdx {
 			status := (*s)[dealerIndex][shareIndex]
 			var st string
 			if status == Success {
-				st = fmt.Sprintf(" %d: ok", shareIndex)
+				b.WriteString(fmt.Sprintf(" %d: ok", shareIndex))
 			} else {
-				st = fmt.Sprintf(" %d: no", shareIndex)
+				b.WriteString(fmt.Sprintf(" %d: no", shareIndex))
 			}
 			statuses = append(statuses, st)
 		}
-		str += fmt.Sprintf("dealer %d: [ %s ]\n", dealerIndex, strings.Join(statuses, ","))
+		b.WriteString(fmt.Sprintf("dealer %d: [ %s ]\n", dealerIndex, strings.Join(statuses, ",")))
 	}
-	return str
+	return b.String()
 }
 
 func (b BitSet) LengthComplaints() uint32 {
