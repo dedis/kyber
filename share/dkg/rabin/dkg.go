@@ -223,7 +223,7 @@ func NewDistKeyGenerator(
 
 // Deals returns all the deals that must be broadcasted to all
 // participants. The deal corresponding to this DKG is already added
-// to this DKG and is ommitted from the returned map. To know
+// to this DKG and is omitted from the returned map. To know
 // to which participant a deal belongs to, loop over the keys as indices in
 // the list of participants:
 //

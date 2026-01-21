@@ -37,7 +37,7 @@ func (gb GroupBench) ScalarAdd(iters int) {
 	}
 }
 
-// ScalarSub benchmarks the substraction operation for scalars
+// ScalarSub benchmarks the subtraction operation for scalars
 func (gb GroupBench) ScalarSub(iters int) {
 	for i := 1; i < iters; i++ {
 		gb.x.Sub(gb.x, gb.y)
@@ -100,7 +100,7 @@ func (gb GroupBench) PointAdd(iters int) {
 	}
 }
 
-// PointSub benchmarks the substraction operation for points
+// PointSub benchmarks the subtraction operation for points
 func (gb GroupBench) PointSub(iters int) {
 	for i := 1; i < iters; i++ {
 		gb.X.Sub(gb.X, gb.Y)

@@ -102,7 +102,7 @@ type Config struct {
 
 	// Nonce is required to avoid replay attacks from previous runs of a DKG /
 	// resharing. The required property of the Nonce is that it must be unique
-	// accross runs. A Nonce must be of length 32 bytes. User can get a secure
+	// across runs. A Nonce must be of length 32 bytes. User can get a secure
 	// nonce by calling `GetNonce()`.
 	Nonce []byte
 
@@ -632,7 +632,7 @@ func (d *DistKeyGenerator) ProcessResponses(bundles []*ResponseBundle) (
 	// nodes.
 	if d.c.FastSync {
 		// we only need to look at the nodes that did not sent any response,
-		// since the invalid one are already markes as evicted
+		// since the invalid one are already marks as evicted
 		allSent := append(validAuthors, d.evictedHolders...)
 		for _, n := range d.c.NewNodes {
 			if d.canReceive && d.nidx == n.Index {
