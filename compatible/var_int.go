@@ -48,13 +48,22 @@ func (z *Int) ToBigInt() *big.Int {
 	return &z.Int
 }
 
+// SetString sets this receiver to s. Return this receiver
+// and a boolean indicating success
 func (z *Int) SetString(s, _ string, base int) (*Int, bool) {
-	_, err := z.Int.SetString(s, base)
-	return z, err
+	_, ok := z.Int.SetString(s, base)
+	return z, ok
 }
 
-func (z *Int) SetStringM(s string, _ *compatiblemod.Mod, base int) (*Int, bool) {
-	return z.SetString(s, s, base)
+// SetStringM sets this receiver to s mod m. Returns this receiver
+// and a boolean indicating success.
+func (z *Int) SetStringM(s string, m *compatiblemod.Mod, base int) (*Int, bool) {
+	_, ok := z.Int.SetString(s, base)
+	if !ok {
+		return nil, false
+	}
+	z.Int.Mod(&z.Int, &m.Int)
+	return z, true
 }
 
 func (z *Int) Mul(a, b *Int, mod *compatiblemod.Mod) *Int {

@@ -17,11 +17,12 @@ func (m *Mod) Nat() *bigmod.Nat {
 	return m.Modulus.Nat()
 }
 
-// vartime function
+// SetString sets this receiver to the value of s in the given
+// base. This methods leaks the size of s.
 func (m *Mod) SetString(s string, base int) (*Mod, bool) {
 	bigFromS, ok := new(big.Int).SetString(s, base)
 	if !ok {
-		panic("invalid string, cannot convert to a Modulus")
+		return nil, false
 	}
 	m = FromBigInt(bigFromS)
 	return m, true
@@ -30,7 +31,7 @@ func (m *Mod) SetString(s string, base int) (*Mod, bool) {
 func FromString(s string, base int) (*Mod, bool) {
 	bigFromS, ok := new(big.Int).SetString(s, base)
 	if !ok {
-		panic("invalid string, cannot convert to a Modulus")
+		return nil, false
 	}
 	z := FromBigInt(bigFromS)
 	return z, true

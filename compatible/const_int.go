@@ -32,9 +32,6 @@ func NewInt(x int64) *Int {
 }
 
 func NewUint(x uint64) *Int {
-	if x < 0 {
-		panic("negative number")
-	}
 	var z = bigmod.NewNat().SetUint(uint(x))
 	return &Int{*z}
 }
@@ -47,25 +44,26 @@ func (z *Int) Uint64() uint64 {
 	return z.ToBigInt().Uint64()
 }
 
-// Vartime function. Only to be used if the size of s is public
-// The function also requires to pass a string to set the modulus, which determines the announced length of the Nat
-// SetString sets z to s modulo m (s must be bigger than m, the program panics otherwise)
-func (z *Int) SetString(s, sm string, base int) (*Int, bool) {
-	bigFromS, ok := new(big.Int).SetString(s, base)
+// SetString sets z to s mod m.
+// This is variable time function. Only use if the size of s is public.
+// The function requires to pass the modulus, which determines the
+// announced length of the Nat
+func (z *Int) SetString(s, m string, base int) (*Int, bool) {
+	mod, ok := compatiblemod.FromString(m, base)
 	if !ok {
-		panic("invalid string for the value")
+		return nil, false
 	}
-	m, _ := compatiblemod.FromString(sm, base)
-	res := FromBigInt(bigFromS, m)
-	z.Int = res.Int
-	return z, true
+	return z.SetStringM(s, mod, base)
 }
 
-// SetStringM sets z to s modulo m (s must be bigger than m, the program panics otherwise)
+// SetStringM sets z to s mod m.
+// This is variable time function. Only use if the size of s is public.
+// The function requires to pass the modulus, which determines the
+// announced length of the Nat
 func (z *Int) SetStringM(s string, m *compatiblemod.Mod, base int) (*Int, bool) {
 	bigFromS, ok := new(big.Int).SetString(s, base)
 	if !ok {
-		panic("invalid string for the value")
+		return nil, false
 	}
 	res := FromBigInt(bigFromS, m)
 	z.Int = res.Int
