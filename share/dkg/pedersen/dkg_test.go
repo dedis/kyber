@@ -39,7 +39,7 @@ func NewTestNode(s Suite, index uint32) *TestNode {
 
 func GenerateTestNodes(s Suite, n uint32) []*TestNode {
 	tns := make([]*TestNode, n)
-	for i := uint32(0); i < n; i++ {
+	for i := range n {
 		tns[i] = NewTestNode(s, i)
 	}
 	return tns
@@ -47,7 +47,7 @@ func GenerateTestNodes(s Suite, n uint32) []*TestNode {
 
 func NodesFromTest(tns []*TestNode) []Node {
 	nodes := make([]Node, len(tns))
-	for i := 0; i < len(tns); i++ {
+	for i := range tns {
 		nodes[i] = Node{
 			Index:  tns[i].Index,
 			Public: tns[i].Public,
@@ -528,7 +528,7 @@ func TestDKGNonceInvalidEviction(t *testing.T) {
 
 	genPublic := func() []kyber.Point {
 		points := make([]kyber.Point, thr)
-		for i := uint32(0); i < thr; i++ {
+		for i := range thr {
 			points[i] = suite.Point().Pick(random.New())
 		}
 		return points
@@ -708,7 +708,7 @@ func TestDKGTooManyComplaints(t *testing.T) {
 func TestConfigDuplicate(t *testing.T) {
 	n := 5
 	nodes := make([]Node, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		nodes[i] = Node{
 			Index:  Index(i),
 			Public: nil,

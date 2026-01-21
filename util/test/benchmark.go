@@ -21,7 +21,7 @@ func PrepareBLS(numSigs int) (scheme sign.Scheme,
 	privates = make([]kyber.Scalar, numSigs)
 	msgs = make([][]byte, numSigs)
 	sigs = make([][]byte, numSigs)
-	for i := 0; i < numSigs; i++ {
+	for i := range numSigs {
 		private, public := scheme.NewKeyPair(random.New())
 		publics[i] = public
 		privates[i] = private
@@ -42,8 +42,8 @@ func PrepareBLS(numSigs int) (scheme sign.Scheme,
 
 func BenchCreateKeys(b *testing.B, scheme sign.Scheme, n int) {
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		for j := 0; j < n; j++ {
+	for range b.N {
+		for range n {
 			scheme.NewKeyPair(random.New())
 		}
 	}
@@ -51,7 +51,7 @@ func BenchCreateKeys(b *testing.B, scheme sign.Scheme, n int) {
 
 func BenchSign(b *testing.B, scheme sign.Scheme, msg []byte, privates []kyber.Scalar) {
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		for _, private := range privates {
 			_, err := scheme.Sign(private, msg)
 			require.NoError(b, err)
@@ -62,7 +62,7 @@ func BenchSign(b *testing.B, scheme sign.Scheme, msg []byte, privates []kyber.Sc
 func BLSBenchVerify(b *testing.B, sigs [][]byte, scheme sign.Scheme,
 	publics []kyber.Point, msgs [][]byte) {
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		for j, p := range publics {
 			err := scheme.Verify(p, msgs[j], sigs[j])
 			require.NoError(b, err)

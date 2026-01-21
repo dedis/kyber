@@ -298,7 +298,7 @@ func slide(r *[256]int8, a *[32]byte) {
 	// Explode the exponent a into a little-endian array, one bit per byte
 	for i := range a {
 		ai := int8(a[i])
-		for j := 0; j < 8; j++ {
+		for j := range 8 {
 			r[i*8+j] = ai & 1
 			ai >>= 1
 		}
@@ -354,8 +354,8 @@ func selectPreComputed(t *preComputedGroupElement, pos int32, b int32) {
 	bAbs := b - (((-bNegative) & b) << 1)
 
 	t.Zero()
-	for i := int32(0); i < 8; i++ {
-		t.CMove(&base[pos][i], equal(bAbs, i+1))
+	for i := range 8 {
+		t.CMove(&base[pos][i], equal(bAbs, int32(i)+1))
 	}
 	minusT.Neg(t)
 	t.CMove(&minusT, bNegative)
@@ -380,7 +380,7 @@ func geScalarMultBase(h *extendedGroupElement, a *[32]byte) {
 	// each e[i] is between 0 and 15 and e[63] is between 0 and 7.
 
 	carry := int8(0)
-	for i := 0; i < 63; i++ {
+	for i := range 63 {
 		e[i] += carry
 		carry = (e[i] + 8) >> 4
 		e[i] -= carry << 4
@@ -421,8 +421,8 @@ func selectCached(c *cachedGroupElement, Ai *[8]cachedGroupElement, b int32) {
 
 	// in constant-time pick cached multiplier for exponent 0 through 8
 	c.Zero()
-	for i := int32(0); i < 8; i++ {
-		c.CMove(&Ai[i], equal(bAbs, i+1))
+	for i := range 8 {
+		c.CMove(&Ai[i], equal(bAbs, int32(i)+1))
 	}
 
 	// in constant-time compute negated version, conditionally use it
@@ -457,7 +457,7 @@ func geScalarMult(h *extendedGroupElement, a *[32]byte,
 	// each e[i] is between 0 and 15 and e[63] is between 0 and 7.
 
 	carry := int8(0)
-	for i := 0; i < 63; i++ {
+	for i := range 63 {
 		e[i] += carry
 		carry = (e[i] + 8) >> 4
 		e[i] -= carry << 4
@@ -468,7 +468,7 @@ func geScalarMult(h *extendedGroupElement, a *[32]byte,
 	// compute cached array of multiples of A from 1A through 8A
 	var Ai [8]cachedGroupElement // A,1A,2A,3A,4A,5A,6A,7A
 	A.ToCached(&Ai[0])
-	for i := 0; i < 7; i++ {
+	for i := range 7 {
 		t.Add(A, &Ai[i])
 		t.ToExtended(&u)
 		u.ToCached(&Ai[i+1])

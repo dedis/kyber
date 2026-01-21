@@ -14,7 +14,7 @@ var rng = random.New()
 func TestDLEQProof(t *testing.T) {
 	suite := edwards25519.NewBlakeSHA256Ed25519()
 	n := 10
-	for i := 0; i < n; i++ {
+	for range n {
 		// Create some random secrets and base points
 		x := suite.Scalar().Pick(rng)
 		g := suite.Point().Pick(rng)

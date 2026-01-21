@@ -199,7 +199,7 @@ func (dp *deniableProver) challengeStep() error {
 		if !bytes.Equal(com, chk) {
 			return errors.New("wrong key for commit")
 		}
-		for j := 0; j < keySize; j++ { // mix in this key
+		for j := range keySize { // mix in this key
 			mix[j] ^= key[j]
 		}
 	}

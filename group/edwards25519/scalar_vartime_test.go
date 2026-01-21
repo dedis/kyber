@@ -25,7 +25,7 @@ func Test_ScalarIsCanonical(t *testing.T) {
 	scalar := scalar{}
 
 	// We check in range [L-2, L+4)
-	for i := 0; i < 4; i++ {
+	for i := range 4 {
 		require.Equal(t, expected[i], scalar.IsCanonical(candidateBuf), fmt.Sprintf("`lMinus2 + %d` does not pass canonicality test", i))
 		candidateBuf[0]++
 	}

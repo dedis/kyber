@@ -59,13 +59,13 @@ func BenchmarkECIES(b *testing.B) {
 
 		var ct []byte
 		b.Run("Encrypt/"+suite.String(), func(b *testing.B) {
-			for i := 0; i < b.N; i++ {
+			for range b.N {
 				ct, _ = Encrypt(suite, public, message, nil)
 			}
 		})
 
 		b.Run("Decrypt/"+suite.String(), func(b *testing.B) {
-			for i := 0; i < b.N; i++ {
+			for range b.N {
 				_, _ = Decrypt(suite, private, ct, nil)
 			}
 		})

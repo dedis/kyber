@@ -317,7 +317,7 @@ func xor(a, b []byte) []byte {
 		panic("wrong xor input")
 	}
 	res := make([]byte, len(a))
-	for i := 0; i < len(a); i++ {
+	for i := range a {
 		res[i] = a[i] ^ b[i]
 	}
 	return res

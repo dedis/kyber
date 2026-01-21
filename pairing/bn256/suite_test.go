@@ -296,7 +296,7 @@ func basicPointTest(t *testing.T, s *Suite) {
 
 	scalarAdder := s.Scalar().Zero()
 	pointAdder := s.Point().Mul(scalarAdder, nil)
-	for i := 0; i < addersTarget; i++ {
+	for range addersTarget {
 		scalarAdder.Add(scalarAdder, scalarUnit)
 		pointAdder.Add(pointAdder, pointUnit)
 	}
@@ -420,31 +420,31 @@ func BenchmarkBn256(b *testing.B) {
 	p2 := newPointG2()
 
 	b.Run("Add", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
+		for range b.N {
 			e.Add(c, d)
 		}
 	})
 
 	b.Run("Sub", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
+		for range b.N {
 			e.Sub(c, d)
 		}
 	})
 
 	b.Run("Mul", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
+		for range b.N {
 			e.Mul(c, d)
 		}
 	})
 
 	b.Run("Div", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
+		for range b.N {
 			e.Div(c, d)
 		}
 	})
 
 	b.Run("Pairing", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
+		for range b.N {
 			suite.Pair(p1, p2)
 		}
 	})

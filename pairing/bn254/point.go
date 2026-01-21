@@ -322,7 +322,7 @@ func expandMsgXmdKeccak256(domain, msg []byte, outLen int) []byte {
 		h.Reset()
 		// b_i = H(strxor(b_0, b_(i - 1)) || I2OSP(i, 1) || DST_prime)
 		tmp := make([]byte, h.Size())
-		for j := 0; j < h.Size(); j++ {
+		for j := range h.Size() {
 			tmp[j] = b0[j] ^ bi[j]
 		}
 		_, _ = h.Write(tmp)

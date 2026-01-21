@@ -258,7 +258,7 @@ func feToBn(dst *compatible.Int, src *fieldElement) {
 
 	half := len(b) / 2
 	l := len(b) - 1
-	for i := 0; i < half; i++ {
+	for i := range half {
 		b[i], b[l-i] = b[l-i], b[i]
 	}
 
@@ -275,7 +275,7 @@ func feFromBn(dst *fieldElement, src *compatible.Int) {
 	bn.FillBytes(b)
 	half := len(b) / 2
 	l := len(b) - 1
-	for i := 0; i < half; i++ {
+	for i := range half {
 		b[i], b[l-i] = b[l-i], b[i]
 	}
 

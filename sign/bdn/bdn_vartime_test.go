@@ -78,7 +78,7 @@ func Benchmark_BDN_BLS12381_AggregateVerify(b *testing.B) {
 	require.NoError(b, err)
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		pk, err := schemeOnG2.AggregatePublicKeys(mask)
 		require.NoError(b, err)
 		require.NoError(b, schemeOnG2.Verify(pk, msg, sigb))
@@ -244,7 +244,7 @@ func Benchmark_BDN_AggregateSigs(b *testing.B) {
 	mask.SetBit(1, false)
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		AggregateSignatures(suite, [][]byte{sig1, sig2}, mask)
 	}
 }

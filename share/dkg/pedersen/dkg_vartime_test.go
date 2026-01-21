@@ -73,7 +73,7 @@ func TestDKGResharingFast(t *testing.T) {
 	copy(newTns, tns[:n-offline])
 	// + offline because we fill the gap of the offline nodes by new nodes
 	newNode := newN - n + offline
-	for i := uint32(0); i < newNode; i++ {
+	for i := range newNode {
 		//  new node can have the same index as a previous one, separation is made
 		newTns[n-1+i] = NewTestNode(suite, n-1+i)
 	}
@@ -214,7 +214,7 @@ func TestSelfEvictionShareHolder(t *testing.T) {
 	var newTns = make([]*TestNode, n)
 	copy(newTns, tns)
 	newNode := newN - n
-	for i := uint32(0); i < newNode; i++ {
+	for i := range newNode {
 		newTns = append(newTns, NewTestNode(suite, n+1+i))
 	}
 	newIndexToEvict := newTns[len(newTns)-1].Index
@@ -305,7 +305,7 @@ func TestDKGResharing(t *testing.T) {
 	copy(newTns, tns[:n-offline])
 	// + offline because we fill the gap of the offline nodes by new nodes
 	newNode := newN - n + offline
-	for i := uint32(0); i < newNode; i++ {
+	for i := range newNode {
 		//  new node can have the same index as a previous one, separation is made
 		newTns[n-1+i] = NewTestNode(suite, n-1+i)
 	}

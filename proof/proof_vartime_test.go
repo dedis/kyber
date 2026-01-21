@@ -3,9 +3,10 @@
 package proof
 
 import (
-	"go.dedis.ch/kyber/v4/group/edwards25519vartime"
 	"strconv"
 	"testing"
+
+	"go.dedis.ch/kyber/v4/group/edwards25519vartime"
 
 	"go.dedis.ch/kyber/v4"
 	"go.dedis.ch/kyber/v4/group/edwards25519"
@@ -33,7 +34,7 @@ func BenchmarkProof(b *testing.B) {
 		pval := map[string]kyber.Point{}
 		predicateBuilder := make([]string, 0)
 
-		for i := 0; i < predicateSize; i++ {
+		for i := range predicateSize {
 			s := suite.Scalar().Pick(rand)
 			index := strconv.Itoa(i)
 
@@ -54,7 +55,7 @@ func BenchmarkProof(b *testing.B) {
 		var pred Predicate
 
 		b.Run(suite.String()+"/ProofBuild", func(b *testing.B) {
-			for i := 0; i < b.N; i++ {
+			for range b.N {
 				pred = Rep("P", predicateBuilder...)
 				// Prove P = x0*B + x1*B + ... + xN*B
 				prover := pred.Prover(suite, sval, pval, nil)
@@ -67,7 +68,7 @@ func BenchmarkProof(b *testing.B) {
 		})
 
 		b.Run(suite.String()+"/ProofVerify", func(b *testing.B) {
-			for i := 0; i < b.N; i++ {
+			for range b.N {
 				verifier := pred.Verifier(suite, pval)
 				err = HashVerify(suite, "TEST", verifier, proof)
 				if err != nil {

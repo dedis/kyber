@@ -32,7 +32,7 @@ func TestCoSi(t *testing.T) {
 
 	// Generate key pairs
 	var kps []*key.Pair
-	for i := 0; i < 5; i++ {
+	for range 5 {
 		kp := key.NewKeyPair(testSuite)
 		kps = append(kps, kp)
 	}
@@ -46,7 +46,7 @@ func TestCoSi(t *testing.T) {
 func FuzzCoSi(f *testing.F) {
 	// Generate key pairs
 	var kps []*key.Pair
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		kp := key.NewKeyPair(testSuite)
 		kps = append(kps, kp)
 	}
@@ -69,7 +69,7 @@ func FuzzCoSi(f *testing.F) {
 func testCoSi(t *testing.T, n, f int, message []byte, kps []*key.Pair) {
 	var privates []kyber.Scalar
 	var publics []kyber.Point
-	for i := 0; i < n; i++ {
+	for i := range n {
 		privates = append(privates, kps[i].Private)
 		publics = append(publics, kps[i].Public)
 	}
@@ -77,7 +77,7 @@ func testCoSi(t *testing.T, n, f int, message []byte, kps []*key.Pair) {
 	// Init masks
 	var masks []*Mask
 	var byteMasks [][]byte
-	for i := 0; i < n-f; i++ {
+	for i := range n - f {
 		m, err := NewMask(testSuite, publics, publics[i])
 		if err != nil {
 			t.Fatal(err)
@@ -89,7 +89,7 @@ func testCoSi(t *testing.T, n, f int, message []byte, kps []*key.Pair) {
 	// Compute commitments
 	var v []kyber.Scalar // random
 	var V []kyber.Point  // commitment
-	for i := 0; i < n-f; i++ {
+	for range n - f {
 		x, X := Commit(testSuite)
 		v = append(v, x)
 		V = append(V, X)
@@ -102,13 +102,13 @@ func testCoSi(t *testing.T, n, f int, message []byte, kps []*key.Pair) {
 	}
 
 	// Set aggregate mask in nodes
-	for i := 0; i < n-f; i++ {
+	for i := range n - f {
 		masks[i].SetMask(aggMask)
 	}
 
 	// Compute challenge
 	var c []kyber.Scalar
-	for i := 0; i < n-f; i++ {
+	for i := range n - f {
 		ci, err := Challenge(testSuite, aggV, masks[i].AggregatePublic, message)
 		if err != nil {
 			t.Fatal(err)
@@ -118,7 +118,7 @@ func testCoSi(t *testing.T, n, f int, message []byte, kps []*key.Pair) {
 
 	// Compute responses
 	var r []kyber.Scalar
-	for i := 0; i < n-f; i++ {
+	for i := range n - f {
 		ri, _ := Response(testSuite, privates[i], v[i], c[i])
 		r = append(r, ri)
 	}
@@ -129,7 +129,7 @@ func testCoSi(t *testing.T, n, f int, message []byte, kps []*key.Pair) {
 		t.Fatal(err)
 	}
 
-	for i := 0; i < n-f; i++ {
+	for i := range n - f {
 		// Sign
 		sig, err := Sign(testSuite, aggV, aggr, masks[i])
 		if err != nil {
@@ -162,7 +162,7 @@ func TestMask(t *testing.T) {
 
 	// Generate key pairs
 	var publics []kyber.Point
-	for i := 0; i < n; i++ {
+	for range n {
 		kp := key.NewKeyPair(testSuite)
 		publics = append(publics, kp.Public)
 	}
@@ -170,7 +170,7 @@ func TestMask(t *testing.T) {
 	// Init masks and aggregate them
 	var masks []*Mask
 	var aggr []byte
-	for i := 0; i < n; i++ {
+	for i := range n {
 		m, err := NewMask(testSuite, publics, publics[i])
 		if err != nil {
 			t.Fatal(err)
@@ -200,7 +200,7 @@ func TestMask(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	for i := 0; i < n; i++ {
+	for i := range n {
 		b, err := masks[0].KeyEnabled(publics[i])
 		if err != nil {
 			t.Fatal(err)

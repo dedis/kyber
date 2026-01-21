@@ -915,7 +915,7 @@ func (d *DistKeyGenerator) computeResharingResult() (*Result, error) {
 	// the new public polynomial must however have "newT" coefficients since it
 	// will be held by the new nodes.
 	finalCoeffs := make([]kyber.Point, d.newT)
-	for i := uint32(0); i < d.newT; i++ {
+	for i := range d.newT {
 		tmpCoeffs := make([]*share.PubShare, 0, len(coeffs))
 		// take all i-th coefficients
 		for j := range coeffs {

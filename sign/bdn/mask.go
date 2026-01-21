@@ -117,7 +117,7 @@ func (m *Mask) SetBit(i int, enable bool) error {
 func (m *Mask) forEachBitEnabled(f func(i, j, n int) int) int {
 	n := 0
 	for i, b := range m.mask {
-		for j := uint(0); j < 8; j++ {
+		for j := range 8 {
 			mm := byte(1) << (j & 7)
 
 			if b&mm != 0 {

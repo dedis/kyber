@@ -62,7 +62,7 @@ func TestDeniable(t *testing.T) {
 
 	// Make some keypairs
 	nodes := make([]*node, nnodes)
-	for i := 0; i < nnodes; i++ {
+	for i := range nnodes {
 		n := &node{}
 		nodes[i] = n
 		n.i = i
@@ -72,7 +72,7 @@ func TestDeniable(t *testing.T) {
 	}
 
 	// Make some provers and verifiers
-	for i := 0; i < nnodes; i++ {
+	for i := range nnodes {
 		n := nodes[i]
 		pred := Rep("X", "x", "B")
 		sval := map[string]kyber.Scalar{"x": n.x}
