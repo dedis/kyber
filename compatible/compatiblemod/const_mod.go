@@ -64,7 +64,7 @@ func NewInt(x int64) *Mod {
 }
 
 func NewUint(x uint64) *Mod {
-	if x < 1 {
+	if x <= 1 {
 		panic("Modulus needs to be larger than 1")
 	}
 	xBytes := make([]byte, 8)
