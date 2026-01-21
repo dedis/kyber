@@ -4,7 +4,7 @@ See https://en.wikipedia.org/wiki/Schnorr_signature.
 
 The only difference regarding the vanilla reference is the computation of the
 response. This implementation adds the random component with the challenge times
-private key while the Wikipedia article substracts them.
+private key while the Wikipedia article subtracts them.
 
 The resulting signature is compatible with EdDSA verification algorithm when
 using the edwards25519 group, and by extension the CoSi verification algorithm.

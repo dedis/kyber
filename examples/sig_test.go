@@ -77,7 +77,7 @@ func SchnorrVerify(suite Suite, message []byte, publicKey kyber.Point,
 	T.Add(T.Mul(r, nil), P.Mul(c, publicKey))
 
 	// Verify that the hash based on the message and T
-	// matches the challange c from the signature
+	// matches the challenge c from the signature
 	c = hashSchnorr(suite, message, T)
 	if !c.Equal(sig.C) {
 		return errors.New("invalid signature")

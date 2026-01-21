@@ -41,7 +41,7 @@ and the public Point variables that the Predicate refers to.
 If the statement contains logical Or operators, the caller must also pass
 a map containing branch choices for each Or predicate
 in the "proof-obligated path" down through the Or predicates.
-See the examples provded for the Or function for more details.
+See the examples provided for the Or function for more details.
 
 Similarly, the caller may invoke Verifier() to create
 a Sigma-protocol verifier for the predicate.

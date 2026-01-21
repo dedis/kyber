@@ -60,7 +60,7 @@ linters:
     #- gosec # Inspects source code for security problems.
     #- gosmopolitan # Report certain i18n/l10n anti-patterns in your Go codebase.
     - grouper # Analyze expression groups. [fast]
-    #- iface # Detect the incorrect use of interfaces, helping developers avoid interface pollution. [auto-fix]
+    - iface # Detect the incorrect use of interfaces, helping developers avoid interface pollution. [auto-fix]
     #- importas # Enforces consistent import aliases. [auto-fix]
     #- inamedparam # Reports interfaces with unnamed method parameters. [fast]
     - interfacebloat # A linter that checks the number of methods inside an interface. [fast]
@@ -68,11 +68,11 @@ linters:
     - iotamixing # Checks if iotas are being used in const blocks with other non-iota declarations. [fast]
     #- ireturn # Accept Interfaces, Return Concrete Types.
     - lll # Reports long lines. [fast]
-    #- loggercheck # Checks key value pairs for common logger libraries (kitlog,klog,logr,slog,zap).
+    - loggercheck # Checks key value pairs for common logger libraries (kitlog,klog,logr,slog,zap).
     #- maintidx # Maintidx measures the maintainability index of each function. [fast]
     #- makezero # Find slice declarations with non-zero initial length.
-    #- mirror # Reports wrong mirror patterns of bytes/strings usage. [auto-fix]
-    #- misspell # Finds commonly misspelled English words. [fast, auto-fix]
+    - mirror # Reports wrong mirror patterns of bytes/strings usage. [auto-fix]
+    - misspell # Finds commonly misspelled English words. [fast, auto-fix]
     #- mnd # An analyzer to detect magic numbers. [fast]
     #- modernize # A suite of analyzers that suggest simplifications to Go code, using modern language and library features.
     #- musttag # Enforce field tags in (un)marshaled structs.

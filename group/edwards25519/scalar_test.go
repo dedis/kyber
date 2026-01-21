@@ -200,7 +200,7 @@ func BenchmarkCTScalarSimpleMul(b *testing.B) { benchScalarMul(b, newSimpleCTSca
 
 func BenchmarkCTScalarFactoredMul(b *testing.B) { benchScalarMul(b, newFactoredScalar) }
 
-// substraction
+// subtraction
 
 func BenchmarkCTScalarSub(b *testing.B) { benchScalarSub(b, tSuite.Scalar) }
 
