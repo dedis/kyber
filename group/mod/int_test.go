@@ -193,11 +193,12 @@ func TestComparisons(t *testing.T) {
 
 			cmp := i1.Cmp(i2)
 
-			if i == j {
+			switch {
+			case i == j:
 				assert.Equal(t, 0, cmp, "Same numbers should be equal: ", n1, n2)
-			} else if n1 > n2 {
+			case n1 > n2:
 				assert.Equal(t, 1, cmp, "First number should be greater", n1, n2)
-			} else {
+			default:
 				assert.Equal(t, -1, cmp, "First number should be smaller", n1, n2)
 			}
 		}

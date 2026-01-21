@@ -74,11 +74,12 @@ func Example_elGamalEncryption_bn256() {
 	mm, err := ElGamalDecryptBn256(suite, a, K, C)
 
 	// Make sure it worked!
-	if err != nil {
+	switch {
+	case err != nil:
 		fmt.Println("decryption failed: " + err.Error())
-	} else if string(mm) != string(m) {
+	case string(mm) != string(m):
 		fmt.Println("decryption produced wrong output: " + string(mm))
-	} else {
+	default:
 		fmt.Println("Decryption succeeded: " + string(mm))
 	}
 	// Output:
