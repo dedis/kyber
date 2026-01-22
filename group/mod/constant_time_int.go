@@ -146,7 +146,11 @@ func (i *Int) String() string {
 
 // Cmp compares two Ints for equality or inequality
 func (i *Int) Cmp(s2 kyber.Scalar) int {
-	return i.V.Cmp(&s2.(*Int).V)
+	s2Int, ok := s2.(*Int)
+	if !ok {
+		return -1
+	}
+	return i.V.Cmp(&s2Int.V)
 	//
 	//
 	//bigger, _, less := i.V.Cmp(s2.(*Int).V)
@@ -158,7 +162,11 @@ func (i *Int) Cmp(s2 kyber.Scalar) int {
 
 // Equal returns true if the two Ints are equal
 func (i *Int) Equal(s2 kyber.Scalar) bool {
-	return i.V.Equal(&s2.(*Int).V)
+	s2Int, ok := s2.(*Int)
+	if !ok {
+		return false
+	}
+	return i.V.Equal(&s2Int.V)
 }
 
 // Nonzero returns true if the integer value is nonzero.
@@ -247,7 +255,10 @@ func (i *Int) Sub(a, b kyber.Scalar) kyber.Scalar {
 // Neg sets the target to -a mod M.
 func (i *Int) Neg(a kyber.Scalar) kyber.Scalar {
 	newNat := new(compatible.Int)
-	ai := a.(*Int)
+	ai, ok := a.(*Int)
+	if !ok {
+		panic("invalid argument")
+	}
 	newNat.Int = *ai.M.Nat()
 	i.V.Set(newNat)
 	i.M = ai.M
@@ -282,15 +293,22 @@ func (i *Int) Div(a, b kyber.Scalar) kyber.Scalar {
 	inverse := NewInt(compatible.NewInt(0), bi.M).Inv(bi)
 	divResult := i.Mul(ai, inverse)
 	// todo temporary solution... i.Set(divResult) does not work.........
-	i.V = divResult.(*Int).V
+	divResultInt, ok := divResult.(*Int)
+	if !ok {
+		panic("invalid result type")
+	}
+	i.V = divResultInt.V
 	return i
 }
 
 // Inv sets the target to the modular inverse of a with respect to modulus M.
 func (i *Int) Inv(a kyber.Scalar) kyber.Scalar {
-	ai := a.(*Int) //nolint:errcheck // Design pattern to emulate generics
+	ai, ok := a.(*Int)
+	if !ok {
+		panic("invalid argument to Inv")
+	}
 	i.M = ai.M
-	i.V = *compatible.NewInt(0).ModInverse(&a.(*Int).V, i.M)
+	i.V = *compatible.NewInt(0).ModInverse(&ai.V, i.M)
 	return i
 }
 
