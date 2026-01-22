@@ -154,7 +154,7 @@ func (i *Int) Equal(s2 kyber.Scalar) bool {
 
 // Nonzero returns true if the integer value is nonzero.
 func (i *Int) Nonzero() bool {
-	return i.V.IsZero() == false
+	return !i.V.IsZero()
 }
 
 // Set both value and modulus to be equal to another Int.
