@@ -68,7 +68,6 @@ func TestBit(t *testing.T) {
 		if bigModBit != resultMod {
 			t.Errorf("Mod conversion mismatch: got %v, want %v", resultMod, bigMod)
 		}
-		//fmt.Println(bigModBit, resultMod, bigValueBit, resultValue, i)
 	}
 }
 
@@ -93,7 +92,6 @@ func TestFillBytes(t *testing.T) {
 	if string(bigBytes) != string(natBytes) {
 		t.Errorf("FillBytes mismatch: got %v, want %v", natBytes, bigBytes)
 	}
-	//fmt.Println(string(bigBytes))
 }
 
 func TestStringConversion(t *testing.T) {
@@ -184,9 +182,7 @@ func TestModInverse(t *testing.T) {
 func TestSet(t *testing.T) {
 	a := NewInt(1)
 	z := NewInt(0)
-	//fmt.Println("Before Set - z:", z, "a:", a)
 	z.Set(a)
-	//fmt.Println("After Set - z:", z, "a:", a)
 	assert.Equal(t, z, a)
 }
 

@@ -63,16 +63,6 @@ func (i *Int) SetString(n, d string, base int) (*Int, bool) {
 	return i, true
 }
 
-// Not used in constant time
-//// Jacobi computes the Jacobi symbol of (a/M), which indicates whether a is
-//// zero (0), a positive square in M (1), or a non-square in M (-1).
-//func (i *Int) Jacobi(as kyber.Scalar) kyber.Scalar {
-//	ai := as.(*Int) //nolint:errcheck // Design pattern to emulate generics
-//	i.M = ai.M
-//	i.V.SetUint(uint(big.Jacobi(&ai.V, i.M)))
-//	return i
-//}
-
 // NewInt creates a new Int with a given compatible.Int and a compatible.Int modulus.
 func NewInt(v *compatible.Int, m *compatiblemod.Mod) *Int {
 	return new(Int).Init(v, m)
@@ -151,13 +141,6 @@ func (i *Int) Cmp(s2 kyber.Scalar) int {
 		return -1
 	}
 	return i.V.Cmp(&s2Int.V)
-	//
-	//
-	//bigger, _, less := i.V.Cmp(s2.(*Int).V)
-	//nat := new(compatible.Int).SetUint64(1)
-	//nat.CondAssign(bigger, new(compatible.Int).SetUint64(2))
-	//nat.CondAssign(less, new(compatible.Int).SetUint64(0))
-	//return int(nat.Uint64()) - 1
 }
 
 // Equal returns true if the two Ints are equal
@@ -264,13 +247,6 @@ func (i *Int) Neg(a kyber.Scalar) kyber.Scalar {
 	i.M = ai.M
 	i.V = *compatible.NewInt(0).Sub(&i.V, &ai.V, i.M)
 
-	//ai := a.(*Int) //nolint:errcheck // Design pattern to emulate generics
-	//i.M = ai.M
-	//if ai.V.Sign() > 0 {
-	//	i.V.Sub(i.M, &ai.V)
-	//} else {
-	//	i.V.SetUint64(0)
-	//}
 	return i
 }
 
@@ -323,17 +299,6 @@ func (i *Int) Exp(a kyber.Scalar, e *compatible.Int) kyber.Scalar {
 	i.V = *tmp
 	return i
 }
-
-//not used in constant time
-//// Sqrt computes some square root of a mod M of one exists.
-//// Assumes the modulus M is an odd prime.
-//// Returns true on success, false if input a is not a square.
-//func (i *Int) Sqrt(as kyber.Scalar) bool {
-//	ai := as.(*Int) //nolint:errcheck // Design pattern to emulate generics
-//	out := i.V.ModSqrt(ai.V, ai.M)
-//	i.M = ai.M
-//	return out != nil
-//}
 
 // Pick a [pseudo-]random integer, modulo M,
 // using bits from the given stream cipher.
