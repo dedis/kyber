@@ -106,6 +106,7 @@ func (p *extendedGroupElement) ToBytes(s *[32]byte) {
 	s[31] ^= feIsNegative(&x) << 7
 }
 
+//nolint:gocritic // not actually dead code
 func (p *extendedGroupElement) FromBytes(s []byte) bool {
 	var u, v, v3, vxx, check fieldElement
 
@@ -116,18 +117,18 @@ func (p *extendedGroupElement) FromBytes(s []byte) bool {
 	feOne(&p.Z)
 	feSquare(&u, &p.Y)
 	feMul(&v, &u, &d)
-	feSub(&u, &u, &p.Z)
-	feAdd(&v, &v, &p.Z)
+	feSub(&u, &u, &p.Z) // y = y^2-1
+	feAdd(&v, &v, &p.Z) // v = dy^2+1
 
 	feSquare(&v3, &v)
-	feMul(&v3, &v3, &v)
+	feMul(&v3, &v3, &v) // v3 = v^3
 	feSquare(&p.X, &v3)
 	feMul(&p.X, &p.X, &v)
-	feMul(&p.X, &p.X, &u)
+	feMul(&p.X, &p.X, &u) // x = uv^7
 
-	fePow22523(&p.X, &p.X)
+	fePow22523(&p.X, &p.X) // x = (uv^7)^((q-5)/8)
 	feMul(&p.X, &p.X, &v3)
-	feMul(&p.X, &p.X, &u)
+	feMul(&p.X, &p.X, &u) // x = uv^3(uv^7)^((q-5)/8)
 
 	feSquare(&vxx, &p.X)
 	feMul(&vxx, &vxx, &v)

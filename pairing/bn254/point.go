@@ -237,31 +237,31 @@ func mapToPoint(domain []byte, u *gfP) kyber.Point {
 	tv1 := &gfP{}
 	tv1.Set(u)
 	gfpMul(tv1, tv1, tv1)
-	gfpMul(tv1, tv1, c1)
+	gfpMul(tv1, tv1, c1) // Compute tv1 = u^2 * g(Z)
 	tv2 := &gfP{}
-	gfpAdd(tv2, newGFp(1), tv1)
+	gfpAdd(tv2, newGFp(1), tv1) // Compute tv2 = 1 + tv1
 	negTv1 := &gfP{}
 	gfpNeg(negTv1, tv1)
-	gfpAdd(tv1, newGFp(1), negTv1)
+	gfpAdd(tv1, newGFp(1), negTv1) // Compute tv1 = 1 - tv1
 	tv3 := &gfP{}
 	gfpMul(tv3, tv1, tv2)
-	tv3.Invert(tv3)
+	tv3.Invert(tv3) // Compute tv3 = inv0(tv1 * tv2)
 	tv5 := &gfP{}
 	gfpMul(tv5, u, tv1)
 	gfpMul(tv5, tv5, tv3)
-	gfpMul(tv5, tv5, c3)
+	gfpMul(tv5, tv5, c3) // Compute tv5 = u * tv1 * tv3 * tv4
 	x1 := &gfP{}
-	gfpSub(x1, c2, tv5)
+	gfpSub(x1, c2, tv5) // Compute x1 = -Z / 2 - tv5
 	x2 := &gfP{}
-	gfpAdd(x2, c2, tv5)
+	gfpAdd(x2, c2, tv5) // Compute x2 = -Z / 2 + tv5
 	tv7 := &gfP{}
-	gfpMul(tv7, tv2, tv2)
+	gfpMul(tv7, tv2, tv2) // Compute tv7 = tv2^2
 	tv8 := &gfP{}
 	gfpMul(tv8, tv7, tv3)
 	x3 := &gfP{}
-	gfpMul(x3, tv8, tv8)
-	gfpMul(x3, c4, x3)
-	gfpAdd(x3, newGFp(1), x3)
+	gfpMul(x3, tv8, tv8)      // Compute x3 = tv8^2
+	gfpMul(x3, c4, x3)        // Compute x3 = c4 * x3
+	gfpAdd(x3, newGFp(1), x3) // Compute x3 = 1 + x3
 
 	var x *gfP
 	y := &gfP{}
