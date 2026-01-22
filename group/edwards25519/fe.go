@@ -4,7 +4,8 @@
 package edwards25519
 
 import (
-	"fmt"
+	"strconv"
+	"strings"
 
 	"go.dedis.ch/kyber/v4/compatible"
 )
@@ -257,7 +258,7 @@ func feToBn(dst *compatible.Int, src *fieldElement) {
 
 	half := len(b) / 2
 	l := len(b) - 1
-	for i := 0; i < half; i++ {
+	for i := range half {
 		b[i], b[l-i] = b[l-i], b[i]
 	}
 
@@ -274,7 +275,7 @@ func feFromBn(dst *fieldElement, src *compatible.Int) {
 	bn.FillBytes(b)
 	half := len(b) / 2
 	l := len(b) - 1
-	for i := 0; i < half; i++ {
+	for i := range half {
 		b[i], b[l-i] = b[l-i], b[i]
 	}
 
@@ -1019,13 +1020,15 @@ func fePow22523(out, z *fieldElement) {
 }
 
 func (fe *fieldElement) String() string {
-	s := "fieldElement{"
+	var b strings.Builder
+	b.WriteString("fieldElement{")
+
 	for i := range fe {
 		if i > 0 {
-			s += ", "
+			b.WriteString(", ")
 		}
-		s += fmt.Sprintf("%d", fe[i])
+		b.WriteString(strconv.FormatInt(int64(fe[i]), 10))
 	}
-	s += "}"
-	return s
+	b.WriteString("}")
+	return b.String()
 }

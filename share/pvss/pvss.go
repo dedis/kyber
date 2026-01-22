@@ -71,7 +71,7 @@ func EncShares(
 	indices := make([]uint32, n)
 	values := make([]kyber.Scalar, n)
 	HS := make([]kyber.Point, n)
-	for i := uint32(0); i < n; i++ {
+	for i := range n {
 		indices[i] = priShares[i].I
 		values[i] = priShares[i].V
 		HS[i] = H
@@ -83,7 +83,7 @@ func EncShares(
 		return nil, nil, err
 	}
 
-	for i := uint32(0); i < n; i++ {
+	for i := range n {
 		ps := &share.PubShare{I: indices[i], V: sX[i]}
 		encShares[i] = &PubVerShare{*ps, *proofs[i]}
 	}
@@ -96,7 +96,7 @@ func computeCommitments(suite Suite, n uint32, polyComs []kyber.Point) []kyber.P
 
 	// Compute Xi = C0 + iC1 + (i^2)C2 + ... + (i^(t-1))C_(t-1) for i in [1, ..., n]
 	// Using Horner's method: Xi = C0 + i(C1 + i(C2 + i(....)))
-	for i := uint32(0); i < n; i++ {
+	for i := range n {
 		ith := suite.Scalar().SetInt64(int64(i) + 1)
 		acc := suite.Point().Null()
 
@@ -184,7 +184,7 @@ func VerifyEncShareBatch(
 		return nil, nil, err
 	}
 
-	for i := 0; i < len(X); i++ {
+	for i := range X {
 		if err := VerifyEncShare(suite, H, X[i], sH[i], expGlobalChallenge, encShares[i]); err == nil {
 			K = append(K, X[i])
 			E = append(E, encShares[i])
@@ -233,7 +233,7 @@ func DecShareBatch(
 	var K []kyber.Point  // good public keys
 	var E []*PubVerShare // good encrypted shares
 	var D []*PubVerShare // good decrypted shares
-	for i := 0; i < len(encShares); i++ {
+	for i := range encShares {
 		if ds, err := DecShare(suite, H, X[i], sH[i], x, expGlobalChallenges[i], encShares[i]); err == nil {
 			K = append(K, X[i])
 			E = append(E, encShares[i])
@@ -277,7 +277,7 @@ func VerifyDecShare(suite Suite, G, X kyber.Point, encShare *PubVerShare, decSha
 }
 
 // VerifyDecShareBatch provides the same functionality as VerifyDecShare but for
-// slices of decrypted shares. The function returns the the valid decrypted shares.
+// slices of decrypted shares. The function returns the valid decrypted shares.
 func VerifyDecShareBatch(
 	suite Suite,
 	G kyber.Point,
@@ -290,7 +290,7 @@ func VerifyDecShareBatch(
 	}
 
 	var D []*PubVerShare // good decrypted shares
-	for i := 0; i < len(X); i++ {
+	for i := range X {
 		if err := VerifyDecShare(suite, G, X[i], encShares[i], decShares[i]); err == nil {
 			D = append(D, decShares[i])
 		}

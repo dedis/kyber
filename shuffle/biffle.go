@@ -57,12 +57,12 @@ func Biffle(suite Suite, G, H kyber.Point,
 
 	// Pick a fresh ElGamal blinding factor for each pair
 	var beta [2]kyber.Scalar
-	for i := 0; i < 2; i++ {
+	for i := range 2 {
 		beta[i] = suite.Scalar().Pick(rand)
 	}
 
 	// Create the output pair vectors
-	for i := 0; i < 2; i++ {
+	for i := range 2 {
 		piI := i ^ bit
 		Xbar[i] = suite.Point().Mul(beta[piI], G)
 		Xbar[i].Add(Xbar[i], X[piI])

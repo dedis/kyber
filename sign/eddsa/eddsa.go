@@ -5,6 +5,7 @@ package eddsa
 import (
 	"crypto/cipher"
 	"crypto/sha512"
+	"errors"
 	"fmt"
 
 	"go.dedis.ch/kyber/v4"
@@ -12,20 +13,20 @@ import (
 )
 
 var group = new(edwards25519.Curve)
-var ErrPKMarshalling = fmt.Errorf("error unmarshalling public key")
-var ErrPKInvalid = fmt.Errorf("invalid public key")
-var ErrPKSmallOrder = fmt.Errorf("public key has small order")
-var ErrPKNotCanonical = fmt.Errorf("public key is not canonical")
+var ErrPKMarshalling = errors.New("error unmarshalling public key")
+var ErrPKInvalid = errors.New("invalid public key")
+var ErrPKSmallOrder = errors.New("public key has small order")
+var ErrPKNotCanonical = errors.New("public key is not canonical")
 
-var ErrEdDSAWrongLength = fmt.Errorf("wrong length for decoding EdDSA private")
-var ErrSchnorrInvalidScalar = fmt.Errorf("schnorr: s invalid scalar")
-var ErrSignatureLength = fmt.Errorf("signature length invalid")
-var ErrSignatureNotCanonical = fmt.Errorf("signature is not canonical")
-var ErrSignatureRecNotEqual = fmt.Errorf("reconstructed S is not equal to signature")
+var ErrEdDSAWrongLength = errors.New("wrong length for decoding EdDSA private")
+var ErrSchnorrInvalidScalar = errors.New("schnorr: s invalid scalar")
+var ErrSignatureLength = errors.New("signature length invalid")
+var ErrSignatureNotCanonical = errors.New("signature is not canonical")
+var ErrSignatureRecNotEqual = errors.New("reconstructed S is not equal to signature")
 
-var ErrPointRSmallOrder = fmt.Errorf("point R has small order")
-var ErrPointRNotCanonical = fmt.Errorf("point R is not canonical")
-var ErrPointRInvalid = fmt.Errorf("point R invalid")
+var ErrPointRSmallOrder = errors.New("point R has small order")
+var ErrPointRNotCanonical = errors.New("point R is not canonical")
+var ErrPointRInvalid = errors.New("point R invalid")
 
 // EdDSA is a structure holding the data necessary to make a series of
 // EdDSA signatures.
@@ -158,7 +159,7 @@ func VerifyWithChecks(pub, msg, sig []byte) error {
 
 	scalarCanonical, ok := group.Scalar().(scalarCanCheckCanonical)
 	if !ok {
-		return fmt.Errorf("could not cast group scalar to canonical")
+		return errors.New("could not cast group scalar to canonical")
 	}
 	if !scalarCanonical.IsCanonical(sig[32:]) {
 		return fmt.Errorf("error: %w", ErrSignatureNotCanonical)

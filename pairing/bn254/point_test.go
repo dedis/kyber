@@ -181,7 +181,7 @@ func gnarkExpandMsgXmd(msg, dst []byte, lenInBytes int) ([]byte, error) {
 		// b_i = H(strxor(b₀, b_(i - 1)) ∥ I2OSP(i, 1) ∥ DST_prime)
 		h.Reset()
 		strxor := make([]byte, h.Size())
-		for j := 0; j < h.Size(); j++ {
+		for j := range h.Size() {
 			strxor[j] = b0[j] ^ b1[j]
 		}
 		if _, err := h.Write(strxor); err != nil {

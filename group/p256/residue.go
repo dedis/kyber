@@ -88,10 +88,7 @@ func (P *residuePoint) Pick(rand cipher.Stream) kyber.Point {
 func (P *residuePoint) Embed(data []byte, rand cipher.Stream) kyber.Point {
 
 	l := P.g.PointLen()
-	dl := P.EmbedLen()
-	if dl > len(data) {
-		dl = len(data)
-	}
+	dl := min(P.EmbedLen(), len(data))
 
 	for {
 		b := random.Bits(uint(P.g.P.BitLen()), false, rand)

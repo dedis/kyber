@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"slices"
 
 	"go.dedis.ch/kyber/v4"
 	"go.dedis.ch/kyber/v4/encrypt/ecies"
@@ -102,7 +103,7 @@ type Config struct {
 
 	// Nonce is required to avoid replay attacks from previous runs of a DKG /
 	// resharing. The required property of the Nonce is that it must be unique
-	// accross runs. A Nonce must be of length 32 bytes. User can get a secure
+	// across runs. A Nonce must be of length 32 bytes. User can get a secure
 	// nonce by calling `GetNonce()`.
 	Nonce []byte
 
@@ -329,7 +330,7 @@ func NewDistKeyHandler(c *Config) (*DistKeyGenerator, error) {
 
 func (d *DistKeyGenerator) Deals() (*DealBundle, error) {
 	if !d.canIssue {
-		return nil, fmt.Errorf("new members can't issue deals")
+		return nil, errors.New("new members can't issue deals")
 	}
 	if d.state != InitPhase {
 		return nil, fmt.Errorf("dkg not in the initial state, can't produce deals: %d", d.state)
@@ -503,7 +504,7 @@ func (d *DistKeyGenerator) ProcessDeals(bundles []*DealBundle) (*ResponseBundle,
 		// if the node is evicted, we don't even need to send a complaint or a
 		// response since every honest node evicts him as well.
 		// XXX Is that always true ? Should we send a complaint still ?
-		if contains(d.evicted, node.Index) {
+		if slices.Contains(d.evicted, node.Index) {
 			continue
 		}
 
@@ -559,7 +560,7 @@ func (d *DistKeyGenerator) ProcessResponses(bundles []*ResponseBundle) (
 
 	if !d.canReceive && d.state != DealPhase {
 		// if we are a old node that will leave
-		return nil, nil, fmt.Errorf("leaving node can process responses only after creating shares")
+		return nil, nil, errors.New("leaving node can process responses only after creating shares")
 	} else if d.state != ResponsePhase {
 		return nil, nil, fmt.Errorf("can only process responses after processing shares - current state %s", d.state)
 	}
@@ -632,13 +633,13 @@ func (d *DistKeyGenerator) ProcessResponses(bundles []*ResponseBundle) (
 	// nodes.
 	if d.c.FastSync {
 		// we only need to look at the nodes that did not sent any response,
-		// since the invalid one are already markes as evicted
+		// since the invalid one are already marks as evicted
 		allSent := append(validAuthors, d.evictedHolders...)
 		for _, n := range d.c.NewNodes {
 			if d.canReceive && d.nidx == n.Index {
 				continue // we dont evict ourself
 			}
-			if !contains(allSent, n.Index) {
+			if !slices.Contains(allSent, n.Index) {
 				d.c.Error(fmt.Sprintf("Response not seen from node %d (eviction)", n.Index))
 				d.evictedHolders = append(d.evictedHolders, n.Index)
 			}
@@ -758,7 +759,7 @@ func (d *DistKeyGenerator) ProcessJustifications(bundles []*JustificationBundle)
 			d.c.Error("Invalid index - evicting dealer", bundle.DealerIndex)
 			continue
 		}
-		if contains(d.evicted, bundle.DealerIndex) {
+		if slices.Contains(d.evicted, bundle.DealerIndex) {
 			// already evicted node
 			d.c.Error("Already evicted dealer - evicting dealer", bundle.DealerIndex)
 			continue
@@ -828,7 +829,7 @@ func (d *DistKeyGenerator) ProcessJustifications(bundles []*JustificationBundle)
 	// check if there is enough dealer entries marked as all success
 	allGood := uint32(0)
 	for _, n := range d.c.OldNodes {
-		if contains(d.evicted, n.Index) {
+		if slices.Contains(d.evicted, n.Index) {
 			continue
 		}
 		if !d.statuses.AllTrue(n.Index) {
@@ -915,7 +916,7 @@ func (d *DistKeyGenerator) computeResharingResult() (*Result, error) {
 	// the new public polynomial must however have "newT" coefficients since it
 	// will be held by the new nodes.
 	finalCoeffs := make([]kyber.Point, d.newT)
-	for i := uint32(0); i < d.newT; i++ {
+	for i := range d.newT {
 		tmpCoeffs := make([]*share.PubShare, 0, len(coeffs))
 		// take all i-th coefficients
 		for j := range coeffs {
@@ -965,7 +966,7 @@ func (d *DistKeyGenerator) computeResharingResult() (*Result, error) {
 		}
 		// we also check if he has been misbehaving during the response phase
 		// only
-		if !invalid && !contains(d.evictedHolders, newNode.Index) {
+		if !invalid && !slices.Contains(d.evictedHolders, newNode.Index) {
 			qual = append(qual, newNode)
 		}
 	}
@@ -997,7 +998,7 @@ func (d *DistKeyGenerator) computeDKGResult() (*Result, error) {
 
 		// however we do need to check for evicted share holders since in this
 		// case (DKG) both are the same.
-		if contains(d.evictedHolders, n.Index) {
+		if slices.Contains(d.evictedHolders, n.Index) {
 			continue
 		}
 
@@ -1021,7 +1022,7 @@ func (d *DistKeyGenerator) computeDKGResult() (*Result, error) {
 		nodes = append(nodes, n)
 	}
 	if finalPub == nil {
-		return nil, fmt.Errorf("BUG: final public polynomial is nil")
+		return nil, errors.New("BUG: final public polynomial is nil")
 	}
 	_, commits := finalPub.Info()
 	return &Result{
@@ -1065,10 +1066,8 @@ func (d *DistKeyGenerator) checkIfEvicted(phase Phase) error {
 		arr = d.evicted
 		indexToUse = d.oidx
 	}
-	for _, idx := range arr {
-		if indexToUse == idx {
-			return ErrEvicted
-		}
+	if slices.Contains(arr, indexToUse) {
+		return ErrEvicted
 	}
 	return nil
 }
@@ -1104,15 +1103,6 @@ func isIndexIncluded(list []Node, index uint32) bool {
 	return false
 }
 
-func contains(nodes []Index, node Index) bool {
-	for _, idx := range nodes {
-		if node == idx {
-			return true
-		}
-	}
-	return false
-}
-
 // NonceLength is the length of the nonce
 const NonceLength = 32
 
@@ -1139,21 +1129,21 @@ func (d *DistKeyGenerator) sign(p Packet) ([]byte, error) {
 	return d.c.Auth.Sign(priv, msg)
 }
 
-func (d *DistKeyGenerator) Info(keyvals ...interface{}) {
+func (d *DistKeyGenerator) Info(keyvals ...any) {
 	d.c.Info("generator", keyvals)
 }
 
-func (d *DistKeyGenerator) Error(keyvals ...interface{}) {
+func (d *DistKeyGenerator) Error(keyvals ...any) {
 	d.c.Info("generator", keyvals)
 }
 
-func (c *Config) Info(keyvals ...interface{}) {
+func (c *Config) Info(keyvals ...any) {
 	if c.Log != nil {
 		c.Log.Info("dkg-log", keyvals)
 	}
 }
 
-func (c *Config) Error(keyvals ...interface{}) {
+func (c *Config) Error(keyvals ...any) {
 	if c.Log != nil {
 		c.Log.Error("dkg-log", keyvals)
 	}

@@ -39,7 +39,7 @@ func newHashProver(suite Suite, protoName string) *hashProver {
 	return &sc
 }
 
-func (c *hashProver) Put(message interface{}) error {
+func (c *hashProver) Put(message any) error {
 	return c.suite.Write(&c.msg, message)
 }
 
@@ -65,7 +65,7 @@ func (c *hashProver) consumeMsg() error {
 }
 
 // Get public randomness that depends on every bit in the proof so far.
-func (c *hashProver) PubRand(data ...interface{}) error {
+func (c *hashProver) PubRand(data ...any) error {
 	err := c.consumeMsg()
 	if err != nil {
 		return err
@@ -75,7 +75,7 @@ func (c *hashProver) PubRand(data ...interface{}) error {
 }
 
 // Get private randomness
-func (c *hashProver) PriRand(data ...interface{}) error {
+func (c *hashProver) PriRand(data ...any) error {
 	if err := c.suite.Read(c.prirand, data...); err != nil {
 		return fmt.Errorf("error reading random stream: %v", err.Error())
 	}
@@ -126,12 +126,12 @@ func (c *hashVerifier) consumeMsg() error {
 }
 
 // Read structured data from the proof
-func (c *hashVerifier) Get(message interface{}) error {
+func (c *hashVerifier) Get(message any) error {
 	return c.suite.Read(&c.proof, message)
 }
 
 // Get public randomness that depends on every bit in the proof so far.
-func (c *hashVerifier) PubRand(data ...interface{}) error {
+func (c *hashVerifier) PubRand(data ...any) error {
 	// Stir in newly-read data
 	err := c.consumeMsg()
 	if err != nil {

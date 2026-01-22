@@ -4,6 +4,7 @@ package bn254
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"testing"
 
@@ -73,9 +74,9 @@ func TestG1(t *testing.T) {
 
 	_, _, g1Aff, _ := gnark_bn.Generators()
 	pb := g1Aff.ScalarMultiplicationBase(&k.(*mod.Int).V.Int)
-	mb := pb.RawBytes()
+	mb := pb.Marshal()
 
-	require.Equal(t, fmt.Sprintf("%x", ma), fmt.Sprintf("%x", mb))
+	require.Equal(t, hex.EncodeToString(ma), hex.EncodeToString(mb))
 }
 
 func TestG1Marshal(t *testing.T) {
@@ -130,9 +131,9 @@ func TestG2(t *testing.T) {
 
 	_, _, _, g2Aff := gnark_bn.Generators()
 	pb := g2Aff.ScalarMultiplication(&g2Aff, &k.(*mod.Int).V.Int)
-	mb := pb.RawBytes()
+	mb := pb.Marshal()
 
-	require.Equal(t, fmt.Sprintf("%x", ma), fmt.Sprintf("%x", mb))
+	require.Equal(t, hex.EncodeToString(ma), hex.EncodeToString(mb))
 }
 
 func TestG2Marshal(t *testing.T) {
@@ -335,12 +336,12 @@ func TestSuiteProtobuf(t *testing.T) {
 	bn2 := NewSuiteG2()
 	bnT := NewSuiteGT()
 
-	protobuf.RegisterInterface(func() interface{} { return bn1.Point() })
-	protobuf.RegisterInterface(func() interface{} { return bn1.Scalar() })
-	protobuf.RegisterInterface(func() interface{} { return bn2.Point() })
-	protobuf.RegisterInterface(func() interface{} { return bn2.Scalar() })
-	protobuf.RegisterInterface(func() interface{} { return bnT.Point() })
-	protobuf.RegisterInterface(func() interface{} { return bnT.Scalar() })
+	protobuf.RegisterInterface(func() any { return bn1.Point() })
+	protobuf.RegisterInterface(func() any { return bn1.Scalar() })
+	protobuf.RegisterInterface(func() any { return bn2.Point() })
+	protobuf.RegisterInterface(func() any { return bn2.Scalar() })
+	protobuf.RegisterInterface(func() any { return bnT.Point() })
+	protobuf.RegisterInterface(func() any { return bnT.Scalar() })
 
 	testTsr(t, NewSuiteG1())
 	testTsr(t, NewSuiteG2())

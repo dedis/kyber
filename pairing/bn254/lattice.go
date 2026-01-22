@@ -49,7 +49,7 @@ func (l *lattice) decompose(k *big.Int) []*big.Int {
 
 	// Calculate closest vector in lattice to <k,0,0,...> with Babai's rounding.
 	c := make([]*big.Int, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		c[i] = new(big.Int).Mul(k, l.inverse[i])
 		round(c[i], l.det)
 	}
@@ -58,10 +58,10 @@ func (l *lattice) decompose(k *big.Int) []*big.Int {
 	out := make([]*big.Int, n)
 	temp := new(big.Int)
 
-	for i := 0; i < n; i++ {
+	for i := range n {
 		out[i] = new(big.Int)
 
-		for j := 0; j < n; j++ {
+		for j := range n {
 			temp.Mul(c[j], l.vectors[j][i])
 			out[i].Add(out[i], temp)
 		}
@@ -78,8 +78,8 @@ func (l *lattice) Precompute(add func(i, j uint)) {
 	n := uint(len(l.vectors))
 	total := uint(1) << n
 
-	for i := uint(0); i < n; i++ {
-		for j := uint(0); j < total; j++ {
+	for i := range n {
+		for j := range total {
 			if (j>>i)&1 == 1 {
 				add(i, j)
 			}
@@ -99,7 +99,7 @@ func (l *lattice) Multi(scalar *big.Int) []uint8 {
 
 	out := make([]uint8, maxLen)
 	for j, x := range decomp {
-		for i := 0; i < maxLen; i++ {
+		for i := range maxLen {
 			out[i] += uint8(x.Bit(i)) << uint(j)
 		}
 	}

@@ -4,7 +4,7 @@ See https://en.wikipedia.org/wiki/Schnorr_signature.
 
 The only difference regarding the vanilla reference is the computation of the
 response. This implementation adds the random component with the challenge times
-private key while the Wikipedia article substracts them.
+private key while the Wikipedia article subtracts them.
 
 The resulting signature is compatible with EdDSA verification algorithm when
 using the edwards25519 group, and by extension the CoSi verification algorithm.
@@ -109,17 +109,17 @@ func VerifyWithChecks(g kyber.Group, pub, msg, sig []byte) error {
 	}
 	if p, ok := R.(pointCanCheckCanonicalAndSmallOrder); ok {
 		if !p.IsCanonical(sig[:pointSize]) {
-			return fmt.Errorf("point R is not canonical")
+			return errors.New("point R is not canonical")
 		}
 		if p.HasSmallOrder() {
-			return fmt.Errorf("point R has small order")
+			return errors.New("point R has small order")
 		}
 	}
 	if s, ok := g.Scalar().(scalarCanCheckCanonical); ok && !s.IsCanonical(sig[pointSize:]) {
-		return fmt.Errorf("signature is not canonical")
+		return errors.New("signature is not canonical")
 	}
 	if sub, ok := R.(kyber.SubGroupElement); ok && !sub.IsInCorrectGroup() {
-		return fmt.Errorf("schnorr: point not in correct group")
+		return errors.New("schnorr: point not in correct group")
 	}
 	if err := s.UnmarshalBinary(sig[pointSize:]); err != nil {
 		return err
@@ -128,14 +128,14 @@ func VerifyWithChecks(g kyber.Group, pub, msg, sig []byte) error {
 	public := g.Point()
 	err := public.UnmarshalBinary(pub)
 	if err != nil {
-		return fmt.Errorf("schnorr: error unmarshalling public key")
+		return errors.New("schnorr: error unmarshalling public key")
 	}
 	if p, ok := public.(pointCanCheckCanonicalAndSmallOrder); ok {
 		if !p.IsCanonical(pub) {
-			return fmt.Errorf("public key is not canonical")
+			return errors.New("public key is not canonical")
 		}
 		if p.HasSmallOrder() {
-			return fmt.Errorf("public key has small order")
+			return errors.New("public key has small order")
 		}
 	}
 	// recompute hash(public || R || msg)

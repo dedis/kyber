@@ -230,7 +230,7 @@ func TestPick(t *testing.T) {
 	stream := cipher.NewCTR(block, make([]byte, block.BlockSize()))
 
 	// Create multiple numbers and verify they're within bounds
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		initial := compatible.NewInt(0)
 		num := NewInt(initial, mod)
 		num.Pick(stream)

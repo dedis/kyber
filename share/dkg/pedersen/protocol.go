@@ -3,6 +3,7 @@ package dkg
 import (
 	"bytes"
 	"fmt"
+	"slices"
 	"time"
 )
 
@@ -95,11 +96,11 @@ func NewProtocol(c *Config, b Board, phaser Phaser, skipVerification bool) (*Pro
 	return p, nil
 }
 
-func (p *Protocol) Info(keyvals ...interface{}) {
+func (p *Protocol) Info(keyvals ...any) {
 	p.dkg.c.Info("dkg-step", keyvals)
 }
 
-func (p *Protocol) Error(keyvals ...interface{}) {
+func (p *Protocol) Error(keyvals ...any) {
 	p.dkg.c.Error("dkg-step", keyvals)
 }
 
@@ -263,7 +264,7 @@ func (p *Protocol) startFast() {
 				// may not be the right time or haven't received enough msg from
 				// previous phase
 				if !toFinish() {
-					p.Info("newJust", "fast moving to finish phase phase", fmt.Sprintf("got %d resps", justifs.Len()))
+					p.Info("newJust", "fast moving to finish phase", fmt.Sprintf("got %d resps", justifs.Len()))
 					return
 				}
 			}
@@ -381,12 +382,7 @@ func (s *set) Push(p Packet) {
 }
 
 func (s *set) isBad(idx Index) bool {
-	for _, i := range s.bad {
-		if idx == i {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(s.bad, idx)
 }
 
 func (s *set) ToDeals() []*DealBundle {

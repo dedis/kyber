@@ -351,7 +351,7 @@ func testGroup(t *testing.T, g kyber.Group, rand cipher.Stream) []kyber.Point {
 
 	// Test randomly picked points
 	last := gen
-	for i := 0; i < 5; i++ {
+	for range 5 {
 		// TODO fork kyber and make that an interface
 		rgen := pick(rand)
 		if rgen.Equal(last) {
@@ -377,7 +377,7 @@ func testGroup(t *testing.T, g kyber.Group, rand cipher.Stream) []kyber.Point {
 
 	// Test encoding and decoding
 	buf := new(bytes.Buffer)
-	for i := 0; i < 5; i++ {
+	for range 5 {
 		buf.Reset()
 		s := g.Scalar().Pick(rand)
 		if _, err := s.MarshalTo(buf); err != nil {
@@ -486,13 +486,11 @@ func TestRacePairings(_ *testing.T) {
 		B := s.G2().Point().Pick(s.RandomStream())
 		aB := s.G2().Point().Mul(a, B.Clone())
 		wg := sync.WaitGroup{}
-		for i := 0; i < 10; i++ {
-			wg.Add(1)
-			go func() {
+		for range 10 {
+			wg.Go(func() {
 				//  e(p1,p2) =?= e(inv1^-1, inv2^-1)
 				s.ValidatePairing(aG, B, s.G1().Point(), aB)
-				wg.Done()
-			}()
+			})
 		}
 		wg.Wait()
 	}
@@ -648,8 +646,7 @@ func BenchmarkPairingSeparate(bb *testing.B) {
 			ab := s.G1().Scalar().Mul(a, b)
 			abG := s.G1().Point().Mul(ab, nil)
 			bbb.ResetTimer()
-			for i := 0; i < bbb.N; i++ {
-
+			for range bbb.N {
 				// e(aG, bG) = e(G,H)^(ab)
 				p1 := s.Pair(aG, bH)
 				// e((ab)G,H) = e(G,H)^(ab)
@@ -678,7 +675,7 @@ func BenchmarkPairingInv(bb *testing.B) {
 			ab := s.G1().Scalar().Mul(a, b)
 			abG := s.G1().Point().Mul(ab, nil)
 			bbb.ResetTimer()
-			for i := 0; i < bbb.N; i++ {
+			for range bbb.N {
 				// e(aG, bH) = e(G,H)^(ab)
 				p1 := s.Pair(aG, bH)
 				// e((ab)G,H) = e(G,H)^(ab)
@@ -699,7 +696,7 @@ var (
 
 // Used to avoid compiler optimizations
 // https://www.practical-go-lessons.com/chap-34-benchmarks#:~:text=This%20variable%20is%20just%20here%20to%20avoid%20compiler%20optimization
-var result interface{}
+var result any
 
 func BenchmarkKilic(b *testing.B) {
 	BDNBenchmark(b, "kilic")
@@ -760,7 +757,7 @@ func BDNBenchmark(b *testing.B, curveOption string) { //nolint: gocyclo,cyclop /
 	sigsOnG1 := make([][]byte, maxN)
 	sigsOnG2 := make([][]byte, maxN)
 
-	for i := 0; i < maxN; i++ {
+	for i := range maxN {
 		privKeysOnG1[i], pubKeysOnG1[i] = schemeOnG1.NewKeyPair(randSource)
 		sigsOnG1[i], err = schemeOnG1.Sign(privKeysOnG1[i], msgData)
 		if err != nil {
@@ -784,14 +781,14 @@ func BDNBenchmark(b *testing.B, curveOption string) { //nolint: gocyclo,cyclop /
 	}
 
 	for _, n := range numSigs {
-		for i := 0; i < n; i++ {
+		for i := range n {
 			maskG1.SetBit(i, true)
 			maskG2.SetBit(i, true)
 		}
 
 		// Benchmark aggregation of public keys
 		b.Run(fmt.Sprintf("AggregatePublicKeys-G1 on %d signs", n), func(bb *testing.B) {
-			for j := 0; j < bb.N; j++ {
+			for range bb.N {
 				result, err = schemeOnG1.AggregatePublicKeys(maskG1)
 				if err != nil {
 					require.NoError(b, err)
@@ -799,7 +796,7 @@ func BDNBenchmark(b *testing.B, curveOption string) { //nolint: gocyclo,cyclop /
 			}
 		})
 		b.Run(fmt.Sprintf("AggregatePublicKeys-G2 on %d signs", n), func(bb *testing.B) {
-			for j := 0; j < bb.N; j++ {
+			for range bb.N {
 				result, err = schemeOnG2.AggregatePublicKeys(maskG2)
 				if err != nil {
 					panic(err)
@@ -809,7 +806,7 @@ func BDNBenchmark(b *testing.B, curveOption string) { //nolint: gocyclo,cyclop /
 
 		// Benchmark aggregation of signatures
 		b.Run(fmt.Sprintf("AggregateSign-G1 on %d signs", n), func(bb *testing.B) {
-			for j := 0; j < bb.N; j++ {
+			for range bb.N {
 				result, err = schemeOnG1.AggregateSignatures(sigsOnG1[:n], maskG1)
 				if err != nil {
 					panic(err)
@@ -817,7 +814,7 @@ func BDNBenchmark(b *testing.B, curveOption string) { //nolint: gocyclo,cyclop /
 			}
 		})
 		b.Run(fmt.Sprintf("AggregateSign-G2 on %d signs", n), func(bb *testing.B) {
-			for j := 0; j < bb.N; j++ {
+			for range bb.N {
 				result, err = schemeOnG2.AggregateSignatures(sigsOnG2[:n], maskG2)
 				if err != nil {
 					panic(err)
@@ -828,19 +825,19 @@ func BDNBenchmark(b *testing.B, curveOption string) { //nolint: gocyclo,cyclop /
 
 	// Benchmark keygen
 	b.Run("KeyGen-G1", func(bb *testing.B) {
-		for j := 0; j < bb.N; j++ {
+		for range bb.N {
 			result, _ = schemeOnG1.NewKeyPair(randSource)
 		}
 	})
 	b.Run("KeyGen-G2", func(bb *testing.B) {
-		for j := 0; j < bb.N; j++ {
+		for range bb.N {
 			result, _ = schemeOnG2.NewKeyPair(randSource)
 		}
 	})
 
 	// Benchmark sign
 	b.Run("Sign-G1", func(bb *testing.B) {
-		for j := 0; j < bb.N; j++ {
+		for range bb.N {
 			result, err = schemeOnG1.Sign(privKeysOnG1[0], msgData)
 			if err != nil {
 				panic(err)
@@ -848,7 +845,7 @@ func BDNBenchmark(b *testing.B, curveOption string) { //nolint: gocyclo,cyclop /
 		}
 	})
 	b.Run("Sign-G2", func(bb *testing.B) {
-		for j := 0; j < bb.N; j++ {
+		for range bb.N {
 			result, err = schemeOnG2.Sign(privKeysOnG2[0], msgData)
 			if err != nil {
 				panic(err)
@@ -858,7 +855,7 @@ func BDNBenchmark(b *testing.B, curveOption string) { //nolint: gocyclo,cyclop /
 
 	// Benchmark verify
 	b.Run("Verify-G1", func(bb *testing.B) {
-		for j := 0; j < bb.N; j++ {
+		for range bb.N {
 			err = schemeOnG1.Verify(pubKeysOnG1[0], msgData, sigsOnG1[0])
 			if err != nil {
 				panic(err)
@@ -866,7 +863,7 @@ func BDNBenchmark(b *testing.B, curveOption string) { //nolint: gocyclo,cyclop /
 		}
 	})
 	b.Run("Verify-G2", func(bb *testing.B) {
-		for j := 0; j < bb.N; j++ {
+		for range bb.N {
 			err = schemeOnG2.Verify(pubKeysOnG2[0], msgData, sigsOnG2[0])
 			if err != nil {
 				panic(err)

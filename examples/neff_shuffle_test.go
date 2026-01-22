@@ -21,7 +21,7 @@ func Test_Example_Neff_Shuffle_Simple(t *testing.T) {
 	ks := make([]kyber.Point, numPairs)
 	cs := make([]kyber.Point, numPairs)
 
-	for i := 0; i < numPairs; i++ {
+	for i := range numPairs {
 		c := suite.Point().Mul(suite.Scalar().Pick(suite.RandomStream()), nil)
 		k := suite.Point().Mul(suite.Scalar().Pick(suite.RandomStream()), nil)
 
@@ -59,11 +59,11 @@ func Test_Example_Neff_Shuffle_Sequence(t *testing.T) {
 	Y := make([][]kyber.Point, numSequences)
 
 	// generate random sequences
-	for i := 0; i < numSequences; i++ {
+	for i := range numSequences {
 		xs := make([]kyber.Point, sequenceLen)
 		ys := make([]kyber.Point, sequenceLen)
 
-		for j := 0; j < sequenceLen; j++ {
+		for j := range sequenceLen {
 			xs[j] = suite.Point().Mul(suite.Scalar().Pick(suite.RandomStream()), nil)
 			ys[j] = suite.Point().Mul(suite.Scalar().Pick(suite.RandomStream()), nil)
 		}
@@ -78,7 +78,7 @@ func Test_Example_Neff_Shuffle_Sequence(t *testing.T) {
 	// compute the proof
 	NQ := len(X)
 	e := make([]kyber.Scalar, NQ)
-	for j := 0; j < NQ; j++ {
+	for j := range NQ {
 		e[j] = suite.Scalar().Pick(suite.RandomStream())
 	}
 

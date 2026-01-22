@@ -125,7 +125,7 @@ func TestEdDSAVerifyMalleability(t *testing.T) {
 	require.Nil(t, Verify(ed.Public, msg, sig))
 
 	// Add l to signature
-	for i := 0; i < 32; i++ {
+	for i := range 32 {
 		c += uint16(sig[32+i]) + L[i]
 		sig[32+i] = byte(c)
 		c >>= 8
@@ -170,7 +170,7 @@ func TestEdDSAVerifyNonCanonicalR(t *testing.T) {
 	require.Nil(t, err)
 	require.Nil(t, Verify(ed.Public, msg, sig))
 
-	for i := 0; i < 32; i++ {
+	for i := range 32 {
 		sig[i] = nonCanonicalR[i]
 	}
 	err = Verify(ed.Public, msg, sig)
@@ -213,7 +213,7 @@ func TestEdDSAVerifySmallOrderR(t *testing.T) {
 	require.Nil(t, err)
 	require.Nil(t, Verify(ed.Public, msg, sig))
 
-	for i := 0; i < 32; i++ {
+	for i := range 32 {
 		sig[i] = smallOrderR[i]
 	}
 

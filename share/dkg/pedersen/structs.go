@@ -48,12 +48,12 @@ func (r *Result) PublicEqual(r2 *Result) bool {
 		return false
 	}
 	lenC := len(r.Key.Commits)
-	for i := 0; i < lenC; i++ {
+	for i := range lenC {
 		if !r.Key.Commits[i].Equal(r2.Key.Commits[i]) {
 			return false
 		}
 	}
-	for i := 0; i < len(r.QUAL); i++ {
+	for i := range r.QUAL {
 		if !r.QUAL[i].Equal(&r2.QUAL[i]) {
 			return false
 		}

@@ -5,9 +5,9 @@ package bdn
 import (
 	"encoding"
 	"encoding/hex"
-	"fmt"
-	"go.dedis.ch/kyber/v4/sign/bls"
 	"testing"
+
+	"go.dedis.ch/kyber/v4/sign/bls"
 
 	"github.com/stretchr/testify/require"
 	"go.dedis.ch/kyber/v4"
@@ -44,7 +44,7 @@ func TestBDN_HashPointToR_BN256(t *testing.T) {
 	buf, err := agg.MarshalBinary()
 	require.NoError(t, err)
 	ref := "1432ef60379c6549f7e0dbaf289cb45487c9d7da91fc20648f319a9fbebb23164abea76cdf7b1a3d20d539d9fe096b1d6fb3ee31bf1d426cd4a0d09d603b09f55f473fde972aa27aa991c249e890c1e4a678d470592dd09782d0fb3774834f0b2e20074a49870f039848a6b1aff95e1a1f8170163c77098e1f3530744d1826ce"
-	require.Equal(t, ref, fmt.Sprintf("%x", buf))
+	require.Equal(t, ref, hex.EncodeToString(buf))
 }
 
 func Benchmark_BDN_BLS12381_AggregateVerify(b *testing.B) {
@@ -78,7 +78,7 @@ func Benchmark_BDN_BLS12381_AggregateVerify(b *testing.B) {
 	require.NoError(b, err)
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		pk, err := schemeOnG2.AggregatePublicKeys(mask)
 		require.NoError(b, err)
 		require.NoError(b, schemeOnG2.Verify(pk, msg, sigb))
@@ -244,7 +244,7 @@ func Benchmark_BDN_AggregateSigs(b *testing.B) {
 	mask.SetBit(1, false)
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		AggregateSignatures(suite, [][]byte{sig1, sig2}, mask)
 	}
 }

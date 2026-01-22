@@ -153,7 +153,7 @@ func benchScalarAdd(b *testing.B, f func() kyber.Scalar) {
 	s1.Pick(seed)
 	s2.Pick(seed)
 
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		s3.Add(s1, s2)
 	}
 }
@@ -166,7 +166,7 @@ func benchScalarMul(b *testing.B, f func() kyber.Scalar) {
 	s1.Pick(seed)
 	s2.Pick(seed)
 
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		s3.Mul(s1, s2)
 	}
 }
@@ -179,7 +179,7 @@ func benchScalarSub(b *testing.B, f func() kyber.Scalar) {
 	s1.Pick(seed)
 	s2.Pick(seed)
 
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		s3.Sub(s1, s2)
 	}
 }
@@ -200,7 +200,7 @@ func BenchmarkCTScalarSimpleMul(b *testing.B) { benchScalarMul(b, newSimpleCTSca
 
 func BenchmarkCTScalarFactoredMul(b *testing.B) { benchScalarMul(b, newFactoredScalar) }
 
-// substraction
+// subtraction
 
 func BenchmarkCTScalarSub(b *testing.B) { benchScalarSub(b, tSuite.Scalar) }
 
@@ -233,7 +233,7 @@ func doReduction(limbs [24]int64, i int) {
 }
 
 func scReduceLimbs(limbs [24]int64) {
-	for i := 0; i < 23; i++ {
+	for i := range 23 {
 		doCarryCentered(limbs, i)
 	}
 	for i := 1; i < 23; i += 2 {
@@ -270,13 +270,13 @@ func scReduceLimbs(limbs [24]int64) {
 
 	doReduction(limbs, 12)
 
-	for i := 0; i < 12; i++ {
+	for i := range 12 {
 		doCarryUncentered(limbs, i)
 	}
 
 	doReduction(limbs, 12)
 
-	for i := 0; i < 11; i++ {
+	for i := range 11 {
 		doCarryUncentered(limbs, i)
 	}
 }

@@ -52,8 +52,8 @@ func (e *gfP) Invert(f *gfP) {
 	sum.Set(rN1)
 	power.Set(f)
 
-	for word := 0; word < 4; word++ {
-		for bit := uint(0); bit < 64; bit++ {
+	for word := range 4 {
+		for bit := range 64 {
 			if (bits[word]>>bit)&1 == 1 {
 				gfpMul(sum, sum, power)
 			}
@@ -71,8 +71,8 @@ func (e *gfP) Exp(f *gfP, bits [4]uint64) {
 	sum.Set(rN1)
 	power.Set(f)
 
-	for word := 0; word < 4; word++ {
-		for bit := uint(0); bit < 64; bit++ {
+	for word := range 4 {
+		for bit := range 64 {
 			if (bits[word]>>bit)&1 == 1 {
 				gfpMul(sum, sum, power)
 			}
@@ -91,8 +91,8 @@ func (e *gfP) Sqrt(f *gfP) {
 }
 
 func (e *gfP) Marshal(out []byte) {
-	for w := uint(0); w < 4; w++ {
-		for b := uint(0); b < 8; b++ {
+	for w := range 4 {
+		for b := range 8 {
 			out[8*w+b] = byte(e[3-w] >> (56 - 8*b))
 		}
 	}
@@ -100,9 +100,9 @@ func (e *gfP) Marshal(out []byte) {
 
 func (e *gfP) Unmarshal(in []byte) error {
 	// Unmarshal the bytes into little endian form
-	for w := uint(0); w < 4; w++ {
+	for w := range 4 {
 		e[3-w] = 0
-		for b := uint(0); b < 8; b++ {
+		for b := range 8 {
 			e[3-w] += uint64(in[8*w+b]) << (56 - 8*b)
 		}
 	}

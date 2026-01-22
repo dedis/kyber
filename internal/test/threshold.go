@@ -85,7 +85,7 @@ func ThresholdTest(test *testing.T, keyGroup kyber.Group, scheme sign.ThresholdS
 		fakeShares := fakePriPoly.Shares(n)
 		fakeSigShares := make([][]byte, 0)
 		fakePubPoly := fakePriPoly.Commit(keyGroup.Point().Base())
-		for i := uint32(0); i < n; i++ {
+		for i := range n {
 			fakeSig, _ := scheme.Sign(fakeShares[i], msg)
 			fakeSigShares = append(fakeSigShares, fakeSig)
 		}

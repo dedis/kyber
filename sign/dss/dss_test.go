@@ -29,7 +29,7 @@ var randoms []*dkg.DistKeyShare
 func init() {
 	partPubs = make([]kyber.Point, nbParticipants)
 	partSec = make([]kyber.Scalar, nbParticipants)
-	for i := uint32(0); i < nbParticipants; i++ {
+	for i := range nbParticipants {
 		sec, pub := genPair()
 		partPubs[i] = pub
 		partSec[i] = sec
@@ -110,7 +110,7 @@ func TestDSSPartialSigs(t *testing.T) {
 func TestDSSSignature(t *testing.T) {
 	dsss := make([]*DSS, nbParticipants)
 	pss := make([]*PartialSig, nbParticipants)
-	for i := uint32(0); i < nbParticipants; i++ {
+	for i := range nbParticipants {
 		dsss[i] = getDSS(i)
 		ps, err := dsss[i].PartialSig()
 		require.Nil(t, err)
@@ -145,7 +145,7 @@ func getDSS(i uint32) *DSS {
 
 func genDistSecret() []*dkg.DistKeyShare {
 	dkgs := make([]*dkg.DistKeyGenerator, nbParticipants)
-	for i := uint32(0); i < nbParticipants; i++ {
+	for i := range nbParticipants {
 		dkg, err := dkg.NewDistKeyGenerator(suite, partSec[i], partPubs, nbParticipants/2+1)
 		if err != nil {
 			panic(err)
