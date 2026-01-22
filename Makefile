@@ -17,6 +17,11 @@ lint: tidy
 test: tidy
 	go test ./...
 
+test-constantTime: tidy
+	go test ./... --tags constantTime
+
+test-all: test test-constantTime
+
 coverage: tidy
 	go test -json -covermode=count -coverprofile=profile.cov ./... > report.jsonl
 
