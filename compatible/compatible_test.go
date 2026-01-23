@@ -254,7 +254,7 @@ func TestSetBytesMod(t *testing.T) {
 	require.Equal(t, 0, expected.Cmp(y.ToBigInt()))
 }
 
-func TestConstInt_SetString(t *testing.T) {
+func TestConstIntSetString(t *testing.T) {
 	valString := "827558546416454053910646459967499077875692070827048470514597884"
 	modString := "115792089237316195423570985008687907853269984665640564039457584007913129639935"
 	z := NewInt(0)
@@ -268,7 +268,7 @@ func TestConstInt_SetString(t *testing.T) {
 	require.Equal(t, valString, zP.String())
 }
 
-func TestConstInt_SetString_LargerValue(t *testing.T) {
+func TestConstIntSetStringLargerValue(t *testing.T) {
 	valString := "115792089237316195423570985008687907853269984665640564039457584007913129639935"
 	modString := "827558546416454053910646459967499077875692070827048470514597884"
 	z := NewInt(0)
