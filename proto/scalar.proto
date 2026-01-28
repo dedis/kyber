@@ -1,0 +1,12 @@
+syntax = "proto2";
+package kyber.proto;
+option go_package = "generated/proto";
+
+message Bls12381CirclScalar {
+  required bytes inner = 1;
+}
+
+message Edwards25519Scalar {
+  required bytes v = 1;
+}
+
