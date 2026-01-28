@@ -9,12 +9,12 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"reflect"
 
 	"go.dedis.ch/kyber/v4"
 	"go.dedis.ch/kyber/v4/share"
+	"go.dedis.ch/kyber/v4/share/vss/pedersen/proto"
 	"go.dedis.ch/kyber/v4/sign/schnorr"
-	"go.dedis.ch/protobuf"
+	pb "google.golang.org/protobuf/proto"
 )
 
 // Suite defines the capabilities required by the vss package.
@@ -193,7 +193,11 @@ func (d *Dealer) EncryptedDeal(i int) (*EncryptedDeal, error) {
 	}
 
 	nonce := make([]byte, gcm.NonceSize())
-	dealBuff, err := protobuf.Encode(d.deals[i])
+	protoDeal, err := d.deals[i].toProtoDeal()
+	if err != nil {
+		return nil, err
+	}
+	dealBuff, err := pb.Marshal(protoDeal)
 	if err != nil {
 		return nil, err
 	}
@@ -355,7 +359,7 @@ func (v *Verifier) ProcessEncryptedDeal(e *EncryptedDeal) (*Response, error) {
 		return nil, err
 	}
 	if d.SecShare.I != v.index {
-		return nil, errors.New("vss: verifier got wrong index from deal")
+		return nil, fmt.Errorf("vss: verifier got wrong index from deal. Got %d, wanted %d", d.SecShare.I, v.index)
 	}
 
 	sid, err := sessionID(v.suite, v.dealer, v.verifiers, d.Commitments, d.T)
@@ -407,9 +411,12 @@ func (v *Verifier) decryptDeal(e *EncryptedDeal) (*Deal, error) {
 	if err != nil {
 		return nil, err
 	}
-	deal := &Deal{}
-	err = deal.decode(v.suite, decrypted)
-	return deal, err
+	protoDeal := &proto.Deal{}
+	err = pb.Unmarshal(decrypted, protoDeal)
+	if err != nil {
+		return nil, err
+	}
+	return protoDealToDeal(protoDeal, v.suite)
 }
 
 // ErrNoDealBeforeResponse is an error returned if a verifier receives a
@@ -772,22 +779,70 @@ func (r *Response) Hash(s Suite) []byte {
 	return h.Sum(nil)
 }
 
-func (d *Deal) decode(s Suite, buff []byte) error {
-	constructors := make(protobuf.Constructors)
-	var point kyber.Point
-	var secret kyber.Scalar
-	constructors[reflect.TypeOf(&point).Elem()] = func() interface{} { return s.Point() }
-	constructors[reflect.TypeOf(&secret).Elem()] = func() interface{} { return s.Scalar() }
-	return protobuf.DecodeWithConstructors(buff, d, constructors)
-}
-
 // Hash returns the hash of a Justification.
 func (j *Justification) Hash(s Suite) []byte {
 	h := s.Hash()
 	_, _ = h.Write([]byte("justification"))
 	_, _ = h.Write(j.SessionID)
 	_ = binary.Write(h, binary.LittleEndian, j.Index)
-	buff, _ := protobuf.Encode(j.Deal)
+	protoDeal, _ := j.Deal.toProtoDeal()
+	buff, _ := pb.Marshal(protoDeal)
 	_, _ = h.Write(buff)
 	return h.Sum(nil)
+}
+
+func protoDealToDeal(protoDeal *proto.Deal, suite Suite) (*Deal, error) {
+	secShareScalar := suite.Scalar()
+	err := secShareScalar.UnmarshalBinary(protoDeal.SecShare.V)
+	if err != nil {
+		return nil, err
+	}
+
+	commitments := make([]kyber.Point, len(protoDeal.Commitments))
+	for i, commitment := range protoDeal.Commitments {
+		commit := suite.Point()
+		err := commit.UnmarshalBinary(commitment)
+		if err != nil {
+			return nil, err
+		}
+		commitments[i] = commit
+	}
+
+	return &Deal{
+		SessionID: protoDeal.SessionID,
+		SecShare: &share.PriShare{
+			I: *protoDeal.SecShare.I,
+			V: secShareScalar,
+		},
+		T:           uint32(*protoDeal.T),
+		Commitments: commitments,
+	}, nil
+}
+
+func (d *Deal) toProtoDeal() (*proto.Deal, error) {
+	commitmentsBytes := make([][]byte, len(d.Commitments))
+	for j, commit := range d.Commitments {
+		commitBytes, err := commit.MarshalBinary()
+		if err != nil {
+			return nil, err
+		}
+		commitmentsBytes[j] = commitBytes
+	}
+
+	scalarBytes, err := d.SecShare.V.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+
+	tInt64 := int64(d.T)
+
+	return &proto.Deal{
+		SessionID: d.SessionID,
+		SecShare: &proto.PriShare{
+			I: &d.SecShare.I,
+			V: scalarBytes,
+		},
+		T:           &tInt64,
+		Commitments: commitmentsBytes,
+	}, nil
 }
