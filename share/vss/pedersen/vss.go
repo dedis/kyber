@@ -9,12 +9,12 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"reflect"
 
 	"go.dedis.ch/kyber/v4"
 	"go.dedis.ch/kyber/v4/share"
-	"go.dedis.ch/kyber/v4/share/vss/pedersen/proto"
 	"go.dedis.ch/kyber/v4/sign/schnorr"
-	pb "google.golang.org/protobuf/proto"
+	"go.dedis.ch/protobuf"
 )
 
 // Suite defines the capabilities required by the vss package.
@@ -58,6 +58,51 @@ type Deal struct {
 	Commitments []kyber.Point
 }
 
+// CompatibleDeal is a struct for Deal used when marshaling
+// to ensure compatibility with Kyber V3.
+type CompatibleDeal struct {
+	SessionID   []byte
+	SecShare    []byte
+	T           uint32
+	Commitments []kyber.Point
+}
+
+func (d *Deal) Marshal() ([]byte, error) {
+	secShareBytes, err := d.SecShare.Marshal()
+	if err != nil {
+		return nil, err
+	}
+	compatibleDeal := &CompatibleDeal{
+		SessionID:   d.SessionID,
+		SecShare:    secShareBytes,
+		T:           d.T,
+		Commitments: d.Commitments,
+	}
+	return protobuf.Encode(compatibleDeal)
+}
+
+func (d *Deal) Unmarshal(data []byte, suite Suite) error {
+	compatibleDeal := &CompatibleDeal{}
+	constructors := make(protobuf.Constructors)
+	var point kyber.Point
+	constructors[reflect.TypeOf(&point).Elem()] = func() interface{} { return suite.Point() }
+	err := protobuf.DecodeWithConstructors(data, compatibleDeal, constructors)
+	if err != nil {
+		return err
+	}
+	d.SessionID = compatibleDeal.SessionID
+	d.T = compatibleDeal.T
+	d.Commitments = compatibleDeal.Commitments
+
+	secShare := new(share.PriShare)
+	err = secShare.Unmarshal(compatibleDeal.SecShare, suite)
+	if err != nil {
+		return err
+	}
+	d.SecShare = secShare
+	return nil
+}
+
 // EncryptedDeal contains the deal in a encrypted form only decipherable by the
 // correct recipient. The encryption is performed in a similar manner as what is
 // done in TLS. The dealer generates a temporary key pair, signs it with its
@@ -67,7 +112,7 @@ type EncryptedDeal struct {
 	DHKey []byte
 	// Signature of the DH key by the longterm key of the dealer
 	Signature []byte
-	// AEAD encryption of the deal marshalled by protobuf
+	// AEAD encryption of the deal marshalled
 	Cipher []byte
 }
 
@@ -193,11 +238,7 @@ func (d *Dealer) EncryptedDeal(i int) (*EncryptedDeal, error) {
 	}
 
 	nonce := make([]byte, gcm.NonceSize())
-	protoDeal, err := d.deals[i].toProtoDeal()
-	if err != nil {
-		return nil, err
-	}
-	dealBuff, err := pb.Marshal(protoDeal)
+	dealBuff, err := d.deals[i].Marshal()
 	if err != nil {
 		return nil, err
 	}
@@ -411,12 +452,9 @@ func (v *Verifier) decryptDeal(e *EncryptedDeal) (*Deal, error) {
 	if err != nil {
 		return nil, err
 	}
-	protoDeal := &proto.Deal{}
-	err = pb.Unmarshal(decrypted, protoDeal)
-	if err != nil {
-		return nil, err
-	}
-	return protoDealToDeal(protoDeal, v.suite)
+	deal := new(Deal)
+	err = deal.Unmarshal(decrypted, v.suite)
+	return deal, err
 }
 
 // ErrNoDealBeforeResponse is an error returned if a verifier receives a
@@ -785,64 +823,7 @@ func (j *Justification) Hash(s Suite) []byte {
 	_, _ = h.Write([]byte("justification"))
 	_, _ = h.Write(j.SessionID)
 	_ = binary.Write(h, binary.LittleEndian, j.Index)
-	protoDeal, _ := j.Deal.toProtoDeal()
-	buff, _ := pb.Marshal(protoDeal)
+	buff, _ := j.Deal.Marshal()
 	_, _ = h.Write(buff)
 	return h.Sum(nil)
-}
-
-func protoDealToDeal(protoDeal *proto.Deal, suite Suite) (*Deal, error) {
-	secShareScalar := suite.Scalar()
-	err := secShareScalar.UnmarshalBinary(protoDeal.SecShare.V)
-	if err != nil {
-		return nil, err
-	}
-
-	commitments := make([]kyber.Point, len(protoDeal.Commitments))
-	for i, commitment := range protoDeal.Commitments {
-		commit := suite.Point()
-		err := commit.UnmarshalBinary(commitment)
-		if err != nil {
-			return nil, err
-		}
-		commitments[i] = commit
-	}
-
-	return &Deal{
-		SessionID: protoDeal.SessionID,
-		SecShare: &share.PriShare{
-			I: *protoDeal.SecShare.I,
-			V: secShareScalar,
-		},
-		T:           uint32(*protoDeal.T),
-		Commitments: commitments,
-	}, nil
-}
-
-func (d *Deal) toProtoDeal() (*proto.Deal, error) {
-	commitmentsBytes := make([][]byte, len(d.Commitments))
-	for j, commit := range d.Commitments {
-		commitBytes, err := commit.MarshalBinary()
-		if err != nil {
-			return nil, err
-		}
-		commitmentsBytes[j] = commitBytes
-	}
-
-	scalarBytes, err := d.SecShare.V.MarshalBinary()
-	if err != nil {
-		return nil, err
-	}
-
-	tInt64 := int64(d.T)
-
-	return &proto.Deal{
-		SessionID: d.SessionID,
-		SecShare: &proto.PriShare{
-			I: &d.SecShare.I,
-			V: scalarBytes,
-		},
-		T:           &tInt64,
-		Commitments: commitmentsBytes,
-	}, nil
 }
