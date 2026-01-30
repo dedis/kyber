@@ -48,7 +48,7 @@ import (
 )
 
 // Suite wraps the functionalities needed by the dkg package
-type Suite vss.Suite
+type Suite share.Suite
 
 // DistKeyShare holds the share of a distributed key for a participant.
 type DistKeyShare struct {

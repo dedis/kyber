@@ -6,12 +6,13 @@ import (
 	"hash"
 
 	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v4/share"
 
 	"golang.org/x/crypto/hkdf"
 )
 
 // dhExchange computes the shared key from a private key and a public key
-func dhExchange(suite Suite, ownPrivate kyber.Scalar, remotePublic kyber.Point) kyber.Point {
+func dhExchange(suite share.Suite, ownPrivate kyber.Scalar, remotePublic kyber.Point) kyber.Point {
 	sk := suite.Point()
 	sk.Mul(ownPrivate, remotePublic)
 	return sk
@@ -43,7 +44,7 @@ func newAEAD(fn func() hash.Hash, preSharedKey kyber.Point, context []byte) (cip
 const keySize = 128
 
 // context returns the context slice to be used when encrypting a share
-func context(suite Suite, dealer kyber.Point, verifiers []kyber.Point) ([]byte, error) {
+func context(suite share.Suite, dealer kyber.Point, verifiers []kyber.Point) ([]byte, error) {
 	h := suite.XOF([]byte("vss-dealer"))
 	_, err := dealer.MarshalTo(h)
 	if err != nil {

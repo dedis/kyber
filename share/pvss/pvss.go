@@ -24,11 +24,8 @@ import (
 // Suite describes the functionalities needed by this package in order to
 // function correctly.
 type Suite interface {
-	kyber.Group
-	kyber.HashFactory
+	share.Suite
 	kyber.Encoding
-	kyber.XOFFactory
-	kyber.Random
 }
 
 var ErrTooFewShares = errors.New("not enough shares to recover secret")
