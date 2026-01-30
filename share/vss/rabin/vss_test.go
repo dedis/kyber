@@ -43,7 +43,7 @@ func TestVSSWhole(t *testing.T) {
 	require.Nil(t, err)
 	for i, d := range encDeals {
 		resp, err := verifiers[i].ProcessEncryptedDeal(d)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		resps[i] = resp
 	}
 

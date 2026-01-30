@@ -86,6 +86,64 @@ type Deal struct {
 	Commitments []kyber.Point
 }
 
+// CompatibleDeal is a struct for Deal used when marshaling
+// to ensure compatibility with Kyber V3.
+type CompatibleDeal struct {
+	SessionID   []byte
+	SecShare    []byte
+	RndShare    []byte
+	T           uint32
+	Commitments []kyber.Point
+}
+
+func (d *Deal) Marshal() ([]byte, error) {
+	secShareBytes, err := d.SecShare.Marshal()
+	if err != nil {
+		return nil, err
+	}
+	rndShareBytes, err := d.RndShare.Marshal()
+	if err != nil {
+		return nil, err
+	}
+	compatibleDeal := &CompatibleDeal{
+		SessionID:   d.SessionID,
+		SecShare:    secShareBytes,
+		RndShare:    rndShareBytes,
+		T:           d.T,
+		Commitments: d.Commitments,
+	}
+	return protobuf.Encode(compatibleDeal)
+}
+
+func (d *Deal) Unmarshal(data []byte, suite Suite) error {
+	compatibleDeal := &CompatibleDeal{}
+	constructors := make(protobuf.Constructors)
+	var point kyber.Point
+	constructors[reflect.TypeOf(&point).Elem()] = func() interface{} { return suite.Point() }
+	err := protobuf.DecodeWithConstructors(data, compatibleDeal, constructors)
+	if err != nil {
+		return err
+	}
+	d.SessionID = compatibleDeal.SessionID
+	d.T = compatibleDeal.T
+	d.Commitments = compatibleDeal.Commitments
+
+	secShare := new(share.PriShare)
+	err = secShare.Unmarshal(compatibleDeal.SecShare, suite)
+	if err != nil {
+		return err
+	}
+	d.SecShare = secShare
+
+	rndShare := new(share.PriShare)
+	err = rndShare.Unmarshal(compatibleDeal.RndShare, suite)
+	if err != nil {
+		return err
+	}
+	d.RndShare = rndShare
+	return nil
+}
+
 // EncryptedDeal contains the deal in a encrypted form only decipherable by the
 // correct recipient. The encryption is performed in a similar manner as what is
 // done in TLS. The dealer generates a temporary key pair, signs it with its
@@ -95,7 +153,7 @@ type EncryptedDeal struct {
 	DHKey kyber.Point
 	// Signature of the DH key by the longterm key of the dealer
 	Signature []byte
-	// AEAD encryption of the deal marshalled by protobuf
+	// AEAD encryption of the deal marshalled
 	Cipher []byte
 }
 
@@ -222,7 +280,7 @@ func (d *Dealer) EncryptedDeal(i int) (*EncryptedDeal, error) {
 	}
 
 	nonce := make([]byte, gcm.NonceSize())
-	dealBuff, err := protobuf.Encode(d.deals[i])
+	dealBuff, err := d.deals[i].Marshal()
 	if err != nil {
 		return nil, err
 	}
@@ -381,7 +439,7 @@ func (v *Verifier) ProcessEncryptedDeal(e *EncryptedDeal) (*Response, error) {
 		return nil, err
 	}
 	if d.SecShare.I != v.index {
-		return nil, errors.New("vss: verifier got wrong index from deal")
+		return nil, fmt.Errorf("vss: verifier got wrong index from deal. Got %d, expected %d", d.SecShare.I, v.index)
 	}
 
 	sid, err := sessionID(v.suite, v.dealer, v.verifiers, d.Commitments, d.T)
@@ -438,7 +496,7 @@ func (v *Verifier) decryptDeal(e *EncryptedDeal) (*Deal, error) {
 		return nil, err
 	}
 	deal := &Deal{}
-	err = deal.decode(v.suite, decrypted)
+	err = deal.Unmarshal(decrypted, v.suite)
 	return deal, err
 }
 
@@ -763,22 +821,13 @@ func (r *Response) Hash(s Suite) []byte {
 	return h.Sum(nil)
 }
 
-func (d *Deal) decode(s Suite, buff []byte) error {
-	constructors := make(protobuf.Constructors)
-	var point kyber.Point
-	var secret kyber.Scalar
-	constructors[reflect.TypeOf(&point).Elem()] = func() interface{} { return s.Point() }
-	constructors[reflect.TypeOf(&secret).Elem()] = func() interface{} { return s.Scalar() }
-	return protobuf.DecodeWithConstructors(buff, d, constructors)
-}
-
 // Hash returns the hash of a Justification.
 func (j *Justification) Hash(s Suite) []byte {
 	h := s.Hash()
 	_, _ = h.Write([]byte("justification"))
 	_, _ = h.Write(j.SessionID)
 	_ = binary.Write(h, binary.LittleEndian, j.Index)
-	buff, _ := protobuf.Encode(j.Deal)
+	buff, _ := j.Deal.Marshal()
 	_, _ = h.Write(buff)
 	return h.Sum(nil)
 }
