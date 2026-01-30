@@ -3,6 +3,7 @@ package vss
 import (
 	"errors"
 	"fmt"
+	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -69,10 +70,13 @@ func (v *VerifierV3) getIndex() int {
 func (v *VerifierV3) processEncryptedDeal(dealBytes []byte) ([]byte, error) {
 	switch v.useProtobuf {
 	case true:
-		protobuf.RegisterInterface(func() interface{} { return suiteV3.Point() })
-		protobuf.RegisterInterface(func() interface{} { return suiteV3.Scalar() })
 		dealProto := &V3EncryptedDeal{}
-		err := protobuf.Decode(dealBytes, dealProto)
+		constructors := make(protobuf.Constructors)
+		var point kyberV3.Point
+		var scalar kyberV3.Scalar
+		constructors[reflect.TypeOf(&point).Elem()] = func() interface{} { return suiteV3.Point() }
+		constructors[reflect.TypeOf(&scalar).Elem()] = func() interface{} { return suiteV3.Scalar() }
+		err := protobuf.DecodeWithConstructors(dealBytes, dealProto, constructors)
 		if err != nil {
 			return nil, err
 		}
@@ -81,8 +85,6 @@ func (v *VerifierV3) processEncryptedDeal(dealBytes []byte) ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-		protobuf.RegisterInterface(func() interface{} { return suiteV3.Point() })
-		protobuf.RegisterInterface(func() interface{} { return suiteV3.Scalar() })
 		return protobuf.Encode(resp)
 	case false:
 		dealProto, err := unmarshallV3EncryptedDealProto(dealBytes)
@@ -94,8 +96,6 @@ func (v *VerifierV3) processEncryptedDeal(dealBytes []byte) ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-		protobuf.RegisterInterface(func() interface{} { return suiteV3.Point() })
-		protobuf.RegisterInterface(func() interface{} { return suiteV3.Scalar() })
 		return protobuf.Encode(resp)
 	default:
 		return nil, errors.New("unsupported encrypted deal type")
@@ -106,10 +106,13 @@ func (v *VerifierV3) processResponse(responseBytes []byte) error {
 	if responseBytes == nil {
 		return v.ProcessResponse(nil)
 	}
-	protobuf.RegisterInterface(func() interface{} { return suiteV3.Point() })
-	protobuf.RegisterInterface(func() interface{} { return suiteV3.Scalar() })
 	response := &pedersenv3.Response{}
-	err := protobuf.Decode(responseBytes, response)
+	constructors := make(protobuf.Constructors)
+	var point kyberV3.Point
+	var scalar kyberV3.Scalar
+	constructors[reflect.TypeOf(&point).Elem()] = func() interface{} { return suiteV3.Point() }
+	constructors[reflect.TypeOf(&scalar).Elem()] = func() interface{} { return suiteV3.Scalar() }
+	err := protobuf.DecodeWithConstructors(responseBytes, response, constructors)
 	if err != nil {
 		return err
 	}
@@ -128,8 +131,6 @@ func (v *VerifierV3) dealCertified() bool {
 
 func (v *VerifierV3) deal() ([]byte, error) {
 	dealt := v.Deal()
-	protobuf.RegisterInterface(func() interface{} { return suiteV3.Point() })
-	protobuf.RegisterInterface(func() interface{} { return suiteV3.Scalar() })
 	return protobuf.Encode(dealt)
 }
 
@@ -160,10 +161,13 @@ func (v *VerifierV4) getIndex() int {
 func (v *VerifierV4) processEncryptedDeal(dealBytes []byte) ([]byte, error) {
 	switch v.useProtobuf {
 	case true:
-		protobuf.RegisterInterface(func() interface{} { return suiteV4.Point() })
-		protobuf.RegisterInterface(func() interface{} { return suiteV4.Scalar() })
 		dealV4Fix := &V4EncryptedDeal{}
-		err := protobuf.Decode(dealBytes, dealV4Fix)
+		constructors := make(protobuf.Constructors)
+		var point kyberV4.Point
+		var scalar kyberV4.Scalar
+		constructors[reflect.TypeOf(&point).Elem()] = func() interface{} { return suiteV4.Point() }
+		constructors[reflect.TypeOf(&scalar).Elem()] = func() interface{} { return suiteV4.Scalar() }
+		err := protobuf.DecodeWithConstructors(dealBytes, dealV4Fix, constructors)
 		if err != nil {
 			return nil, err
 		}
@@ -172,8 +176,6 @@ func (v *VerifierV4) processEncryptedDeal(dealBytes []byte) ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-		protobuf.RegisterInterface(func() interface{} { return suiteV4.Point() })
-		protobuf.RegisterInterface(func() interface{} { return suiteV4.Scalar() })
 		return protobuf.Encode(resp)
 	case false:
 		dealProto, err := unmarshallV4EncryptedDealProto(dealBytes)
@@ -185,8 +187,6 @@ func (v *VerifierV4) processEncryptedDeal(dealBytes []byte) ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-		protobuf.RegisterInterface(func() interface{} { return suiteV4.Point() })
-		protobuf.RegisterInterface(func() interface{} { return suiteV4.Scalar() })
 		return protobuf.Encode(resp)
 	default:
 		return nil, errors.New("invalid useProtobuf")
@@ -198,9 +198,12 @@ func (v *VerifierV4) processResponse(responseBytes []byte) error {
 		return v.ProcessResponse(nil)
 	}
 	response := &Response{}
-	protobuf.RegisterInterface(func() interface{} { return suiteV4.Point() })
-	protobuf.RegisterInterface(func() interface{} { return suiteV4.Scalar() })
-	err := protobuf.Decode(responseBytes, response)
+	constructors := make(protobuf.Constructors)
+	var point kyberV4.Point
+	var scalar kyberV4.Scalar
+	constructors[reflect.TypeOf(&point).Elem()] = func() interface{} { return suiteV4.Point() }
+	constructors[reflect.TypeOf(&scalar).Elem()] = func() interface{} { return suiteV4.Scalar() }
+	err := protobuf.DecodeWithConstructors(responseBytes, response, constructors)
 	if err != nil {
 		return err
 	}
@@ -219,8 +222,6 @@ func (v *VerifierV4) dealCertified() bool {
 
 func (v *VerifierV4) deal() ([]byte, error) {
 	dealt := v.Deal()
-	protobuf.RegisterInterface(func() interface{} { return suiteV4.Point() })
-	protobuf.RegisterInterface(func() interface{} { return suiteV4.Scalar() })
 	return protobuf.Encode(dealt)
 }
 
@@ -243,9 +244,12 @@ func (d *DealerV3) encryptedDeals() ([][]byte, error) {
 
 func (d *DealerV3) processResponse(responseBytes []byte) ([]byte, error) {
 	response := &pedersenv3.Response{}
-	protobuf.RegisterInterface(func() interface{} { return suiteV3.Point() })
-	protobuf.RegisterInterface(func() interface{} { return suiteV3.Scalar() })
-	err := protobuf.Decode(responseBytes, response)
+	constructors := make(protobuf.Constructors)
+	var point kyberV3.Point
+	var scalar kyberV3.Scalar
+	constructors[reflect.TypeOf(&point).Elem()] = func() interface{} { return suiteV3.Point() }
+	constructors[reflect.TypeOf(&scalar).Elem()] = func() interface{} { return suiteV3.Scalar() }
+	err := protobuf.DecodeWithConstructors(responseBytes, response, constructors)
 	if err != nil {
 		return nil, err
 	}
@@ -253,8 +257,6 @@ func (d *DealerV3) processResponse(responseBytes []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	protobuf.RegisterInterface(func() interface{} { return suiteV3.Point() })
-	protobuf.RegisterInterface(func() interface{} { return suiteV3.Scalar() })
 	return protobuf.Encode(justification)
 }
 
@@ -277,9 +279,12 @@ func (d *DealerV4) encryptedDeals() ([][]byte, error) {
 
 func (d *DealerV4) processResponse(responseBytes []byte) ([]byte, error) {
 	response := &Response{}
-	protobuf.RegisterInterface(func() interface{} { return suiteV4.Point() })
-	protobuf.RegisterInterface(func() interface{} { return suiteV4.Scalar() })
-	err := protobuf.Decode(responseBytes, response)
+	constructors := make(protobuf.Constructors)
+	var point kyberV4.Point
+	var scalar kyberV4.Scalar
+	constructors[reflect.TypeOf(&point).Elem()] = func() interface{} { return suiteV4.Point() }
+	constructors[reflect.TypeOf(&scalar).Elem()] = func() interface{} { return suiteV4.Scalar() }
+	err := protobuf.DecodeWithConstructors(responseBytes, response, constructors)
 	if err != nil {
 		return nil, err
 	}
@@ -287,8 +292,6 @@ func (d *DealerV4) processResponse(responseBytes []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	protobuf.RegisterInterface(func() interface{} { return suiteV4.Point() })
-	protobuf.RegisterInterface(func() interface{} { return suiteV4.Scalar() })
 	return protobuf.Encode(justification)
 }
 
@@ -481,8 +484,6 @@ func encryptedDealsV3ToBytes(deals []*pedersenv3.EncryptedDeal, useProtobuf bool
 		switch useProtobuf {
 		case true:
 			dealV3Fix := toV3EncryptedDealFixed(deal)
-			protobuf.RegisterInterface(func() interface{} { return suiteV3.Point() })
-			protobuf.RegisterInterface(func() interface{} { return suiteV3.Scalar() })
 			dealBytes, err = protobuf.Encode(dealV3Fix)
 		case false:
 			dealBytes, err = pb.Marshal(v3EncryptedDealToProtoV3(deal))
@@ -503,8 +504,6 @@ func encryptedDealsV4ToBytes(deals []*EncryptedDeal, useProtobuf bool) ([][]byte
 		switch useProtobuf {
 		case true:
 			dealV4Fix := toV4EncryptedDealFixed(deal)
-			protobuf.RegisterInterface(func() interface{} { return suiteV4.Point() })
-			protobuf.RegisterInterface(func() interface{} { return suiteV4.Scalar() })
 			dealBytes, err = protobuf.Encode(dealV4Fix)
 		case false:
 			dealBytes, err = pb.Marshal(v4EncryptedDealToProto(deal))
@@ -521,9 +520,12 @@ func byteArrayToDealsV3(arr [][]byte) []*pedersenv3.Deal {
 	dealsV3 := make([]*pedersenv3.Deal, len(arr))
 	for i, deal := range arr {
 		dealV3 := &pedersenv3.Deal{}
-		protobuf.RegisterInterface(func() interface{} { return suiteV3.Point() })
-		protobuf.RegisterInterface(func() interface{} { return suiteV3.Scalar() })
-		err := protobuf.Decode(deal, dealV3)
+		constructors := make(protobuf.Constructors)
+		var point kyberV3.Point
+		var scalar kyberV3.Scalar
+		constructors[reflect.TypeOf(&point).Elem()] = func() interface{} { return suiteV3.Point() }
+		constructors[reflect.TypeOf(&scalar).Elem()] = func() interface{} { return suiteV3.Scalar() }
+		err := protobuf.DecodeWithConstructors(deal, dealV3, constructors)
 		if err != nil {
 			panic(fmt.Errorf("failed to unmarshal deal to V3: %w", err))
 		}
@@ -536,9 +538,12 @@ func byteArrayToDealsV4(arr [][]byte) []*Deal {
 	dealsV4 := make([]*Deal, len(arr))
 	for i, deal := range arr {
 		dealV4 := &Deal{}
-		protobuf.RegisterInterface(func() interface{} { return suiteV4.Point() })
-		protobuf.RegisterInterface(func() interface{} { return suiteV4.Scalar() })
-		err := protobuf.Decode(deal, dealV4)
+		constructors := make(protobuf.Constructors)
+		var point kyberV4.Point
+		var scalar kyberV4.Scalar
+		constructors[reflect.TypeOf(&point).Elem()] = func() interface{} { return suiteV4.Point() }
+		constructors[reflect.TypeOf(&scalar).Elem()] = func() interface{} { return suiteV4.Scalar() }
+		err := protobuf.DecodeWithConstructors(deal, dealV4, constructors)
 		if err != nil {
 			panic(fmt.Errorf("failed to unmarshal deal to V4: %w", err))
 		}
