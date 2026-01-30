@@ -1,3 +1,5 @@
+//go:build !386
+
 package vss
 
 import (
