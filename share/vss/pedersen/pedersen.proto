@@ -25,7 +25,3 @@ message EncryptedDealV3 {
   optional bytes nonce = 3;
   required bytes cipher = 4;
 }
-
-message Test {
-  required sint64 value = 1;
-}

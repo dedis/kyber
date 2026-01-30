@@ -269,50 +269,6 @@ func (x *EncryptedDealV3) GetCipher() []byte {
 	return nil
 }
 
-type Test struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Value         *int64                 `protobuf:"zigzag64,1,req,name=value" json:"value,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *Test) Reset() {
-	*x = Test{}
-	mi := &file_pedersen_proto_msgTypes[4]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *Test) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Test) ProtoMessage() {}
-
-func (x *Test) ProtoReflect() protoreflect.Message {
-	mi := &file_pedersen_proto_msgTypes[4]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Test.ProtoReflect.Descriptor instead.
-func (*Test) Descriptor() ([]byte, []int) {
-	return file_pedersen_proto_rawDescGZIP(), []int{4}
-}
-
-func (x *Test) GetValue() int64 {
-	if x != nil && x.Value != nil {
-		return *x.Value
-	}
-	return 0
-}
-
 var File_pedersen_proto protoreflect.FileDescriptor
 
 const file_pedersen_proto_rawDesc = "" +
@@ -334,9 +290,7 @@ const file_pedersen_proto_rawDesc = "" +
 	"\x05dhkey\x18\x01 \x02(\fR\x05dhkey\x12\x1c\n" +
 	"\tsignature\x18\x02 \x02(\fR\tsignature\x12\x14\n" +
 	"\x05nonce\x18\x03 \x01(\fR\x05nonce\x12\x16\n" +
-	"\x06cipher\x18\x04 \x02(\fR\x06cipher\"\x1c\n" +
-	"\x04Test\x12\x14\n" +
-	"\x05value\x18\x01 \x02(\x12R\x05valueB\bZ\x06proto/"
+	"\x06cipher\x18\x04 \x02(\fR\x06cipherB\bZ\x06proto/"
 
 var (
 	file_pedersen_proto_rawDescOnce sync.Once
@@ -350,13 +304,12 @@ func file_pedersen_proto_rawDescGZIP() []byte {
 	return file_pedersen_proto_rawDescData
 }
 
-var file_pedersen_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_pedersen_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_pedersen_proto_goTypes = []any{
 	(*PriShare)(nil),        // 0: PriShare
 	(*Deal)(nil),            // 1: Deal
 	(*EncryptedDeal)(nil),   // 2: EncryptedDeal
 	(*EncryptedDealV3)(nil), // 3: EncryptedDealV3
-	(*Test)(nil),            // 4: Test
 }
 var file_pedersen_proto_depIdxs = []int32{
 	0, // 0: Deal.secShare:type_name -> PriShare
@@ -378,7 +331,7 @@ func file_pedersen_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_pedersen_proto_rawDesc), len(file_pedersen_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   5,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

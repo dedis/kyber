@@ -452,7 +452,7 @@ func (v *Verifier) decryptDeal(e *EncryptedDeal) (*Deal, error) {
 	if err != nil {
 		return nil, err
 	}
-	deal := new(Deal)
+	deal := &Deal{}
 	err = deal.Unmarshal(decrypted, v.suite)
 	return deal, err
 }
