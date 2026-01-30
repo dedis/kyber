@@ -107,6 +107,7 @@ func TestDKGProcessDeal(t *testing.T) {
 
 	// good deal
 	resp, err = rec.ProcessDeal(deal)
+	require.NoError(t, err)
 	assert.NotNil(t, resp)
 	assert.Equal(t, true, resp.Response.Approved)
 	assert.Nil(t, err)
@@ -419,11 +420,13 @@ func TestDKGReconstructCommits(t *testing.T) {
 	}
 
 	// peer 1 wants to reconstruct coeffs from dealer 1
+	deal := dkgs[uint32(1)].verifiers[uint32(0)].Deal()
+	require.NotNil(t, deal)
 	rc := &ReconstructCommits{
 		Index:       1,
 		DealerIndex: 0,
-		Share:       dkgs[uint32(1)].verifiers[uint32(0)].Deal().SecShare,
-		SessionID:   dkgs[uint32(1)].verifiers[uint32(0)].Deal().SessionID,
+		Share:       deal.SecShare,
+		SessionID:   deal.SessionID,
 	}
 	msg := rc.Hash(suite)
 	rc.Signature, _ = schnorr.Sign(suite, dkgs[1].long, msg)
@@ -465,11 +468,13 @@ func TestDKGReconstructCommits(t *testing.T) {
 	assert.False(t, dkg2.Finished())
 	// generate enough secret commits  to recover the secret
 	for _, dkg := range dkgs[2:] {
+		d := dkg.verifiers[uint32(0)].Deal()
+		require.NotNil(t, d)
 		rc = &ReconstructCommits{
-			SessionID:   dkg.verifiers[uint32(0)].Deal().SessionID,
+			SessionID:   d.SessionID,
 			Index:       dkg.index,
 			DealerIndex: 0,
-			Share:       dkg.verifiers[uint32(0)].Deal().SecShare,
+			Share:       d.SecShare,
 		}
 		msg := rc.Hash(suite)
 		rc.Signature, _ = schnorr.Sign(suite, dkg.long, msg)

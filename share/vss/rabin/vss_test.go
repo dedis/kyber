@@ -109,6 +109,7 @@ func TestVSSShare(t *testing.T) {
 	require.Nil(t, err)
 
 	resp, err := ver.ProcessEncryptedDeal(deal)
+	require.NoError(t, err)
 	require.NotNil(t, resp)
 	require.Equal(t, true, resp.Approved)
 	require.Nil(t, err)
@@ -229,6 +230,7 @@ func TestVSSVerifierReceiveDeal(t *testing.T) {
 
 	// correct deal
 	resp, err := v.ProcessEncryptedDeal(encD)
+	require.NoError(t, err)
 	require.NotNil(t, resp)
 	assert.Equal(t, true, resp.Approved)
 	assert.Nil(t, err)
@@ -282,6 +284,7 @@ func TestVSSVerifierReceiveDeal(t *testing.T) {
 	delete(v.responses, v.index)
 	d.RndShare.V = suite.Scalar().SetBytes(randomBytes(32))
 	resp, err = v.ProcessEncryptedDeal(encD)
+	require.NoError(t, err)
 	assert.NotNil(t, resp)
 	assert.Equal(t, false, resp.Approved)
 	assert.Nil(t, err)
@@ -297,6 +300,7 @@ func TestVSSAggregatorVerifyJustification(t *testing.T) {
 	d.SecShare.V = wrongV
 	encD, _ := dealer.EncryptedDeal(0)
 	resp, err := v.ProcessEncryptedDeal(encD)
+	require.NoError(t, err)
 	assert.NotNil(t, resp)
 	assert.Equal(t, false, resp.Approved)
 	assert.Nil(t, err)
