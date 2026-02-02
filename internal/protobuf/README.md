@@ -1,4 +1,4 @@
-This package is a copy-paste of protobuf v1.0.9 (https://github.com/dedis/protobuf/releases/tag/v1.0.9). The package is 
+This package is a copy-paste of protobuf v1.0.11 (https://github.com/dedis/protobuf/tree/v1.0.11). The package is
 copy-pasted here to remove dependency on the library since it will soon be deprecated. Below is the original README.
 
 # Reflection-based Protocol Buffers
