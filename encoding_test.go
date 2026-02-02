@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.dedis.ch/protobuf"
+	"go.dedis.ch/kyber/v4/internal/protobuf"
 )
 
 type intWrapper struct {

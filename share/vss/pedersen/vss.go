@@ -12,9 +12,9 @@ import (
 	"reflect"
 
 	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v4/internal/protobuf"
 	"go.dedis.ch/kyber/v4/share"
 	"go.dedis.ch/kyber/v4/sign/schnorr"
-	"go.dedis.ch/protobuf"
 )
 
 // Suite defines the capabilities required by the vss package.
