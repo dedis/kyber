@@ -43,18 +43,10 @@ import (
 	"go.dedis.ch/protobuf"
 )
 
-// Suite defines the capabilities required by the vss package.
-type Suite interface {
-	kyber.Group
-	kyber.HashFactory
-	kyber.XOFFactory
-	kyber.Random
-}
-
 // Dealer encapsulates for creating and distributing the shares and for
 // replying to any Responses.
 type Dealer struct {
-	suite Suite
+	suite share.Suite
 
 	// long is the longterm key of the Dealer
 	long          kyber.Scalar
@@ -86,6 +78,64 @@ type Deal struct {
 	Commitments []kyber.Point
 }
 
+// CompatibleDeal is a struct for Deal used when marshaling
+// to ensure compatibility with Kyber V3.
+type CompatibleDeal struct {
+	SessionID   []byte
+	SecShare    []byte
+	RndShare    []byte
+	T           uint32
+	Commitments []kyber.Point
+}
+
+func (d *Deal) Marshal() ([]byte, error) {
+	secShareBytes, err := d.SecShare.Marshal()
+	if err != nil {
+		return nil, err
+	}
+	rndShareBytes, err := d.RndShare.Marshal()
+	if err != nil {
+		return nil, err
+	}
+	compatibleDeal := &CompatibleDeal{
+		SessionID:   d.SessionID,
+		SecShare:    secShareBytes,
+		RndShare:    rndShareBytes,
+		T:           d.T,
+		Commitments: d.Commitments,
+	}
+	return protobuf.Encode(compatibleDeal)
+}
+
+func (d *Deal) Unmarshal(data []byte, suite share.Suite) error {
+	compatibleDeal := &CompatibleDeal{}
+	constructors := make(protobuf.Constructors)
+	var point kyber.Point
+	constructors[reflect.TypeOf(&point).Elem()] = func() interface{} { return suite.Point() }
+	err := protobuf.DecodeWithConstructors(data, compatibleDeal, constructors)
+	if err != nil {
+		return err
+	}
+	d.SessionID = compatibleDeal.SessionID
+	d.T = compatibleDeal.T
+	d.Commitments = compatibleDeal.Commitments
+
+	secShare := new(share.PriShare)
+	err = secShare.Unmarshal(compatibleDeal.SecShare, suite)
+	if err != nil {
+		return err
+	}
+	d.SecShare = secShare
+
+	rndShare := new(share.PriShare)
+	err = rndShare.Unmarshal(compatibleDeal.RndShare, suite)
+	if err != nil {
+		return err
+	}
+	d.RndShare = rndShare
+	return nil
+}
+
 // EncryptedDeal contains the deal in a encrypted form only decipherable by the
 // correct recipient. The encryption is performed in a similar manner as what is
 // done in TLS. The dealer generates a temporary key pair, signs it with its
@@ -95,7 +145,7 @@ type EncryptedDeal struct {
 	DHKey kyber.Point
 	// Signature of the DH key by the longterm key of the dealer
 	Signature []byte
-	// AEAD encryption of the deal marshalled by protobuf
+	// AEAD encryption of the deal marshalled
 	Cipher []byte
 }
 
@@ -132,7 +182,7 @@ type Justification struct {
 // a middle ground between robustness and secrecy. Increasing t will increase
 // the secrecy at the cost of the decreased robustness and vice versa. It
 // returns an error if the t is inferior or equal to 2.
-func NewDealer(suite Suite, longterm, secret kyber.Scalar, verifiers []kyber.Point, t uint32) (*Dealer, error) {
+func NewDealer(suite share.Suite, longterm, secret kyber.Scalar, verifiers []kyber.Point, t uint32) (*Dealer, error) {
 	d := &Dealer{
 		suite:     suite,
 		long:      longterm,
@@ -222,7 +272,7 @@ func (d *Dealer) EncryptedDeal(i int) (*EncryptedDeal, error) {
 	}
 
 	nonce := make([]byte, gcm.NonceSize())
-	dealBuff, err := protobuf.Encode(d.deals[i])
+	dealBuff, err := d.deals[i].Marshal()
 	if err != nil {
 		return nil, err
 	}
@@ -315,7 +365,7 @@ func (d *Dealer) SetTimeout() {
 // Verifier receives a Deal from a Dealer, can reply with a Complaint, and can
 // collaborate with other Verifiers to reconstruct a secret.
 type Verifier struct {
-	suite       Suite
+	suite       share.Suite
 	longterm    kyber.Scalar
 	pub         kyber.Point
 	dealer      kyber.Point
@@ -333,7 +383,7 @@ type Verifier struct {
 // The security parameter t of the secret sharing scheme is automatically set to
 // a default safe value. If a different t value is required, it is possible to set
 // it with `verifier.SetT()`.
-func NewVerifier(suite Suite, longterm kyber.Scalar, dealerKey kyber.Point,
+func NewVerifier(suite share.Suite, longterm kyber.Scalar, dealerKey kyber.Point,
 	verifiers []kyber.Point) (*Verifier, error) {
 
 	pub := suite.Point().Mul(longterm, nil)
@@ -381,7 +431,7 @@ func (v *Verifier) ProcessEncryptedDeal(e *EncryptedDeal) (*Response, error) {
 		return nil, err
 	}
 	if d.SecShare.I != v.index {
-		return nil, errors.New("vss: verifier got wrong index from deal")
+		return nil, fmt.Errorf("vss: verifier got wrong index from deal. Got %d, expected %d", d.SecShare.I, v.index)
 	}
 
 	sid, err := sessionID(v.suite, v.dealer, v.verifiers, d.Commitments, d.T)
@@ -438,7 +488,7 @@ func (v *Verifier) decryptDeal(e *EncryptedDeal) (*Deal, error) {
 		return nil, err
 	}
 	deal := &Deal{}
-	err = deal.decode(v.suite, decrypted)
+	err = deal.Unmarshal(decrypted, v.suite)
 	return deal, err
 }
 
@@ -488,7 +538,7 @@ func (v *Verifier) SessionID() []byte {
 // RecoverSecret recovers the secret shared by a Dealer by gathering at least t
 // Deals from the verifiers. It returns an error if there is not enough Deals or
 // if all Deals don't have the same SessionID.
-func RecoverSecret(suite Suite, deals []*Deal, n, t uint32) (kyber.Scalar, error) {
+func RecoverSecret(suite share.Suite, deals []*Deal, n, t uint32) (kyber.Scalar, error) {
 	shares := make([]*share.PriShare, len(deals))
 	for i, deal := range deals {
 		// all sids the same
@@ -511,7 +561,7 @@ func (v *Verifier) SetTimeout() {
 // aggregator is used to collect all deals, and responses for one protocol run.
 // It brings common functionalities for both Dealer and Verifier structs.
 type aggregator struct {
-	suite     Suite
+	suite     share.Suite
 	dealer    kyber.Point
 	verifiers []kyber.Point
 	commits   []kyber.Point
@@ -524,7 +574,7 @@ type aggregator struct {
 }
 
 func newAggregator(
-	suite Suite,
+	suite share.Suite,
 	dealer kyber.Point,
 	verifiers,
 	commitments []kyber.Point,
@@ -712,7 +762,7 @@ func validT(t uint32, verifiers []kyber.Point) bool {
 	return t >= 2 && t <= uint32(len(verifiers))
 }
 
-func deriveH(suite Suite, verifiers []kyber.Point) kyber.Point {
+func deriveH(suite share.Suite, verifiers []kyber.Point) kyber.Point {
 	var b bytes.Buffer
 	for _, v := range verifiers {
 		_, _ = v.MarshalTo(&b)
@@ -728,7 +778,7 @@ func findPub(verifiers []kyber.Point, idx uint32) (kyber.Point, bool) {
 	return verifiers[idx], true
 }
 
-func sessionID(suite Suite, dealer kyber.Point, verifiers, commitments []kyber.Point, t uint32) ([]byte, error) {
+func sessionID(suite share.Suite, dealer kyber.Point, verifiers, commitments []kyber.Point, t uint32) ([]byte, error) {
 	h := suite.Hash()
 	_, err := dealer.MarshalTo(h)
 	if err != nil {
@@ -754,7 +804,7 @@ func sessionID(suite Suite, dealer kyber.Point, verifiers, commitments []kyber.P
 }
 
 // Hash returns the Hash representation of the Response
-func (r *Response) Hash(s Suite) []byte {
+func (r *Response) Hash(s share.Suite) []byte {
 	h := s.Hash()
 	_, _ = h.Write([]byte("response"))
 	_, _ = h.Write(r.SessionID)
@@ -763,22 +813,13 @@ func (r *Response) Hash(s Suite) []byte {
 	return h.Sum(nil)
 }
 
-func (d *Deal) decode(s Suite, buff []byte) error {
-	constructors := make(protobuf.Constructors)
-	var point kyber.Point
-	var secret kyber.Scalar
-	constructors[reflect.TypeOf(&point).Elem()] = func() interface{} { return s.Point() }
-	constructors[reflect.TypeOf(&secret).Elem()] = func() interface{} { return s.Scalar() }
-	return protobuf.DecodeWithConstructors(buff, d, constructors)
-}
-
 // Hash returns the hash of a Justification.
-func (j *Justification) Hash(s Suite) []byte {
+func (j *Justification) Hash(s share.Suite) []byte {
 	h := s.Hash()
 	_, _ = h.Write([]byte("justification"))
 	_, _ = h.Write(j.SessionID)
 	_ = binary.Write(h, binary.LittleEndian, j.Index)
-	buff, _ := protobuf.Encode(j.Deal)
+	buff, _ := j.Deal.Marshal()
 	_, _ = h.Write(buff)
 	return h.Sum(nil)
 }

@@ -27,7 +27,7 @@ type TestNode struct {
 	clock   *clock.FakeClock
 }
 
-func NewTestNode(s Suite, index uint32) *TestNode {
+func NewTestNode(s share.Suite, index uint32) *TestNode {
 	private := s.Scalar().Pick(random.New())
 	public := s.Point().Mul(private, nil)
 	return &TestNode{
@@ -37,7 +37,7 @@ func NewTestNode(s Suite, index uint32) *TestNode {
 	}
 }
 
-func GenerateTestNodes(s Suite, n uint32) []*TestNode {
+func GenerateTestNodes(s share.Suite, n uint32) []*TestNode {
 	tns := make([]*TestNode, n)
 	for i := uint32(0); i < n; i++ {
 		tns[i] = NewTestNode(s, i)
@@ -101,7 +101,7 @@ func IsDealerIncluded(bundles []*ResponseBundle, dealer uint32) bool {
 	return false
 }
 
-func testResults(t *testing.T, suite Suite, thr, n uint32, results []*Result) {
+func testResults(t *testing.T, suite share.Suite, thr, n uint32, results []*Result) {
 	// test if all results are consistent
 	for i, res := range results {
 		require.Equal(t, thr, uint32(len(res.Key.Commitments())))

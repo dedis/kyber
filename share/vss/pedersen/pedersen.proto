@@ -1,0 +1,27 @@
+syntax = "proto2";
+option go_package = "proto/";
+
+message PriShare {
+  required uint32 i = 1;
+  required bytes v = 2;
+}
+
+message Deal {
+  required bytes sessionID = 1;
+  required PriShare secShare = 2;
+  required sint64 t = 3;
+  repeated bytes commitments = 4;
+}
+
+message EncryptedDeal {
+  required bytes dhkey = 1;
+  required bytes signature = 2;
+  required bytes cipher = 4;
+}
+
+message EncryptedDealV3 {
+  required bytes dhkey = 1;
+  required bytes signature = 2;
+  optional bytes nonce = 3;
+  required bytes cipher = 4;
+}
