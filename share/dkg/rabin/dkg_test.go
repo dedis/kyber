@@ -468,13 +468,13 @@ func TestDKGReconstructCommits(t *testing.T) {
 	assert.False(t, dkg2.Finished())
 	// generate enough secret commits  to recover the secret
 	for _, dkg := range dkgs[2:] {
-		d := dkg.verifiers[uint32(0)].Deal()
-		require.NotNil(t, d)
+		deal := dkg.verifiers[uint32(0)].Deal()
+		require.NotNil(t, deal)
 		rc = &ReconstructCommits{
-			SessionID:   d.SessionID,
+			SessionID:   deal.SessionID,
 			Index:       dkg.index,
 			DealerIndex: 0,
-			Share:       d.SecShare,
+			Share:       deal.SecShare,
 		}
 		msg := rc.Hash(suite)
 		rc.Signature, _ = schnorr.Sign(suite, dkg.long, msg)
