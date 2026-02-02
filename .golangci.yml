@@ -275,6 +275,7 @@ linters:
       - builtin$
       - examples$
       - compatible/bigmod/*
+      - internal/protobuf/*
 issues:
   max-same-issues: 50
 formatters:
