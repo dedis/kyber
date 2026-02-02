@@ -30,7 +30,7 @@ func (s *SimpleCTScalar) Add(s1, s2 kyber.Scalar) kyber.Scalar {
 	sc1 := s1.(*SimpleCTScalar)
 	sc2 := s2.(*SimpleCTScalar)
 
-	// a * b + c = a * 1 + c
+	// a * b + c is equivalent to a * 1 + c
 	scMulAdd(&s.v, &sc1.v, &one.v, &sc2.v)
 	return s
 }
@@ -39,7 +39,7 @@ func (s *SimpleCTScalar) Mul(s1, s2 kyber.Scalar) kyber.Scalar {
 	sc1 := s1.(*SimpleCTScalar)
 	sc2 := s2.(*SimpleCTScalar)
 
-	// a * b + c = a * b + 0
+	// a * b + c is equivalent to a * b + 0
 	scMulAdd(&s.v, &sc1.v, &sc2.v, &zero.v)
 	return s
 }
@@ -48,7 +48,7 @@ func (s *SimpleCTScalar) Sub(s1, s2 kyber.Scalar) kyber.Scalar {
 	sc1 := s1.(*SimpleCTScalar)
 	sc2 := s2.(*SimpleCTScalar)
 
-	// a * b + c = -1 * a + c
+	// a * b + c is equivalent to -1 * a + c
 	scMulAdd(&s.v, &minusOne.v, &sc1.v, &sc2.v)
 	return s
 

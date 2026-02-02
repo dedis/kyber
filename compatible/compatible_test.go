@@ -68,7 +68,6 @@ func TestBit(t *testing.T) {
 		if bigModBit != resultMod {
 			t.Errorf("Mod conversion mismatch: got %v, want %v", resultMod, bigMod)
 		}
-		//fmt.Println(bigModBit, resultMod, bigValueBit, resultValue, i)
 	}
 }
 
@@ -93,7 +92,6 @@ func TestFillBytes(t *testing.T) {
 	if string(bigBytes) != string(natBytes) {
 		t.Errorf("FillBytes mismatch: got %v, want %v", natBytes, bigBytes)
 	}
-	//fmt.Println(string(bigBytes))
 }
 
 func TestStringConversion(t *testing.T) {
@@ -184,9 +182,7 @@ func TestModInverse(t *testing.T) {
 func TestSet(t *testing.T) {
 	a := NewInt(1)
 	z := NewInt(0)
-	//fmt.Println("Before Set - z:", z, "a:", a)
 	z.Set(a)
-	//fmt.Println("After Set - z:", z, "a:", a)
 	assert.Equal(t, z, a)
 }
 
@@ -256,4 +252,38 @@ func TestSetBytesMod(t *testing.T) {
 	// Validate the result using math/big
 	expected := yBigInt.Mod(yBigInt, mBigInt)
 	require.Equal(t, 0, expected.Cmp(y.ToBigInt()))
+}
+
+func TestConstIntSetString(t *testing.T) {
+	valString := "827558546416454053910646459967499077875692070827048470514597884"
+	modString := "115792089237316195423570985008687907853269984665640564039457584007913129639935"
+	z := NewInt(0)
+	zP, ok := z.SetString(valString, modString, 10)
+
+	// Receiver value should have changed and thus not be 0 anymore
+	require.NotEqual(t, int64(0), z.Int64())
+	require.True(t, ok)
+
+	require.Equal(t, z, zP)
+	require.Equal(t, valString, zP.String())
+}
+
+func TestConstIntSetStringLargerValue(t *testing.T) {
+	valString := "115792089237316195423570985008687907853269984665640564039457584007913129639935"
+	modString := "827558546416454053910646459967499077875692070827048470514597884"
+	z := NewInt(0)
+	_, ok := z.SetString(valString, modString, 10)
+
+	// Receiver value should have changed and thus not be 0 anymore
+	require.NotEqual(t, int64(0), z.Int64())
+	require.True(t, ok)
+
+	// Compute the expected value using big.Int
+	valBigInt, ok := new(big.Int).SetString(valString, 10)
+	require.True(t, ok)
+	modBigInt, ok := new(big.Int).SetString(modString, 10)
+	require.True(t, ok)
+	expected := big.NewInt(0).Mod(valBigInt, modBigInt)
+
+	require.Equal(t, expected.String(), z.String())
 }

@@ -386,7 +386,7 @@ func expandMessageXMD(h hash.Hash, m []byte, domainSeparator string, byteLen uin
 	zeroPad, _ := i2OSP(0, 1)
 	zPad, _ := i2OSP(0, int32(h.BlockSize()))
 
-	// mPrime = Z_pad || msg || l_i_b_str || I2OSP(0, 1) || DST_prim
+	// Compute mPrime = Z_pad || msg || l_i_b_str || I2OSP(0, 1) || DST_prim
 	mPrime := make([]byte, 0, len(zPad)+len(m)+len(byteLenStr)+len(zeroPad)+len(dstPrime))
 	mPrime = append(mPrime, zPad...)
 	mPrime = append(mPrime, m...)
@@ -394,12 +394,12 @@ func expandMessageXMD(h hash.Hash, m []byte, domainSeparator string, byteLen uin
 	mPrime = append(mPrime, zeroPad...)
 	mPrime = append(mPrime, dstPrime...)
 
-	// b0 = H(msg_prime)
+	// Compute b0 = H(msg_prime)
 	h.Reset()
 	h.Write(mPrime)
 	b0 := h.Sum(nil)
 
-	// b_1 = H(b_0 || I2OSP(1, 1) || DST_prime)
+	// Compute b_1 = H(b_0 || I2OSP(1, 1) || DST_prime)
 	h.Reset()
 	h.Write(b0)
 	onePad, _ := i2OSP(1, 1)
@@ -543,20 +543,20 @@ func curve25519Elligator2(u fieldElement) (xn, xd, yn, yd fieldElement) {
 	var y, y1, y2, y11, y12, y21, y22, x2n fieldElement
 	var e1, e2, e3, e4 int32
 
-	feSquare2(&tv1, &u)     // tv1 = 2 * u^2
-	feAdd(&xd, &one, &tv1)  // xd = 1 + tv1
-	feNeg(&x1n, &j)         // x1n = -J
-	feSquare(&tv2, &xd)     // tv2 = xd^2
-	feMul(&gxd, &tv2, &xd)  // gxd = tv2 * xd
-	feMul(&gx1, &j, &tv1)   // gx1 = J * tv1
-	feMul(&gx1, &gx1, &x1n) // gx1 = gx1 * x1n
-	feAdd(&gx1, &gx1, &tv2) // gx1 = gx1 + tv2
-	feMul(&gx1, &gx1, &x1n) // gx1 = gx1 * x1n
-	feSquare(&tv3, &gxd)    // tv3 = gxd^2
-	feSquare(&tv2, &tv3)    // tv2 = tv3^2
-	feMul(&tv3, &tv3, &gxd) // tv3 = tv3 * gxd
-	feMul(&tv3, &tv3, &gx1) // tv3 = tv3 * gx1
-	feMul(&tv2, &tv2, &tv3) // tv2 = tv2 * tv3
+	feSquare2(&tv1, &u)     // Compute tv1 = 2 * u^2
+	feAdd(&xd, &one, &tv1)  // Compute xd = 1 + tv1
+	feNeg(&x1n, &j)         // Compute x1n = -J
+	feSquare(&tv2, &xd)     // Compute tv2 = xd^2
+	feMul(&gxd, &tv2, &xd)  // Compute gxd = tv2 * xd
+	feMul(&gx1, &j, &tv1)   // Compute gx1 = J * tv1
+	feMul(&gx1, &gx1, &x1n) // Compute gx1 = gx1 * x1n
+	feAdd(&gx1, &gx1, &tv2) // Compute gx1 = gx1 + tv2
+	feMul(&gx1, &gx1, &x1n) // Compute gx1 = gx1 * x1n
+	feSquare(&tv3, &gxd)    // Compute tv3 = gxd^2
+	feSquare(&tv2, &tv3)    // Compute tv2 = tv3^2
+	feMul(&tv3, &tv3, &gxd) // Compute tv3 = tv3 * gxd
+	feMul(&tv3, &tv3, &gx1) // Compute tv3 = tv3 * gx1
+	feMul(&tv2, &tv2, &tv3) // Compute tv2 = tv2 * tv3
 
 	// compute y11 = tv2 ^ c4
 	tv2Big := compatible.NewInt(0)
@@ -564,10 +564,10 @@ func curve25519Elligator2(u fieldElement) (xn, xd, yn, yd fieldElement) {
 	y11Big := compatible.NewInt(0).Exp(tv2Big, c4, prime)
 	feFromBn(&y11, y11Big)
 
-	feMul(&y11, &y11, &tv3) // y11 = y11 * tv3
-	feMul(&y12, &y11, &c3)  // y12 = y11 * c3
-	feSquare(&tv2, &y11)    // tv2 = y11^2
-	feMul(&tv2, &tv2, &gxd) // tv2 = tv2 * gxd
+	feMul(&y11, &y11, &tv3) // Compute y11 = y11 * tv3
+	feMul(&y12, &y11, &c3)  // Compute y12 = y11 * c3
+	feSquare(&tv2, &y11)    // Compute tv2 = y11^2
+	feMul(&tv2, &tv2, &gxd) // Compute tv2 = tv2 * gxd
 
 	// y1 = y11 if e1 == 1 else y12
 	if tv2 == gx1 {
@@ -576,13 +576,13 @@ func curve25519Elligator2(u fieldElement) (xn, xd, yn, yd fieldElement) {
 	feCopy(&y1, &y12)
 	feCMove(&y1, &y11, e1)
 
-	feMul(&x2n, &x1n, &tv1) // x2n = x1n * tv1
-	feMul(&y21, &y11, &u)   // y21 = y11 * u
-	feMul(&y21, &y21, &c2)  // y21 = y21 * c2
-	feMul(&y22, &y21, &c3)  // y22 = y21 * c3
-	feMul(&gx2, &gx1, &tv1) // gx2 = gx1 * tv1
-	feSquare(&tv2, &y21)    // tv2 = y21^2
-	feMul(&tv2, &tv2, &gxd) // tv2 = tv2 * gxd
+	feMul(&x2n, &x1n, &tv1) // Compute x2n = x1n * tv1
+	feMul(&y21, &y11, &u)   // Compute y21 = y11 * u
+	feMul(&y21, &y21, &c2)  // Compute y21 = y21 * c2
+	feMul(&y22, &y21, &c3)  // Compute y22 = y21 * c3
+	feMul(&gx2, &gx1, &tv1) // Compute gx2 = gx1 * tv1
+	feSquare(&tv2, &y21)    // Compute tv2 = y21^2
+	feMul(&tv2, &tv2, &gxd) // Compute tv2 = tv2 * gxd
 
 	// y2 = y21 if e == 1 else y22
 	if tv2 == gx2 {
@@ -591,8 +591,8 @@ func curve25519Elligator2(u fieldElement) (xn, xd, yn, yd fieldElement) {
 	feCopy(&y2, &y22)
 	feCMove(&y2, &y21, e2)
 
-	feSquare(&tv2, &y1)     // tv2 = y1^2
-	feMul(&tv2, &tv2, &gxd) // tv2 = tv2 * gxd
+	feSquare(&tv2, &y1)     // Compute tv2 = y1^2
+	feMul(&tv2, &tv2, &gxd) // Compute tv2 = tv2 * gxd
 
 	// xn = x1n if e3 == 1 else x2n
 	if tv2 == gx1 {
@@ -628,12 +628,12 @@ func mapToCurveElligator2Ed25519(u fieldElement) kyber.Point {
 
 	xMn, xMd, yMn, yMd := curve25519Elligator2(u)
 
-	feMul(&xn, &xMn, &yMd) // xn = xMn * yMd
-	feMul(&xn, &xn, &c)    // xn = xn * c
-	feMul(&xd, &xMd, &yMn) // xd = xMd * yMn
-	feSub(&yn, &xMn, &xMd) // yn = xMn - xMd
-	feAdd(&yd, &xMn, &xMd) // yd = xMn + xMd
-	feMul(&tv1, &xd, &yd)  // tv1 = xd * yd
+	feMul(&xn, &xMn, &yMd) // Compute xn = xMn * yMd
+	feMul(&xn, &xn, &c)    // Compute xn = xn * c
+	feMul(&xd, &xMd, &yMn) // Compute xd = xMd * yMn
+	feSub(&yn, &xMn, &xMd) // Compute yn = xMn - xMd
+	feAdd(&yd, &xMn, &xMd) // Compute yd = xMn + xMd
+	feMul(&tv1, &xd, &yd)  // Compute tv1 = xd * yd
 	if tv1 == zero {
 		e = 1
 	}

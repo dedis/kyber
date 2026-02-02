@@ -22,3 +22,8 @@ jobs:
         uses: golangci/golangci-lint-action@v9
         with:
           version: v2.6.1
+      - name: golangci-lint (constantTime)
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.6.1
+          args: --build-tags=constantTime

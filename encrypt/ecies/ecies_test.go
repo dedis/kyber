@@ -1,5 +1,3 @@
-//go:build !constantTime
-
 package ecies
 
 import (

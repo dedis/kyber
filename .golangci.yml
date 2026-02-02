@@ -48,7 +48,7 @@ linters:
     #- gochecksumtype # Run exhaustiveness checks on Go "sum types".
     #- gocognit # Computes and checks the cognitive complexity of functions. [fast]
     #- goconst # Finds repeated strings that could be replaced by a constant.
-    #- gocritic # Provides diagnostics that check for bugs, performance and style issues. [auto-fix]
+    - gocritic # Provides diagnostics that check for bugs, performance and style issues. [auto-fix]
     #- gocyclo # Computes and checks the cyclomatic complexity of functions. [fast]
     #- godoclint # Checks Golang's documentation practice (godoc). [fast]
     #- godot # Check if comments end in a period. [fast, auto-fix]
@@ -149,6 +149,8 @@ linters:
     gocritic:
       disabled-checks:
         - captLocal
+      enabled-checks:
+        - commentedOutCode
     gosec:
       excludes:
         - G107

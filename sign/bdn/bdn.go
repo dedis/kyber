@@ -184,6 +184,7 @@ func (scheme *Scheme) AggregatePublicKeys(mask *Mask) (kyber.Point, error) {
 
 // NewKeyPair creates a new BLS signing key pair. The private key x is a scalar
 // and the public key X is a point on curve G2.
+//
 // Deprecated: use the new scheme methods instead.
 func NewKeyPair(suite pairing.Suite, random cipher.Stream) (kyber.Scalar, kyber.Point) {
 	return NewSchemeOnG1(suite).NewKeyPair(random)
@@ -191,6 +192,7 @@ func NewKeyPair(suite pairing.Suite, random cipher.Stream) (kyber.Scalar, kyber.
 
 // Sign creates a BLS signature S = x * H(m) on a message m using the private
 // key x. The signature S is a point on curve G1.
+//
 // Deprecated: use the new scheme methods instead.
 func Sign(suite pairing.Suite, x kyber.Scalar, msg []byte) ([]byte, error) {
 	return NewSchemeOnG1(suite).Sign(x, msg)
@@ -200,6 +202,7 @@ func Sign(suite pairing.Suite, x kyber.Scalar, msg []byte) ([]byte, error) {
 // key X by verifying that the equality e(H(m), X) == e(H(m), x*B2) ==
 // e(x*H(m), B2) == e(S, B2) holds where e is the pairing operation and B2 is
 // the base point from curve G2.
+//
 // Deprecated: use the new scheme methods instead.
 func Verify(suite pairing.Suite, x kyber.Point, msg, sig []byte) error {
 	return NewSchemeOnG1(suite).Verify(x, msg, sig)
@@ -207,6 +210,7 @@ func Verify(suite pairing.Suite, x kyber.Point, msg, sig []byte) error {
 
 // AggregateSignatures aggregates the signatures using a coefficient for each
 // one of them where c = H(pk) and H: G2 -> R with R = {1, ..., 2^128}
+//
 // Deprecated: use the new scheme methods instead.
 func AggregateSignatures(suite pairing.Suite, sigs [][]byte, mask *Mask) (kyber.Point, error) {
 	return NewSchemeOnG1(suite).AggregateSignatures(sigs, mask)
@@ -215,6 +219,7 @@ func AggregateSignatures(suite pairing.Suite, sigs [][]byte, mask *Mask) (kyber.
 // AggregatePublicKeys aggregates a set of public keys (similarly to
 // AggregateSignatures for signatures) using the hash function
 // H: G2 -> R with R = {1, ..., 2^128}.
+//
 // Deprecated: use the new scheme methods instead.
 func AggregatePublicKeys(suite pairing.Suite, mask *Mask) (kyber.Point, error) {
 	return NewSchemeOnG1(suite).AggregatePublicKeys(mask)

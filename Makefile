@@ -9,10 +9,18 @@ lint: tidy
 	# keep this in sync with .github/workflows/golangci-lint.yml
 	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.6.1
 	go mod tidy
+	@echo "Run without flags"
 	golangci-lint run
+	@echo "Run with constantTime flag"
+	golangci-lint run --build-tags=constantTime
 
 test: tidy
 	go test ./...
+
+test-constantTime: tidy
+	go test ./... --tags constantTime
+
+test-all: test test-constantTime
 
 coverage: tidy
 	go test -json -covermode=count -coverprofile=profile.cov ./... > report.jsonl

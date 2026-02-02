@@ -100,8 +100,7 @@ func (e *EdDSA) Sign(msg []byte) ([]byte, error) {
 	r := group.Scalar().SetBytes(hash.Sum(nil))
 	R := group.Point().Mul(r, nil)
 
-	// challenge
-	// H( R || Public || Msg)
+	// Compute challenge: H( R || Public || Msg)
 	hash.Reset()
 	Rbuff, err := R.MarshalBinary()
 	if err != nil {
@@ -124,8 +123,7 @@ func (e *EdDSA) Sign(msg []byte) ([]byte, error) {
 
 	h := group.Scalar().SetBytes(hash.Sum(nil))
 
-	// response
-	// s = r + h * s
+	// Compute response s = r + h * s
 	s := group.Scalar().Mul(e.Secret, h)
 	s.Add(r, s)
 
