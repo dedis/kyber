@@ -9,8 +9,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/kyber/v3/suites"
+	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v4/suites"
 )
 
 type Number interface {
