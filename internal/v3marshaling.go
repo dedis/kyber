@@ -7,7 +7,6 @@ import (
 	"go.dedis.ch/kyber/v4/internal/protobuf"
 	"go.dedis.ch/kyber/v4/share"
 	pedersenvss "go.dedis.ch/kyber/v4/share/vss/pedersen"
-	rabinvss "go.dedis.ch/kyber/v4/share/vss/rabin"
 )
 
 type Suite interface {
@@ -91,61 +90,4 @@ func UnmarshalPedersenDeal(data []byte, suite Suite) (*pedersenvss.Deal, error) 
 		Commitments: compatibleDeal.Commitments,
 	}
 	return deal, nil
-}
-
-// RabinCompatibleDeal is a struct for Deal used when marshaling
-// to ensure compatibility with Kyber V3.
-type RabinCompatibleDeal struct {
-	SessionID   []byte
-	SecShare    []byte
-	RndShare    []byte
-	T           uint32
-	Commitments []kyber.Point
-}
-
-func MarshalRabinDeal(deal *rabinvss.Deal) ([]byte, error) {
-	secShareBytes, err := MarshalPriShare(deal.SecShare)
-	if err != nil {
-		return nil, err
-	}
-	rndShareBytes, err := MarshalPriShare(deal.RndShare)
-	if err != nil {
-		return nil, err
-	}
-	compatibleDeal := &RabinCompatibleDeal{
-		SessionID:   deal.SessionID,
-		SecShare:    secShareBytes,
-		RndShare:    rndShareBytes,
-		T:           deal.T,
-		Commitments: deal.Commitments,
-	}
-	return protobuf.Encode(compatibleDeal)
-}
-
-func UnmarshalRabinDeal(data []byte, suite Suite) (*rabinvss.Deal, error) {
-	compatibleDeal := &RabinCompatibleDeal{}
-	constructors := make(protobuf.Constructors)
-	var point kyber.Point
-	constructors[reflect.TypeOf(&point).Elem()] = func() interface{} { return suite.Point() }
-	err := protobuf.DecodeWithConstructors(data, compatibleDeal, constructors)
-	if err != nil {
-		return nil, err
-	}
-
-	secShare, err := UnmarshalPriShare(compatibleDeal.SecShare, suite)
-	if err != nil {
-		return nil, err
-	}
-
-	rndShare, err := UnmarshalPriShare(compatibleDeal.RndShare, suite)
-	if err != nil {
-		return nil, err
-	}
-	return &rabinvss.Deal{
-		SessionID:   compatibleDeal.SessionID,
-		SecShare:    secShare,
-		RndShare:    rndShare,
-		T:           compatibleDeal.T,
-		Commitments: compatibleDeal.Commitments,
-	}, nil
 }
