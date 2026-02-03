@@ -42,7 +42,6 @@ import (
 	"fmt"
 
 	"go.dedis.ch/kyber/v4"
-	"go.dedis.ch/kyber/v4/internal/protobuf"
 	"go.dedis.ch/kyber/v4/share"
 	vss "go.dedis.ch/kyber/v4/share/vss/rabin"
 	"go.dedis.ch/kyber/v4/sign/schnorr"
@@ -681,7 +680,7 @@ func (cc *ComplaintCommits) Hash(s Suite) []byte {
 	_, _ = h.Write([]byte("commitcomplaint"))
 	_ = binary.Write(h, binary.LittleEndian, cc.Index)
 	_ = binary.Write(h, binary.LittleEndian, cc.DealerIndex)
-	buff, _ := protobuf.Encode(cc.Deal)
+	buff, _ := cc.Deal.Marshal()
 	_, _ = h.Write(buff)
 	return h.Sum(nil)
 }
