@@ -95,12 +95,11 @@ func (d *Deal) Unmarshal(data []byte, suite Suite) error {
 	if err != nil {
 		return err
 	}
-	d = &Deal{
-		SessionID:   compatibleDeal.SessionID,
-		T:           compatibleDeal.T,
-		SecShare:    secShare,
-		Commitments: compatibleDeal.Commitments,
-	}
+
+	d.SessionID = compatibleDeal.SessionID
+	d.T = compatibleDeal.T
+	d.SecShare = secShare
+	d.Commitments = compatibleDeal.Commitments
 	return nil
 }
 
