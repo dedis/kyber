@@ -6,7 +6,6 @@ import (
 	"go.dedis.ch/kyber/v4"
 	"go.dedis.ch/kyber/v4/internal/protobuf"
 	"go.dedis.ch/kyber/v4/share"
-	pedersenvss "go.dedis.ch/kyber/v4/share/vss/pedersen"
 )
 
 type Suite interface {
@@ -45,49 +44,4 @@ func UnmarshalPriShare(data []byte, suite Suite) (*share.PriShare, error) {
 		V: compatiblePriShare.V,
 	}
 	return priShare, nil
-}
-
-// PedersenCompatibleDeal is a struct for Deal used when marshaling
-// to ensure compatibility with Kyber V3.
-type PedersenCompatibleDeal struct {
-	SessionID   []byte
-	SecShare    []byte
-	T           uint32
-	Commitments []kyber.Point
-}
-
-func MarshalPedersenDeal(deal *pedersenvss.Deal) ([]byte, error) {
-	secShareBytes, err := MarshalPriShare(deal.SecShare)
-	if err != nil {
-		return nil, err
-	}
-	compatibleDeal := &PedersenCompatibleDeal{
-		SessionID:   deal.SessionID,
-		SecShare:    secShareBytes,
-		T:           deal.T,
-		Commitments: deal.Commitments,
-	}
-	return protobuf.Encode(compatibleDeal)
-}
-
-func UnmarshalPedersenDeal(data []byte, suite Suite) (*pedersenvss.Deal, error) {
-	compatibleDeal := &PedersenCompatibleDeal{}
-	constructors := make(protobuf.Constructors)
-	var point kyber.Point
-	constructors[reflect.TypeOf(&point).Elem()] = func() interface{} { return suite.Point() }
-	err := protobuf.DecodeWithConstructors(data, compatibleDeal, constructors)
-	if err != nil {
-		return nil, err
-	}
-	secShare, err := UnmarshalPriShare(compatibleDeal.SecShare, suite)
-	if err != nil {
-		return nil, err
-	}
-	deal := &pedersenvss.Deal{
-		SessionID:   compatibleDeal.SessionID,
-		T:           compatibleDeal.T,
-		SecShare:    secShare,
-		Commitments: compatibleDeal.Commitments,
-	}
-	return deal, nil
 }
