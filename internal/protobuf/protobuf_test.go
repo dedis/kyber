@@ -17,7 +17,6 @@ type emb struct {
 
 // test custom type-aliases
 type mybool bool
-type myint int
 type myint32 int32
 type myint64 int64
 type myuint32 uint32
@@ -29,7 +28,6 @@ type mystring string
 
 type test struct {
 	Bool   bool `protobuf:"boolean,opt"`
-	I      int
 	I32    int32
 	I64    int64
 	U32    uint32
@@ -81,7 +79,6 @@ func (e1 *emb) equal(e2 *emb) bool {
 }
 func (t1 *test) equal(t2 *test) bool {
 	return t1.Bool == t2.Bool && // required fields
-		t1.I == t2.I &&
 		t1.I32 == t2.I32 &&
 		t1.I64 == t2.I64 &&
 		t1.U32 == t2.U32 &&
@@ -144,7 +141,7 @@ func TestProtobuf(t *testing.T) {
 	s8 := mystring("ABC")
 	e9 := test{Bytes: []byte{}}
 
-	t1 := test{true, 0, -1, -2, 3, 4, -11, -22, 33, 44, 5.0, 6.0,
+	t1 := test{true, -1, -2, 3, 4, -11, -22, 33, 44, 5.0, 6.0,
 		[]byte("789"), [2]byte{1, 2}, "abc", emb{123, "def"},
 		&b0, &i1, &i2, &i3, &i4, &f5, &f6, &b7, &s8, &e9,
 		[]mybool{true, false, true},

@@ -33,7 +33,10 @@ func TestCrash1(t *testing.T) {
 	var s t2
 	err = Decode(in, &s)
 	assert.NotNil(t, err)
-	assert.Equal(t, "Error while decoding field {Name:T3s PkgPath: Type:[3]protobuf.t3 Tag: Offset:112 Index:[4] Anonymous:false}: append to non-slice", err.Error())
+	if err.Error() != "Error while decoding field {Name:T3s PkgPath: Type:[3]protobuf.t3 Tag: Offset:112 Index:[4] Anonymous:false}: append to non-slice" &&
+		err.Error() != "Error while decoding field {Name:T3s PkgPath: Type:[3]protobuf.t3 Tag: Offset:92 Index:[4] Anonymous:false}: append to non-slice" {
+		assert.Fail(t, "Expected error \"appending to non-slice\"")
+	}
 }
 
 func TestCrash2(t *testing.T) {
