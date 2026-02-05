@@ -64,18 +64,18 @@ func TestBinaryMarshaler(t *testing.T) {
 }
 
 type NumberNoMarshal interface {
-	Value() int
+	Value() int32
 }
 
-func NewNumberNoMarshal(n int) NumberNoMarshal {
+func NewNumberNoMarshal(n int32) NumberNoMarshal {
 	return &IntNoMarshal{n}
 }
 
 type IntNoMarshal struct {
-	N int
+	N int32
 }
 
-func (i *IntNoMarshal) Value() int {
+func (i *IntNoMarshal) Value() int32 {
 	return i.N
 }
 
@@ -92,7 +92,7 @@ func TestNoBinaryMarshaler(t *testing.T) {
 	err = Decode(buf, &wrapper2)
 
 	assert.Nil(t, err)
-	assert.Equal(t, 99, wrapper2.N.Value())
+	assert.Equal(t, int32(99), wrapper2.N.Value())
 }
 
 type WrongSliceInt struct {
@@ -321,7 +321,7 @@ type canMarshal struct{ private string }
 
 type hasInternalCanMarshal struct {
 	CM            canMarshal
-	SomethingElse int
+	SomethingElse int32
 }
 
 func (cm canMarshal) MarshalBinary() ([]byte, error) {
