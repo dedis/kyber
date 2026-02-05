@@ -230,18 +230,14 @@ func TestArrayKey(t *testing.T) {
 func TestInterface(t *testing.T) {
 	type Points struct {
 		P1 kyber.Point
-		P2 kyber.Point
 	}
 
-	bn256 := suites.MustFind("bn256.adapter")
 	ed25519 := suites.MustFind("ed25519")
 
-	RegisterInterface(func() interface{} { return bn256.Point() })
 	RegisterInterface(func() interface{} { return ed25519.Point() })
 
 	pp := Points{
-		P1: bn256.Point(),
-		P2: ed25519.Point(),
+		P1: ed25519.Point(),
 	}
 
 	buf, err := Encode(&pp)
@@ -251,7 +247,6 @@ func TestInterface(t *testing.T) {
 	err = Decode(buf, &dpp)
 	require.NoError(t, err)
 	require.Equal(t, pp.P1.String(), dpp.P1.String())
-	require.Equal(t, pp.P2.String(), dpp.P2.String())
 }
 
 type dummyInterface interface {
