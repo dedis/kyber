@@ -9,8 +9,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.dedis.ch/kyber/v4"
 	"go.dedis.ch/kyber/v4/group/edwards25519"
+	"go.dedis.ch/kyber/v4/internal/protobuf"
 	"go.dedis.ch/kyber/v4/sign/schnorr"
-	"go.dedis.ch/protobuf"
 )
 
 var suite = edwards25519.NewBlakeSHA256Ed25519()
