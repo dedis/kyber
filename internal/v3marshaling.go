@@ -15,15 +15,15 @@ type Suite interface {
 	kyber.Random
 }
 
-// CompatiblePriShare is a struct for PriShare used when marshaling to
+// compatiblePriShare is a struct for PriShare used when marshaling to
 // ensure compatibility with V3
-type CompatiblePriShare struct {
+type compatiblePriShare struct {
 	I int64
 	V kyber.Scalar
 }
 
 func MarshalPriShare(priShare *share.PriShare) ([]byte, error) {
-	toEncode := &CompatiblePriShare{
+	toEncode := &compatiblePriShare{
 		I: int64(priShare.I),
 		V: priShare.V,
 	}
@@ -31,7 +31,7 @@ func MarshalPriShare(priShare *share.PriShare) ([]byte, error) {
 }
 
 func UnmarshalPriShare(data []byte, suite Suite) (*share.PriShare, error) {
-	compatiblePriShare := &CompatiblePriShare{}
+	compatiblePriShare := &compatiblePriShare{}
 	constructors := make(protobuf.Constructors)
 	var secret kyber.Scalar
 	constructors[reflect.TypeOf(&secret).Elem()] = func() interface{} { return suite.Scalar() }

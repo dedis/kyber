@@ -59,9 +59,9 @@ type Deal struct {
 	Commitments []kyber.Point
 }
 
-// PedersenCompatibleDeal is a struct for Deal used when marshaling
+// pedersenCompatibleDeal is a struct for Deal used when marshaling
 // to ensure compatibility with Kyber V3.
-type PedersenCompatibleDeal struct {
+type pedersenCompatibleDeal struct {
 	SessionID   []byte
 	SecShare    []byte
 	T           uint32
@@ -73,7 +73,7 @@ func (d *Deal) Marshal() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	compatibleDeal := &PedersenCompatibleDeal{
+	compatibleDeal := &pedersenCompatibleDeal{
 		SessionID:   d.SessionID,
 		SecShare:    secShareBytes,
 		T:           d.T,
@@ -83,7 +83,7 @@ func (d *Deal) Marshal() ([]byte, error) {
 }
 
 func (d *Deal) Unmarshal(data []byte, suite Suite) error {
-	compatibleDeal := &PedersenCompatibleDeal{}
+	compatibleDeal := &pedersenCompatibleDeal{}
 	constructors := make(protobuf.Constructors)
 	var point kyber.Point
 	constructors[reflect.TypeOf(&point).Elem()] = func() interface{} { return suite.Point() }
