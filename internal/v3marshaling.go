@@ -33,8 +33,7 @@ func MarshalPriShare(priShare *share.PriShare) ([]byte, error) {
 func UnmarshalPriShare(data []byte, suite Suite) (*share.PriShare, error) {
 	compatiblePriShare := &compatiblePriShare{}
 	constructors := make(protobuf.Constructors)
-	var secret kyber.Scalar
-	constructors[reflect.TypeOf(&secret).Elem()] = func() interface{} { return suite.Scalar() }
+	constructors[reflect.TypeFor[kyber.Scalar]()] = func() interface{} { return suite.Scalar() }
 	err := protobuf.DecodeWithConstructors(data, compatiblePriShare, constructors)
 	if err != nil {
 		return nil, err
