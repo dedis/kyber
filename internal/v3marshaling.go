@@ -1,6 +1,8 @@
 package internal
 
 import (
+	"fmt"
+	"math"
 	"reflect"
 
 	"go.dedis.ch/kyber/v4"
@@ -35,6 +37,12 @@ func UnmarshalPriShare(data []byte, suite Suite) (*share.PriShare, error) {
 	constructors := make(protobuf.Constructors)
 	constructors[reflect.TypeFor[kyber.Scalar]()] = func() interface{} { return suite.Scalar() }
 	err := protobuf.DecodeWithConstructors(data, compatiblePriShare, constructors)
+
+	// Check for overflow on I
+	if compatiblePriShare.I < 0 || compatiblePriShare.I > math.MaxUint32 {
+		return nil, fmt.Errorf("cannot cast I as int64 to uint32 due to overflow")
+	}
+
 	if err != nil {
 		return nil, err
 	}
