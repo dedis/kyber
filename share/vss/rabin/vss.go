@@ -87,9 +87,9 @@ type Deal struct {
 	Commitments []kyber.Point
 }
 
-// RabinCompatibleDeal is a struct for Deal used when marshaling
+// rabinCompatibleDeal is a struct for Deal used when marshaling
 // to ensure compatibility with Kyber V3.
-type RabinCompatibleDeal struct {
+type rabinCompatibleDeal struct {
 	SessionID   []byte
 	SecShare    []byte
 	RndShare    []byte
@@ -106,7 +106,7 @@ func (deal *Deal) Marshal() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	compatibleDeal := &RabinCompatibleDeal{
+	compatibleDeal := &rabinCompatibleDeal{
 		SessionID:   deal.SessionID,
 		SecShare:    secShareBytes,
 		RndShare:    rndShareBytes,
@@ -117,7 +117,7 @@ func (deal *Deal) Marshal() ([]byte, error) {
 }
 
 func (deal *Deal) Unmarshal(data []byte, suite Suite) error {
-	compatibleDeal := &RabinCompatibleDeal{}
+	compatibleDeal := &rabinCompatibleDeal{}
 	constructors := make(protobuf.Constructors)
 	var point kyber.Point
 	constructors[reflect.TypeOf(&point).Elem()] = func() interface{} { return suite.Point() }
