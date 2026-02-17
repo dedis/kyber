@@ -15,10 +15,12 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"reflect"
 	"sort"
 	"strings"
 
 	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/protobuf"
 )
 
 // Some error definitions
@@ -29,6 +31,35 @@ var errCoeffs = errors.New("different number of coefficients")
 type PriShare struct {
 	I uint32       // Index of the private share
 	V kyber.Scalar // Value of the private share
+}
+
+// CompatiblePriShare is a struct for PriShare used when marshaling to
+// ensure compatibility with V3
+type CompatiblePriShare struct {
+	I int64
+	V kyber.Scalar
+}
+
+func (p *PriShare) Marshal() ([]byte, error) {
+	toEncode := &CompatiblePriShare{
+		I: int64(p.I),
+		V: p.V,
+	}
+	return protobuf.Encode(toEncode)
+}
+
+func (p *PriShare) Unmarshal(data []byte, suite Suite) error {
+	compatiblePriShare := &CompatiblePriShare{}
+	constructors := make(protobuf.Constructors)
+	var secret kyber.Scalar
+	constructors[reflect.TypeOf(&secret).Elem()] = func() interface{} { return suite.Scalar() }
+	err := protobuf.DecodeWithConstructors(data, compatiblePriShare, constructors)
+	if err != nil {
+		return err
+	}
+	p.I = uint32(compatiblePriShare.I)
+	p.V = compatiblePriShare.V
+	return nil
 }
 
 // Hash returns the hash representation of this share

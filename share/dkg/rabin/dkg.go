@@ -45,11 +45,10 @@ import (
 	"go.dedis.ch/kyber/v4/share"
 	vss "go.dedis.ch/kyber/v4/share/vss/rabin"
 	"go.dedis.ch/kyber/v4/sign/schnorr"
-	"go.dedis.ch/protobuf"
 )
 
 // Suite wraps the functionalities needed by the dkg package
-type Suite vss.Suite
+type Suite share.Suite
 
 // DistKeyShare holds the share of a distributed key for a participant.
 type DistKeyShare struct {
@@ -681,7 +680,7 @@ func (cc *ComplaintCommits) Hash(s Suite) []byte {
 	_, _ = h.Write([]byte("commitcomplaint"))
 	_ = binary.Write(h, binary.LittleEndian, cc.Index)
 	_ = binary.Write(h, binary.LittleEndian, cc.DealerIndex)
-	buff, _ := protobuf.Encode(cc.Deal)
+	buff, _ := cc.Deal.Marshal()
 	_, _ = h.Write(buff)
 	return h.Sum(nil)
 }

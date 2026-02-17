@@ -15,13 +15,6 @@ import (
 	"go.dedis.ch/kyber/v4/util/random"
 )
 
-type Suite interface {
-	kyber.Group
-	kyber.HashFactory
-	kyber.XOFFactory
-	kyber.Random
-}
-
 // Config holds all required information to run a fresh DKG protocol or a
 // resharing protocol. In the case of a new fresh DKG protocol, one must fill
 // the following fields: Suite, Longterm, NewNodes, Threshold (opt). In the case
@@ -32,7 +25,7 @@ type Suite interface {
 // addition and thus has no current share, the PublicCoeffs field be must be
 // filled in.
 type Config struct {
-	Suite Suite
+	Suite share.Suite
 
 	// Longterm is the longterm secret key.
 	Longterm kyber.Scalar
@@ -149,7 +142,7 @@ func (p Phase) String() string {
 type DistKeyGenerator struct {
 	// config driving the behavior of DistKeyGenerator
 	c     *Config
-	suite Suite
+	suite share.Suite
 
 	long     kyber.Scalar
 	pub      kyber.Point
