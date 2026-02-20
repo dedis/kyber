@@ -10,11 +10,10 @@ import (
 	"go.dedis.ch/kyber/v4/share"
 )
 
+// Suite defines the capabilities required by the v3marshalling package.
 type Suite interface {
+	// Group is needed for Group.Scalar
 	kyber.Group
-	kyber.HashFactory
-	kyber.XOFFactory
-	kyber.Random
 }
 
 // compatiblePriShare is a struct for PriShare used when marshaling to
@@ -24,6 +23,8 @@ type compatiblePriShare struct {
 	V kyber.Scalar
 }
 
+// MarshalPriShare marshals a share.PriShare into bytes or returns an error
+// if the encoding did not work. Encoding is compatible with Kyber V3
 func MarshalPriShare(priShare *share.PriShare) ([]byte, error) {
 	toEncode := &compatiblePriShare{
 		I: int64(priShare.I),
@@ -32,6 +33,8 @@ func MarshalPriShare(priShare *share.PriShare) ([]byte, error) {
 	return protobuf.Encode(toEncode)
 }
 
+// UnmarshalPriShare unmarshals a share.PriShare from bytes or returns an error
+// if the decoding did not work. Decoding is compatible with Kyber V3
 func UnmarshalPriShare(data []byte, suite Suite) (*share.PriShare, error) {
 	compatiblePriShare := &compatiblePriShare{}
 	constructors := make(protobuf.Constructors)
