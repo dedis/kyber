@@ -68,6 +68,8 @@ type pedersenCompatibleDeal struct {
 	Commitments []kyber.Point
 }
 
+// Marshal marshals a Deal into bytes or return an error if encoding failed.
+// This encoding should always be preferred as it is compatible with Kyber V3.
 func (d *Deal) Marshal() ([]byte, error) {
 	secShareBytes, err := internal.MarshalPriShare(d.SecShare)
 	if err != nil {
@@ -82,6 +84,8 @@ func (d *Deal) Marshal() ([]byte, error) {
 	return protobuf.Encode(compatibleDeal)
 }
 
+// Unmarshal unmarshals a Deal from bytes or return an error if decoding failed.
+// This decoding should always be preferred as it is compatible with Kyber V3.
 func (d *Deal) Unmarshal(data []byte, suite Suite) error {
 	compatibleDeal := &pedersenCompatibleDeal{}
 	constructors := make(protobuf.Constructors)
