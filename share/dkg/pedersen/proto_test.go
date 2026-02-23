@@ -701,7 +701,7 @@ func TestProtoSkip(t *testing.T) {
 		// expect all results
 		var results []*Result
 		for optRes := range resCh {
-			//require.NoError(t, optRes.Error)
+			require.NoError(t, optRes.Error)
 			results = append(results, optRes.Result)
 			if len(results) == int(n) {
 				break
