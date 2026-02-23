@@ -1,3 +1,5 @@
+//go:build !constantTime
+
 package kilic
 
 import (
@@ -75,7 +77,6 @@ func TestImplementInterfaces(_ *testing.T) {
 	var _ kyber.Point = &GTElt{}
 	var _ kyber.HashablePoint = &G1Elt{}
 	var _ kyber.HashablePoint = &G2Elt{}
-	// var _ kyber.hashablePoint = &KyberGT{} // GT is not hashable for now
 	var _ kyber.Group = &groupBls{}
 	var _ pairing.Suite = &Suite{}
 }

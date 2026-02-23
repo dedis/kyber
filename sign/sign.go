@@ -30,7 +30,7 @@ type AggregatableScheme interface {
 type ThresholdScheme interface {
 	Sign(private *share.PriShare, msg []byte) ([]byte, error)
 	IndexOf(signature []byte) (int, error)
-	Recover(public *share.PubPoly, msg []byte, sigs [][]byte, t, n int) ([]byte, error)
+	Recover(public *share.PubPoly, msg []byte, sigs [][]byte, t, n uint32) ([]byte, error)
 	VerifyPartial(public *share.PubPoly, msg, sig []byte) error
 	VerifyRecovered(public kyber.Point, msg, sig []byte) error
 }

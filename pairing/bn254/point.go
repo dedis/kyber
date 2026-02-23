@@ -1,3 +1,5 @@
+//go:build !constantTime
+
 package bn254
 
 import (
@@ -43,9 +45,9 @@ func (p *pointG1) Base() kyber.Point {
 }
 
 func (p *pointG1) Pick(rand cipher.Stream) kyber.Point {
-	s := mod.NewInt64(0, Order).Pick(rand)
+	s := mod.NewInt64(0, OrderMod).Pick(rand)
 	p.Base()
-	p.g.Mul(p.g, &s.(*mod.Int).V)
+	p.g.Mul(p.g, &s.(*mod.Int).V.Int)
 	return p
 }
 
@@ -102,7 +104,7 @@ func (p *pointG1) Mul(s kyber.Scalar, q kyber.Point) kyber.Point {
 	if q == nil {
 		q = newPointG1(p.dst).Base()
 	}
-	t := s.(*mod.Int).V
+	t := s.(*mod.Int).V.Int
 	r := q.(*pointG1).g
 	p.g.Mul(r, &t)
 	return p
@@ -235,31 +237,31 @@ func mapToPoint(domain []byte, u *gfP) kyber.Point {
 	tv1 := &gfP{}
 	tv1.Set(u)
 	gfpMul(tv1, tv1, tv1)
-	gfpMul(tv1, tv1, c1) // tv1 = u^2 * g(Z)
+	gfpMul(tv1, tv1, c1) // Compute tv1 = u^2 * g(Z)
 	tv2 := &gfP{}
-	gfpAdd(tv2, newGFp(1), tv1) // tv2 = 1 + tv1
+	gfpAdd(tv2, newGFp(1), tv1) // Compute tv2 = 1 + tv1
 	negTv1 := &gfP{}
 	gfpNeg(negTv1, tv1)
-	gfpAdd(tv1, newGFp(1), negTv1) // tv1 = 1 - tv1
+	gfpAdd(tv1, newGFp(1), negTv1) // Compute tv1 = 1 - tv1
 	tv3 := &gfP{}
 	gfpMul(tv3, tv1, tv2)
-	tv3.Invert(tv3) // tv3 = inv0(tv1 * tv2)
+	tv3.Invert(tv3) // Compute tv3 = inv0(tv1 * tv2)
 	tv5 := &gfP{}
 	gfpMul(tv5, u, tv1)
 	gfpMul(tv5, tv5, tv3)
-	gfpMul(tv5, tv5, c3) // tv5 = u * tv1 * tv3 * tv4
+	gfpMul(tv5, tv5, c3) // Compute tv5 = u * tv1 * tv3 * tv4
 	x1 := &gfP{}
-	gfpSub(x1, c2, tv5) // x1 = -Z / 2 - tv5
+	gfpSub(x1, c2, tv5) // Compute x1 = -Z / 2 - tv5
 	x2 := &gfP{}
-	gfpAdd(x2, c2, tv5) // x2 = -Z / 2 + tv5
+	gfpAdd(x2, c2, tv5) // Compute x2 = -Z / 2 + tv5
 	tv7 := &gfP{}
-	gfpMul(tv7, tv2, tv2) // tv7 = tv2^2
+	gfpMul(tv7, tv2, tv2) // Compute tv7 = tv2^2
 	tv8 := &gfP{}
-	gfpMul(tv8, tv7, tv3) // tv8 = tv2^2 * tv3
+	gfpMul(tv8, tv7, tv3)
 	x3 := &gfP{}
-	gfpMul(x3, tv8, tv8)      // x3 = tv8^2
-	gfpMul(x3, c4, x3)        // x3 = c4 * x3
-	gfpAdd(x3, newGFp(1), x3) // x3 = 1 + x3
+	gfpMul(x3, tv8, tv8)      // Compute x3 = tv8^2
+	gfpMul(x3, c4, x3)        // Compute x3 = c4 * x3
+	gfpAdd(x3, newGFp(1), x3) // Compute x3 = 1 + x3
 
 	var x *gfP
 	y := &gfP{}
@@ -294,8 +296,8 @@ func expandMsgXmdKeccak256(domain, msg []byte, outLen int) []byte {
 	}
 	domainLen := uint8(len(domain))
 
-	// DST_prime = DST || I2OSP(len(DST), 1)
-	// b_0 = H(Z_pad || msg || l_i_b_str || I2OSP(0, 1) || DST_prime)
+	// Compute DST_prime = DST || I2OSP(len(DST), 1)
+	// Compute b_0 = H(Z_pad || msg || l_i_b_str || I2OSP(0, 1) || DST_prime)
 	_, _ = h.Write(make([]byte, h.BlockSize()))
 	_, _ = h.Write(msg)
 	_, _ = h.Write([]byte{uint8(outLen >> 8), uint8(outLen)})
@@ -304,7 +306,7 @@ func expandMsgXmdKeccak256(domain, msg []byte, outLen int) []byte {
 	_, _ = h.Write([]byte{domainLen})
 	b0 := h.Sum(nil)
 
-	// b_1 = H(b_0 || I2OSP(1, 1) || DST_prime)
+	// Compute b_1 = H(b_0 || I2OSP(1, 1) || DST_prime)
 	h.Reset()
 	_, _ = h.Write(b0)
 	_, _ = h.Write([]byte{1})
@@ -312,13 +314,13 @@ func expandMsgXmdKeccak256(domain, msg []byte, outLen int) []byte {
 	_, _ = h.Write([]byte{domainLen})
 	b1 := h.Sum(nil)
 
-	// b_i = H(strxor(b_0, b_(i - 1)) || I2OSP(i, 1) || DST_prime)
+	// Compute b_i = H(strxor(b_0, b_(i - 1)) || I2OSP(i, 1) || DST_prime)
 	ell := (outLen + h.Size() - 1) / h.Size()
 	bi := b1
 	out := make([]byte, outLen)
 	for i := 1; i < ell; i++ {
 		h.Reset()
-		// b_i = H(strxor(b_0, b_(i - 1)) || I2OSP(i, 1) || DST_prime)
+		// Create b_i = H(strxor(b_0, b_(i - 1)) || I2OSP(i, 1) || DST_prime)
 		tmp := make([]byte, h.Size())
 		for j := 0; j < h.Size(); j++ {
 			tmp[j] = b0[j] ^ bi[j]
@@ -364,9 +366,9 @@ func (p *pointG2) Base() kyber.Point {
 }
 
 func (p *pointG2) Pick(rand cipher.Stream) kyber.Point {
-	s := mod.NewInt64(0, Order).Pick(rand)
+	s := mod.NewInt64(0, OrderMod).Pick(rand)
 	p.Base()
-	p.g.Mul(p.g, &s.(*mod.Int).V)
+	p.g.Mul(p.g, &s.(*mod.Int).V.Int)
 	return p
 }
 
@@ -417,7 +419,7 @@ func (p *pointG2) Mul(s kyber.Scalar, q kyber.Point) kyber.Point {
 	if q == nil {
 		q = newPointG2(p.dst).Base()
 	}
-	t := s.(*mod.Int).V
+	t := s.(*mod.Int).V.Int
 	r := q.(*pointG2).g
 	p.g.Mul(r, &t)
 	return p
@@ -561,9 +563,9 @@ func (p *pointGT) Base() kyber.Point {
 }
 
 func (p *pointGT) Pick(rand cipher.Stream) kyber.Point {
-	s := mod.NewInt64(0, Order).Pick(rand)
+	s := mod.NewInt64(0, OrderMod).Pick(rand)
 	p.Base()
-	p.g.Exp(p.g, &s.(*mod.Int).V)
+	p.g.Exp(p.g, &s.(*mod.Int).V.Int)
 	return p
 }
 
@@ -614,7 +616,7 @@ func (p *pointGT) Mul(s kyber.Scalar, q kyber.Point) kyber.Point {
 	if q == nil {
 		q = newPointGT().Base()
 	}
-	t := s.(*mod.Int).V
+	t := s.(*mod.Int).V.Int
 	r := q.(*pointGT).g
 	p.g.Exp(r, &t)
 	return p

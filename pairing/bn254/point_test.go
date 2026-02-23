@@ -1,3 +1,5 @@
+//go:build !constantTime
+
 package bn254
 
 import (
@@ -125,7 +127,7 @@ func TestMapToPoint(t *testing.T) {
 func gnarkExpandMsgXmd(msg, dst []byte, lenInBytes int) ([]byte, error) {
 
 	h := sha3.NewLegacyKeccak256()
-	ell := (lenInBytes + h.Size() - 1) / h.Size() // ceil(len_in_bytes / b_in_bytes)
+	ell := (lenInBytes + h.Size() - 1) / h.Size() // equal to ceil(len_in_bytes / b_in_bytes)
 	if ell > 255 {
 		return nil, errors.New("invalid lenInBytes")
 	}

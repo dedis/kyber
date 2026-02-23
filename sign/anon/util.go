@@ -7,7 +7,7 @@ import (
 
 func BenchGenSig(suite Suite, nkeys int, benchMessage []byte, benchPub []kyber.Point, benchPri kyber.Scalar) []byte {
 	return Sign(suite, benchMessage,
-		Set(benchPub[:nkeys]), nil,
+		benchPub[:nkeys], nil,
 		0, benchPri)
 }
 
@@ -31,14 +31,14 @@ func BenchGenKeys(g kyber.Group,
 func BenchSign(suite Suite, pub []kyber.Point, pri kyber.Scalar,
 	niter int, benchMessage []byte) {
 	for i := 0; i < niter; i++ {
-		Sign(suite, benchMessage, Set(pub), nil, 0, pri)
+		Sign(suite, benchMessage, pub, nil, 0, pri)
 	}
 }
 
 func BenchVerify(suite Suite, pub []kyber.Point,
 	sig []byte, niter int, benchMessage []byte) {
 	for i := 0; i < niter; i++ {
-		tag, err := Verify(suite, benchMessage, Set(pub), nil, sig)
+		tag, err := Verify(suite, benchMessage, pub, nil, sig)
 		if tag == nil || err != nil {
 			panic("benchVerify failed")
 		}

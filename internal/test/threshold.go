@@ -13,7 +13,7 @@ import (
 // ThresholdTest performs a simple check on a threshold scheme implementation
 func ThresholdTest(test *testing.T, keyGroup kyber.Group, scheme sign.ThresholdScheme) {
 	msg := []byte("Hello threshold Boneh-Lynn-Shacham")
-	n := 10
+	n := uint32(10)
 	t := n/2 + 1
 	test.Run("Correct sharing and recovering", func(tt *testing.T) {
 		secret := keyGroup.Scalar().Pick(random.New())
@@ -85,7 +85,7 @@ func ThresholdTest(test *testing.T, keyGroup kyber.Group, scheme sign.ThresholdS
 		fakeShares := fakePriPoly.Shares(n)
 		fakeSigShares := make([][]byte, 0)
 		fakePubPoly := fakePriPoly.Commit(keyGroup.Point().Base())
-		for i := 0; i < n; i++ {
+		for i := uint32(0); i < n; i++ {
 			fakeSig, _ := scheme.Sign(fakeShares[i], msg)
 			fakeSigShares = append(fakeSigShares, fakeSig)
 		}

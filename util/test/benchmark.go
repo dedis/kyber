@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"go.dedis.ch/kyber/v4"
-	"go.dedis.ch/kyber/v4/pairing/bn256"
+	"go.dedis.ch/kyber/v4/pairing/bls12381/circl"
 	"go.dedis.ch/kyber/v4/sign"
 	"go.dedis.ch/kyber/v4/sign/bls"
 	"go.dedis.ch/kyber/v4/util/random"
@@ -14,7 +14,7 @@ import (
 
 func PrepareBLS(numSigs int) (scheme sign.Scheme,
 	publics []kyber.Point, privates []kyber.Scalar, msgs [][]byte, sigs [][]byte) {
-	suite := bn256.NewSuite()
+	suite := circl.NewSuite()
 	scheme = bls.NewSchemeOnG1(suite)
 
 	publics = make([]kyber.Point, numSigs)

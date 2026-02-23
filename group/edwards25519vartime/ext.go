@@ -1,10 +1,12 @@
+//go:build !constantTime
+
 package edwards25519vartime
 
 import (
 	"crypto/cipher"
 	"encoding/hex"
+	"go.dedis.ch/kyber/v4/compatible"
 	"io"
-	"math/big"
 
 	"go.dedis.ch/kyber/v4"
 	"go.dedis.ch/kyber/v4/group/internal/marshalling"
@@ -16,12 +18,12 @@ type extPoint struct {
 	c          *ExtendedCurve
 }
 
-func (P *extPoint) initXY(x, y *big.Int, c kyber.Group) {
+func (P *extPoint) initXY(x, y *compatible.Int, c kyber.Group) {
 	P.c = c.(*ExtendedCurve) //nolint:errcheck // Design pattern to emulate generics
 
-	P.X.Init(x, &P.c.P)
-	P.Y.Init(y, &P.c.P)
-	P.Z.Init64(1, &P.c.P)
+	P.X.Init(x, P.c.P.ToCompatibleMod())
+	P.Y.Init(y, P.c.P.ToCompatibleMod())
+	P.Z.Init64(1, P.c.P.ToCompatibleMod())
 	P.T.Mul(&P.X, &P.Y)
 }
 
@@ -49,7 +51,7 @@ func (P *extPoint) UnmarshalBinary(b []byte) error {
 	if err := P.c.decodePoint(b, &P.X, &P.Y); err != nil {
 		return err
 	}
-	P.Z.Init64(1, &P.c.P)
+	P.Z.Init64(1, P.c.P.ToCompatibleMod())
 	P.T.Mul(&P.X, &P.Y)
 	return nil
 }
@@ -236,7 +238,11 @@ func (P *extPoint) double() {
 // switching between projective and extended coordinates during
 // scalar multiplication.
 func (P *extPoint) Mul(s kyber.Scalar, G kyber.Point) kyber.Point {
-	v := s.(*mod.Int).V
+	sInt, ok := s.(*mod.Int)
+	if !ok {
+		panic(ErrTypeCast)
+	}
+	v := sInt.V
 	if G == nil {
 		return P.Base().Mul(s, P)
 	}
@@ -290,8 +296,8 @@ func (c *ExtendedCurve) Point() kyber.Point {
 	return P
 }
 
-// Init initializes the curve with given parameters.
-func (c *ExtendedCurve) Init(p *Param, fullGroup bool) *ExtendedCurve {
-	c.curve.init(c, p, fullGroup, &c.null, &c.base)
+// InitCurve initializes the curve with given parameters.
+func (c *ExtendedCurve) InitCurve(p *Param, fullGroup bool) *ExtendedCurve {
+	c.init(c, p, fullGroup, &c.null, &c.base)
 	return c
 }

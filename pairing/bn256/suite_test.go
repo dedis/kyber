@@ -1,3 +1,5 @@
+//go:build !constantTime
+
 package bn256
 
 import (
@@ -10,6 +12,7 @@ import (
 	"go.dedis.ch/kyber/v4/group/mod"
 	"go.dedis.ch/kyber/v4/util/random"
 	"go.dedis.ch/protobuf"
+	//nolint:staticcheck // bn256 is deprecated. We need this package for our implementation.
 	"golang.org/x/crypto/bn256"
 )
 
@@ -69,7 +72,7 @@ func TestG1(t *testing.T) {
 	ma, err := pa.MarshalBinary()
 	require.Nil(t, err)
 
-	pb := new(bn256.G1).ScalarBaseMult(&k.(*mod.Int).V)
+	pb := new(bn256.G1).ScalarBaseMult(&k.(*mod.Int).V.Int)
 	mb := pb.Marshal()
 
 	require.Equal(t, ma, mb)
@@ -121,7 +124,7 @@ func TestG2(t *testing.T) {
 	require.Equal(t, "bn256.g2", fmt.Sprintf("%s", pa.(*pointG2).MarshalID()))
 	ma, err := pa.MarshalBinary()
 	require.Nil(t, err)
-	pb := new(bn256.G2).ScalarBaseMult(&k.(*mod.Int).V)
+	pb := new(bn256.G2).ScalarBaseMult(&k.(*mod.Int).V.Int)
 	mb := pb.Marshal()
 	require.Equal(t, ma, mb)
 }
@@ -186,7 +189,7 @@ func TestGT(t *testing.T) {
 	if !ok {
 		t.Fatal("unmarshal not ok")
 	}
-	pb.ScalarMult(pb, &k.(*mod.Int).V)
+	pb.ScalarMult(pb, &k.(*mod.Int).V.Int)
 	mb := pb.Marshal()
 	require.Equal(t, ma, mb)
 }
@@ -333,7 +336,6 @@ type tsrPoint struct {
 }
 
 func TestSuiteProtobuf(t *testing.T) {
-	// bn := suites.MustFind("bn256.adapter")
 	bn1 := NewSuiteG1()
 	bn2 := NewSuiteG2()
 	bnT := NewSuiteGT()

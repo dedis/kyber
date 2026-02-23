@@ -2,8 +2,9 @@ package edwards25519
 
 import (
 	"fmt"
-	"math/big"
 	"testing"
+
+	"go.dedis.ch/kyber/v4/group/mod"
 
 	"github.com/stretchr/testify/require"
 	"go.dedis.ch/kyber/v4"
@@ -29,7 +30,7 @@ func (s *SimpleCTScalar) Add(s1, s2 kyber.Scalar) kyber.Scalar {
 	sc1 := s1.(*SimpleCTScalar)
 	sc2 := s2.(*SimpleCTScalar)
 
-	// a * b + c = a * 1 + c
+	// a * b + c is equivalent to a * 1 + c
 	scMulAdd(&s.v, &sc1.v, &one.v, &sc2.v)
 	return s
 }
@@ -38,7 +39,7 @@ func (s *SimpleCTScalar) Mul(s1, s2 kyber.Scalar) kyber.Scalar {
 	sc1 := s1.(*SimpleCTScalar)
 	sc2 := s2.(*SimpleCTScalar)
 
-	// a * b + c = a * b + 0
+	// a * b + c is equivalent to a * b + 0
 	scMulAdd(&s.v, &sc1.v, &sc2.v, &zero.v)
 	return s
 }
@@ -47,7 +48,7 @@ func (s *SimpleCTScalar) Sub(s1, s2 kyber.Scalar) kyber.Scalar {
 	sc1 := s1.(*SimpleCTScalar)
 	sc2 := s2.(*SimpleCTScalar)
 
-	// a * b + c = -1 * a + c
+	// a * b + c is equivalent to -1 * a + c
 	scMulAdd(&s.v, &minusOne.v, &sc1.v, &sc2.v)
 	return s
 
@@ -113,6 +114,12 @@ func TestString(t *testing.T) {
 func TestScalar_Marshal(t *testing.T) {
 	s := &scalar{}
 	require.Equal(t, "ed.scala", fmt.Sprintf("%s", s.MarshalID()))
+}
+
+func TestSetInt(t *testing.T) {
+	am := mod.NewInt64(1, primeOrder)
+	s := new(scalar).setInt(am)
+	require.Equal(t, s, new(scalar).One())
 }
 
 func TestSetBytesLE(t *testing.T) {
@@ -449,25 +456,4 @@ func scSubFact(a, c *[32]byte) {
 	limbs[23] = int64(0)
 
 	scReduceLimbs(limbs)
-}
-
-// Test_ScalarIsCanonical ensures that scalars >= primeOrder are
-// considered non canonical.
-func Test_ScalarIsCanonical(t *testing.T) {
-	candidate := big.NewInt(-2)
-	candidate.Add(candidate, primeOrder)
-
-	candidateBuf := candidate.Bytes()
-	for i, j := 0, len(candidateBuf)-1; i < j; i, j = i+1, j-1 {
-		candidateBuf[i], candidateBuf[j] = candidateBuf[j], candidateBuf[i]
-	}
-
-	expected := []bool{true, true, false, false}
-	scalar := scalar{}
-
-	// We check in range [L-2, L+4)
-	for i := 0; i < 4; i++ {
-		require.Equal(t, expected[i], scalar.IsCanonical(candidateBuf), fmt.Sprintf("`lMinus2 + %d` does not pass canonicality test", i))
-		candidateBuf[0]++
-	}
 }

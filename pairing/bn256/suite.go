@@ -1,3 +1,5 @@
+//go:build !constantTime
+
 // Package bn256 implements a particular bilinear group.
 //
 // Bilinear groups are the basis of many of the new cryptographic protocols that
@@ -49,21 +51,21 @@ func NewSuite() *Suite {
 // NewSuiteG1 returns a G1 suite.
 func NewSuiteG1() *Suite {
 	s := NewSuite()
-	s.commonSuite.Group = &groupG1{commonSuite: &commonSuite{}}
+	s.Group = &groupG1{commonSuite: &commonSuite{}}
 	return s
 }
 
 // NewSuiteG2 returns a G2 suite.
 func NewSuiteG2() *Suite {
 	s := NewSuite()
-	s.commonSuite.Group = &groupG2{commonSuite: &commonSuite{}}
+	s.Group = &groupG2{commonSuite: &commonSuite{}}
 	return s
 }
 
 // NewSuiteGT returns a GT suite.
 func NewSuiteGT() *Suite {
 	s := NewSuite()
-	s.commonSuite.Group = &groupGT{commonSuite: &commonSuite{}}
+	s.Group = &groupGT{commonSuite: &commonSuite{}}
 	return s
 }
 
@@ -95,7 +97,11 @@ func (s *Suite) GT() kyber.Group {
 // Pair takes the points p1 and p2 in groups G1 and G2, respectively, as input
 // and computes their pairing in GT.
 func (s *Suite) Pair(p1 kyber.Point, p2 kyber.Point) kyber.Point {
-	return s.GT().Point().(*pointGT).Pair(p1, p2)
+	gt, ok := s.GT().Point().(*pointGT)
+	if !ok {
+		panic("bn256.GT: not a pointGT")
+	}
+	return gt.Pair(p1, p2)
 }
 
 func (s *Suite) ValidatePairing(p1, p2, inv1, inv2 kyber.Point) bool {

@@ -1,11 +1,15 @@
+//go:build !constantTime
+
 package bn256
 
 import (
 	"crypto/sha256"
 	"encoding/binary"
 	"fmt"
-	"golang.org/x/crypto/hkdf"
 	"math/big"
+
+	"go.dedis.ch/kyber/v4/compatible"
+	"golang.org/x/crypto/hkdf"
 )
 
 type gfP [4]uint64
@@ -46,8 +50,8 @@ func hashToBase(msg, dst []byte) *gfP {
 	if _, err := r.Read(t[:]); err != nil {
 		panic(err)
 	}
-	var x big.Int
-	v := x.SetBytes(t[:]).Mod(&x, p).Bytes()
+	var x compatible.Int
+	v := x.SetBytesMod(t[:], pMod).Bytes(nil)
 	v32 := [32]byte{}
 	for i := len(v) - 1; i >= 0; i-- {
 		v32[len(v)-1-i] = v[i]

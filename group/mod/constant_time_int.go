@@ -1,0 +1,444 @@
+//go:build constantTime
+
+// Package mod contains a generic implementation of finite field arithmetic
+// on integer fields with a constant modulus.
+package mod
+
+import (
+	"crypto/cipher"
+	"encoding/hex"
+	"errors"
+	"io"
+
+	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v4/compatible"
+	"go.dedis.ch/kyber/v4/compatible/compatiblemod"
+	"go.dedis.ch/kyber/v4/group/internal/marshalling"
+	"go.dedis.ch/kyber/v4/util/random"
+)
+
+var marshalScalarID = [8]byte{'m', 'o', 'd', '.', 'i', 'n', 't', ' '}
+
+// Int is a generic implementation of finite field arithmetic
+// on integer finite fields with a given constant modulus,
+// built using Go's built-in big.Int or with the filosottile/bigmod package,
+// depending on whether the constantTime build tag is chosen.
+// Int satisfies the kyber.Scalar interface,
+// and hence serves as a basic implementation of kyber.Scalar,
+// e.g., representing discrete-log exponents of Schnorr groups
+// or scalar multipliers for elliptic curves.
+//
+// Int offers an API similar to and compatible with big.Int,
+// but "carries around" a pointer to the relevant modulus
+// and automatically normalizes the value to that modulus
+// after all arithmetic operations, simplifying modular arithmetic.
+// Binary operations assume that the source(s)
+// have the same modulus, but do not check this assumption.
+// Unary and binary arithmetic operations may be performed on uninitialized
+// target objects, and receive the modulus of the first operand.
+// For efficiency the modulus field M is a pointer,
+// whose target is assumed never to change.
+type Int struct {
+	V  compatible.Int     // Integer value from 0 through M-1
+	M  *compatiblemod.Mod // Modulus for finite field arithmetic
+	BO kyber.ByteOrder    // Endianness which will be used on input and output
+}
+
+// SetString sets the Int to a rational fraction n/d represented by a pair of strings.
+// If d == "", then the denominator is taken to be 1.
+// Returns (i,true) on success, or
+// (nil,false) if either string fails to parse.
+func (i *Int) SetString(n, d string, base int) (*Int, bool) {
+	if _, ok := i.V.SetStringM(n, i.M, base); !ok {
+		return nil, false
+	}
+	if d != "" {
+		var di Int
+		di.M = i.M
+		if _, ok := di.SetString(d, "", base); !ok {
+			return nil, false
+		}
+		i.Div(i, &di)
+	}
+	return i, true
+}
+
+// NewInt creates a new Int with a given compatible.Int and a compatible.Int modulus.
+func NewInt(v *compatible.Int, m *compatiblemod.Mod) *Int {
+	return new(Int).Init(v, m)
+}
+
+// NewInt64 creates a new Int with a given int64 value and bigmod.Mod modulus.
+func NewInt64(v int64, m *compatiblemod.Mod) *Int {
+	return new(Int).Init64(v, m)
+}
+
+// NewIntBytes creates a new Int with a given slice of bytes and a compatible.Int
+// modulus.
+func NewIntBytes(a []byte, m *compatiblemod.Mod, byteOrder kyber.ByteOrder) *Int {
+	return new(Int).InitBytes(a, m, byteOrder)
+}
+
+// NewIntString creates a new Int with a given string and a compatible.Int modulus.
+// The value is set to a rational fraction n/d in a given base.
+func NewIntString(n, d string, base int, m *compatiblemod.Mod) *Int {
+	return new(Int).InitString(n, d, base, m)
+}
+
+// Init a Int with a given compatible.Int value and modulus pointer.
+// Note that the value is copied; the modulus is not.
+func (i *Int) Init(v *compatible.Int, m *compatiblemod.Mod) *Int {
+	i.M = m
+	i.BO = kyber.BigEndian
+	i.V.Mod(v, m)
+	return i
+}
+
+// Init64 creates an Int with an int64 value and compatible.Int modulus.
+func (i *Int) Init64(v int64, m *compatiblemod.Mod) *Int {
+	// leaks the initialization sign, but the result will be positive anyway...
+	i.M = m
+	i.BO = kyber.BigEndian
+	if v < 0 {
+		i.V = *compatible.FromNat(i.M.Nat())
+		negated := compatible.NewInt(-v)
+		i.V = *compatible.NewInt(0).Sub(&i.V, negated, i.M)
+	} else {
+		i.V = *compatible.NewInt(0).SetUint(uint(v))
+		i.V = *compatible.NewInt(0).Mod(&i.V, m)
+	}
+	return i
+}
+
+// InitBytes init the Int to a number represented in a big-endian byte string.
+func (i *Int) InitBytes(a []byte, m *compatiblemod.Mod, byteOrder kyber.ByteOrder) *Int {
+	i.M = m
+	i.BO = byteOrder
+	i.SetBytes(a)
+	return i
+}
+
+// InitString inits the Int to a rational fraction n/d
+// specified with a pair of strings in a given base.
+func (i *Int) InitString(n, d string, base int, m *compatiblemod.Mod) *Int {
+	i.M = m
+	i.BO = kyber.BigEndian
+	if _, ok := i.SetString(n, d, base); !ok {
+		panic("InitString: invalid fraction representation")
+	}
+	return i
+}
+
+// Return the Int's integer value in hexadecimal string representation.
+func (i *Int) String() string {
+	return hex.EncodeToString(i.V.Bytes(i.M))
+}
+
+// Cmp compares two Ints for equality or inequality
+func (i *Int) Cmp(s2 kyber.Scalar) int {
+	s2Int, ok := s2.(*Int)
+	if !ok {
+		return -1
+	}
+	return i.V.Cmp(&s2Int.V)
+}
+
+// Equal returns true if the two Ints are equal
+func (i *Int) Equal(s2 kyber.Scalar) bool {
+	s2Int, ok := s2.(*Int)
+	if !ok {
+		return false
+	}
+	return i.V.Equal(&s2Int.V)
+}
+
+// Nonzero returns true if the integer value is nonzero.
+func (i *Int) Nonzero() bool {
+	return !i.V.IsZero()
+}
+
+// Set both value and modulus to be equal to another Int.
+// Since this method copies the modulus as well,
+// it may be used as an alternative to Init().
+func (i *Int) Set(a kyber.Scalar) kyber.Scalar {
+	ai := a.(*Int) //nolint:errcheck // Design pattern to emulate generics
+	i.M = ai.M
+	i.V = *i.V.Set(&ai.V)
+	return i
+}
+
+// Clone returns a separate duplicate of this Int.
+func (i *Int) Clone() kyber.Scalar {
+	ni := new(Int).Init(&i.V, i.M)
+	ni.BO = i.BO
+	return ni
+}
+
+// Zero set the Int to the value 0.  The modulus must already be initialized.
+func (i *Int) Zero() kyber.Scalar {
+	i.V = *compatible.NewInt(0)
+	return i
+}
+
+// One sets the Int to the value 1.  The modulus must already be initialized.
+func (i *Int) One() kyber.Scalar {
+	i.V = *compatible.NewInt(1)
+	return i
+}
+
+// SetInt64 sets the Int to an arbitrary 64-bit "small integer" value.
+// The modulus must already be initialized.
+func (i *Int) SetInt64(v int64) kyber.Scalar {
+	if v < 0 {
+		panic("negative value")
+	}
+	i.V = *compatible.NewInt(0).Mod(compatible.NewInt(v), i.M)
+
+	return i
+}
+
+// Int64 returns the int64 representation of the value.
+// If the value is not representable in an int64 the result is undefined.
+func (i *Int) Int64() int64 {
+	return i.V.Int64()
+}
+
+// SetUint64 sets the Int to an arbitrary uint64 value.
+// The modulus must already be initialized.
+func (i *Int) SetUint64(v uint64) kyber.Scalar {
+	i.V = *compatible.NewInt(0).Mod(compatible.NewUint(v), i.M)
+	return i
+}
+
+// Uint64 returns the uint64 representation of the value.
+// If the value is not representable in an uint64 the result is undefined.
+func (i *Int) Uint64() uint64 {
+	return i.V.Uint64()
+}
+
+// Add sets the target to a + b mod M, where M is a's modulus..
+func (i *Int) Add(a, b kyber.Scalar) kyber.Scalar {
+	ai := a.(*Int) //nolint:errcheck // Design pattern to emulate generics
+	bi := b.(*Int) //nolint:errcheck // Design pattern to emulate generics
+	i.M = ai.M
+	i.V = *compatible.NewInt(0).Add(&ai.V, &bi.V, i.M)
+	return i
+}
+
+// Sub sets the target to a - b mod M.
+// Target receives a's modulus.
+func (i *Int) Sub(a, b kyber.Scalar) kyber.Scalar {
+	ai := a.(*Int) //nolint:errcheck // Design pattern to emulate generics
+	bi := b.(*Int) //nolint:errcheck // Design pattern to emulate generics
+	i.M = ai.M
+	i.V = *compatible.NewInt(0).Sub(&ai.V, &bi.V, i.M)
+	return i
+}
+
+// Neg sets the target to -a mod M.
+func (i *Int) Neg(a kyber.Scalar) kyber.Scalar {
+	newNat := new(compatible.Int)
+	ai, ok := a.(*Int)
+	if !ok {
+		panic("invalid argument")
+	}
+	newNat.Int = *ai.M.Nat()
+	i.V.Set(newNat)
+	i.M = ai.M
+	i.V = *compatible.NewInt(0).Sub(&i.V, &ai.V, i.M)
+
+	return i
+}
+
+// Mul sets the target to a * b mod M.
+// Target receives a's modulus.
+func (i *Int) Mul(a, b kyber.Scalar) kyber.Scalar {
+	ai := a.(*Int) //nolint:errcheck // Design pattern to emulate generics
+	bi := b.(*Int) //nolint:errcheck // Design pattern to emulate generics
+	i.M = ai.M
+	i.V = *compatible.NewInt(1).Mul(&ai.V, &bi.V, ai.M)
+
+	return i
+}
+
+// Div sets the target to a * b^-1 mod M, where b^-1 is the modular inverse of b.
+func (i *Int) Div(a, b kyber.Scalar) kyber.Scalar {
+	ai := a.(*Int) //nolint:errcheck // Design pattern to emulate generics
+	bi := b.(*Int) //nolint:errcheck // Design pattern to emulate generics
+
+	inverse := NewInt(compatible.NewInt(0), bi.M).Inv(bi)
+	divResult := i.Mul(ai, inverse)
+	// todo temporary solution... i.Set(divResult) does not work.........
+	divResultInt, ok := divResult.(*Int)
+	if !ok {
+		panic("invalid result type")
+	}
+	i.V = divResultInt.V
+	return i
+}
+
+// Inv sets the target to the modular inverse of a with respect to modulus M.
+func (i *Int) Inv(a kyber.Scalar) kyber.Scalar {
+	ai, ok := a.(*Int)
+	if !ok {
+		panic("invalid argument to Inv")
+	}
+	i.M = ai.M
+	i.V = *compatible.NewInt(0).ModInverse(&ai.V, i.M)
+	return i
+}
+
+// Exp sets the target to a^e mod M,
+// where e is an arbitrary compatible.Int exponent (not necessarily 0 <= e < M).
+func (i *Int) Exp(a kyber.Scalar, e *compatible.Int) kyber.Scalar {
+	ai := a.(*Int) //nolint:errcheck // Design pattern to emulate generics
+	i.M = ai.M
+	// to protect against golang/go#22830
+	var tmp = new(compatible.Int)
+	tmp.Exp(&ai.V, e, i.M)
+	i.V = *tmp
+	return i
+}
+
+// Pick a [pseudo-]random integer, modulo M,
+// using bits from the given stream cipher.
+func (i *Int) Pick(rand cipher.Stream) kyber.Scalar {
+	randomInt := random.Int(i.M, rand)
+	i.V = *randomInt
+	return i
+}
+
+// ByteOrder return the byte representation type (big or little endian)
+func (i *Int) ByteOrder() kyber.ByteOrder {
+	return i.BO
+}
+
+// GroupOrder returns the order of the underlying group
+func (i *Int) GroupOrder() *compatiblemod.Mod {
+	mod := new(compatiblemod.Mod)
+	return mod.SetBytes(i.M.Bytes())
+}
+
+// MarshalSize returns the length in bytes of encoded integers with modulus M.
+// The length of encoded Ints depends only on the size of the modulus,
+// and not on the the value of the encoded integer,
+// making the encoding is fixed-length for simplicity and security.
+func (i *Int) MarshalSize() int {
+	return (i.M.BitLen() + 7) / 8
+}
+
+// MarshalBinary encodes the value of this Int into a byte-slice exactly Len() bytes long.
+// It uses i's ByteOrder to determine which byte order to output.
+func (i *Int) MarshalBinary() ([]byte, error) {
+	l := i.MarshalSize()
+	b := i.V.Bytes(i.M) // may be shorter than l
+	offset := l - len(b)
+
+	if i.BO == kyber.LittleEndian {
+		return i.LittleEndian(l, l), nil
+	}
+
+	if offset != 0 {
+		nb := make([]byte, l)
+		copy(nb[offset:], b)
+		b = nb
+	}
+	return b, nil
+}
+
+// MarshalID returns a unique identifier for this type
+func (i *Int) MarshalID() [8]byte {
+	return marshalScalarID
+}
+
+// UnmarshalBinary tries to decode a Int from a byte-slice buffer.
+// Returns an error if the buffer is not exactly Len() bytes long
+// or if the contents of the buffer represents an out-of-range integer.
+func (i *Int) UnmarshalBinary(buf []byte) error {
+	if len(buf) != i.MarshalSize() {
+		return errors.New("UnmarshalBinary: wrong size buffer")
+	}
+	// Still needed here because of the comparison with the modulo
+	if i.BO == kyber.LittleEndian {
+		buf = reverse(nil, buf)
+	}
+	_, err := i.V.SetBytesWithCheck(buf, i.M)
+	return err
+}
+
+// MarshalTo encodes this Int to the given Writer.
+func (i *Int) MarshalTo(w io.Writer) (int, error) {
+	return marshalling.ScalarMarshalTo(i, w)
+}
+
+// UnmarshalFrom tries to decode an Int from the given Reader.
+func (i *Int) UnmarshalFrom(r io.Reader) (int, error) {
+	return marshalling.ScalarUnmarshalFrom(i, r)
+}
+
+// BigEndian encodes the value of this Int into a big-endian byte-slice
+// at least min bytes but no more than max bytes long.
+// Panics if max != 0 and the Int cannot be represented in max bytes.
+func (i *Int) BigEndian(minBytes, maxBytes int) []byte {
+	act := i.MarshalSize()
+	pad, ofs := act, 0
+	if pad < minBytes {
+		pad, ofs = minBytes, minBytes-act
+	}
+	if maxBytes != 0 && pad > maxBytes {
+		panic("Int not representable in max bytes")
+	}
+	buf := make([]byte, pad)
+	i.V.FillBytes(buf[ofs:])
+	return buf
+}
+
+// SetBytes set the value value to a number represented
+// by a byte string.
+// Endianness depends on the endianess set in i.
+func (i *Int) SetBytes(a []byte) kyber.Scalar {
+	var buff = a
+	if i.BO == kyber.LittleEndian {
+		buff = reverse(nil, a)
+	}
+	i.V.SetBytesMod(buff, i.M)
+	return i
+}
+
+// LittleEndian encodes the value of this Int into a little-endian byte-slice
+// at least min bytes but no more than max bytes long.
+// Panics if max != 0 and the Int cannot be represented in max bytes.
+func (i *Int) LittleEndian(minByte, maxBytes int) []byte {
+	act := i.MarshalSize()
+	vBytes := i.V.Bytes(i.M)
+	vSize := len(vBytes)
+	if vSize < act {
+		act = vSize
+	}
+	pad := act
+	if pad < minByte {
+		pad = minByte
+	}
+	if maxBytes != 0 && pad > maxBytes {
+		panic("Int not representable in max bytes")
+	}
+	buf := make([]byte, pad)
+	reverse(buf[:act], vBytes)
+	return buf
+}
+
+// reverse copies src into dst in byte-reversed order and returns dst,
+// such that src[0] goes into dst[len-1] and vice versa.
+// dst and src may be the same slice but otherwise must not overlap.
+func reverse(dst, src []byte) []byte {
+	if dst == nil {
+		dst = make([]byte, len(src))
+	}
+	l := len(dst)
+	for i, j := 0, l-1; i < (l+1)/2; {
+		dst[i], dst[j] = src[j], src[i]
+		i++
+		j--
+	}
+	return dst
+}

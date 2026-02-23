@@ -53,13 +53,14 @@ type PriPoly struct {
 // cryptographic group, the secret sharing threshold t, and the secret to be
 // shared s. If s is nil, a new s is chosen using the provided randomness
 // stream rand.
-func NewPriPoly(group kyber.Group, t int, s kyber.Scalar, rand cipher.Stream) *PriPoly {
+func NewPriPoly(group kyber.Group, t uint32, s kyber.Scalar, rand cipher.Stream) *PriPoly {
 	coeffs := make([]kyber.Scalar, t)
 	coeffs[0] = s
 	if coeffs[0] == nil {
 		coeffs[0] = group.Scalar().Pick(rand)
 	}
-	for i := 1; i < t; i++ {
+
+	for i := uint32(1); i < t; i++ {
 		coeffs[i] = group.Scalar().Pick(rand)
 	}
 	return &PriPoly{g: group, coeffs: coeffs}
@@ -71,8 +72,8 @@ func CoefficientsToPriPoly(g kyber.Group, coeffs []kyber.Scalar) *PriPoly {
 }
 
 // Threshold returns the secret sharing threshold.
-func (p *PriPoly) Threshold() int {
-	return len(p.coeffs)
+func (p *PriPoly) Threshold() uint32 {
+	return uint32(len(p.coeffs))
 }
 
 // Secret returns the shared secret p(0), i.e., the constant term of the polynomial.
@@ -84,7 +85,7 @@ func (p *PriPoly) Secret() kyber.Scalar {
 func (p *PriPoly) Eval(i uint32) *PriShare {
 	xi := p.g.Scalar().SetInt64(1 + int64(i))
 	v := p.g.Scalar().Zero()
-	for j := p.Threshold() - 1; j >= 0; j-- {
+	for j := int64(p.Threshold()) - 1; j >= 0; j-- {
 		v.Mul(v, xi)
 		v.Add(v, p.coeffs[j])
 	}
@@ -92,7 +93,7 @@ func (p *PriPoly) Eval(i uint32) *PriShare {
 }
 
 // Shares creates a list of n private shares p(1),...,p(n).
-func (p *PriPoly) Shares(n int) []*PriShare {
+func (p *PriPoly) Shares(n uint32) []*PriShare {
 	shares := make([]*PriShare, n)
 	for i := range shares {
 		shares[i] = p.Eval(uint32(i))
@@ -128,7 +129,8 @@ func (p *PriPoly) Equal(q *PriPoly) bool {
 		return false
 	}
 	b := 1
-	for i := 0; i < p.Threshold(); i++ {
+
+	for i := uint32(0); i < p.Threshold(); i++ {
 		pb, _ := p.coeffs[i].MarshalBinary()
 		qb, _ := q.coeffs[i].MarshalBinary()
 		b &= subtle.ConstantTimeCompare(pb, qb)
@@ -177,9 +179,9 @@ func (p *PriPoly) Coefficients() []kyber.Scalar {
 
 // RecoverSecret reconstructs the shared secret p(0) from a list of private
 // shares using Lagrange interpolation.
-func RecoverSecret(g kyber.Group, shares []*PriShare, t, n int) (kyber.Scalar, error) {
+func RecoverSecret(g kyber.Group, shares []*PriShare, t, n uint32) (kyber.Scalar, error) {
 	x, y := xyScalar(g, shares, t, n)
-	if len(x) < t {
+	if uint32(len(x)) < t {
 		return nil, errors.New("share: not enough shares to recover secret")
 	}
 
@@ -214,7 +216,7 @@ func (s byIndexScalar) Less(i, j int) bool { return s[i].I < s[j].I }
 // xyScalar returns the list of (x_i, y_i) pairs indexed. The first map returned
 // is the list of x_i and the second map is the list of y_i, both indexed in
 // their respective map at index i.
-func xyScalar(g kyber.Group, shares []*PriShare, t, n int) (map[int]kyber.Scalar, map[int]kyber.Scalar) {
+func xyScalar(g kyber.Group, shares []*PriShare, t, n uint32) (map[uint32]kyber.Scalar, map[uint32]kyber.Scalar) {
 	// we are sorting first the shares since the shares may be unrelated for
 	// some applications. In this case, all participants needs to interpolate on
 	// the exact same order shares.
@@ -226,16 +228,16 @@ func xyScalar(g kyber.Group, shares []*PriShare, t, n int) (map[int]kyber.Scalar
 	}
 	sort.Sort(byIndexScalar(sorted))
 
-	x := make(map[int]kyber.Scalar)
-	y := make(map[int]kyber.Scalar)
+	x := make(map[uint32]kyber.Scalar)
+	y := make(map[uint32]kyber.Scalar)
 	for _, s := range sorted {
 		if s == nil || s.V == nil {
 			continue
 		}
-		idx := int(s.I)
+		idx := s.I
 		x[idx] = g.Scalar().SetInt64(int64(idx + 1))
 		y[idx] = s.V
-		if len(x) == t {
+		if uint32(len(x)) == t {
 			break
 		}
 	}
@@ -255,9 +257,9 @@ func minusConst(g kyber.Group, c kyber.Scalar) *PriPoly {
 // coefficients.  It is up to the caller to make sure that there are enough
 // shares to correctly re-construct the polynomial. There must be at least t
 // shares.
-func RecoverPriPoly(g kyber.Group, shares []*PriShare, t, n int) (*PriPoly, error) {
+func RecoverPriPoly(g kyber.Group, shares []*PriShare, t, n uint32) (*PriPoly, error) {
 	x, y := xyScalar(g, shares, t, n)
-	if len(x) != t {
+	if uint32(len(x)) != t {
 		return nil, errors.New("share: not enough shares to recover private polynomial")
 	}
 
@@ -325,8 +327,8 @@ func (p *PubPoly) Info() (base kyber.Point, commits []kyber.Point) {
 }
 
 // Threshold returns the secret sharing threshold.
-func (p *PubPoly) Threshold() int {
-	return len(p.commits)
+func (p *PubPoly) Threshold() int64 {
+	return int64(len(p.commits))
 }
 
 // Commit returns the secret commitment p(0), i.e., the constant term of the polynomial.
@@ -346,7 +348,7 @@ func (p *PubPoly) Eval(i uint32) *PubShare {
 }
 
 // Shares creates a list of n public commitment shares p(1),...,p(n).
-func (p *PubPoly) Shares(n int) []*PubShare {
+func (p *PubPoly) Shares(n uint32) []*PubShare {
 	shares := make([]*PubShare, n)
 	for i := range shares {
 		shares[i] = p.Eval(uint32(i))
@@ -387,11 +389,11 @@ func (p *PubPoly) Equal(q *PubPoly) bool {
 	}
 	b := 1
 
-	if len(p.commits) < p.Threshold() || len(q.commits) < p.Threshold() || p.Threshold() != q.Threshold() {
+	if int64(len(p.commits)) < p.Threshold() || int64(len(q.commits)) < p.Threshold() || p.Threshold() != q.Threshold() {
 		return false
 	}
 
-	for i := 0; i < p.Threshold(); i++ {
+	for i := int64(0); i < p.Threshold(); i++ {
 		pb, _ := p.commits[i].MarshalBinary()
 		qb, _ := q.commits[i].MarshalBinary()
 		b &= subtle.ConstantTimeCompare(pb, qb)
@@ -413,7 +415,7 @@ func (s byIndexPub) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 func (s byIndexPub) Less(i, j int) bool { return s[i].I < s[j].I }
 
 // xyCommits is the public version of xScalars.
-func xyCommit(g kyber.Group, shares []*PubShare, t, n int) (map[int]kyber.Scalar, map[int]kyber.Point) {
+func xyCommit(g kyber.Group, shares []*PubShare, t, n uint32) (map[uint32]kyber.Scalar, map[uint32]kyber.Point) {
 	// we are sorting first the shares since the shares may be unrelated for
 	// some applications. In this case, all participants needs to interpolate on
 	// the exact same order shares.
@@ -425,17 +427,17 @@ func xyCommit(g kyber.Group, shares []*PubShare, t, n int) (map[int]kyber.Scalar
 	}
 	sort.Sort(byIndexPub(sorted))
 
-	x := make(map[int]kyber.Scalar)
-	y := make(map[int]kyber.Point)
+	x := make(map[uint32]kyber.Scalar)
+	y := make(map[uint32]kyber.Point)
 
 	for _, s := range sorted {
 		if s == nil || s.V == nil {
 			continue
 		}
-		idx := int(s.I)
+		idx := s.I
 		x[idx] = g.Scalar().SetInt64(int64(idx + 1))
 		y[idx] = s.V
-		if len(x) == t {
+		if uint32(len(x)) == t {
 			break
 		}
 	}
@@ -444,9 +446,9 @@ func xyCommit(g kyber.Group, shares []*PubShare, t, n int) (map[int]kyber.Scalar
 
 // RecoverCommit reconstructs the secret commitment p(0) from a list of public
 // shares using Lagrange interpolation.
-func RecoverCommit(g kyber.Group, shares []*PubShare, t, n int) (kyber.Point, error) {
+func RecoverCommit(g kyber.Group, shares []*PubShare, t, n uint32) (kyber.Point, error) {
 	x, y := xyCommit(g, shares, t, n)
-	if len(x) < t {
+	if uint32(len(x)) < t {
 		return nil, errors.New("share: not enough good public shares to reconstruct secret commitment")
 	}
 
@@ -475,9 +477,9 @@ func RecoverCommit(g kyber.Group, shares []*PubShare, t, n int) (kyber.Point, er
 
 // RecoverPubPoly reconstructs the full public polynomial from a set of public
 // shares using Lagrange interpolation.
-func RecoverPubPoly(g kyber.Group, shares []*PubShare, t, n int) (*PubPoly, error) {
+func RecoverPubPoly(g kyber.Group, shares []*PubShare, t, n uint32) (*PubPoly, error) {
 	x, y := xyCommit(g, shares, t, n)
-	if len(x) < t {
+	if uint32(len(x)) < t {
 		return nil, errors.New("share: not enough good public shares to reconstruct secret commitment")
 	}
 
@@ -508,7 +510,7 @@ func RecoverPubPoly(g kyber.Group, shares []*PubShare, t, n int) (*PubPoly, erro
 // lagrangeBasis returns a PriPoly containing the Lagrange coefficients for the
 // i-th position. xs is a mapping between the indices and the values that the
 // interpolation is using, computed with xyScalar().
-func lagrangeBasis(g kyber.Group, i int, xs map[int]kyber.Scalar) *PriPoly {
+func lagrangeBasis(g kyber.Group, i uint32, xs map[uint32]kyber.Scalar) *PriPoly {
 	var basis = &PriPoly{
 		g:      g,
 		coeffs: []kyber.Scalar{g.Scalar().One()},
@@ -521,9 +523,9 @@ func lagrangeBasis(g kyber.Group, i int, xs map[int]kyber.Scalar) *PriPoly {
 			continue
 		}
 		basis = basis.Mul(minusConst(g, xm))
-		den.Sub(xs[i], xm) // den = xi - xm
-		den.Inv(den)       // den = 1 / den
-		acc.Mul(acc, den)  // acc = acc * den
+		den.Sub(xs[i], xm) // Compute den = xi - xm
+		den.Inv(den)       // Compute den = 1 / den
+		acc.Mul(acc, den)  // Compute acc = acc * den
 	}
 
 	// multiply all coefficients by the denominator

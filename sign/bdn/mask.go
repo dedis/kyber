@@ -137,7 +137,7 @@ func (m *Mask) forEachBitEnabled(f func(i, j, n int) int) int {
 func (m *Mask) IndexOfNthEnabled(nth int) int {
 	return m.forEachBitEnabled(func(i, j, n int) int {
 		if n == nth {
-			return i*8 + int(j)
+			return i*8 + j
 		}
 
 		return -1
@@ -148,7 +148,7 @@ func (m *Mask) IndexOfNthEnabled(nth int) int {
 // words, it returns how many bits are enabled before the given index.
 func (m *Mask) NthEnabledAtIndex(idx int) int {
 	return m.forEachBitEnabled(func(i, j, n int) int {
-		if i*8+int(j) == idx {
+		if i*8+j == idx {
 			return n
 		}
 
