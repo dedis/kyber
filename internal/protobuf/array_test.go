@@ -2,15 +2,12 @@ package protobuf
 
 import (
 	"encoding/hex"
+	"math"
 	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 )
-
-type ArrayTest0 struct {
-	A []int
-}
 
 type ArrayTest1 struct {
 	A []int64
@@ -20,23 +17,24 @@ type ArrayTest2 struct {
 	A []int32
 }
 
-type ArrayTest3 struct {
-	A int
-}
-
 func TestArray(t *testing.T) {
+	var maxInt32 int32 = math.MaxInt32
 
 	a1 := ArrayTest1{[]int64{1, 1, 1}}
 	a2 := ArrayTest2{[]int32{1, 1, 1}}
+	a3 := ArrayTest2{[]int32{1, 1, maxInt32}}
 
 	buf1, _ := Encode(&a1)
 	buf2, _ := Encode(&a2)
+	buf3, _ := Encode(&a3)
 
 	t.Log(hex.Dump(buf1))
 	t.Log(hex.Dump(buf2))
+	t.Log(hex.Dump(buf3))
 
 	b1 := ArrayTest1{}
 	b2 := ArrayTest2{}
+	b3 := ArrayTest2{}
 
 	Decode(buf1, &b1)
 	t.Log(b1, reflect.TypeOf(b1))
@@ -44,6 +42,10 @@ func TestArray(t *testing.T) {
 	Decode(buf2, &b2)
 	t.Log(b2, reflect.TypeOf(b2))
 
+	Decode(buf3, &b3)
+	t.Log(b3, reflect.TypeOf(b3))
+
 	require.Equal(t, a1, b1)
 	require.Equal(t, a2, b2)
+	require.Equal(t, a3, b3)
 }
