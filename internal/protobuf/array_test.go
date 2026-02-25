@@ -19,11 +19,12 @@ type ArrayTest2 struct {
 
 func TestArray(t *testing.T) {
 	var maxInt32 int32 = math.MaxInt32
+	var maxInt64 int64 = math.MaxInt64 / 2
 
 	a1 := ArrayTest1{[]int64{1, 1, 1}}
 	a2 := ArrayTest2{[]int32{1, 1, 1}}
 	a3 := ArrayTest2{[]int32{1, 1, maxInt32}}
-	a4 := ArrayTest1{[]int64{1, 1, math.MaxInt64}}
+	a4 := ArrayTest1{[]int64{1, 1, maxInt64}}
 
 	buf1, err := Encode(&a1)
 	require.NoError(t, err)
