@@ -25,8 +25,8 @@ func TestInterfaceVartime(t *testing.T) {
 	RegisterInterface(func() interface{} { return ed25519.Point() })
 
 	pp := Points{
-		P1: bn256.Point(),
-		P2: ed25519.Point(),
+		P1: bn256.Point().Pick(bn256.XOF([]byte("test"))),
+		P2: ed25519.Point().Pick(ed25519.XOF([]byte("test"))),
 	}
 
 	buf, err := Encode(&pp)
