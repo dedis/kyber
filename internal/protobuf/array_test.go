@@ -24,9 +24,12 @@ func TestArray(t *testing.T) {
 	a2 := ArrayTest2{[]int32{1, 1, 1}}
 	a3 := ArrayTest2{[]int32{1, 1, maxInt32}}
 
-	buf1, _ := Encode(&a1)
-	buf2, _ := Encode(&a2)
-	buf3, _ := Encode(&a3)
+	buf1, err := Encode(&a1)
+	require.NoError(t, err)
+	buf2, err := Encode(&a2)
+	require.NoError(t, err)
+	buf3, err := Encode(&a3)
+	require.NoError(t, err)
 
 	t.Log(hex.Dump(buf1))
 	t.Log(hex.Dump(buf2))
@@ -36,13 +39,16 @@ func TestArray(t *testing.T) {
 	b2 := ArrayTest2{}
 	b3 := ArrayTest2{}
 
-	Decode(buf1, &b1)
+	err = Decode(buf1, &b1)
+	require.NoError(t, err)
 	t.Log(b1, reflect.TypeOf(b1))
 
-	Decode(buf2, &b2)
+	err = Decode(buf2, &b2)
+	require.NoError(t, err)
 	t.Log(b2, reflect.TypeOf(b2))
 
-	Decode(buf3, &b3)
+	err = Decode(buf3, &b3)
+	require.NoError(t, err)
 	t.Log(b3, reflect.TypeOf(b3))
 
 	require.Equal(t, a1, b1)
