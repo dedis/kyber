@@ -43,7 +43,7 @@ func UnmarshalPriShare(data []byte, suite Suite) (*share.PriShare, error) {
 
 	// Check for overflow on I
 	if compatiblePriShare.I < 0 || compatiblePriShare.I > math.MaxUint32 {
-		return nil, fmt.Errorf("cannot cast I as int64 to uint32 due to overflow")
+		return nil, fmt.Errorf("cannot cast I as uint32 due to overflow")
 	}
 
 	if err != nil {
