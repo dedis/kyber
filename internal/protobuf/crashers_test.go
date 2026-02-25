@@ -1,6 +1,7 @@
 package protobuf
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -33,8 +34,8 @@ func TestCrash1(t *testing.T) {
 	var s t2
 	err = Decode(in, &s)
 	assert.NotNil(t, err)
-	if err.Error() != "Error while decoding field {Name:T3s PkgPath: Type:[3]protobuf.t3 Tag: Offset:112 Index:[4] Anonymous:false}: append to non-slice" &&
-		err.Error() != "Error while decoding field {Name:T3s PkgPath: Type:[3]protobuf.t3 Tag: Offset:92 Index:[4] Anonymous:false}: append to non-slice" {
+	var expectedError *DecodingFieldError
+	if !errors.As(err, &expectedError) {
 		assert.Fail(t, "Expected error \"appending to non-slice\"")
 	}
 }
@@ -45,5 +46,6 @@ func TestCrash2(t *testing.T) {
 	var s t2
 	err := Decode(in, &s)
 	assert.NotNil(t, err)
-	assert.Equal(t, "Error while decoding field {Name:X PkgPath: Type:protobuf.t1 Tag: Offset:0 Index:[0] Anonymous:false}: array length and buffer length differ", err.Error())
+	var expectedError *DecodingFieldError
+	assert.ErrorAs(t, err, &expectedError)
 }

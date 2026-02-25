@@ -29,6 +29,24 @@ func (c *Constructors) String() string {
 	return s
 }
 
+type DecodingFieldError struct {
+	Field string
+	Err   error
+}
+
+// Implement error interface
+func (e *DecodingFieldError) Error() string {
+	return fmt.Sprintf("Error while decoding field %s. Reason: %v", e.Field, e.Err)
+}
+
+func (e *DecodingFieldError) Unwrap() error {
+	return e.Err
+}
+
+func newDecodingFieldError(field string, err error) *DecodingFieldError {
+	return &DecodingFieldError{field, err}
+}
+
 // Decoder is the main struct used to decode a protobuf blob.
 type decoder struct {
 	nm Constructors
@@ -57,7 +75,7 @@ func DecodeWithConstructors(buf []byte, structPtr interface{}, cons Constructors
 			case error:
 				err = e
 			default:
-				err = errors.New("Failed to decode the field")
+				err = newDecodingFieldError("unknown", errors.New("failed to decode the field"))
 			}
 		}
 	}()
@@ -104,7 +122,8 @@ func (de *decoder) message(buf []byte, sval reflect.Value) error {
 		// Parse the key
 		key, n := binary.Uvarint(buf)
 		if n <= 0 {
-			return errors.New("bad protobuf field key")
+			return newDecodingFieldError(fmt.Sprintf("%+v", fields[fieldi].Field),
+				errors.New("bad protobuf field key"))
 		}
 		buf = buf[n:]
 		wiretype := int(key & 7)
@@ -140,7 +159,7 @@ func (de *decoder) message(buf []byte, sval reflect.Value) error {
 		rem, err := de.value(wiretype, buf, field)
 		if err != nil {
 			if fieldi < len(fields) && fields[fieldi] != nil {
-				return fmt.Errorf("Error while decoding field %+v: %v", fields[fieldi].Field, err)
+				return newDecodingFieldError(fmt.Sprintf("%+v", fields[fieldi].Field), err)
 			}
 
 			return err
