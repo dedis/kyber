@@ -12,7 +12,7 @@ type ValueInt interface {
 }
 
 type A struct {
-	Value int
+	Value int32
 }
 
 func (a *A) MarshalBinary() ([]byte, error) {
@@ -25,7 +25,7 @@ func (a *A) Print() string {
 
 type B struct {
 	AValue A
-	AInt   int
+	AInt   int32
 }
 
 func TestMarshal(t *testing.T) {

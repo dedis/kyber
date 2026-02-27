@@ -12,9 +12,10 @@ import (
 	"reflect"
 
 	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v4/internal"
+	"go.dedis.ch/kyber/v4/internal/protobuf"
 	"go.dedis.ch/kyber/v4/share"
 	"go.dedis.ch/kyber/v4/sign/schnorr"
-	"go.dedis.ch/protobuf"
 )
 
 // Suite defines the capabilities required by the vss package.
@@ -58,6 +59,53 @@ type Deal struct {
 	Commitments []kyber.Point
 }
 
+// pedersenCompatibleDeal is a struct for Deal used when marshaling
+// to ensure compatibility with Kyber V3.
+type pedersenCompatibleDeal struct {
+	SessionID   []byte
+	SecShare    []byte
+	T           uint32
+	Commitments []kyber.Point
+}
+
+// Marshal marshals a Deal into bytes or return an error if encoding failed.
+// This encoding should always be preferred as it is compatible with Kyber V3.
+func (d *Deal) Marshal() ([]byte, error) {
+	secShareBytes, err := internal.MarshalPriShare(d.SecShare)
+	if err != nil {
+		return nil, err
+	}
+	compatibleDeal := &pedersenCompatibleDeal{
+		SessionID:   d.SessionID,
+		SecShare:    secShareBytes,
+		T:           d.T,
+		Commitments: d.Commitments,
+	}
+	return protobuf.Encode(compatibleDeal)
+}
+
+// Unmarshal unmarshals a Deal from bytes or return an error if decoding failed.
+// This decoding should always be preferred as it is compatible with Kyber V3.
+func (d *Deal) Unmarshal(data []byte, suite Suite) error {
+	compatibleDeal := &pedersenCompatibleDeal{}
+	constructors := make(protobuf.Constructors)
+	constructors[reflect.TypeFor[kyber.Point]()] = func() interface{} { return suite.Point() }
+	err := protobuf.DecodeWithConstructors(data, compatibleDeal, constructors)
+	if err != nil {
+		return err
+	}
+	secShare, err := internal.UnmarshalPriShare(compatibleDeal.SecShare, suite)
+	if err != nil {
+		return err
+	}
+
+	d.SessionID = compatibleDeal.SessionID
+	d.T = compatibleDeal.T
+	d.SecShare = secShare
+	d.Commitments = compatibleDeal.Commitments
+	return nil
+}
+
 // EncryptedDeal contains the deal in a encrypted form only decipherable by the
 // correct recipient. The encryption is performed in a similar manner as what is
 // done in TLS. The dealer generates a temporary key pair, signs it with its
@@ -67,7 +115,7 @@ type EncryptedDeal struct {
 	DHKey []byte
 	// Signature of the DH key by the longterm key of the dealer
 	Signature []byte
-	// AEAD encryption of the deal marshalled by protobuf
+	// AEAD encryption of the deal marshalled
 	Cipher []byte
 }
 
@@ -193,7 +241,7 @@ func (d *Dealer) EncryptedDeal(i int) (*EncryptedDeal, error) {
 	}
 
 	nonce := make([]byte, gcm.NonceSize())
-	dealBuff, err := protobuf.Encode(d.deals[i])
+	dealBuff, err := d.deals[i].Marshal()
 	if err != nil {
 		return nil, err
 	}
@@ -408,7 +456,7 @@ func (v *Verifier) decryptDeal(e *EncryptedDeal) (*Deal, error) {
 		return nil, err
 	}
 	deal := &Deal{}
-	err = deal.decode(v.suite, decrypted)
+	err = deal.Unmarshal(decrypted, v.suite)
 	return deal, err
 }
 
@@ -772,22 +820,13 @@ func (r *Response) Hash(s Suite) []byte {
 	return h.Sum(nil)
 }
 
-func (d *Deal) decode(s Suite, buff []byte) error {
-	constructors := make(protobuf.Constructors)
-	var point kyber.Point
-	var secret kyber.Scalar
-	constructors[reflect.TypeOf(&point).Elem()] = func() interface{} { return s.Point() }
-	constructors[reflect.TypeOf(&secret).Elem()] = func() interface{} { return s.Scalar() }
-	return protobuf.DecodeWithConstructors(buff, d, constructors)
-}
-
 // Hash returns the hash of a Justification.
 func (j *Justification) Hash(s Suite) []byte {
 	h := s.Hash()
 	_, _ = h.Write([]byte("justification"))
 	_, _ = h.Write(j.SessionID)
 	_ = binary.Write(h, binary.LittleEndian, j.Index)
-	buff, _ := protobuf.Encode(j.Deal)
+	buff, _ := j.Deal.Marshal()
 	_, _ = h.Write(buff)
 	return h.Sum(nil)
 }
