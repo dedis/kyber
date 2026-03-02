@@ -4,6 +4,8 @@ import (
 	"math/big"
 	"testing"
 
+	"go.dedis.ch/kyber/v4/compatible"
+
 	"github.com/stretchr/testify/assert"
 	"go.dedis.ch/kyber/v4/xof/blake2xb"
 )
@@ -27,7 +29,7 @@ func Test_feToBnEdgeCase(t *testing.T) {
 		"15830283690864357567092656272836221286294103082314903268964457249510342265328",
 	}
 
-	actualBn := big.NewInt(0)
+	actualBn := compatible.NewInt(0)
 	for i, c := range fieldElems {
 		feToBn(actualBn, &c)
 		assert.Equal(t, expectedInts[i], actualBn.String())
@@ -59,16 +61,19 @@ func Test_feBnConversionRandom(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, s, l)
 
-	b0 := big.NewInt(0).SetBytes(p0)
-	b0 = b0.Mod(b0, prime)
+	b0Big := big.NewInt(0).SetBytes(p0)
+	b0Big.Mod(b0Big, prime.ToBigInt())
+	b0 := compatible.FromBigInt(b0Big, prime)
 
-	b1 := big.NewInt(0).SetBytes(p1)
-	b1 = b1.Mod(b1, prime)
+	b1Big := big.NewInt(0).SetBytes(p1)
+	b1Big.Mod(b0Big, prime.ToBigInt())
+	b1 := compatible.FromBigInt(b1Big, prime)
 
-	b2 := big.NewInt(0).SetBytes(p2)
-	b2 = b1.Mod(b2, prime)
+	b2Big := big.NewInt(0).SetBytes(p2)
+	b2Big.Mod(b0Big, prime.ToBigInt())
+	b2 := compatible.FromBigInt(b2Big, prime)
 
-	// Convert big.Int to fieldElement
+	// Convert compatible.Int to fieldElement
 	feFromBn(&fe0, b0)
 	feFromBn(&fe1, b1)
 	feFromBn(&fe2, b2)
@@ -76,17 +81,17 @@ func Test_feBnConversionRandom(t *testing.T) {
 	// If we convert correctly, we should get the same result:
 	// (fe0 + fe1)*fe2 == (b0 + b1) * b2
 	var feRes fieldElement
-	var bExp *big.Int
+	var bExp *compatible.Int
 
 	feAdd(&feRes, &fe0, &fe1)
 	feMul(&feRes, &feRes, &fe2)
 
-	bExp = big.NewInt(0).Add(b0, b1)
-	bExp = big.NewInt(0).Mul(bExp, b2)
+	bExp = compatible.NewInt(0).Add(b0, b1, prime)
+	bExp = compatible.NewInt(0).Mul(bExp, b2, prime)
 	bExp = bExp.Mod(bExp, prime)
 
 	// Final conversion to compare the results
-	bActual := big.NewInt(0)
+	bActual := compatible.NewInt(0)
 	feToBn(bActual, &feRes)
 
 	assert.Equal(t, bExp.Cmp(bActual), 0)

@@ -1,3 +1,5 @@
+//go:build !constantTime
+
 package bn256
 
 import (
@@ -44,15 +46,22 @@ func (p *pointG1) Base() kyber.Point {
 }
 
 func (p *pointG1) Pick(rand cipher.Stream) kyber.Point {
-	s := mod.NewInt64(0, Order).Pick(rand)
+	s := mod.NewInt64(0, OrderMod).Pick(rand)
 	p.Base()
-	p.g.Mul(p.g, &s.(*mod.Int).V)
+	sInt, ok := s.(*mod.Int)
+	if !ok {
+		panic(ErrTypeCast)
+	}
+	p.g.Mul(p.g, &sInt.V)
 	return p
 }
 
 func (p *pointG1) Set(q kyber.Point) kyber.Point {
-	x := q.(*pointG1).g
-	p.g.Set(x)
+	qG1, ok := q.(*pointG1)
+	if !ok {
+		panic(ErrTypeCast)
+	}
+	p.g.Set(qG1.g)
 	return p
 }
 
@@ -119,9 +128,15 @@ func (p *pointG1) Data() ([]byte, error) {
 }
 
 func (p *pointG1) Add(a, b kyber.Point) kyber.Point {
-	x := a.(*pointG1).g
-	y := b.(*pointG1).g
-	p.g.Add(x, y) // p = a + b
+	aG1, ok := a.(*pointG1)
+	if !ok {
+		panic(ErrTypeCast)
+	}
+	bG1, ok := b.(*pointG1)
+	if !ok {
+		panic(ErrTypeCast)
+	}
+	p.g.Add(aG1.g, bG1.g) // p = a + b
 	return p
 }
 
@@ -131,8 +146,11 @@ func (p *pointG1) Sub(a, b kyber.Point) kyber.Point {
 }
 
 func (p *pointG1) Neg(q kyber.Point) kyber.Point {
-	x := q.(*pointG1).g
-	p.g.Neg(x)
+	qG1, ok := q.(*pointG1)
+	if !ok {
+		panic(ErrTypeCast)
+	}
+	p.g.Neg(qG1.g)
 	return p
 }
 
@@ -140,9 +158,15 @@ func (p *pointG1) Mul(s kyber.Scalar, q kyber.Point) kyber.Point {
 	if q == nil {
 		q = newPointG1().Base()
 	}
-	t := s.(*mod.Int).V
-	r := q.(*pointG1).g
-	p.g.Mul(r, &t)
+	sInt, ok := s.(*mod.Int)
+	if !ok {
+		panic(ErrTypeCast)
+	}
+	qG1, ok := q.(*pointG1)
+	if !ok {
+		panic(ErrTypeCast)
+	}
+	p.g.Mul(qG1.g, &sInt.V)
 	return p
 }
 
@@ -317,15 +341,22 @@ func (p *pointG2) Base() kyber.Point {
 }
 
 func (p *pointG2) Pick(rand cipher.Stream) kyber.Point {
-	s := mod.NewInt64(0, Order).Pick(rand)
+	s := mod.NewInt64(0, OrderMod).Pick(rand)
 	p.Base()
-	p.g.Mul(p.g, &s.(*mod.Int).V)
+	sInt, ok := s.(*mod.Int)
+	if !ok {
+		panic(ErrTypeCast)
+	}
+	p.g.Mul(p.g, &sInt.V.Int)
 	return p
 }
 
 func (p *pointG2) Set(q kyber.Point) kyber.Point {
-	x := q.(*pointG2).g
-	p.g.Set(x)
+	qG2, ok := q.(*pointG2)
+	if !ok {
+		panic(ErrTypeCast)
+	}
+	p.g.Set(qG2.g)
 	return p
 }
 
@@ -349,9 +380,15 @@ func (p *pointG2) Data() ([]byte, error) {
 }
 
 func (p *pointG2) Add(a, b kyber.Point) kyber.Point {
-	x := a.(*pointG2).g
-	y := b.(*pointG2).g
-	p.g.Add(x, y) // p = a + b
+	aG2, ok := a.(*pointG2)
+	if !ok {
+		panic(ErrTypeCast)
+	}
+	bG2, ok := b.(*pointG2)
+	if !ok {
+		panic(ErrTypeCast)
+	}
+	p.g.Add(aG2.g, bG2.g) // p = a + b
 	return p
 }
 
@@ -361,8 +398,11 @@ func (p *pointG2) Sub(a, b kyber.Point) kyber.Point {
 }
 
 func (p *pointG2) Neg(q kyber.Point) kyber.Point {
-	x := q.(*pointG2).g
-	p.g.Neg(x)
+	qG2, ok := q.(*pointG2)
+	if !ok {
+		panic(ErrTypeCast)
+	}
+	p.g.Neg(qG2.g)
 	return p
 }
 
@@ -370,9 +410,16 @@ func (p *pointG2) Mul(s kyber.Scalar, q kyber.Point) kyber.Point {
 	if q == nil {
 		q = newPointG2().Base()
 	}
-	t := s.(*mod.Int).V
-	r := q.(*pointG2).g
-	p.g.Mul(r, &t)
+	sInt, ok := s.(*mod.Int)
+	if !ok {
+		panic(ErrTypeCast)
+	}
+	t := sInt.V
+	qG2, ok := q.(*pointG2)
+	if !ok {
+		panic(ErrTypeCast)
+	}
+	p.g.Mul(qG2.g, &t.Int)
 	return p
 }
 
@@ -501,15 +548,22 @@ func (p *pointGT) Base() kyber.Point {
 }
 
 func (p *pointGT) Pick(rand cipher.Stream) kyber.Point {
-	s := mod.NewInt64(0, Order).Pick(rand)
+	s := mod.NewInt64(0, OrderMod).Pick(rand)
 	p.Base()
-	p.g.Exp(p.g, &s.(*mod.Int).V)
+	sInt, ok := s.(*mod.Int)
+	if !ok {
+		panic(ErrTypeCast)
+	}
+	p.g.Exp(p.g, &sInt.V.Int)
 	return p
 }
 
 func (p *pointGT) Set(q kyber.Point) kyber.Point {
-	x := q.(*pointGT).g
-	p.g.Set(x)
+	qGT, ok := q.(*pointGT)
+	if !ok {
+		panic(ErrTypeCast)
+	}
+	p.g.Set(qGT.g)
 	return p
 }
 
@@ -533,9 +587,15 @@ func (p *pointGT) Data() ([]byte, error) {
 }
 
 func (p *pointGT) Add(a, b kyber.Point) kyber.Point {
-	x := a.(*pointGT).g
-	y := b.(*pointGT).g
-	p.g.Mul(x, y)
+	aGT, ok := a.(*pointGT)
+	if !ok {
+		panic(ErrTypeCast)
+	}
+	bGT, ok := b.(*pointGT)
+	if !ok {
+		panic(ErrTypeCast)
+	}
+	p.g.Mul(aGT.g, bGT.g)
 	return p
 }
 
@@ -545,8 +605,11 @@ func (p *pointGT) Sub(a, b kyber.Point) kyber.Point {
 }
 
 func (p *pointGT) Neg(q kyber.Point) kyber.Point {
-	x := q.(*pointGT).g
-	p.g.Conjugate(x)
+	qGT, ok := q.(*pointGT)
+	if !ok {
+		panic(ErrTypeCast)
+	}
+	p.g.Conjugate(qGT.g)
 	return p
 }
 
@@ -554,9 +617,16 @@ func (p *pointGT) Mul(s kyber.Scalar, q kyber.Point) kyber.Point {
 	if q == nil {
 		q = newPointGT().Base()
 	}
-	t := s.(*mod.Int).V
-	r := q.(*pointGT).g
-	p.g.Exp(r, &t)
+	sInt, ok := s.(*mod.Int)
+	if !ok {
+		panic(ErrTypeCast)
+	}
+	t := sInt.V
+	qGT, ok := q.(*pointGT)
+	if !ok {
+		panic(ErrTypeCast)
+	}
+	p.g.Exp(qGT.g, &t.Int)
 	return p
 }
 
@@ -673,15 +743,27 @@ func (p *pointGT) Finalize() kyber.Point {
 }
 
 func (p *pointGT) Miller(p1, p2 kyber.Point) kyber.Point {
-	a := p1.(*pointG1).g
-	b := p2.(*pointG2).g
-	p.g.Set(miller(b, a))
+	p1G1, ok := p1.(*pointG1)
+	if !ok {
+		panic(ErrTypeCast)
+	}
+	p2G2, ok := p2.(*pointG2)
+	if !ok {
+		panic(ErrTypeCast)
+	}
+	p.g.Set(miller(p2G2.g, p1G1.g))
 	return p
 }
 
 func (p *pointGT) Pair(p1, p2 kyber.Point) kyber.Point {
-	a := p1.(*pointG1).g
-	b := p2.(*pointG2).g
-	p.g.Set(optimalAte(b, a))
+	aG1, ok := p1.(*pointG1)
+	if !ok {
+		panic(ErrTypeCast)
+	}
+	bG2, ok := p2.(*pointG2)
+	if !ok {
+		panic(ErrTypeCast)
+	}
+	p.g.Set(optimalAte(bG2.g, aG1.g))
 	return p
 }

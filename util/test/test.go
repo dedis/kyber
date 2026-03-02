@@ -37,7 +37,6 @@ func (ss *suiteStable) RandomStream() cipher.Stream {
 
 func testEmbed(t *testing.T, g kyber.Group, rand cipher.Stream, points *[]kyber.Point,
 	s string) {
-	// println("embedding: ", s)
 	b := []byte(s)
 
 	p := g.Point().Embed(b, rand)

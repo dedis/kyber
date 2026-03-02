@@ -19,13 +19,9 @@ func TestSchnorrSignature(t *testing.T) {
 	kp := key.NewKeyPair(suite)
 
 	s, err := Sign(suite, kp.Private, msg)
-	if err != nil {
-		t.Fatalf("Couldn't sign msg: %s: %v", msg, err)
-	}
+	require.NoError(t, err)
 	err = Verify(suite, kp.Public, msg, s)
-	if err != nil {
-		t.Fatalf("Couldn't verify signature: \n%+v\nfor msg:'%s'. Error:\n%v", s, msg, err)
-	}
+	require.NoError(t, err)
 
 	// wrong size
 	larger := append(s, []byte{0x01, 0x02}...)
@@ -93,9 +89,8 @@ func TestQuickSchnorrSignature(t *testing.T) {
 		return Verify(suite, kp.Public, msg, s) == nil
 	}
 
-	if err := quick.Check(f, nil); err != nil {
-		t.Error(err)
-	}
+	err := quick.Check(f, nil)
+	require.NoError(t, err)
 }
 
 func TestSchnorrMalleability(t *testing.T) {

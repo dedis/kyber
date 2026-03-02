@@ -25,6 +25,9 @@ import (
 	"math"
 	"math/big"
 
+	"go.dedis.ch/kyber/v4/compatible"
+	"go.dedis.ch/kyber/v4/compatible/compatiblemod"
+
 	"go.dedis.ch/kyber/v4"
 	"go.dedis.ch/kyber/v4/group/internal/marshalling"
 	"golang.org/x/crypto/sha3"
@@ -79,7 +82,11 @@ func (P *point) Equal(P2 kyber.Point) bool {
 
 	var b1, b2 [32]byte
 	P.ge.ToBytes(&b1)
-	P2.(*point).ge.ToBytes(&b2)
+	p2Point, ok := P2.(*point)
+	if !ok {
+		panic(ErrTypeCast)
+	}
+	p2Point.ge.ToBytes(&b2)
 	for i := range b1 {
 		if b1[i] != b2[i] {
 			return false
@@ -90,7 +97,11 @@ func (P *point) Equal(P2 kyber.Point) bool {
 
 // Set point to be equal to P2.
 func (P *point) Set(P2 kyber.Point) kyber.Point {
-	P.ge = P2.(*point).ge
+	p2Point, ok := P2.(*point)
+	if !ok {
+		panic(ErrTypeCast)
+	}
+	P.ge = p2Point.ge
 	return P
 }
 
@@ -215,22 +226,34 @@ func (P *point) Sub(P1, P2 kyber.Point) kyber.Point {
 // Neg finds the negative of point A.
 // For Edwards curves, the negative of (x,y) is (-x,y).
 func (P *point) Neg(A kyber.Point) kyber.Point {
-	P.ge.Neg(&A.(*point).ge)
+	aPoint, ok := A.(*point)
+	if !ok {
+		panic(ErrTypeCast)
+	}
+	P.ge.Neg(&aPoint.ge)
 	return P
 }
 
 // Mul multiplies point p by scalar s using the repeated doubling method.
 func (P *point) Mul(s kyber.Scalar, A kyber.Point) kyber.Point {
 
-	a := &s.(*scalar).v
+	sScalar, ok := s.(*scalar)
+	if !ok {
+		panic(ErrTypeCast)
+	}
+	a := &sScalar.v
 
 	if A == nil {
 		geScalarMultBase(&P.ge, a)
 	} else {
+		aPoint, ok := A.(*point)
+		if !ok {
+			panic(ErrTypeCast)
+		}
 		if P.varTime {
-			geScalarMultVartime(&P.ge, a, &A.(*point).ge)
+			geScalarMultVartime(&P.ge, a, &aPoint.ge)
 		} else {
-			geScalarMult(&P.ge, a, &A.(*point).ge)
+			geScalarMult(&P.ge, a, &aPoint.ge)
 		}
 	}
 
@@ -307,25 +330,29 @@ func (P *point) Hash(m []byte, dst string) kyber.Point {
 	q0 := mapToCurveElligator2Ed25519(u[0])
 	q1 := mapToCurveElligator2Ed25519(u[1])
 	P.Add(q0, q1)
-
 	// Clear cofactor
 	P.Mul(cofactorScalar, P)
 
 	return P
 }
 
-func hashToField(m []byte, dst string, count int) []fieldElement {
+func hashToField(m []byte, dst string, count uint64) []fieldElement {
 	// L param in RFC9380 section 5
 	// https://datatracker.ietf.org/doc/html/rfc9380#name-hashing-to-a-finite-field
-	l := 48
+	l := uint64(48)
 	byteLen := count * l
 	uniformBytes, _ := expandMessageXMD(sha512.New(), m, dst, byteLen)
 
 	u := make([]fieldElement, count)
-	for i := 0; i < count; i++ {
+	for i := uint64(0); i < count; i++ {
 		elmOffset := l * i
-		tv := big.NewInt(0).SetBytes(uniformBytes[elmOffset : elmOffset+l])
-		tv = tv.Mod(tv, prime)
+		// todo, what's this?
+		// 	tv := compatible.NewInt(0).SetBytes(uniformBytes[elmOffset:elmOffset+l], prime)
+		// says that prime has a smaller size than l
+		// should we fix the modulus to be  1 << l ? Is it fine to pass through big.Int?
+		tvBig := big.NewInt(0).SetBytes(uniformBytes[elmOffset : elmOffset+l])
+		tvBig.Mod(tvBig, prime.ToBigInt())
+		tv := compatible.FromBigInt(tvBig, prime)
 		fe := fieldElement{}
 		feFromBn(&fe, tv)
 		u[i] = fe
@@ -334,10 +361,10 @@ func hashToField(m []byte, dst string, count int) []fieldElement {
 	return u
 }
 
-func expandMessageXMD(h hash.Hash, m []byte, domainSeparator string, byteLen int) ([]byte, error) {
+func expandMessageXMD(h hash.Hash, m []byte, domainSeparator string, byteLen uint64) ([]byte, error) {
 	r := float64(byteLen) / float64(h.Size()>>3)
-	ell := int(math.Ceil(r))
-	if ell > 255 || ell < 0 || byteLen > 65535 || len(domainSeparator) == 0 {
+	ell := uint64(math.Ceil(r))
+	if ell > 255 || byteLen > 65535 || len(domainSeparator) == 0 {
 		return nil, errors.New("invalid parameters")
 	}
 
@@ -349,7 +376,7 @@ func expandMessageXMD(h hash.Hash, m []byte, domainSeparator string, byteLen int
 		domainSeparator = string(h.Sum(nil))
 	}
 
-	padDom, err := i2OSP(len(domainSeparator), 1)
+	padDom, err := i2OSP(uint64(len(domainSeparator)), 1)
 	if err != nil {
 		return nil, err
 	}
@@ -357,9 +384,9 @@ func expandMessageXMD(h hash.Hash, m []byte, domainSeparator string, byteLen int
 	dstPrime := append([]byte(domainSeparator), padDom...)
 	byteLenStr, _ := i2OSP(byteLen, 2)
 	zeroPad, _ := i2OSP(0, 1)
-	zPad, _ := i2OSP(0, h.BlockSize())
+	zPad, _ := i2OSP(0, int32(h.BlockSize()))
 
-	// mPrime = Z_pad || msg || l_i_b_str || I2OSP(0, 1) || DST_prim
+	// Compute mPrime = Z_pad || msg || l_i_b_str || I2OSP(0, 1) || DST_prim
 	mPrime := make([]byte, 0, len(zPad)+len(m)+len(byteLenStr)+len(zeroPad)+len(dstPrime))
 	mPrime = append(mPrime, zPad...)
 	mPrime = append(mPrime, m...)
@@ -367,23 +394,23 @@ func expandMessageXMD(h hash.Hash, m []byte, domainSeparator string, byteLen int
 	mPrime = append(mPrime, zeroPad...)
 	mPrime = append(mPrime, dstPrime...)
 
-	// b0 = H(msg_prime)
+	// Compute b0 = H(msg_prime)
 	h.Reset()
-	h.Write([]byte(mPrime))
+	h.Write(mPrime)
 	b0 := h.Sum(nil)
 
-	// b_1 = H(b_0 || I2OSP(1, 1) || DST_prime)
+	// Compute b_1 = H(b_0 || I2OSP(1, 1) || DST_prime)
 	h.Reset()
 	h.Write(b0)
 	onePad, _ := i2OSP(1, 1)
-	h.Write([]byte(onePad))
-	h.Write([]byte(dstPrime))
+	h.Write(onePad)
+	h.Write(dstPrime)
 	b1 := h.Sum(nil)
 
-	bFinal := make([]byte, 0, len(b1)*(ell+1))
+	bFinal := make([]byte, 0, uint64(len(b1))*(ell+1))
 	bFinal = append(bFinal, b1...)
 	bPred := b1
-	for i := 2; i <= ell; i++ {
+	for i := uint64(2); i <= ell; i++ {
 		x, err := byteXor(bPred, b0, bPred)
 		if err != nil {
 			return nil, err
@@ -402,7 +429,7 @@ func expandMessageXMD(h hash.Hash, m []byte, domainSeparator string, byteLen int
 	return bFinal[:byteLen], nil
 }
 
-func expandMessageXOF(h sha3.ShakeHash, m []byte, domainSeparator string, byteLen int) ([]byte, error) {
+func expandMessageXOF(h sha3.ShakeHash, m []byte, domainSeparator string, byteLen uint64) ([]byte, error) {
 	if byteLen > 65535 || len(domainSeparator) == 0 {
 		return nil, errors.New("invalid parameters")
 	}
@@ -427,7 +454,7 @@ func expandMessageXOF(h sha3.ShakeHash, m []byte, domainSeparator string, byteLe
 		domainSeparator = string(dst)
 	}
 
-	dstPad, err := i2OSP(len(domainSeparator), 1)
+	dstPad, err := i2OSP(uint64(len(domainSeparator)), 1)
 	if err != nil {
 		return nil, err
 	}
@@ -450,26 +477,34 @@ func expandMessageXOF(h sha3.ShakeHash, m []byte, domainSeparator string, byteLe
 		return nil, err
 	}
 
-	if n != byteLen {
+	if uint64(n) != byteLen {
 		return nil, fmt.Errorf("read %d byte instead of expected %d from xof", n, byteLen)
 	}
 
 	return uniformBytes, nil
 }
 
-func i2OSP(x int, xLen int) ([]byte, error) {
-	b := big.NewInt(int64(x))
-	s := b.Bytes()
-	if len(s) > xLen {
-		return nil, fmt.Errorf("input %d superior to max length %d", len(s), xLen)
+// i2OSP converts a nonnegative integer to a byte array of a
+// specified length. Implementation from [RFC8017]
+func i2OSP(x uint64, xLen int32) ([]byte, error) {
+	if xLen < 1 {
+		return nil, errors.New("cannot convert an integer onto an array of size less than 1")
 	}
+	b := new(compatible.Int).SetUint64(x)
+	// create modulus int as the biggest value representable on xLen bytes
+	modInt := uint64((1 << (8 * uint32(xLen))) - 1)
+	if x > modInt {
+		return nil, fmt.Errorf("input %d cannot be represented on %d bytes", x, xLen)
+	}
+	// Use the modulus to get the bytes of x
+	s := b.Bytes(compatiblemod.NewUint(modInt))
 
-	pad := make([]byte, (xLen - len(s)))
+	pad := make([]byte, xLen-int32(len(s)))
 	return append(pad, s...), nil
 }
 
 func byteXor(dst, b1, b2 []byte) ([]byte, error) {
-	if !(len(dst) == len(b1) && len(b2) == len(b1)) {
+	if len(dst) != len(b1) || len(b2) != len(b1) {
 		return nil, errors.New("incompatible lengths")
 	}
 
@@ -499,38 +534,40 @@ func curve25519Elligator2(u fieldElement) (xn, xd, yn, yd fieldElement) {
 	// Computed with sagemath
 	c2 := fieldElement{34513073, 25610706, 9377949, 3500415, 12389472, 33281959, 41962654, 31548777, 326685, 11406482}
 	c3 := fieldElement{34513072, 25610706, 9377949, 3500415, 12389472, 33281959, 41962654, 31548777, 326685, 11406482}
-	c4, _ := new(big.Int).SetString("7237005577332262213973186563042994240829374041602535252466099000494570602493", 10)
+	c4, _ := new(compatible.Int).SetStringM(
+		"7237005577332262213973186563042994240829374041602535252466099000494570602493",
+		primeOrder, 10)
 
 	// Temporary variables
 	var tv1, tv2, tv3, x1n, gxd, gx1, gx2 fieldElement
 	var y, y1, y2, y11, y12, y21, y22, x2n fieldElement
 	var e1, e2, e3, e4 int32
 
-	feSquare2(&tv1, &u)     // tv1 = 2 * u^2
-	feAdd(&xd, &one, &tv1)  // xd = 1 + tv1
-	feNeg(&x1n, &j)         // x1n = -J
-	feSquare(&tv2, &xd)     // tv2 = xd^2
-	feMul(&gxd, &tv2, &xd)  // gxd = tv2 * xd
-	feMul(&gx1, &j, &tv1)   // gx1 = J * tv1
-	feMul(&gx1, &gx1, &x1n) // gx1 = gx1 * x1n
-	feAdd(&gx1, &gx1, &tv2) // gx1 = gx1 + tv2
-	feMul(&gx1, &gx1, &x1n) // gx1 = gx1 * x1n
-	feSquare(&tv3, &gxd)    // tv3 = gxd^2
-	feSquare(&tv2, &tv3)    // tv2 = tv3^2
-	feMul(&tv3, &tv3, &gxd) // tv3 = tv3 * gxd
-	feMul(&tv3, &tv3, &gx1) // tv3 = tv3 * gx1
-	feMul(&tv2, &tv2, &tv3) // tv2 = tv2 * tv3
+	feSquare2(&tv1, &u)     // Compute tv1 = 2 * u^2
+	feAdd(&xd, &one, &tv1)  // Compute xd = 1 + tv1
+	feNeg(&x1n, &j)         // Compute x1n = -J
+	feSquare(&tv2, &xd)     // Compute tv2 = xd^2
+	feMul(&gxd, &tv2, &xd)  // Compute gxd = tv2 * xd
+	feMul(&gx1, &j, &tv1)   // Compute gx1 = J * tv1
+	feMul(&gx1, &gx1, &x1n) // Compute gx1 = gx1 * x1n
+	feAdd(&gx1, &gx1, &tv2) // Compute gx1 = gx1 + tv2
+	feMul(&gx1, &gx1, &x1n) // Compute gx1 = gx1 * x1n
+	feSquare(&tv3, &gxd)    // Compute tv3 = gxd^2
+	feSquare(&tv2, &tv3)    // Compute tv2 = tv3^2
+	feMul(&tv3, &tv3, &gxd) // Compute tv3 = tv3 * gxd
+	feMul(&tv3, &tv3, &gx1) // Compute tv3 = tv3 * gx1
+	feMul(&tv2, &tv2, &tv3) // Compute tv2 = tv2 * tv3
 
 	// compute y11 = tv2 ^ c4
-	tv2Big := big.NewInt(0)
+	tv2Big := compatible.NewInt(0)
 	feToBn(tv2Big, &tv2)
-	y11Big := big.NewInt(0).Exp(tv2Big, c4, prime)
+	y11Big := compatible.NewInt(0).Exp(tv2Big, c4, prime)
 	feFromBn(&y11, y11Big)
 
-	feMul(&y11, &y11, &tv3) // y11 = y11 * tv3
-	feMul(&y12, &y11, &c3)  // y12 = y11 * c3
-	feSquare(&tv2, &y11)    // tv2 = y11^2
-	feMul(&tv2, &tv2, &gxd) // tv2 = tv2 * gxd
+	feMul(&y11, &y11, &tv3) // Compute y11 = y11 * tv3
+	feMul(&y12, &y11, &c3)  // Compute y12 = y11 * c3
+	feSquare(&tv2, &y11)    // Compute tv2 = y11^2
+	feMul(&tv2, &tv2, &gxd) // Compute tv2 = tv2 * gxd
 
 	// y1 = y11 if e1 == 1 else y12
 	if tv2 == gx1 {
@@ -539,13 +576,13 @@ func curve25519Elligator2(u fieldElement) (xn, xd, yn, yd fieldElement) {
 	feCopy(&y1, &y12)
 	feCMove(&y1, &y11, e1)
 
-	feMul(&x2n, &x1n, &tv1) // x2n = x1n * tv1
-	feMul(&y21, &y11, &u)   // y21 = y11 * u
-	feMul(&y21, &y21, &c2)  // y21 = y21 * c2
-	feMul(&y22, &y21, &c3)  // y22 = y21 * c3
-	feMul(&gx2, &gx1, &tv1) // gx2 = gx1 * tv1
-	feSquare(&tv2, &y21)    // tv2 = y21^2
-	feMul(&tv2, &tv2, &gxd) // tv2 = tv2 * gxd
+	feMul(&x2n, &x1n, &tv1) // Compute x2n = x1n * tv1
+	feMul(&y21, &y11, &u)   // Compute y21 = y11 * u
+	feMul(&y21, &y21, &c2)  // Compute y21 = y21 * c2
+	feMul(&y22, &y21, &c3)  // Compute y22 = y21 * c3
+	feMul(&gx2, &gx1, &tv1) // Compute gx2 = gx1 * tv1
+	feSquare(&tv2, &y21)    // Compute tv2 = y21^2
+	feMul(&tv2, &tv2, &gxd) // Compute tv2 = tv2 * gxd
 
 	// y2 = y21 if e == 1 else y22
 	if tv2 == gx2 {
@@ -554,8 +591,8 @@ func curve25519Elligator2(u fieldElement) (xn, xd, yn, yd fieldElement) {
 	feCopy(&y2, &y22)
 	feCMove(&y2, &y21, e2)
 
-	feSquare(&tv2, &y1)     // tv2 = y1^2
-	feMul(&tv2, &tv2, &gxd) // tv2 = tv2 * gxd
+	feSquare(&tv2, &y1)     // Compute tv2 = y1^2
+	feMul(&tv2, &tv2, &gxd) // Compute tv2 = tv2 * gxd
 
 	// xn = x1n if e3 == 1 else x2n
 	if tv2 == gx1 {
@@ -591,12 +628,12 @@ func mapToCurveElligator2Ed25519(u fieldElement) kyber.Point {
 
 	xMn, xMd, yMn, yMd := curve25519Elligator2(u)
 
-	feMul(&xn, &xMn, &yMd) // xn = xMn * yMd
-	feMul(&xn, &xn, &c)    // xn = xn * c
-	feMul(&xd, &xMd, &yMn) // xd = xMd * yMn
-	feSub(&yn, &xMn, &xMd) // yn = xMn - xMd
-	feAdd(&yd, &xMn, &xMd) // yd = xMn + xMd
-	feMul(&tv1, &xd, &yd)  // tv1 = xd * yd
+	feMul(&xn, &xMn, &yMd) // Compute xn = xMn * yMd
+	feMul(&xn, &xn, &c)    // Compute xn = xn * c
+	feMul(&xd, &xMd, &yMn) // Compute xd = xMd * yMn
+	feSub(&yn, &xMn, &xMd) // Compute yn = xMn - xMd
+	feAdd(&yd, &xMn, &xMd) // Compute yd = xMn + xMd
+	feMul(&tv1, &xd, &yd)  // Compute tv1 = xd * yd
 	if tv1 == zero {
 		e = 1
 	}

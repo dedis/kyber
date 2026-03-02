@@ -17,10 +17,10 @@ import (
 func DeniableProver(suite Suite, self int, prover Prover,
 	verifiers []Verifier) Protocol {
 
-	return Protocol(func(ctx Context) []error {
+	return func(ctx Context) []error {
 		dp := deniableProver{}
 		return dp.run(suite, self, prover, verifiers, ctx)
-	})
+	}
 }
 
 type deniableProver struct {

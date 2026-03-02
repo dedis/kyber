@@ -44,10 +44,14 @@ to time. If you need something that doesn't change in a backward-compatible
 way you should use have a `go.mod` file in the directory where your
 main package is.
 
+In the current state of v4.0.1-alpha.1, some backward-incompatible changes with v3 were made.
+These incompatibilities are being addressed with the help of the `go.dedis.ch/kyber-test` repo, 
+which contains tests that will be run against kyber v4 to ensure compatibility with kyber v3.
+
 Using the module
 ----------------
 
-Kyber supports Go modules, and currently has a major version of 3, which means that
+Kyber supports Go modules, and currently has a major version of 4, which means that
 the import path is: `go.dedis.ch/kyber/v4`.
 
 Here is a basic example of getting started using it:
@@ -67,7 +71,7 @@ func main() {
 }
 ```
 2. Type “go mod init example.com/ex”. The resulting go.mod file will have no dependencies listed yet.
-3. Type “go build”. The go tool will fill in the new dependencies that it find for you, i.e. "require go.dedis.ch/kyber/v4 v3.0.13”.
+3. Type “go build”. The go tool will fill in the new dependencies that it find for you, i.e. "require go.dedis.ch/kyber/v4 v4.0.1-alpha.1”.
 4. Running `./ex` will print `0000000000000000000000000000000000000000000000000000000000000000`.
 
 A note on deriving shared secrets

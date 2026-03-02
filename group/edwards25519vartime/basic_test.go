@@ -1,5 +1,4 @@
-//go:build experimental
-// +build experimental
+//go:build experimental && !constantTime
 
 package edwards25519vartime
 

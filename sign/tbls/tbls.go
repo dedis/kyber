@@ -103,11 +103,11 @@ func (s *scheme) VerifyPartial(public *share.PubPoly, msg, sig []byte) error {
 	if err != nil {
 		return err
 	}
-	return s.Scheme.Verify(public.Eval(uint32(i)).V, msg, sh.Value())
+	return s.Verify(public.Eval(uint32(i)).V, msg, sh.Value())
 }
 
 func (s *scheme) VerifyRecovered(public kyber.Point, msg, sig []byte) error {
-	return s.Scheme.Verify(public, msg, sig)
+	return s.Verify(public, msg, sig)
 }
 
 // Recover reconstructs the full BLS signature S = x * H(m) from a threshold t
@@ -115,7 +115,7 @@ func (s *scheme) VerifyRecovered(public kyber.Point, msg, sig []byte) error {
 // can be verified through the regular BLS verification routine using the
 // shared public key X. The shared public key can be computed by evaluating the
 // public sharing polynomial at index 0.
-func (s *scheme) Recover(public *share.PubPoly, msg []byte, sigs [][]byte, t, n int) ([]byte, error) {
+func (s *scheme) Recover(public *share.PubPoly, msg []byte, sigs [][]byte, t, n uint32) ([]byte, error) {
 	var pubShares []*share.PubShare
 	for _, sig := range sigs {
 		sh := SigShare(sig)
@@ -124,7 +124,7 @@ func (s *scheme) Recover(public *share.PubPoly, msg []byte, sigs [][]byte, t, n 
 			continue
 		}
 		idx := uint32(i)
-		if err = s.Scheme.Verify(public.Eval(idx).V, msg, sh.Value()); err != nil {
+		if err = s.Verify(public.Eval(idx).V, msg, sh.Value()); err != nil {
 			continue
 		}
 		point := s.sigGroup.Point()
@@ -132,11 +132,11 @@ func (s *scheme) Recover(public *share.PubPoly, msg []byte, sigs [][]byte, t, n 
 			continue
 		}
 		pubShares = append(pubShares, &share.PubShare{I: idx, V: point})
-		if len(pubShares) >= t {
+		if uint32(len(pubShares)) >= t {
 			break
 		}
 	}
-	if len(pubShares) < t {
+	if uint32(len(pubShares)) < t {
 		return nil, errors.New("not enough valid partial signatures")
 	}
 	commit, err := share.RecoverCommit(s.sigGroup, pubShares, t, n)

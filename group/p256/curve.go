@@ -1,13 +1,17 @@
+//go:build !constantTime
+
 package p256
 
 import (
 	"crypto/cipher"
 	"crypto/elliptic"
 	"errors"
+	"fmt"
 	"io"
 	"math/big"
 
 	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v4/compatible/compatiblemod"
 	"go.dedis.ch/kyber/v4/group/internal/marshalling"
 	"go.dedis.ch/kyber/v4/group/mod"
 	"go.dedis.ch/kyber/v4/util/random"
@@ -37,8 +41,8 @@ func (P *curvePoint) Equal(P2 kyber.Point) bool {
 }
 
 func (P *curvePoint) Null() kyber.Point {
-	P.x = new(big.Int).SetInt64(0)
-	P.y = new(big.Int).SetInt64(0)
+	P.x = big.NewInt(0)
+	P.y = big.NewInt(0)
 	return P
 }
 
@@ -152,16 +156,21 @@ func (P *curvePoint) Sub(A, B kyber.Point) kyber.Point {
 func (P *curvePoint) Neg(A kyber.Point) kyber.Point {
 	s := P.c.Scalar().One()
 	s.Neg(s)
-	return P.Mul(s, A).(*curvePoint)
+	negated := P.Mul(s, A)
+	negatedToCurvePoint, ok := negated.(*curvePoint)
+	if !ok {
+		panic(ErrTypeCast)
+	}
+	return negatedToCurvePoint
 }
 
 func (P *curvePoint) Mul(s kyber.Scalar, B kyber.Point) kyber.Point {
 	cs := s.(*mod.Int) //nolint:errcheck // Design pattern to emulate generics
 	if B != nil {
 		cb := B.(*curvePoint) //nolint:errcheck // Design pattern to emulate generics
-		P.x, P.y = P.c.ScalarMult(cb.x, cb.y, cs.V.Bytes())
+		P.x, P.y = P.c.ScalarMult(cb.x, cb.y, cs.V.Bytes(nil))
 	} else {
-		P.x, P.y = P.c.ScalarBaseMult(cs.V.Bytes())
+		P.x, P.y = P.c.ScalarBaseMult(cs.V.Bytes(nil))
 	}
 	return P
 }
@@ -171,28 +180,41 @@ func (P *curvePoint) MarshalSize() int {
 	return 1 + 2*coordlen // uncompressed ANSI X9.62 representation
 }
 
+// MarshalBinary marshall this point into binary format according to
+// SEC 1, Version 2.0, Section 2.3.3
 func (P *curvePoint) MarshalBinary() ([]byte, error) {
-	return elliptic.Marshal(P.c, P.x, P.y), nil
+	// Note: explicit implementation since elliptic.Marshall is deprecated
+	byteLen := (P.c.Params().BitSize + 7) / 8
+
+	ret := make([]byte, 1+2*byteLen)
+	ret[0] = 4 // uncompressed point format
+
+	x := P.x.Bytes()
+	y := P.y.Bytes()
+
+	copy(ret[1+byteLen-len(x):], x)
+	copy(ret[1+2*byteLen-len(y):], y)
+
+	return ret, nil
 }
 
+// UnmarshalBinary unmarshalls the given buffer into the receiver according
+// to SEC 1, Version 2.0, Section 2.3.4
 func (P *curvePoint) UnmarshalBinary(buf []byte) error {
-	// Check whether all bytes after first one are 0, so we
-	// just return the initial point. Read everything to
-	// prevent timing-leakage.
-	var c byte
-	for _, b := range buf[1:] {
-		c |= b
+	// Note: explicit implementation since elliptic.Unmarshall is deprecated
+	byteLen := (P.c.Params().BitSize + 7) / 8
+	expectedLen := 1 + 2*byteLen
+
+	if len(buf) != expectedLen {
+		return fmt.Errorf("invalid data length: got %d, want %d", len(buf), expectedLen)
 	}
-	if c != 0 {
-		P.x, P.y = elliptic.Unmarshal(P.c, buf)
-		if P.x == nil || !P.Valid() {
-			return errors.New("invalid elliptic curve point")
-		}
-	} else {
-		// All bytes are 0, so we initialize x and y
-		P.x = big.NewInt(0)
-		P.y = big.NewInt(0)
+
+	if buf[0] != 4 {
+		return fmt.Errorf("invalid point format: expected uncompressed (4), got %d", buf[0])
 	}
+
+	P.x = new(big.Int).SetBytes(buf[1 : 1+byteLen])
+	P.y = new(big.Int).SetBytes(buf[1+byteLen : 1+2*byteLen])
 	return nil
 }
 
@@ -225,7 +247,7 @@ func (c *curve) ScalarLen() int { return (c.p.N.BitLen() + 7) / 8 }
 // the bytes as a big-endian integer, so as to be compatible with the
 // Go standard library's big.Int type.
 func (c *curve) Scalar() kyber.Scalar {
-	return mod.NewInt64(0, c.p.N)
+	return mod.NewInt64(0, compatiblemod.FromBigInt(c.p.N))
 }
 
 // Number of bytes required to store one coordinate on this curve
@@ -248,8 +270,12 @@ func (c *curve) Point() kyber.Point {
 }
 
 func (P *curvePoint) Set(A kyber.Point) kyber.Point {
-	P.x = A.(*curvePoint).x
-	P.y = A.(*curvePoint).y
+	aCurvePoint, ok := A.(*curvePoint)
+	if !ok {
+		panic(ErrTypeCast)
+	}
+	P.x = aCurvePoint.x
+	P.y = aCurvePoint.y
 	return P
 }
 

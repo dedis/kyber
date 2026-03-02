@@ -1,5 +1,4 @@
-//go:build (amd64 && !generic) || (arm64 && !generic)
-// +build amd64,!generic arm64,!generic
+//go:build ((amd64 || arm64 ) && !generic) && !constantTime
 
 package bn254
 

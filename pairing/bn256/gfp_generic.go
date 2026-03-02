@@ -1,4 +1,4 @@
-//go:build (!amd64 && !arm64) || generic
+//go:build ((!amd64 && !arm64) || generic) && !constantTime
 
 package bn256
 

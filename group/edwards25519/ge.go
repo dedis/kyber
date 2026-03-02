@@ -106,6 +106,7 @@ func (p *extendedGroupElement) ToBytes(s *[32]byte) {
 	s[31] ^= feIsNegative(&x) << 7
 }
 
+//nolint:gocritic // not actually dead code
 func (p *extendedGroupElement) FromBytes(s []byte) bool {
 	var u, v, v3, vxx, check fieldElement
 

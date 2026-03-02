@@ -392,7 +392,11 @@ func (s *set) isBad(idx Index) bool {
 func (s *set) ToDeals() []*DealBundle {
 	deals := make([]*DealBundle, 0, len(s.vals))
 	for _, p := range s.vals {
-		deals = append(deals, p.(*DealBundle))
+		pDeal, ok := p.(*DealBundle)
+		if !ok {
+			panic("packet could not be cast to DealBundle")
+		}
+		deals = append(deals, pDeal)
 	}
 	return deals
 }
@@ -400,7 +404,11 @@ func (s *set) ToDeals() []*DealBundle {
 func (s *set) ToResponses() []*ResponseBundle {
 	resps := make([]*ResponseBundle, 0, len(s.vals))
 	for _, p := range s.vals {
-		resps = append(resps, p.(*ResponseBundle))
+		pResponse, ok := p.(*ResponseBundle)
+		if !ok {
+			panic("packet could not be cast to ResponseBundle")
+		}
+		resps = append(resps, pResponse)
 	}
 	return resps
 }
@@ -408,7 +416,11 @@ func (s *set) ToResponses() []*ResponseBundle {
 func (s *set) ToJustifications() []*JustificationBundle {
 	justs := make([]*JustificationBundle, 0, len(s.vals))
 	for _, p := range s.vals {
-		justs = append(justs, p.(*JustificationBundle))
+		pJustification, ok := p.(*JustificationBundle)
+		if !ok {
+			panic("packet could not be cast to JustificationBundle")
+		}
+		justs = append(justs, pJustification)
 	}
 	return justs
 }

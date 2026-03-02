@@ -1,3 +1,5 @@
+//go:build !constantTime
+
 package kilic
 
 import (
@@ -75,7 +77,7 @@ func (k *GTElt) Neg(q kyber.Point) kyber.Point {
 func (k *GTElt) Mul(s kyber.Scalar, q kyber.Point) kyber.Point {
 	v := s.(*mod.Int).V
 	qq := q.(*GTElt)
-	bls12381.NewGT().Exp(k.f, qq.f, &v)
+	bls12381.NewGT().Exp(k.f, qq.f, &v.Int)
 	return k
 }
 

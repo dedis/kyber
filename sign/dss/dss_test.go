@@ -2,6 +2,8 @@ package dss
 
 import (
 	"crypto/rand"
+	"go.dedis.ch/kyber/v4/share"
+	"math"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -15,7 +17,7 @@ import (
 
 var suite = edwards25519.NewBlakeSHA256Ed25519()
 
-var nbParticipants = 7
+var nbParticipants = uint32(7)
 var t = nbParticipants/2 + 1
 
 var partPubs []kyber.Point
@@ -27,7 +29,7 @@ var randoms []*dkg.DistKeyShare
 func init() {
 	partPubs = make([]kyber.Point, nbParticipants)
 	partSec = make([]kyber.Scalar, nbParticipants)
-	for i := 0; i < nbParticipants; i++ {
+	for i := uint32(0); i < nbParticipants; i++ {
 		sec, pub := genPair()
 		partPubs[i] = pub
 		partSec[i] = sec
@@ -96,7 +98,7 @@ func TestDSSPartialSigs(t *testing.T) {
 	assert.Contains(t, err.Error(), "not enough")
 
 	// enough partial sigs ?
-	for i := 2; i < nbParticipants; i++ {
+	for i := uint32(2); i < nbParticipants; i++ {
 		dss := getDSS(i)
 		ps, err := dss.PartialSig()
 		require.Nil(t, err)
@@ -108,7 +110,7 @@ func TestDSSPartialSigs(t *testing.T) {
 func TestDSSSignature(t *testing.T) {
 	dsss := make([]*DSS, nbParticipants)
 	pss := make([]*PartialSig, nbParticipants)
-	for i := 0; i < nbParticipants; i++ {
+	for i := uint32(0); i < nbParticipants; i++ {
 		dsss[i] = getDSS(i)
 		ps, err := dsss[i].PartialSig()
 		require.Nil(t, err)
@@ -133,7 +135,7 @@ func TestDSSSignature(t *testing.T) {
 	assert.Nil(t, Verify(longterms[0].Public(), dss0.msg, buff))
 }
 
-func getDSS(i int) *DSS {
+func getDSS(i uint32) *DSS {
 	dss, err := NewDSS(suite, partSec[i], partPubs, longterms[i], randoms[i], []byte("hello"), t)
 	if dss == nil || err != nil {
 		panic("nil dss")
@@ -143,7 +145,7 @@ func getDSS(i int) *DSS {
 
 func genDistSecret() []*dkg.DistKeyShare {
 	dkgs := make([]*dkg.DistKeyGenerator, nbParticipants)
-	for i := 0; i < nbParticipants; i++ {
+	for i := uint32(0); i < nbParticipants; i++ {
 		dkg, err := dkg.NewDistKeyGenerator(suite, partSec[i], partPubs, nbParticipants/2+1)
 		if err != nil {
 			panic(err)
@@ -220,4 +222,28 @@ func randomBytes(n int) []byte {
 	var buff = make([]byte, n)
 	_, _ = rand.Read(buff)
 	return buff
+}
+
+// This test tries to make the Process Signature crash by telling that it has a negative index
+// It prevents the casting bug from uint32 to int on a 32-bit machine
+func TestOutOfIndex(t *testing.T) {
+	dss, err := NewDSS(suite, partSec[0], partPubs, longterms[0], randoms[0], []byte("hello"), 10)
+	if err != nil {
+		assert.Fail(t, "Couldn't create DSS: %w", err)
+	}
+	if dss == nil {
+		assert.Fail(t, "nil dss")
+	}
+
+	malevolentShare := &share.PriShare{
+		I: math.MaxUint32,
+		V: suite.Scalar().Pick(suite.RandomStream()),
+	}
+	malevolentSignature := &PartialSig{
+		malevolentShare, nil, nil,
+	}
+	err = dss.ProcessPartialSig(malevolentSignature)
+
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, ErrInvalidSignatureIndex)
 }

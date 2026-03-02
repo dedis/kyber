@@ -12,9 +12,10 @@ import (
 	"reflect"
 
 	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v4/internal"
+	"go.dedis.ch/kyber/v4/internal/protobuf"
 	"go.dedis.ch/kyber/v4/share"
 	"go.dedis.ch/kyber/v4/sign/schnorr"
-	"go.dedis.ch/protobuf"
 )
 
 // Suite defines the capabilities required by the vss package.
@@ -38,7 +39,7 @@ type Dealer struct {
 	verifiers     []kyber.Point
 	hkdfContext   []byte
 	// threshold of shares that is needed to reconstruct the secret
-	t int
+	t uint32
 	// sessionID is a unique identifier for the whole session of the scheme
 	sessionID []byte
 	// list of deals this Dealer has generated
@@ -58,6 +59,53 @@ type Deal struct {
 	Commitments []kyber.Point
 }
 
+// pedersenCompatibleDeal is a struct for Deal used when marshaling
+// to ensure compatibility with Kyber V3.
+type pedersenCompatibleDeal struct {
+	SessionID   []byte
+	SecShare    []byte
+	T           uint32
+	Commitments []kyber.Point
+}
+
+// Marshal marshals a Deal into bytes or return an error if encoding failed.
+// This encoding should always be preferred as it is compatible with Kyber V3.
+func (d *Deal) Marshal() ([]byte, error) {
+	secShareBytes, err := internal.MarshalPriShare(d.SecShare)
+	if err != nil {
+		return nil, err
+	}
+	compatibleDeal := &pedersenCompatibleDeal{
+		SessionID:   d.SessionID,
+		SecShare:    secShareBytes,
+		T:           d.T,
+		Commitments: d.Commitments,
+	}
+	return protobuf.Encode(compatibleDeal)
+}
+
+// Unmarshal unmarshals a Deal from bytes or return an error if decoding failed.
+// This decoding should always be preferred as it is compatible with Kyber V3.
+func (d *Deal) Unmarshal(data []byte, suite Suite) error {
+	compatibleDeal := &pedersenCompatibleDeal{}
+	constructors := make(protobuf.Constructors)
+	constructors[reflect.TypeFor[kyber.Point]()] = func() interface{} { return suite.Point() }
+	err := protobuf.DecodeWithConstructors(data, compatibleDeal, constructors)
+	if err != nil {
+		return err
+	}
+	secShare, err := internal.UnmarshalPriShare(compatibleDeal.SecShare, suite)
+	if err != nil {
+		return err
+	}
+
+	d.SessionID = compatibleDeal.SessionID
+	d.T = compatibleDeal.T
+	d.SecShare = secShare
+	d.Commitments = compatibleDeal.Commitments
+	return nil
+}
+
 // EncryptedDeal contains the deal in a encrypted form only decipherable by the
 // correct recipient. The encryption is performed in a similar manner as what is
 // done in TLS. The dealer generates a temporary key pair, signs it with its
@@ -67,7 +115,7 @@ type EncryptedDeal struct {
 	DHKey []byte
 	// Signature of the DH key by the longterm key of the dealer
 	Signature []byte
-	// AEAD encryption of the deal marshalled by protobuf
+	// AEAD encryption of the deal marshalled
 	Cipher []byte
 }
 
@@ -113,7 +161,7 @@ type Justification struct {
 // a middle ground between robustness and secrecy. Increasing t will increase
 // the secrecy at the cost of the decreased robustness and vice versa. It
 // returns an error if the t is inferior or equal to 2.
-func NewDealer(suite Suite, longterm, secret kyber.Scalar, verifiers []kyber.Point, t int) (*Dealer, error) {
+func NewDealer(suite Suite, longterm, secret kyber.Scalar, verifiers []kyber.Point, t uint32) (*Dealer, error) {
 	d := &Dealer{
 		suite:     suite,
 		long:      longterm,
@@ -193,7 +241,7 @@ func (d *Dealer) EncryptedDeal(i int) (*EncryptedDeal, error) {
 	}
 
 	nonce := make([]byte, gcm.NonceSize())
-	dealBuff, err := protobuf.Encode(d.deals[i])
+	dealBuff, err := d.deals[i].Marshal()
 	if err != nil {
 		return nil, err
 	}
@@ -238,7 +286,7 @@ func (d *Dealer) ProcessResponse(r *Response) (*Justification, error) {
 		SessionID: d.sessionID,
 		// index is guaranteed to be good because of d.verifyResponse before
 		Index: r.Index,
-		Deal:  d.deals[int(r.Index)],
+		Deal:  d.deals[r.Index],
 	}
 	sig, err := schnorr.Sign(d.suite, d.long, j.Hash(d.suite))
 	if err != nil {
@@ -279,7 +327,7 @@ func (d *Dealer) SessionID() []byte {
 // for this DKG protocol round. The caller is expected to call this after a long timeout
 // so each DKG node can still compute its share if enough Deals are valid.
 func (d *Dealer) SetTimeout() {
-	d.Aggregator.timeout = true
+	d.timeout = true
 }
 
 // PrivatePoly returns the private polynomial used to generate the deal. This
@@ -297,7 +345,7 @@ type Verifier struct {
 	longterm    kyber.Scalar
 	pub         kyber.Point
 	dealer      kyber.Point
-	index       int
+	index       uint32
 	verifiers   []kyber.Point
 	hkdfContext []byte
 	*Aggregator
@@ -316,11 +364,11 @@ func NewVerifier(suite Suite, longterm kyber.Scalar, dealerKey kyber.Point,
 
 	pub := suite.Point().Mul(longterm, nil)
 	var ok bool
-	var index int
+	var index uint32
 	for i, v := range verifiers {
 		if v.Equal(pub) {
 			ok = true
-			index = i
+			index = uint32(i)
 			break
 		}
 	}
@@ -354,13 +402,11 @@ func (v *Verifier) ProcessEncryptedDeal(e *EncryptedDeal) (*Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	if int(d.SecShare.I) != v.index {
+	if d.SecShare.I != v.index {
 		return nil, errors.New("vss: verifier got wrong index from deal")
 	}
 
-	t := int(d.T)
-
-	sid, err := sessionID(v.suite, v.dealer, v.verifiers, d.Commitments, t)
+	sid, err := sessionID(v.suite, v.dealer, v.verifiers, d.Commitments, d.T)
 	if err != nil {
 		return nil, err
 	}
@@ -382,7 +428,7 @@ func (v *Verifier) ProcessEncryptedDeal(e *EncryptedDeal) (*Response, error) {
 		return nil, err
 	}
 
-	if err = v.Aggregator.addResponse(r); err != nil {
+	if err = v.addResponse(r); err != nil {
 		return nil, err
 	}
 	return r, nil
@@ -410,7 +456,7 @@ func (v *Verifier) decryptDeal(e *EncryptedDeal) (*Deal, error) {
 		return nil, err
 	}
 	deal := &Deal{}
-	err = deal.decode(v.suite, decrypted)
+	err = deal.Unmarshal(decrypted, v.suite)
 	return deal, err
 }
 
@@ -424,10 +470,10 @@ var ErrNoDealBeforeResponse = errors.New("verifier: need to receive deal before 
 // error if it's not a valid response.
 // Call `v.DealCertified()` to check if the whole protocol is finished.
 func (v *Verifier) ProcessResponse(resp *Response) error {
-	if v.Aggregator.deal == nil {
+	if v.deal == nil {
 		return ErrNoDealBeforeResponse
 	}
-	return v.Aggregator.verifyResponse(resp)
+	return v.verifyResponse(resp)
 }
 
 // Commits returns the commitments of the coefficients of the polynomial
@@ -451,7 +497,7 @@ func (v *Verifier) Deal() *Deal {
 // probably means the Dealer is acting maliciously. In order to be sure, call
 // `v.DealCertified()`.
 func (v *Verifier) ProcessJustification(dr *Justification) error {
-	return v.Aggregator.verifyJustification(dr)
+	return v.verifyJustification(dr)
 }
 
 // Key returns the longterm key pair this verifier is using during this protocol
@@ -462,7 +508,7 @@ func (v *Verifier) Key() (kyber.Scalar, kyber.Point) {
 
 // Index returns the index of the verifier in the list of participants used
 // during this run of the protocol.
-func (v *Verifier) Index() int {
+func (v *Verifier) Index() uint32 {
 	return v.index
 }
 
@@ -475,7 +521,7 @@ func (v *Verifier) SessionID() []byte {
 // RecoverSecret recovers the secret shared by a Dealer by gathering at least t
 // Deals from the verifiers. It returns an error if there is not enough Deals or
 // if all Deals don't have the same SessionID.
-func RecoverSecret(suite Suite, deals []*Deal, n, t int) (kyber.Scalar, error) {
+func RecoverSecret(suite Suite, deals []*Deal, n, t uint32) (kyber.Scalar, error) {
 	shares := make([]*share.PriShare, len(deals))
 	for i, deal := range deals {
 		// all sids the same
@@ -493,20 +539,20 @@ func RecoverSecret(suite Suite, deals []*Deal, n, t int) (kyber.Scalar, error) {
 // enough deals were approved. One should call `DealCertified()` after this
 // method in order to know if the deal is valid or the protocol should abort.
 func (v *Verifier) SetTimeout() {
-	v.Aggregator.timeout = true
+	v.timeout = true
 }
 
 // UnsafeSetResponseDKG is an UNSAFE bypass method to allow DKG to use VSS
 // that works on basis of approval only.
 func (v *Verifier) UnsafeSetResponseDKG(idx uint32, approval bool) {
 	r := &Response{
-		SessionID:      v.Aggregator.sid,
-		Index:          uint32(idx),
+		SessionID:      v.sid,
+		Index:          idx,
 		StatusApproved: approval,
 	}
 
 	//nolint:errcheck // Unsafe function
-	v.Aggregator.addResponse(r)
+	v.addResponse(r)
 }
 
 // Aggregator is used to collect all deals, and responses for one protocol run.
@@ -520,7 +566,7 @@ type Aggregator struct {
 	responses map[uint32]*Response
 	sid       []byte
 	deal      *Deal
-	t         int
+	t         uint32
 	badDealer bool
 	timeout   bool
 }
@@ -530,7 +576,7 @@ func newAggregator(
 	dealer kyber.Point,
 	verifiers,
 	commitments []kyber.Point,
-	t int,
+	t uint32,
 	sid []byte,
 ) *Aggregator {
 	agg := &Aggregator{
@@ -569,14 +615,14 @@ func (a *Aggregator) VerifyDeal(d *Deal, inclusion bool) error {
 		a.commits = d.Commitments
 		a.sid = d.SessionID
 		a.deal = d
-		a.t = int(d.T)
+		a.t = d.T
 	}
 
-	if !validT(int(d.T), a.verifiers) {
+	if !validT(d.T, a.verifiers) {
 		return errors.New("vss: invalid t received in Deal")
 	}
 
-	if int(d.T) != a.t {
+	if d.T != a.t {
 		return errors.New("vss: incompatible threshold - potential attack")
 	}
 
@@ -605,7 +651,7 @@ func (a *Aggregator) VerifyDeal(d *Deal, inclusion bool) error {
 // should make sure the one it receives from the dealer is consistent. If this
 // method is not called, the first threshold received is considered as the
 // "truth".
-func (a *Aggregator) SetThreshold(t int) {
+func (a *Aggregator) SetThreshold(t uint32) {
 	a.t = t
 }
 
@@ -686,8 +732,8 @@ func (a *Aggregator) Responses() map[uint32]*Response {
 // If the caller previously called `SetTimeout` and `DealCertified()` returns
 // false, the protocol MUST abort as the deal is not and never will be validated.
 func (a *Aggregator) DealCertified() bool {
-	var absentVerifiers int
-	var approvals int
+	var absentVerifiers uint32
+	var approvals uint32
 	var isComplaint bool
 
 	for i := range a.verifiers {
@@ -700,12 +746,12 @@ func (a *Aggregator) DealCertified() bool {
 		}
 	}
 	enoughApprovals := approvals >= a.t
-	tooMuchAbsents := absentVerifiers > len(a.verifiers)-a.t
+	tooMuchAbsents := absentVerifiers > uint32(len(a.verifiers))-a.t
 	baseCondition := !a.badDealer && enoughApprovals && !isComplaint
 	if a.timeout {
 		return baseCondition && !tooMuchAbsents
 	}
-	return baseCondition && !(absentVerifiers > 0)
+	return baseCondition && absentVerifiers <= 0
 }
 
 // MissingResponses returns the indexes of the expected but missing responses.
@@ -724,23 +770,22 @@ func (a *Aggregator) MissingResponses() []int {
 // T should be adjusted to your threat model. Setting a lower T decreases the
 // difficulty for an adversary to break secrecy. However, a too large T makes
 // it possible for an adversary to prevent recovery (robustness).
-func MinimumT(n int) int {
+func MinimumT(n uint32) uint32 {
 	return (n >> 1) + 1
 }
 
-func validT(t int, verifiers []kyber.Point) bool {
-	return t >= 2 && t <= len(verifiers) && int(uint32(t)) == t
+func validT(t uint32, verifiers []kyber.Point) bool {
+	return t >= 2 && t <= uint32(len(verifiers))
 }
 
 func findPub(verifiers []kyber.Point, idx uint32) (kyber.Point, bool) {
-	iidx := int(idx)
-	if iidx >= len(verifiers) {
+	if idx >= uint32(len(verifiers)) {
 		return nil, false
 	}
-	return verifiers[iidx], true
+	return verifiers[idx], true
 }
 
-func sessionID(suite Suite, dealer kyber.Point, verifiers, commitments []kyber.Point, t int) ([]byte, error) {
+func sessionID(suite Suite, dealer kyber.Point, verifiers, commitments []kyber.Point, t uint32) ([]byte, error) {
 	h := suite.Hash()
 	_, err := dealer.MarshalTo(h)
 	if err != nil {
@@ -761,7 +806,7 @@ func sessionID(suite Suite, dealer kyber.Point, verifiers, commitments []kyber.P
 		}
 	}
 
-	err = binary.Write(h, binary.LittleEndian, uint32(t))
+	err = binary.Write(h, binary.LittleEndian, t)
 	return h.Sum(nil), err
 }
 
@@ -775,22 +820,13 @@ func (r *Response) Hash(s Suite) []byte {
 	return h.Sum(nil)
 }
 
-func (d *Deal) decode(s Suite, buff []byte) error {
-	constructors := make(protobuf.Constructors)
-	var point kyber.Point
-	var secret kyber.Scalar
-	constructors[reflect.TypeOf(&point).Elem()] = func() interface{} { return s.Point() }
-	constructors[reflect.TypeOf(&secret).Elem()] = func() interface{} { return s.Scalar() }
-	return protobuf.DecodeWithConstructors(buff, d, constructors)
-}
-
 // Hash returns the hash of a Justification.
 func (j *Justification) Hash(s Suite) []byte {
 	h := s.Hash()
 	_, _ = h.Write([]byte("justification"))
 	_, _ = h.Write(j.SessionID)
 	_ = binary.Write(h, binary.LittleEndian, j.Index)
-	buff, _ := protobuf.Encode(j.Deal)
+	buff, _ := j.Deal.Marshal()
 	_, _ = h.Write(buff)
 	return h.Sum(nil)
 }

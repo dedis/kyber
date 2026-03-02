@@ -332,8 +332,8 @@ func Shuffle(group kyber.Group, G, H kyber.Point, X, Y []kyber.Point,
 		pi[i] = i
 	}
 	for i := k - 1; i > 0; i-- { // Shuffle by random swaps
-		j := int(randUint64(rand) % uint64(i+1))
-		if j != i {
+		j := randUint64(rand) % uint64(i+1)
+		if j != uint64(i) {
 			pi[j], pi[i] = pi[i], pi[j]
 		}
 	}

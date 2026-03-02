@@ -1,3 +1,5 @@
+//go:build !constantTime
+
 package gnark
 
 import (
@@ -125,7 +127,7 @@ func (p *G2Elt) Mul(s kyber.Scalar, q kyber.Point) kyber.Point {
 }
 
 func (p *G2Elt) IsInCorrectGroup() bool {
-	return !(p.inner.X.IsZero() && p.inner.Y.IsZero() && p.inner.X.IsZero()) &&
+	return (!p.inner.X.IsZero() || !p.inner.Y.IsZero() || !p.inner.X.IsZero()) &&
 		p.inner.IsOnCurve() && p.inner.IsInSubGroup()
 }
 

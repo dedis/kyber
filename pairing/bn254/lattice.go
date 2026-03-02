@@ -1,3 +1,5 @@
+//go:build !constantTime
+
 package bn254
 
 import (
@@ -110,6 +112,7 @@ func round(num, denom *big.Int) {
 	r := new(big.Int)
 	num.DivMod(num, denom, r)
 
+	// todo CondAssignment
 	if r.Cmp(half) == 1 {
 		num.Add(num, big.NewInt(1))
 	}

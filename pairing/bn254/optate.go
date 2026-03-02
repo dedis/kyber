@@ -1,3 +1,5 @@
+//go:build !constantTime
+
 package bn254
 
 func lineFunctionAdd(r, p *twistPoint, q *curvePoint, r2 *gfP2) (a, b, c *gfP2, rOut *twistPoint) {

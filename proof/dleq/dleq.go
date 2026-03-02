@@ -165,7 +165,7 @@ func (p *Proof) Verify(suite Suite, G kyber.Point, H kyber.Point, xG kyber.Point
 	cxH := suite.Point().Mul(p.C, xH)
 	a := suite.Point().Add(rG, cxG)
 	b := suite.Point().Add(rH, cxH)
-	if !(p.VG.Equal(a) && p.VH.Equal(b)) {
+	if !p.VG.Equal(a) || !p.VH.Equal(b) {
 		return fmt.Errorf("invalid. %w", ErrInvalidProof)
 	}
 	return nil

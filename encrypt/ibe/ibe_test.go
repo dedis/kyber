@@ -17,7 +17,7 @@ func newSetting(i uint) (
 	func(s pairing.Suite, master kyber.Point, ID []byte, msg []byte) (*Ciphertext, error),
 	func(s pairing.Suite, private kyber.Point, c *Ciphertext) ([]byte, error),
 ) {
-	if !(i == 1 || i == 2) {
+	if i != 1 && i != 2 {
 		panic("invalid test")
 	}
 	if i == 1 {

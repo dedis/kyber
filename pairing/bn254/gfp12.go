@@ -1,3 +1,5 @@
+//go:build !constantTime
+
 package bn254
 
 // For details of the algorithms used, see "Multiplication and Squaring on

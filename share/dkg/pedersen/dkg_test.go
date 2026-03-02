@@ -10,10 +10,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.dedis.ch/kyber/v4"
 	"go.dedis.ch/kyber/v4/group/edwards25519"
-	"go.dedis.ch/kyber/v4/pairing/bn256"
 	"go.dedis.ch/kyber/v4/share"
 	"go.dedis.ch/kyber/v4/sign/schnorr"
-	"go.dedis.ch/kyber/v4/sign/tbls"
 	"go.dedis.ch/kyber/v4/util/random"
 )
 
@@ -26,22 +24,22 @@ type TestNode struct {
 	proto   *Protocol
 	phaser  *TimePhaser
 	board   *TestBoard
-	clock   clock.FakeClock
+	clock   *clock.FakeClock
 }
 
-func NewTestNode(s Suite, index int) *TestNode {
+func NewTestNode(s Suite, index uint32) *TestNode {
 	private := s.Scalar().Pick(random.New())
 	public := s.Point().Mul(private, nil)
 	return &TestNode{
-		Index:   uint32(index),
+		Index:   index,
 		Private: private,
 		Public:  public,
 	}
 }
 
-func GenerateTestNodes(s Suite, n int) []*TestNode {
+func GenerateTestNodes(s Suite, n uint32) []*TestNode {
 	tns := make([]*TestNode, n)
-	for i := 0; i < n; i++ {
+	for i := uint32(0); i < n; i++ {
 		tns[i] = NewTestNode(s, i)
 	}
 	return tns
@@ -103,10 +101,10 @@ func IsDealerIncluded(bundles []*ResponseBundle, dealer uint32) bool {
 	return false
 }
 
-func testResults(t *testing.T, suite Suite, thr, n int, results []*Result) {
+func testResults(t *testing.T, suite Suite, thr, n uint32, results []*Result) {
 	// test if all results are consistent
 	for i, res := range results {
-		require.Equal(t, thr, len(res.Key.Commitments()))
+		require.Equal(t, thr, uint32(len(res.Key.Commitments())))
 		for j, res2 := range results {
 			if i == j {
 				continue
@@ -210,11 +208,11 @@ func RunDKG(t *testing.T, tns []*TestNode, conf Config,
 // This tests makes a dealer being evicted and checks if the dealer knows about the eviction
 // itself and quits the DKG
 func TestSelfEvictionDealer(t *testing.T) {
-	n := 5
-	thr := 3
+	n := uint32(5)
+	thr := uint32(3)
 	suite := edwards25519.NewBlakeSHA256Ed25519()
 	tns := GenerateTestNodes(suite, n)
-	skippedIndex := rand.Intn(n)
+	skippedIndex := rand.Intn(int(n))
 	var newIndex uint32 = 53 // XXX should there be a limit to the index ?
 	tns[skippedIndex].Index = newIndex
 	list := NodesFromTest(tns)
@@ -263,8 +261,8 @@ func TestSelfEvictionDealer(t *testing.T) {
 // This test is running DKG and resharing with skipped indices given there is no
 // guarantees that the indices of the nodes are going to be sequentials.
 func TestDKGSkipIndex(t *testing.T) {
-	n := 5
-	thr := 4
+	n := uint32(5)
+	thr := uint32(4)
 	suite := edwards25519.NewBlakeSHA256Ed25519()
 	tns := GenerateTestNodes(suite, n)
 	skippedIndex := 1
@@ -287,12 +285,12 @@ func TestDKGSkipIndex(t *testing.T) {
 
 	// we setup now the second group with higher node count and higher threshold
 	// and we remove one node from the previous group
-	nodesToAdd := 5
+	nodesToAdd := uint32(5)
 	newN := n - 1 + nodesToAdd   // we remove one old node
 	newT := thr + nodesToAdd - 1 // set the threshold to accept one offline new node
 	var newTns = make([]*TestNode, 0, newN)
 	// remove a random node from the previous group
-	offlineToRemove := uint32(rand.Intn(n))
+	offlineToRemove := uint32(rand.Intn(int(n)))
 	for i, node := range tns {
 		if i == int(offlineToRemove) {
 			continue
@@ -301,9 +299,9 @@ func TestDKGSkipIndex(t *testing.T) {
 		t.Logf("Added old node newTns[%d].Index = %d\n", len(newTns), newTns[len(newTns)-1].Index)
 	}
 	// we also mess up with indexing here
-	newSkipped := 2
+	newSkipped := uint32(2)
 	t.Logf("skippedIndex: %d, newSkipped: %d\n", skippedIndex, newSkipped)
-	for i := 0; i <= nodesToAdd; i++ {
+	for i := uint32(0); i <= nodesToAdd; i++ {
 		if i == newSkipped {
 			continue // gonna get filled up at last iteration
 		}
@@ -343,7 +341,7 @@ func TestDKGSkipIndex(t *testing.T) {
 		responses = append(responses, resp)
 	}
 	// all nodes in the new group should have reported an error
-	require.Equal(t, newN, len(responses))
+	require.Equal(t, newN, uint32(len(responses)))
 
 	results = nil
 	for _, node := range newTns {
@@ -365,7 +363,7 @@ func TestDKGSkipIndex(t *testing.T) {
 
 }
 func TestDKGFull(t *testing.T) {
-	n := 5
+	n := uint32(5)
 	thr := n
 	suite := edwards25519.NewBlakeSHA256Ed25519()
 	tns := GenerateTestNodes(suite, n)
@@ -381,203 +379,9 @@ func TestDKGFull(t *testing.T) {
 	testResults(t, suite, thr, n, results)
 }
 
-func TestSelfEvictionShareHolder(t *testing.T) {
-	n := 5
-	thr := 4
-	var suite = bn256.NewSuiteG2()
-	var sigSuite = bn256.NewSuiteG1()
-	tns := GenerateTestNodes(suite, n)
-	list := NodesFromTest(tns)
-	conf := Config{
-		Suite:     suite,
-		NewNodes:  list,
-		Threshold: thr,
-		Auth:      schnorr.NewScheme(suite),
-	}
-
-	results := RunDKG(t, tns, conf, nil, nil, nil)
-	for i, t := range tns {
-		t.res = results[i]
-	}
-	testResults(t, suite, thr, n, results)
-
-	// create a partial signature with the share now and make sure the partial
-	// signature is verifiable and then *not* verifiable after the resharing
-	oldShare := results[0].Key.Share
-	msg := []byte("Hello World")
-	scheme := tbls.NewThresholdSchemeOnG1(sigSuite)
-	oldPartial, err := scheme.Sign(oldShare, msg)
-	require.NoError(t, err)
-	poly := share.NewPubPoly(suite, suite.Point().Base(), results[0].Key.Commits)
-	require.NoError(t, scheme.VerifyPartial(poly, msg, oldPartial))
-
-	// we setup now the second group with higher node count and higher threshold
-	// and we remove one node from the previous group
-	newN := n + 5
-	newT := thr + 4
-	var newTns = make([]*TestNode, n)
-	copy(newTns, tns)
-	newNode := newN - n
-	for i := 0; i < newNode; i++ {
-		newTns = append(newTns, NewTestNode(suite, n+1+i))
-	}
-	newIndexToEvict := newTns[len(newTns)-1].Index
-	newList := NodesFromTest(newTns)
-	newConf := &Config{
-		Suite:        suite,
-		NewNodes:     newList,
-		OldNodes:     list,
-		Threshold:    newT,
-		OldThreshold: thr,
-		FastSync:     true,
-		Auth:         schnorr.NewScheme(suite),
-	}
-
-	SetupReshareNodes(newTns, newConf, tns[0].res.Key.Commits)
-
-	var deals []*DealBundle
-	for _, node := range newTns {
-		if node.res == nil {
-			// new members don't issue deals
-			continue
-		}
-		d, err := node.dkg.Deals()
-		require.NoError(t, err)
-		deals = append(deals, d)
-	}
-
-	var responses []*ResponseBundle
-	for _, node := range newTns {
-		resp, err := node.dkg.ProcessDeals(deals)
-		require.NoError(t, err)
-		if node.Index == newIndexToEvict {
-			// we insert a bad session ID for example so this new recipient should be evicted
-			resp.SessionID = []byte("That looks so wrong")
-		}
-		responses = append(responses, resp)
-	}
-	require.True(t, len(responses) > 0)
-
-	for _, node := range newTns {
-		_, _, err := node.dkg.ProcessResponses(responses)
-		require.True(t, contains(node.dkg.evictedHolders, newIndexToEvict))
-		if node.Index == newIndexToEvict {
-			require.Error(t, err)
-			continue
-		}
-		require.NoError(t, err)
-	}
-}
-
-func TestDKGResharing(t *testing.T) {
-	n := 5
-	thr := 4
-	var suite = bn256.NewSuiteG2()
-	var sigSuite = bn256.NewSuiteG1()
-	tns := GenerateTestNodes(suite, n)
-	list := NodesFromTest(tns)
-	conf := Config{
-		Suite:     suite,
-		NewNodes:  list,
-		Threshold: thr,
-		Auth:      schnorr.NewScheme(suite),
-	}
-
-	results := RunDKG(t, tns, conf, nil, nil, nil)
-	for i, t := range tns {
-		t.res = results[i]
-	}
-	testResults(t, suite, thr, n, results)
-
-	// create a partial signature with the share now and make sure the partial
-	// signature is verifiable and then *not* verifiable after the resharing
-	oldShare := results[0].Key.Share
-	msg := []byte("Hello World")
-	scheme := tbls.NewThresholdSchemeOnG1(sigSuite)
-	oldPartial, err := scheme.Sign(oldShare, msg)
-	require.NoError(t, err)
-	poly := share.NewPubPoly(suite, suite.Point().Base(), results[0].Key.Commits)
-	require.NoError(t, scheme.VerifyPartial(poly, msg, oldPartial))
-
-	// we setup now the second group with higher node count and higher threshold
-	// and we remove one node from the previous group
-	newN := n + 5
-	newT := thr + 4
-	var newTns = make([]*TestNode, newN)
-	// remove the last node from the previous group
-	offline := 1
-	copy(newTns, tns[:n-offline])
-	// + offline because we fill the gap of the offline nodes by new nodes
-	newNode := newN - n + offline
-	for i := 0; i < newNode; i++ {
-		//  new node can have the same index as a previous one, separation is made
-		newTns[n-1+i] = NewTestNode(suite, n-1+i)
-	}
-	newList := NodesFromTest(newTns)
-	newConf := &Config{
-		Suite:        suite,
-		NewNodes:     newList,
-		OldNodes:     list,
-		Threshold:    newT,
-		OldThreshold: thr,
-		Auth:         schnorr.NewScheme(suite),
-	}
-
-	SetupReshareNodes(newTns, newConf, tns[0].res.Key.Commits)
-
-	var deals []*DealBundle
-	for _, node := range newTns {
-		if node.res == nil {
-			// new members don't issue deals
-			continue
-		}
-		d, err := node.dkg.Deals()
-		require.NoError(t, err)
-		deals = append(deals, d)
-	}
-
-	var responses []*ResponseBundle
-	for _, node := range newTns {
-		resp, err := node.dkg.ProcessDeals(deals)
-		require.NoError(t, err)
-		if resp != nil {
-			// last node from the old group is not present so there should be
-			// some responses !
-			responses = append(responses, resp)
-		}
-	}
-	require.True(t, len(responses) > 0)
-
-	results = nil
-	for _, node := range newTns {
-		res, just, err := node.dkg.ProcessResponses(responses)
-		require.NoError(t, err)
-		require.Nil(t, res)
-		// since the last old node is absent he can't give any justifications
-		require.Nil(t, just)
-	}
-
-	for _, node := range newTns {
-		res, err := node.dkg.ProcessJustifications(nil)
-		require.NoError(t, err)
-		require.NotNil(t, res)
-		results = append(results, res)
-	}
-	testResults(t, suite, newT, newN, results)
-
-	// test a tbls signature is correct
-	newShare := results[0].Key.Share
-	newPartial, err := scheme.Sign(newShare, msg)
-	require.NoError(t, err)
-	newPoly := share.NewPubPoly(suite, suite.Point().Base(), results[0].Key.Commits)
-	require.NoError(t, scheme.VerifyPartial(newPoly, msg, newPartial))
-	// test we can not verify the old partial with the new public polynomial
-	require.Error(t, scheme.VerifyPartial(poly, msg, newPartial))
-}
-
 func TestDKGThreshold(t *testing.T) {
-	n := 5
-	thr := 4
+	n := uint32(5)
+	thr := uint32(4)
 	suite := edwards25519.NewBlakeSHA256Ed25519()
 	tns := GenerateTestNodes(suite, n)
 	list := NodesFromTest(tns)
@@ -591,7 +395,7 @@ func TestDKGThreshold(t *testing.T) {
 	dm := func(deals []*DealBundle) []*DealBundle {
 		// we make first dealer absent
 		deals = deals[1:]
-		require.Len(t, deals, n-1)
+		require.Len(t, deals, int(n-1))
 		// we make the second dealer creating a invalid share for 3rd participant
 		deals[0].Deals[2].EncryptedShare = []byte("Another one bites the dust")
 		return deals
@@ -640,173 +444,8 @@ func TestDKGThreshold(t *testing.T) {
 	testResults(t, suite, thr, n, filtered)
 }
 
-func TestDKGResharingFast(t *testing.T) {
-	n := 6
-	thr := 4
-	var suite = bn256.NewSuiteG2()
-	var sigSuite = bn256.NewSuiteG1()
-	tns := GenerateTestNodes(suite, n)
-	list := NodesFromTest(tns)
-	conf := Config{
-		Suite:     suite,
-		NewNodes:  list,
-		Threshold: thr,
-		Auth:      schnorr.NewScheme(suite),
-	}
-	SetupNodes(tns, &conf)
-
-	var deals []*DealBundle
-	for _, node := range tns {
-		d, err := node.dkg.Deals()
-		require.NoError(t, err)
-		deals = append(deals, d)
-	}
-
-	for _, node := range tns {
-		resp, err := node.dkg.ProcessDeals(deals)
-		require.NoError(t, err)
-		// for a full perfect dkg there should not be any complaints
-		require.Nil(t, resp)
-	}
-
-	var results []*Result
-	for _, node := range tns {
-		// we give no responses
-		res, just, err := node.dkg.ProcessResponses(nil)
-		require.NoError(t, err)
-		require.Nil(t, just)
-		require.NotNil(t, res)
-		results = append(results, res)
-		node.res = res
-	}
-	testResults(t, suite, thr, n, results)
-
-	// create a partial signature with the share now and make sure the partial
-	// signature is verifiable and then *not* verifiable after the resharing
-	oldShare := results[0].Key.Share
-	msg := []byte("Hello World")
-	scheme := tbls.NewThresholdSchemeOnG1(sigSuite)
-	oldPartial, err := scheme.Sign(oldShare, msg)
-	require.NoError(t, err)
-	poly := share.NewPubPoly(suite, suite.Point().Base(), results[0].Key.Commits)
-	require.NoError(t, scheme.VerifyPartial(poly, msg, oldPartial))
-
-	// we setup now the second group with higher node count and higher threshold
-	// and we remove one node from the previous group
-	newN := n + 5
-	newT := thr + 4
-	var newTns = make([]*TestNode, newN)
-	// remove the last node from the previous group
-	offline := 1
-	copy(newTns, tns[:n-offline])
-	// + offline because we fill the gap of the offline nodes by new nodes
-	newNode := newN - n + offline
-	for i := 0; i < newNode; i++ {
-		//  new node can have the same index as a previous one, separation is made
-		newTns[n-1+i] = NewTestNode(suite, n-1+i)
-	}
-	newList := NodesFromTest(newTns)
-	// key from the previous and new group which is registered in the
-	// group but wont participate
-	p := 1
-	skipKey := list[p].Public
-	var skipNew Index
-	for _, n := range newList {
-		if n.Public.Equal(skipKey) {
-			skipNew = n.Index
-		}
-	}
-	t.Log("skipping old index: ", list[p].Index, "public key", skipKey, "newIdx", skipNew)
-
-	newConf := &Config{
-		Suite:        suite,
-		NewNodes:     newList,
-		OldNodes:     list,
-		Threshold:    newT,
-		OldThreshold: thr,
-		Auth:         schnorr.NewScheme(suite),
-		FastSync:     true,
-	}
-
-	SetupReshareNodes(newTns, newConf, tns[0].res.Key.Commits)
-
-	deals = nil
-	for _, node := range newTns {
-		if node.res == nil {
-			// new members don't issue deals
-			continue
-		}
-		if node.Public.Equal(skipKey) {
-			continue
-		}
-		d, err := node.dkg.Deals()
-		require.NoError(t, err)
-		deals = append(deals, d)
-	}
-
-	var responses []*ResponseBundle
-	for _, node := range newTns {
-		if node.Public.Equal(skipKey) {
-			continue
-		}
-		resp, err := node.dkg.ProcessDeals(deals)
-		require.NoError(t, err)
-
-		if resp != nil {
-			// last node from the old group is not present so there should be
-			// some responses !
-			responses = append(responses, resp)
-		}
-	}
-	require.True(t, len(responses) > 0)
-
-	results = nil
-	var justifs []*JustificationBundle
-	for _, node := range newTns {
-		if node.Public.Equal(skipKey) {
-			continue
-		}
-		res, just, err := node.dkg.ProcessResponses(responses)
-		require.NoError(t, err)
-		require.Nil(t, res)
-		if node.res == nil {
-			// new members don't issue justifications
-			continue
-		}
-		require.NotNil(t, just.Justifications)
-		require.Equal(t, just.Justifications[0].ShareIndex, skipNew)
-		justifs = append(justifs, just)
-	}
-
-	for _, node := range newTns {
-		if node.Public.Equal(skipKey) {
-			continue
-		}
-		res, err := node.dkg.ProcessJustifications(justifs)
-		require.NoError(t, err)
-		require.NotNil(t, res)
-		results = append(results, res)
-	}
-
-	for _, res := range results {
-		for _, n := range res.QUAL {
-			require.False(t, n.Public.Equal(skipKey))
-		}
-	}
-	testResults(t, suite, newT, newN, results)
-
-	// test a tbls signature is correct
-	newShare := results[0].Key.Share
-	newPartial, err := scheme.Sign(newShare, msg)
-	require.NoError(t, err)
-	newPoly := share.NewPubPoly(suite, suite.Point().Base(), results[0].Key.Commits)
-	require.NoError(t, scheme.VerifyPartial(newPoly, msg, newPartial))
-	// test we can not verify the old partial with the new public polynomial
-	require.Error(t, scheme.VerifyPartial(poly, msg, newPartial))
-}
-
 func TestDKGFullFast(t *testing.T) {
-	n := 5
+	n := uint32(5)
 	thr := n
 	suite := edwards25519.NewBlakeSHA256Ed25519()
 	tns := GenerateTestNodes(suite, n)
@@ -824,7 +463,7 @@ func TestDKGFullFast(t *testing.T) {
 }
 
 func TestDKGNonceInvalid(t *testing.T) {
-	n := 5
+	n := uint32(5)
 	thr := n
 	suite := edwards25519.NewBlakeSHA256Ed25519()
 	tns := GenerateTestNodes(suite, n)
@@ -851,7 +490,7 @@ func TestDKGNonceInvalid(t *testing.T) {
 }
 
 func TestDKGAbsentAuth(t *testing.T) {
-	n := 5
+	n := uint32(5)
 	thr := n
 	suite := edwards25519.NewBlakeSHA256Ed25519()
 	tns := GenerateTestNodes(suite, n)
@@ -875,8 +514,8 @@ func TestDKGAbsentAuth(t *testing.T) {
 }
 
 func TestDKGNonceInvalidEviction(t *testing.T) {
-	n := 7
-	thr := 4
+	n := uint32(7)
+	thr := uint32(4)
 	suite := edwards25519.NewBlakeSHA256Ed25519()
 	tns := GenerateTestNodes(suite, n)
 	list := NodesFromTest(tns)
@@ -889,7 +528,7 @@ func TestDKGNonceInvalidEviction(t *testing.T) {
 
 	genPublic := func() []kyber.Point {
 		points := make([]kyber.Point, thr)
-		for i := 0; i < thr; i++ {
+		for i := uint32(0); i < thr; i++ {
 			points[i] = suite.Point().Pick(random.New())
 		}
 		return points
@@ -929,7 +568,7 @@ func TestDKGNonceInvalidEviction(t *testing.T) {
 	}
 	filtered := results[:0]
 	for _, r := range results {
-		if isEvicted(Index(r.Key.Share.I)) {
+		if isEvicted(r.Key.Share.I) {
 			continue
 		}
 		require.NotContains(t, r.QUAL, Index(0))
@@ -941,8 +580,8 @@ func TestDKGNonceInvalidEviction(t *testing.T) {
 }
 
 func TestDKGInvalidResponse(t *testing.T) {
-	n := 6
-	thr := 3
+	n := uint32(6)
+	thr := uint32(3)
 	suite := edwards25519.NewBlakeSHA256Ed25519()
 	tns := GenerateTestNodes(suite, n)
 	list := NodesFromTest(tns)
@@ -962,7 +601,7 @@ func TestDKGInvalidResponse(t *testing.T) {
 	}
 	// we make first dealer absent
 	deals = deals[1:]
-	require.Len(t, deals, n-1)
+	require.Len(t, deals, int(n-1))
 
 	var respBundles []*ResponseBundle
 	for _, node := range tns {
@@ -1024,8 +663,8 @@ func TestDKGInvalidResponse(t *testing.T) {
 }
 
 func TestDKGTooManyComplaints(t *testing.T) {
-	n := 5
-	thr := 3
+	n := uint32(5)
+	thr := uint32(3)
 	suite := edwards25519.NewBlakeSHA256Ed25519()
 	tns := GenerateTestNodes(suite, n)
 	list := NodesFromTest(tns)
@@ -1039,7 +678,7 @@ func TestDKGTooManyComplaints(t *testing.T) {
 	dm := func(deals []*DealBundle) []*DealBundle {
 		// we make the second dealer creating a invalid share for too many
 		// participants
-		for i := 0; i <= thr; i++ {
+		for i := uint32(0); i <= thr; i++ {
 			deals[0].Deals[i].EncryptedShare = []byte("Another one bites the dust")
 		}
 		return deals
@@ -1088,8 +727,8 @@ func TestConfigDuplicate(t *testing.T) {
 
 func TestMinimumT(t *testing.T) {
 	tests := []struct {
-		input  int
-		output int
+		input  uint32
+		output uint32
 	}{
 		{10, 6},
 		{6, 4},

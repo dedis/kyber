@@ -1,3 +1,5 @@
+//go:build !constantTime
+
 package examples
 
 import (
@@ -14,17 +16,14 @@ func ElGamalEncryptBn256(suite pairing.Suite, pubkey kyber.Point, message []byte
 
 	// Embed the message (or as much of it as will fit) into a curve point.
 	M := suite.G1().Point().Embed(message, random.New())
-	max := suite.G1().Point().EmbedLen()
-	if max > len(message) {
-		max = len(message)
-	}
-	remainder = message[max:]
+	maxLen := min(suite.G1().Point().EmbedLen(), len(message))
+	remainder = message[maxLen:]
 	// ElGamal-encrypt the point to produce ciphertext (K,C).
 	k := suite.G1().Scalar().Pick(random.New()) // ephemeral private key
 	K = suite.G1().Point().Mul(k, nil)          // ephemeral DH public key
 	S := suite.G1().Point().Mul(k, pubkey)      // ephemeral DH shared secret
 	C = suite.G1().Point().Add(S, M)            // message blinded with secret
-	return
+	return K, C, remainder
 }
 
 func ElGamalDecryptBn256(suite pairing.Suite, prikey kyber.Scalar, K, C kyber.Point) (
@@ -34,7 +33,7 @@ func ElGamalDecryptBn256(suite pairing.Suite, prikey kyber.Scalar, K, C kyber.Po
 	S := suite.G1().Point().Mul(prikey, K) // regenerate shared secret
 	M := suite.G1().Point().Sub(C, S)      // use to un-blind the message
 	message, err = M.Data()                // extract the embedded data
-	return
+	return message, err
 }
 
 /*
@@ -75,11 +74,12 @@ func Example_elGamalEncryption_bn256() {
 	mm, err := ElGamalDecryptBn256(suite, a, K, C)
 
 	// Make sure it worked!
-	if err != nil {
+	switch {
+	case err != nil:
 		fmt.Println("decryption failed: " + err.Error())
-	} else if string(mm) != string(m) {
+	case string(mm) != string(m):
 		fmt.Println("decryption produced wrong output: " + string(mm))
-	} else {
+	default:
 		fmt.Println("Decryption succeeded: " + string(mm))
 	}
 	// Output:
