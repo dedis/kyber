@@ -3,7 +3,7 @@ module go.dedis.ch/kyber/v4
 go 1.25.0
 
 require (
-	github.com/cloudflare/circl v1.6.1
+	github.com/cloudflare/circl v1.6.3
 	github.com/consensys/gnark-crypto v0.19.2
 	github.com/jonboulle/clockwork v0.5.0
 	github.com/kilic/bls12-381 v0.1.0
