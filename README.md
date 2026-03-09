@@ -41,12 +41,13 @@ We use the following versioning model:
 
 So if you depend on the master branch, you can expect breakages from time
 to time. If you need something that doesn't change in a backward-compatible
-way you should use have a `go.mod` file in the directory where your
+way you should use a `go.mod` file in the directory where your
 main package is.
 
-In the current state of v4.0.1-alpha.1, some backward-incompatible changes with v3 were made.
-These incompatibilities are being addressed with the help of the `go.dedis.ch/kyber-test` repo, 
-which contains tests that will be run against kyber v4 to ensure compatibility with kyber v3.
+In v4.0.1 modifications to certain structures where introduced making compatibility between v3 and v4 nodes not 
+straight forward. We recommend carefully reviewing the new structures to adapt marshaling methods in sytems where
+nodes of different versions interact. For instance, a structure might have had a field type changed from `int` 
+to `int32` in v4.
 
 Using the module
 ----------------
@@ -71,7 +72,7 @@ func main() {
 }
 ```
 2. Type “go mod init example.com/ex”. The resulting go.mod file will have no dependencies listed yet.
-3. Type “go build”. The go tool will fill in the new dependencies that it find for you, i.e. "require go.dedis.ch/kyber/v4 v4.0.1-alpha.1”.
+3. Type “go build”. The go tool will fill in the new dependencies that it find for you, i.e. "require go.dedis.ch/kyber/v4 v4.0.1”.
 4. Running `./ex` will print `0000000000000000000000000000000000000000000000000000000000000000`.
 
 A note on deriving shared secrets
