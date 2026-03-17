@@ -90,7 +90,7 @@ func NewTestBoard(index uint32, n uint32, network *TestNetwork) *TestBoard {
 
 func (t *TestBoard) PushDeals(d *DealBundle) {
 	if t.badDeal {
-		d.Deals[0].EncryptedShare = []byte("this is really bad")
+		d.Deals[0].EncryptedShare = []byte("this is a very bad share")
 	}
 	if t.badSig {
 		d.Signature = []byte("bad signature my friend")
@@ -176,7 +176,7 @@ func TestProtoFull(t *testing.T) {
 		for optRes := range resCh {
 			require.NoError(t, optRes.Error)
 			results = append(results, optRes.Result)
-			if uint32(len(results)) == n {
+			if len(results) == int(n) {
 				break
 			}
 		}
@@ -238,7 +238,7 @@ func TestProtoResharing(t *testing.T) {
 		for optRes := range resCh {
 			require.NoError(t, optRes.Error)
 			results = append(results, optRes.Result)
-			if uint32(len(results)) == n {
+			if len(results) == int(n) {
 				break
 			}
 		}
@@ -303,7 +303,7 @@ func TestProtoResharing(t *testing.T) {
 			require.NoError(t, optRes.Error)
 			results = append(results, optRes.Result)
 			t.Logf("GOT %d RESULTS\n", len(results))
-			if uint32(len(results)) == newN {
+			if len(results) == int(newN) {
 				break
 			}
 		}
@@ -359,7 +359,7 @@ func TestProtoThreshold(t *testing.T) {
 		for optRes := range resCh {
 			require.NoError(t, optRes.Error)
 			results = append(results, optRes.Result)
-			if uint32(len(results)) == realN {
+			if len(results) == int(realN) {
 				break
 			}
 		}
@@ -373,7 +373,7 @@ func TestProtoThreshold(t *testing.T) {
 func TestProtoFullFast(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		n := uint32(5)
-		thr := uint32(n)
+		thr := n
 		period := 1 * time.Second
 		suite := edwards25519.NewBlakeSHA256Ed25519()
 		tns := GenerateTestNodes(suite, n)
@@ -407,7 +407,7 @@ func TestProtoFullFast(t *testing.T) {
 		for optRes := range resCh {
 			require.NoError(t, optRes.Error)
 			results = append(results, optRes.Result)
-			if uint32(len(results)) == n {
+			if len(results) == int(n) {
 				break
 			}
 		}
@@ -473,7 +473,7 @@ func TestProtoResharingAbsent(t *testing.T) {
 		for optRes := range resCh {
 			require.NoError(t, optRes.Error)
 			results = append(results, optRes.Result)
-			if uint32(len(results)) == n {
+			if len(results) == int(n) {
 				break
 			}
 		}
@@ -539,7 +539,7 @@ func TestProtoResharingAbsent(t *testing.T) {
 			}
 			results = append(results, optRes.Result)
 			t.Logf("GOT %d RESULTS\n", len(results))
-			if uint32(len(results)) == newN {
+			if len(results) == int(newN-1) {
 				break
 			}
 		}
@@ -598,7 +598,7 @@ func TestProtoThresholdFast(t *testing.T) {
 		for optRes := range resCh {
 			require.NoError(t, optRes.Error)
 			results = append(results, optRes.Result)
-			if uint32(len(results)) == n-1 {
+			if len(results) == int(n-1) {
 				break
 			}
 		}
@@ -699,7 +699,7 @@ func TestProtoSkip(t *testing.T) {
 		for optRes := range resCh {
 			require.NoError(t, optRes.Error)
 			results = append(results, optRes.Result)
-			if uint32(len(results)) == n {
+			if len(results) == int(n) {
 				break
 			}
 		}
