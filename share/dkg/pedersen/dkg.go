@@ -146,6 +146,31 @@ func (p Phase) String() string {
 	}
 }
 
+// PhaseError is an error recorded at a given phase
+type PhaseError struct {
+	DkgPhase    Phase // "open", "unlink", etc.
+	ActualPhase Phase
+}
+
+func (e *PhaseError) Error() string {
+	switch e.DkgPhase {
+	case InitPhase:
+		return fmt.Sprintf("error during %s phase: actual phase is %s", e.DkgPhase, e.ActualPhase.String())
+	case DealPhase:
+		return "error: leaving node can only process responses after creating shares: actual phase is %s" +
+			e.ActualPhase.String()
+	case ResponsePhase:
+		return "error: can only process responses after processing shares - current state %s" +
+			e.ActualPhase.String()
+	case JustifPhase:
+		return fmt.Sprintf("error during %s phase: actual phase is %s", e.DkgPhase, e.ActualPhase.String())
+	case FinishPhase:
+		return fmt.Sprintf("error during %s phase: actual phase is %s", e.DkgPhase, e.ActualPhase.String())
+	default:
+		return "unknown"
+	}
+}
+
 // DistKeyGenerator is the struct that runs the DKG protocol.
 type DistKeyGenerator struct {
 	// config driving the behavior of DistKeyGenerator
@@ -560,9 +585,17 @@ func (d *DistKeyGenerator) ProcessResponses(bundles []*ResponseBundle) (
 
 	if !d.canReceive && d.state != DealPhase {
 		// if we are a old node that will leave
-		return nil, nil, errors.New("leaving node can process responses only after creating shares")
+		err = &PhaseError{
+			DealPhase,
+			d.state,
+		}
+		return nil, nil, err
 	} else if d.state != ResponsePhase {
-		return nil, nil, fmt.Errorf("can only process responses after processing shares - current state %s", d.state)
+		err = &PhaseError{
+			ResponsePhase,
+			d.state,
+		}
+		return nil, nil, err
 	}
 
 	defer func() {
