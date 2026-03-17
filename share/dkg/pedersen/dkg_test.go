@@ -3,11 +3,11 @@ package dkg
 import (
 	"errors"
 	"fmt"
-	"math/rand"
+	"math/rand/v2"
 	"testing"
 
-	clock "github.com/jonboulle/clockwork"
 	"github.com/stretchr/testify/require"
+
 	"go.dedis.ch/kyber/v4"
 	"go.dedis.ch/kyber/v4/group/edwards25519"
 	"go.dedis.ch/kyber/v4/share"
@@ -24,7 +24,6 @@ type TestNode struct {
 	proto   *Protocol
 	phaser  *TimePhaser
 	board   *TestBoard
-	clock   *clock.FakeClock
 }
 
 func NewTestNode(s Suite, index uint32) *TestNode {
@@ -212,7 +211,7 @@ func TestSelfEvictionDealer(t *testing.T) {
 	thr := uint32(3)
 	suite := edwards25519.NewBlakeSHA256Ed25519()
 	tns := GenerateTestNodes(suite, n)
-	skippedIndex := rand.Intn(int(n))
+	skippedIndex := rand.IntN(int(n))
 	var newIndex uint32 = 53 // XXX should there be a limit to the index ?
 	tns[skippedIndex].Index = newIndex
 	list := NodesFromTest(tns)
@@ -290,9 +289,9 @@ func TestDKGSkipIndex(t *testing.T) {
 	newT := thr + nodesToAdd - 1 // set the threshold to accept one offline new node
 	var newTns = make([]*TestNode, 0, newN)
 	// remove a random node from the previous group
-	offlineToRemove := uint32(rand.Intn(int(n)))
+	offlineToRemove := rand.IntN(int(n))
 	for i, node := range tns {
-		if i == int(offlineToRemove) {
+		if i == offlineToRemove {
 			continue
 		}
 		newTns = append(newTns, node)

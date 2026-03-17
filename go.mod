@@ -1,11 +1,10 @@
 module go.dedis.ch/kyber/v4
 
-go 1.25.0
+go 1.25
 
 require (
 	github.com/cloudflare/circl v1.6.1
 	github.com/consensys/gnark-crypto v0.19.2
-	github.com/jonboulle/clockwork v0.5.0
 	github.com/kilic/bls12-381 v0.1.0
 	github.com/stretchr/testify v1.11.1
 	go.dedis.ch/fixbuf v1.0.3
