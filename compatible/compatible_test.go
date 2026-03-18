@@ -56,7 +56,7 @@ func TestBit(t *testing.T) {
 	natValue := FromBigInt(bigValue, natMod)
 
 	// Convert back to big.Int
-	for i := 0; i < 255; i++ {
+	for i := range 255 {
 		resultValue := natValue.Bit(i)
 		bigValueBit := bigValue.Bit(i)
 		resultMod := natMod.Bit(i)

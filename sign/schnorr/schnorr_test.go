@@ -111,7 +111,7 @@ func TestSchnorrMalleability(t *testing.T) {
 	assert.NoErrorf(t, err, "Couldn't verify signature (schnorr.Verify): \n%+v\nfor msg:'%s'. Error:\n%v", s, msg, err)
 
 	// Add l to signature
-	for i := 0; i < 32; i++ {
+	for i := range 32 {
 		c += uint16(s[32+i]) + L[i]
 		s[32+i] = byte(c)
 		c >>= 8

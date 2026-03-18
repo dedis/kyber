@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strconv"
 	"testing"
 
 	"go.dedis.ch/kyber/v4/group/edwards25519"
@@ -18,7 +19,7 @@ var (
 )
 
 // BenchmarkGroup runs benchmarks for the given group and writes the results to a JSON file.
-func benchmarkGroup(name string, description string, gb *test.GroupBench) map[string]interface{} {
+func benchmarkGroup(name string, description string, gb *test.GroupBench) map[string]any {
 	fmt.Printf("Running benchmarks for group %s...\n", name)
 	results := make(map[string]map[string]testing.BenchmarkResult)
 
@@ -79,7 +80,7 @@ func benchmarkGroup(name string, description string, gb *test.GroupBench) map[st
 		gb.PointDecode(b.N)
 	})
 
-	result := map[string]interface{}{
+	result := map[string]any{
 		"group":       name,
 		"description": description,
 		"benchmarks":  results,
@@ -89,7 +90,7 @@ func benchmarkGroup(name string, description string, gb *test.GroupBench) map[st
 }
 
 // BenchmarkSign runs benchmarks for the some signature schemes.
-func benchmarkSign(sigType string) map[string]interface{} {
+func benchmarkSign(sigType string) map[string]any {
 	fmt.Printf("Running benchmarks for %s signature scheme...\n", sigType)
 	results := make(map[string]map[string]testing.BenchmarkResult)
 	results["keygen"] = make(map[string]testing.BenchmarkResult)
@@ -103,8 +104,8 @@ func benchmarkSign(sigType string) map[string]interface{} {
 	case "anon":
 		// Generate keys
 		for _, i := range keys {
-			results["keygen"][fmt.Sprintf("%d", i)] = testing.Benchmark(func(b *testing.B) {
-				for j := 0; j < b.N; j++ {
+			results["keygen"][strconv.Itoa(i)] = testing.Benchmark(func(b *testing.B) {
+				for range b.N {
 					anon.BenchGenKeys(edwards25519.NewBlakeSHA256Ed25519(), i)
 				}
 			})
@@ -113,14 +114,14 @@ func benchmarkSign(sigType string) map[string]interface{} {
 
 		// Signing
 		for _, i := range keys {
-			results["sign"][fmt.Sprintf("%d", i)] = testing.Benchmark(func(b *testing.B) {
+			results["sign"][strconv.Itoa(i)] = testing.Benchmark(func(b *testing.B) {
 				anon.BenchSign(edwards25519.NewBlakeSHA256Ed25519(), benchPubEd25519[:i], benchPriEd25519, b.N, benchMessage)
 			})
 		}
 
 		// Verification
 		for _, i := range keys {
-			results["verify"][fmt.Sprintf("%d", i)] = testing.Benchmark(func(b *testing.B) {
+			results["verify"][strconv.Itoa(i)] = testing.Benchmark(func(b *testing.B) {
 				anon.BenchVerify(edwards25519.NewBlakeSHA256Ed25519(), benchPubEd25519[:i],
 					anon.BenchGenSig(edwards25519.NewBlakeSHA256Ed25519(), i, benchMessage, benchPubEd25519, benchPriEd25519),
 					b.N, benchMessage)
@@ -131,14 +132,14 @@ func benchmarkSign(sigType string) map[string]interface{} {
 		// Key generation
 		for _, i := range keys {
 			scheme := bls.NewSchemeOnG1(newSignatureSuite())
-			results["keygen"][fmt.Sprintf("%d", i)] = testing.Benchmark(func(b *testing.B) {
+			results["keygen"][strconv.Itoa(i)] = testing.Benchmark(func(b *testing.B) {
 				test.BenchCreateKeys(b, scheme, i)
 			})
 		}
 
 		// Signing
 		for _, i := range keys {
-			results["sign"][fmt.Sprintf("%d", i)] = testing.Benchmark(func(b *testing.B) {
+			results["sign"][strconv.Itoa(i)] = testing.Benchmark(func(b *testing.B) {
 				scheme, _, privates, _, _ := test.PrepareBLS(i)
 				test.BenchSign(b, scheme, benchMessage, privates)
 			})
@@ -146,14 +147,14 @@ func benchmarkSign(sigType string) map[string]interface{} {
 
 		// Verification
 		for _, i := range keys {
-			results["verify"][fmt.Sprintf("%d", i)] = testing.Benchmark(func(b *testing.B) {
+			results["verify"][strconv.Itoa(i)] = testing.Benchmark(func(b *testing.B) {
 				scheme, publics, _, msgs, sigs := test.PrepareBLS(i)
 				test.BLSBenchVerify(b, sigs, scheme, publics, msgs)
 			})
 		}
 	}
 
-	result := map[string]interface{}{
+	result := map[string]any{
 		"name":        sigType,
 		"description": "",
 		"benchmarks":  results,
@@ -164,7 +165,7 @@ func benchmarkSign(sigType string) map[string]interface{} {
 
 func main() {
 	// Write results to JSON file
-	results := make(map[string]map[string]map[string]interface{})
+	results := make(map[string]map[string]map[string]any)
 
 	file, err := os.Create(outputFile)
 	if err != nil {
@@ -177,7 +178,7 @@ func main() {
 	encoder.SetIndent("", "  ")
 
 	// Run benchmarks for each group
-	results["groups"] = make(map[string]map[string]interface{})
+	results["groups"] = make(map[string]map[string]any)
 	for _, suite := range suites {
 		groupBench := test.NewGroupBench(suite)
 		result := benchmarkGroup(suite.String(), "Description", groupBench)
@@ -185,7 +186,7 @@ func main() {
 	}
 
 	// Run benchmarks for signatures
-	results["sign"] = make(map[string]map[string]interface{})
+	results["sign"] = make(map[string]map[string]any)
 	for _, sigType := range signatures {
 		result := benchmarkSign(sigType)
 		results["sign"][sigType] = result

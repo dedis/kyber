@@ -42,8 +42,8 @@ type Marshaling interface {
 //     structures. The library is available at https://go.dedis.ch/fixbuf.
 type Encoding interface {
 	// Encode and write objects to an io.Writer.
-	Write(w io.Writer, objs ...interface{}) error
+	Write(w io.Writer, objs ...any) error
 
 	// Read and decode objects from an io.Reader.
-	Read(r io.Reader, objs ...interface{}) error
+	Read(r io.Reader, objs ...any) error
 }

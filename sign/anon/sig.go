@@ -228,7 +228,7 @@ func Verify(suite Suite, message []byte, anonymitySet Set,
 	}
 	s := sig.S
 	ci := sig.C0
-	for i := 0; i < n; i++ {
+	for i := range n {
 		PG.Add(PG.Mul(s[i], nil), P.Mul(ci, L[i]))
 		if linkScope != nil {
 			PH.Add(PH.Mul(s[i], linkBase), P.Mul(ci, linkTag))

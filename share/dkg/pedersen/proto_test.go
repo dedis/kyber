@@ -1,6 +1,7 @@
 package dkg
 
 import (
+	"slices"
 	"testing"
 	"testing/synctest"
 	"time"
@@ -20,7 +21,7 @@ type TestNetwork struct {
 
 func NewTestNetwork(n uint32) *TestNetwork {
 	t := &TestNetwork{}
-	for i := uint32(0); i < n; i++ {
+	for i := range n {
 		t.boards = append(t.boards, NewTestBoard(i, n, t))
 	}
 	return t
@@ -40,12 +41,7 @@ func (n *TestNetwork) BoardFor(index uint32) *TestBoard {
 }
 
 func (n *TestNetwork) isNoop(i uint32) bool {
-	for _, j := range n.noops {
-		if i == j {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(n.noops, i)
 }
 
 func (n *TestNetwork) BroadcastDeal(a *DealBundle) {
@@ -94,7 +90,7 @@ func NewTestBoard(index uint32, n uint32, network *TestNetwork) *TestBoard {
 
 func (t *TestBoard) PushDeals(d *DealBundle) {
 	if t.badDeal {
-		d.Deals[0].EncryptedShare = []byte("bad bad bad")
+		d.Deals[0].EncryptedShare = []byte("this is a very bad share")
 	}
 	if t.badSig {
 		d.Signature = []byte("bad signature my friend")
@@ -170,7 +166,7 @@ func TestProtoFull(t *testing.T) {
 		// responses, and then they send the justifications, if any.
 		// since there is no faults we expect to receive the result only after two
 		// periods.
-		for i := 0; i < 2; i++ {
+		for range 2 {
 			time.Sleep(period + 100*time.Millisecond)
 			synctest.Wait()
 		}
@@ -186,7 +182,7 @@ func TestProtoFull(t *testing.T) {
 		}
 		testResults(t, suite, thr, n, results)
 		// we let the phaser finish all phases
-		for i := 0; i < 2; i++ {
+		for range 2 {
 			time.Sleep(period + 100*time.Millisecond)
 			synctest.Wait()
 		}
@@ -233,7 +229,7 @@ func TestProtoResharing(t *testing.T) {
 		// responses, and then they send the justifications, if any.
 		// since there is no faults we expect to receive the result only after two
 		// periods.
-		for i := 0; i < 2; i++ {
+		for range 2 {
 			time.Sleep(period + 100*time.Millisecond)
 		}
 
@@ -248,7 +244,7 @@ func TestProtoResharing(t *testing.T) {
 		}
 		testResults(t, suite, thr, n, results)
 		// we let the phaser finish all phases
-		for i := 0; i < 2; i++ {
+		for range 2 {
 			time.Sleep(period + 100*time.Millisecond)
 			synctest.Wait()
 		}
@@ -296,7 +292,7 @@ func TestProtoResharing(t *testing.T) {
 		// period, then they send their responses. Second period to receive the
 		// responses, and then they send the justifications, if any. A third period
 		// is needed to receive all justifications.
-		for i := 0; i < 3; i++ {
+		for range 3 {
 			time.Sleep(period + 100*time.Millisecond)
 			synctest.Wait()
 		}
@@ -354,7 +350,7 @@ func TestProtoThreshold(t *testing.T) {
 		// period, then they send their responses. Second period to receive the
 		// responses, and then they send the justifications, if any. A third period
 		// is needed to receive all justifications.
-		for i := 0; i < 3; i++ {
+		for range 3 {
 			time.Sleep(period + 100*time.Millisecond)
 			synctest.Wait()
 		}
@@ -377,7 +373,7 @@ func TestProtoThreshold(t *testing.T) {
 func TestProtoFullFast(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		n := uint32(5)
-		thr := uint32(n)
+		thr := n
 		period := 1 * time.Second
 		suite := edwards25519.NewBlakeSHA256Ed25519()
 		tns := GenerateTestNodes(suite, n)
@@ -467,7 +463,7 @@ func TestProtoResharingAbsent(t *testing.T) {
 		// responses, and then they send the justifications, if any.
 		// since there is no faults we expect to receive the result only after two
 		// periods.
-		for i := 0; i < 2; i++ {
+		for range 2 {
 			time.Sleep(period + 100*time.Millisecond)
 			synctest.Wait()
 		}
@@ -526,7 +522,7 @@ func TestProtoResharingAbsent(t *testing.T) {
 		// period, then they send their responses. Second period to receive the
 		// responses, and then they send the justifications, if any. A third period
 		// is needed to receive all justifications.
-		for i := 0; i < 3; i++ {
+		for range 3 {
 			time.Sleep(period + 100*time.Millisecond)
 			synctest.Wait()
 		}
@@ -593,7 +589,7 @@ func TestProtoThresholdFast(t *testing.T) {
 		// is needed to receive all justifications.
 		// NOTE the first period is ignored by the protocol but timer still sends
 		// it.
-		for i := 0; i < 3; i++ {
+		for range 3 {
 			time.Sleep(period + 100*time.Millisecond)
 			synctest.Wait()
 		}
@@ -694,7 +690,7 @@ func TestProtoSkip(t *testing.T) {
 			go node.phaser.Start()
 		}
 		// we go through 2 periods
-		for i := 0; i < 2; i++ {
+		for range 2 {
 			time.Sleep(period + 100*time.Millisecond)
 			synctest.Wait()
 		}

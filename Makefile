@@ -7,7 +7,7 @@ generate: tidy
 # Coding style static check.
 lint: tidy
 	# keep this in sync with .github/workflows/golangci-lint.yml
-	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.6.1
+	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.11.3
 	go mod tidy
 	@echo "Run without flags"
 	golangci-lint run

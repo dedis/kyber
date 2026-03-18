@@ -28,7 +28,7 @@ func biffleTest(suite Suite, n int) {
 	// ElGamal-encrypt all these keypairs with the "server" key
 	var X, Y [2]kyber.Point
 	r := suite.Scalar() // temporary
-	for i := 0; i < 2; i++ {
+	for i := range 2 {
 		r.Pick(rand)
 		X[i] = suite.Point().Mul(r, nil)
 		Y[i] = suite.Point().Mul(r, h) // ElGamal blinding factor
@@ -36,8 +36,7 @@ func biffleTest(suite Suite, n int) {
 	}
 
 	// Repeat only the actual shuffle portion for test purposes.
-	for i := 0; i < n; i++ {
-
+	for range n {
 		// Do a key-shuffle
 		Xbar, Ybar, prover := Biffle(suite, nil, h, X, Y, rand)
 		prf, err := proof.HashProve(suite, "Biffle", prover)
@@ -61,7 +60,7 @@ func biffleInvalidTest(suite Suite) {
 	// ElGamal-encrypt all these keypairs with the "server" key
 	var X, Y [2]kyber.Point
 	r := suite.Scalar() // temporary
-	for i := 0; i < 2; i++ {
+	for i := range 2 {
 		r.Pick(rand)
 		X[i] = suite.Point().Mul(r, nil)
 		Y[i] = suite.Point().Mul(r, h) // ElGamal blinding factor

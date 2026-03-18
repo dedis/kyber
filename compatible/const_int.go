@@ -114,7 +114,7 @@ func (z *Int) Bit(i int) uint {
 
 // copied from saferith.Nat
 func (z *Int) FillBytes(buf []byte) []byte {
-	for i := 0; i < len(buf); i++ {
+	for i := range buf {
 		buf[i] = 0
 	}
 
@@ -126,7 +126,7 @@ func (z *Int) FillBytes(buf []byte) []byte {
 Outer:
 	for _, x := range z.Int.Bits() {
 		y := x
-		for j := 0; j < bigmod.LimbsSizeInBytes(); j++ {
+		for range bigmod.LimbsSizeInBytes() {
 			i--
 			if i < 0 {
 				break Outer

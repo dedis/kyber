@@ -7,6 +7,7 @@ package proof
 
 import (
 	"errors"
+	"strings"
 
 	"go.dedis.ch/kyber/v4"
 )
@@ -40,7 +41,7 @@ and the public Point variables that the Predicate refers to.
 If the statement contains logical Or operators, the caller must also pass
 a map containing branch choices for each Or predicate
 in the "proof-obligated path" down through the Or predicates.
-See the examples provded for the Or function for more details.
+See the examples provided for the Or function for more details.
 
 Similarly, the caller may invoke Verifier() to create
 a Sigma-protocol verifier for the predicate.
@@ -176,17 +177,19 @@ func (rp *repPred) String() string {
 }
 
 func (rp *repPred) precString(_ int) string {
-	s := rp.P + "="
+	var b strings.Builder
+	b.WriteString(rp.P)
+	b.WriteString("=")
 	for i := range rp.T {
 		if i > 0 {
-			s += "+"
+			b.WriteString("+")
 		}
 		t := &rp.T[i]
-		s += t.S
-		s += "*"
-		s += t.B
+		b.WriteString(t.S)
+		b.WriteString("*")
+		b.WriteString(t.B)
 	}
-	return s
+	return b.String()
 }
 
 func (rp *repPred) enumVars(prf *proof) {
@@ -212,7 +215,7 @@ func (rp *repPred) commit(prf *proof, w kyber.Scalar, pv []kyber.Scalar) error {
 		V.Null()
 	}
 	P := prf.s.Point()
-	for i := 0; i < len(rp.T); i++ {
+	for i := range len(rp.T) {
 		t := rp.T[i] // current term
 		s := prf.sidx[t.S]
 
@@ -305,7 +308,7 @@ func (rp *repPred) verify(prf *proof, c kyber.Scalar, pr []kyber.Scalar) error {
 	V := prf.s.Point()
 	V.Mul(c, prf.pval[rp.P])
 	P := prf.s.Point()
-	for i := 0; i < len(rp.T); i++ {
+	for i := range len(rp.T) {
 		t := rp.T[i] // current term
 		s := prf.sidx[t.S]
 		P.Mul(r[s], prf.pval[t.B])
@@ -371,7 +374,7 @@ func (ap *andPred) commit(prf *proof, w kyber.Scalar, pv []kyber.Scalar) error {
 	v := prf.makeScalars(pv)
 
 	// Recursively generate commitments
-	for i := 0; i < len(sub); i++ {
+	for i := range sub {
 		if e := sub[i].commit(prf, w, v); e != nil {
 			return e
 		}
@@ -493,7 +496,7 @@ func (op *orPred) commit(prf *proof, w kyber.Scalar, pv []kyber.Scalar) error {
 			return errors.New("no choice of proof branch for OR-predicate " +
 				op.String())
 		}
-		for i := 0; i < len(sub); i++ {
+		for i := range sub {
 			if i != choice {
 				wi[i] = prf.s.Scalar()
 				err := prf.pc.PriRand(wi[i])
@@ -508,7 +511,7 @@ func (op *orPred) commit(prf *proof, w kyber.Scalar, pv []kyber.Scalar) error {
 		// such that they add up to the master pre-challenge w.
 		last := len(sub) - 1 // index of last sub
 		wl := prf.s.Scalar().Set(w)
-		for i := 0; i < last; i++ { // choose all but last
+		for i := range last { // choose all but last
 			wi[i] = prf.s.Scalar()
 			err := prf.pc.PriRand(wi[i])
 			if err != nil {
@@ -525,7 +528,7 @@ func (op *orPred) commit(prf *proof, w kyber.Scalar, pv []kyber.Scalar) error {
 
 func commitmentProducer(prf *proof, wi []kyber.Scalar, sub []Predicate) error {
 	// Now recursively choose commitments within each sub
-	for i := 0; i < len(sub); i++ {
+	for i := range sub {
 		// Fresh variable-blinding secrets for each pre-commitment
 		if err := sub[i].commit(prf, wi[i], nil); err != nil {
 			return err
@@ -547,7 +550,7 @@ func (op *orPred) respond(prf *proof, c kyber.Scalar, pr []kyber.Scalar) error {
 		// Calculate the challenge for the proof-obligated subtree
 		cs := prf.s.Scalar().Set(c)
 		choice := prf.choice[op]
-		for i := 0; i < len(sub); i++ {
+		for i := range sub {
 			if i != choice {
 				cs.Sub(cs, ci[i])
 			}
@@ -599,7 +602,7 @@ func (op *orPred) verify(prf *proof, c kyber.Scalar, pr []kyber.Scalar) error {
 
 		// Make sure they add up to the parent's composite challenge
 		csum := prf.s.Scalar().Zero()
-		for i := 0; i < nsub; i++ {
+		for i := range nsub {
 			csum.Add(csum, ci[i])
 		}
 		if !csum.Equal(c) {

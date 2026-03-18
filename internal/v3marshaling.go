@@ -1,7 +1,7 @@
 package internal
 
 import (
-	"fmt"
+	"errors"
 	"math"
 	"reflect"
 
@@ -38,12 +38,12 @@ func MarshalPriShare(priShare *share.PriShare) ([]byte, error) {
 func UnmarshalPriShare(data []byte, suite Suite) (*share.PriShare, error) {
 	compatiblePriShare := &compatiblePriShare{}
 	constructors := make(protobuf.Constructors)
-	constructors[reflect.TypeFor[kyber.Scalar]()] = func() interface{} { return suite.Scalar() }
+	constructors[reflect.TypeFor[kyber.Scalar]()] = func() any { return suite.Scalar() }
 	err := protobuf.DecodeWithConstructors(data, compatiblePriShare, constructors)
 
 	// Check for overflow on I
 	if compatiblePriShare.I < 0 || compatiblePriShare.I > math.MaxUint32 {
-		return nil, fmt.Errorf("cannot cast I as uint32 due to overflow")
+		return nil, errors.New("cannot cast I as uint32 due to overflow")
 	}
 
 	if err != nil {
