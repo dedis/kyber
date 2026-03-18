@@ -1,7 +1,9 @@
 package dkg
 
 import (
+	"bufio"
 	"fmt"
+	"io"
 	"slices"
 	"strings"
 )
@@ -95,19 +97,20 @@ func (s *StatusMatrix) String() string {
 	slices.Sort(sharesIdx)
 
 	var b strings.Builder
+	var cw io.Writer = bufio.NewWriter(&b)
 	for _, dealerIndex := range dealerIdx {
 		var statuses []string
 		for _, shareIndex := range sharesIdx {
 			status := (*s)[dealerIndex][shareIndex]
 			var st string
 			if status == Success {
-				b.WriteString(fmt.Sprintf(" %d: ok", shareIndex))
+				fmt.Fprintf(cw, " %d: ok", shareIndex)
 			} else {
-				b.WriteString(fmt.Sprintf(" %d: no", shareIndex))
+				fmt.Fprintf(cw, " %d: no", shareIndex)
 			}
 			statuses = append(statuses, st)
 		}
-		b.WriteString(fmt.Sprintf("dealer %d: [ %s ]\n", dealerIndex, strings.Join(statuses, ",")))
+		fmt.Fprintf(cw, "dealer %d: [ %s ]\n", dealerIndex, strings.Join(statuses, ","))
 	}
 	return b.String()
 }

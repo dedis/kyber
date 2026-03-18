@@ -12,7 +12,7 @@ import (
 	"go.dedis.ch/kyber/v4/group/mod"
 	"go.dedis.ch/kyber/v4/internal/protobuf"
 	"go.dedis.ch/kyber/v4/util/random"
-	"golang.org/x/crypto/bn256" //nolint:staticcheck // bn256 is deprecated. We need this package for our implementation.
+	"golang.org/x/crypto/bn256" //nolint:staticcheck // bn256 is deprecated but we need this package for our implementation.
 )
 
 func TestScalarMarshal(t *testing.T) {
