@@ -31,13 +31,14 @@ func (P *curvePoint) Equal(P2 kyber.Point) bool {
 
 	// Make sure both coordinates are normalized.
 	// Apparently Go's elliptic curve code doesn't always ensure this.
+	// Use temporary big.Ints to avoid mutating the operands.
 	M := P.c.p.P
-	P.x.Mod(P.x, M)
-	P.y.Mod(P.y, M)
-	cp2.x.Mod(cp2.x, M)
-	cp2.y.Mod(cp2.y, M)
+	x1 := new(big.Int).Mod(P.x, M)
+	y1 := new(big.Int).Mod(P.y, M)
+	x2 := new(big.Int).Mod(cp2.x, M)
+	y2 := new(big.Int).Mod(cp2.y, M)
 
-	return P.x.Cmp(cp2.x) == 0 && P.y.Cmp(cp2.y) == 0
+	return x1.Cmp(x2) == 0 && y1.Cmp(y2) == 0
 }
 
 func (P *curvePoint) Null() kyber.Point {
@@ -47,8 +48,8 @@ func (P *curvePoint) Null() kyber.Point {
 }
 
 func (P *curvePoint) Base() kyber.Point {
-	P.x = P.c.p.Gx
-	P.y = P.c.p.Gy
+	P.x = new(big.Int).Set(P.c.p.Gx)
+	P.y = new(big.Int).Set(P.c.p.Gy)
 	return P
 }
 
@@ -274,13 +275,17 @@ func (P *curvePoint) Set(A kyber.Point) kyber.Point {
 	if !ok {
 		panic(ErrTypeCast)
 	}
-	P.x = aCurvePoint.x
-	P.y = aCurvePoint.y
+	P.x = new(big.Int).Set(aCurvePoint.x)
+	P.y = new(big.Int).Set(aCurvePoint.y)
 	return P
 }
 
 func (P *curvePoint) Clone() kyber.Point {
-	return &curvePoint{x: P.x, y: P.y, c: P.c}
+	return &curvePoint{
+		x: new(big.Int).Set(P.x),
+		y: new(big.Int).Set(P.y),
+		c: P.c,
+	}
 }
 
 // Return the order of this curve: the prime N in the curve parameters.
