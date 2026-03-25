@@ -345,7 +345,7 @@ func CombinePartialDecryptionShares(
 	}
 
 	// Recover the shared secret (Lagrange interpolation in the exponent)
-	v, err := share.RecoverCommit(suite, shares, threshold, len(publicKeys))
+	v, err := share.RecoverCommit(suite, shares, uint32(threshold), uint32(len(publicKeys)))
 	if err != nil {
 		return nil, 0, err
 	}

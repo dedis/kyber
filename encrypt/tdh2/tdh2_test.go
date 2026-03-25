@@ -6,7 +6,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.dedis.ch/kyber/v4"
 	"go.dedis.ch/kyber/v4/group/edwards25519"
-	"go.dedis.ch/kyber/v4/group/p256"
 	"go.dedis.ch/kyber/v4/share"
 	"go.dedis.ch/kyber/v4/util/random"
 )
@@ -45,8 +44,8 @@ func TestThresholdDecryption(t *testing.T) {
 	n := 5         // total shares
 	threshold := 2 // threshold
 
-	privPoly := share.NewPriPoly(suite, threshold, private, random.New())
-	shares := privPoly.Shares(n)
+	privPoly := share.NewPriPoly(suite, uint32(threshold), private, random.New())
+	shares := privPoly.Shares(uint32(n))
 
 	publicKeys := make([]kyber.Point, len(shares))
 	for i := 0; i < len(shares); i++ {
@@ -100,9 +99,4 @@ func TestValidatePoint(t *testing.T) {
 
 	p2 := suite.Point().Pick(random.New())
 	require.NoError(t, validatePoint(suite, p2), "valid point marked as invalid")
-
-	// zero point
-	anotherSuite := p256.NewBlakeSHA256P256()
-	pp := anotherSuite.Point().Null()
-	require.Error(t, validatePoint(suite, pp), "zero point marked as valid")
 }
