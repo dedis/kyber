@@ -7,12 +7,12 @@ import (
 	"encoding/hex"
 	"testing"
 
-	"go.dedis.ch/kyber/v4/sign/bls"
-
 	"github.com/stretchr/testify/require"
+
 	"go.dedis.ch/kyber/v4"
 	"go.dedis.ch/kyber/v4/pairing/bls12381/kilic"
 	"go.dedis.ch/kyber/v4/pairing/bn256"
+	"go.dedis.ch/kyber/v4/sign/bls"
 	"go.dedis.ch/kyber/v4/util/random"
 )
 
