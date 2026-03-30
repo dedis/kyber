@@ -22,7 +22,7 @@ var buf = make([]byte, 8192)
 
 func benchmarkSize(b *testing.B, size int) {
 	b.SetBytes(int64(size))
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		HashG1(buf[:size], nil)
 	}
 }

@@ -18,7 +18,7 @@ var publics []kyber.Point
 func init() {
 	publics = make([]kyber.Point, n)
 
-	for i := 0; i < n; i++ {
+	for i := range n {
 		kp := key.NewKeyPair(suite)
 		publics[i] = kp.Public
 	}
@@ -134,7 +134,7 @@ func TestMask_PositionalQueries(t *testing.T) {
 	mask, err := NewMask(suite, publics, publics[2])
 	require.NoError(t, err)
 
-	for i := 0; i < 10000; i++ {
+	for range 10000 {
 		bb := make([]byte, 3)
 		_, err := rand.Read(bb)
 		require.NoError(t, err)
@@ -143,7 +143,7 @@ func TestMask_PositionalQueries(t *testing.T) {
 		err = mask.SetMask(bb)
 		require.NoError(t, err)
 
-		for j := 0; j < mask.CountEnabled(); j++ {
+		for j := range mask.CountEnabled() {
 			idx := mask.IndexOfNthEnabled(j)
 			n := mask.NthEnabledAtIndex(idx)
 			require.Equal(t, j, n)
