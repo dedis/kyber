@@ -12,8 +12,7 @@ import (
 	"go.dedis.ch/kyber/v4/group/mod"
 	"go.dedis.ch/kyber/v4/internal/protobuf"
 	"go.dedis.ch/kyber/v4/util/random"
-	//nolint:staticcheck // bn256 is deprecated. We need this package for our implementation.
-	"golang.org/x/crypto/bn256"
+	"golang.org/x/crypto/bn256" //nolint:staticcheck // bn256 is deprecated but we need this package for our implementation.
 )
 
 func TestScalarMarshal(t *testing.T) {
@@ -296,7 +295,7 @@ func basicPointTest(t *testing.T, s *Suite) {
 
 	scalarAdder := s.Scalar().Zero()
 	pointAdder := s.Point().Mul(scalarAdder, nil)
-	for i := 0; i < addersTarget; i++ {
+	for range addersTarget {
 		scalarAdder.Add(scalarAdder, scalarUnit)
 		pointAdder.Add(pointAdder, pointUnit)
 	}
@@ -340,12 +339,12 @@ func TestSuiteProtobuf(t *testing.T) {
 	bn2 := NewSuiteG2()
 	bnT := NewSuiteGT()
 
-	protobuf.RegisterInterface(func() interface{} { return bn1.Point() })
-	protobuf.RegisterInterface(func() interface{} { return bn1.Scalar() })
-	protobuf.RegisterInterface(func() interface{} { return bn2.Point() })
-	protobuf.RegisterInterface(func() interface{} { return bn2.Scalar() })
-	protobuf.RegisterInterface(func() interface{} { return bnT.Point() })
-	protobuf.RegisterInterface(func() interface{} { return bnT.Scalar() })
+	protobuf.RegisterInterface(func() any { return bn1.Point() })
+	protobuf.RegisterInterface(func() any { return bn1.Scalar() })
+	protobuf.RegisterInterface(func() any { return bn2.Point() })
+	protobuf.RegisterInterface(func() any { return bn2.Scalar() })
+	protobuf.RegisterInterface(func() any { return bnT.Point() })
+	protobuf.RegisterInterface(func() any { return bnT.Scalar() })
 
 	testTsr(t, NewSuiteG1())
 	testTsr(t, NewSuiteG2())
@@ -419,31 +418,31 @@ func BenchmarkBn256(b *testing.B) {
 	p2 := newPointG2()
 
 	b.Run("Add", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
+		for range b.N {
 			e.Add(c, d)
 		}
 	})
 
 	b.Run("Sub", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
+		for range b.N {
 			e.Sub(c, d)
 		}
 	})
 
 	b.Run("Mul", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
+		for range b.N {
 			e.Mul(c, d)
 		}
 	})
 
 	b.Run("Div", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
+		for range b.N {
 			e.Div(c, d)
 		}
 	})
 
 	b.Run("Pairing", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
+		for range b.N {
 			suite.Pair(p1, p2)
 		}
 	})

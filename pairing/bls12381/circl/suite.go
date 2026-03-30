@@ -39,11 +39,11 @@ func (s Suite) ValidatePairing(p1, p2, p3, p4 kyber.Point) bool {
 	return out.IsIdentity()
 }
 
-func (s Suite) Read(_ io.Reader, _ ...interface{}) error {
+func (s Suite) Read(_ io.Reader, _ ...any) error {
 	panic("Suite.Read(): deprecated in drand")
 }
 
-func (s Suite) Write(_ io.Writer, _ ...interface{}) error {
+func (s Suite) Write(_ io.Writer, _ ...any) error {
 	panic("Suite.Write(): deprecated in drand")
 }
 

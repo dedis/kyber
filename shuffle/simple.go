@@ -103,7 +103,7 @@ func (ss *SimpleShuffle) Prove(g kyber.Point, gamma kyber.Scalar,
 	}
 
 	// Step 0: inputs
-	for i := 0; i < k; i++ { // (4)
+	for i := range k { // (4)
 		ss.p0.X[i] = grp.Point().Mul(x[i], g)
 		ss.p0.Y[i] = grp.Point().Mul(y[i], g)
 	}
@@ -121,7 +121,7 @@ func (ss *SimpleShuffle) Prove(g kyber.Point, gamma kyber.Scalar,
 	gammaT := grp.Scalar().Mul(gamma, t)
 	xhat := make([]kyber.Scalar, k)
 	yhat := make([]kyber.Scalar, k)
-	for i := 0; i < k; i++ { // (5) and (6) xhat,yhat vectors
+	for i := range k { // (5) and (6) xhat,yhat vectors
 		xhat[i] = grp.Scalar().Sub(x[i], t)
 		yhat[i] = grp.Scalar().Sub(y[i], gammaT)
 	}
@@ -157,7 +157,7 @@ func (ss *SimpleShuffle) Prove(g kyber.Point, gamma kyber.Scalar,
 	// P step 4
 	alpha := make([]kyber.Scalar, thlen)
 	runprod := grp.Scalar().Set(c)
-	for i := 0; i < k; i++ { // (8)
+	for i := range k { // (8)
 		runprod.Mul(runprod, xhat[i])
 		runprod.Div(runprod, yhat[i])
 		alpha[i] = grp.Scalar().Add(theta[i], runprod)
@@ -227,7 +227,7 @@ func (ss *SimpleShuffle) Verify(G, Gamma kyber.Point,
 	W := grp.Point().Mul(negt, Gamma)
 	Xhat := make([]kyber.Point, k)
 	Yhat := make([]kyber.Point, k)
-	for i := 0; i < k; i++ {
+	for i := range k {
 		Xhat[i] = grp.Point().Add(X[i], U)
 		Yhat[i] = grp.Point().Add(Y[i], W)
 	}

@@ -108,18 +108,11 @@ func (s *Suite) ValidatePairing(p1, p2, inv1, inv2 kyber.Point) bool {
 	return s.Pair(p1, p2).Equal(s.Pair(inv1, inv2))
 }
 
-// Not used other than for reflect.TypeOf()
-var aScalar kyber.Scalar
-var aPoint kyber.Point
-var aPointG1 pointG1
-var aPointG2 pointG2
-var aPointGT pointGT
-
-var tScalar = reflect.TypeOf(&aScalar).Elem()
-var tPoint = reflect.TypeOf(&aPoint).Elem()
-var tPointG1 = reflect.TypeOf(&aPointG1).Elem()
-var tPointG2 = reflect.TypeOf(&aPointG2).Elem()
-var tPointGT = reflect.TypeOf(&aPointGT).Elem()
+var tScalar = reflect.TypeFor[kyber.Scalar]()
+var tPoint = reflect.TypeFor[kyber.Point]()
+var tPointG1 = reflect.TypeFor[pointG1]()
+var tPointG2 = reflect.TypeFor[pointG2]()
+var tPointGT = reflect.TypeFor[pointGT]()
 
 type commonSuite struct {
 	s cipher.Stream
@@ -128,7 +121,7 @@ type commonSuite struct {
 }
 
 // New implements the kyber.Encoding interface.
-func (c *commonSuite) New(t reflect.Type) interface{} {
+func (c *commonSuite) New(t reflect.Type) any {
 	if c.Group == nil {
 		panic("cannot create Point from NewGroup - please use bn256.NewGroupG1")
 	}
@@ -151,12 +144,12 @@ func (c *commonSuite) New(t reflect.Type) interface{} {
 }
 
 // Read is the default implementation of kyber.Encoding interface Read.
-func (c *commonSuite) Read(r io.Reader, objs ...interface{}) error {
+func (c *commonSuite) Read(r io.Reader, objs ...any) error {
 	return fixbuf.Read(r, c, objs...)
 }
 
 // Write is the default implementation of kyber.Encoding interface Write.
-func (c *commonSuite) Write(w io.Writer, objs ...interface{}) error {
+func (c *commonSuite) Write(w io.Writer, objs ...any) error {
 	return fixbuf.Write(w, objs...)
 }
 

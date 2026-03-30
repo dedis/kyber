@@ -42,7 +42,7 @@ func (s *SuiteBn256) Scalar() kyber.Scalar {
 	return s.G1().Scalar()
 }
 
-// ScalarLen returns the lenght of a scalar
+// ScalarLen returns the lentgh of a scalar
 func (s *SuiteBn256) ScalarLen() int {
 	return s.G1().ScalarLen()
 }

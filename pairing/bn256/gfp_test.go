@@ -60,7 +60,7 @@ func TestGFp(t *testing.T) {
 	t.Run("add", func(t *testing.T) {
 		c := &gfP{}
 		bigC := new(big.Int)
-		for i := 0; i < testTimes; i++ {
+		for range testTimes {
 			bigA := randomGF(rand.Reader)
 			bigB := randomGF(rand.Reader)
 			want := bigC.Add(bigA, bigB).Mod(bigC, p)
@@ -79,7 +79,7 @@ func TestGFp(t *testing.T) {
 	t.Run("sub", func(t *testing.T) {
 		c := &gfP{}
 		bigC := new(big.Int)
-		for i := 0; i < testTimes; i++ {
+		for range testTimes {
 			bigA := randomGF(rand.Reader)
 			bigB := randomGF(rand.Reader)
 			want := bigC.Sub(bigA, bigB).Mod(bigC, p)
@@ -98,7 +98,7 @@ func TestGFp(t *testing.T) {
 	t.Run("mul", func(t *testing.T) {
 		c := &gfP{}
 		bigC := new(big.Int)
-		for i := 0; i < testTimes; i++ {
+		for range testTimes {
 			bigA := randomGF(rand.Reader)
 			bigB := randomGF(rand.Reader)
 			want := bigC.Mul(bigA, bigB).Mod(bigC, p)
@@ -117,7 +117,7 @@ func TestGFp(t *testing.T) {
 	t.Run("neg", func(t *testing.T) {
 		c := &gfP{}
 		bigC := new(big.Int)
-		for i := 0; i < testTimes; i++ {
+		for range testTimes {
 			bigA := randomGF(rand.Reader)
 			want := bigC.Neg(bigA).Mod(bigC, p)
 
@@ -134,7 +134,7 @@ func TestGFp(t *testing.T) {
 	t.Run("inv", func(t *testing.T) {
 		c := &gfP{}
 		bigC := new(big.Int)
-		for i := 0; i < testTimes; i++ {
+		for range testTimes {
 			bigA := randomGF(rand.Reader)
 			want := bigC.ModInverse(bigA, p)
 
@@ -151,7 +151,7 @@ func TestGFp(t *testing.T) {
 	t.Run("sqrt", func(t *testing.T) {
 		c := &gfP{}
 		bigC := new(big.Int)
-		for i := 0; i < testTimes; i++ {
+		for range testTimes {
 			bigA := randomGF(rand.Reader)
 			bigA.Mul(bigA, bigA).Mod(bigA, p)
 			want := bigC.ModSqrt(bigA, p)

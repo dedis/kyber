@@ -128,7 +128,7 @@ func testRandom(t *testing.T, s kyber.XOFFactory) {
 	t.Logf("implementation %T", s)
 	xof1 := s.XOF(nil)
 
-	for i := 0; i < 1000; i++ {
+	for range 1000 {
 		dst1 := make([]byte, 1024)
 		xof1.Read(dst1)
 		dst2 := make([]byte, 1024)
@@ -161,8 +161,8 @@ func bitDiff(a, b []byte) float64 {
 	}
 
 	count := 0
-	for i := 0; i < len(a); i++ {
-		for j := 0; j < 8; j++ {
+	for i := range a {
+		for j := range 8 {
 			count += int(((a[i] ^ b[i]) >> uint(j)) & 1)
 		}
 	}

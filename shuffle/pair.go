@@ -139,7 +139,7 @@ func (ps *PairShuffle) Prove(
 
 	// Compute pi^-1 inverse permutation
 	piinv := make([]int, k)
-	for i := 0; i < k; i++ {
+	for i := range k {
 		piinv[pi[i]] = i
 	}
 
@@ -165,7 +165,7 @@ func (ps *PairShuffle) Prove(
 	p1.Lambda2 = grp.Point().Null()
 	XY := grp.Point()  // scratch
 	wu := grp.Scalar() // scratch
-	for i := 0; i < k; i++ {
+	for i := range k {
 		p1.A[i] = grp.Point().Mul(a[i], G)
 		p1.C[i] = grp.Point().Mul(z.Mul(gamma, a[pi[i]]), G)
 		p1.U[i] = grp.Point().Mul(u[i], G)
@@ -186,7 +186,7 @@ func (ps *PairShuffle) Prove(
 		return err
 	}
 	B := make([]kyber.Point, k)
-	for i := 0; i < k; i++ {
+	for i := range k {
 		P := grp.Point().Mul(v2.Zrho[i], G)
 		B[i] = P.Sub(P, p1.U[i])
 	}
@@ -194,11 +194,11 @@ func (ps *PairShuffle) Prove(
 	// P step 3
 	p3 := &ps.p3
 	b := make([]kyber.Scalar, k)
-	for i := 0; i < k; i++ {
+	for i := range k {
 		b[i] = grp.Scalar().Sub(v2.Zrho[i], u[i])
 	}
 	d := make([]kyber.Scalar, k)
-	for i := 0; i < k; i++ {
+	for i := range k {
 		d[i] = grp.Scalar().Mul(gamma, b[pi[i]])
 		p3.D[i] = grp.Point().Mul(d[i], G)
 	}
@@ -215,15 +215,15 @@ func (ps *PairShuffle) Prove(
 	// P step 5
 	p5 := &ps.p5
 	r := make([]kyber.Scalar, k)
-	for i := 0; i < k; i++ {
+	for i := range k {
 		r[i] = grp.Scalar().Add(a[i], z.Mul(v4.Zlambda, b[i]))
 	}
 	s := make([]kyber.Scalar, k)
-	for i := 0; i < k; i++ {
+	for i := range k {
 		s[i] = grp.Scalar().Mul(gamma, r[pi[i]])
 	}
 	p5.Ztau = grp.Scalar().Neg(tau0)
-	for i := 0; i < k; i++ {
+	for i := range k {
 		p5.Zsigma[i] = grp.Scalar().Add(w[i], b[pi[i]])
 		p5.Ztau.Add(p5.Ztau, z.Mul(b[i], beta[i]))
 	}
@@ -259,7 +259,7 @@ func (ps *PairShuffle) Verify(
 		return err
 	}
 	B := make([]kyber.Point, k)
-	for i := 0; i < k; i++ {
+	for i := range k {
 		P := grp.Point().Mul(v2.Zrho[i], G)
 		B[i] = P.Sub(P, p1.U[i])
 	}
@@ -292,7 +292,7 @@ func (ps *PairShuffle) Verify(
 	Phi2 := grp.Point().Null()
 	P := grp.Point() // scratch
 	Q := grp.Point() // scratch
-	for i := 0; i < k; i++ {
+	for i := range k {
 		Phi1 = Phi1.Add(Phi1, P.Mul(p5.Zsigma[i], Xbar[i])) // (31)
 		Phi1 = Phi1.Sub(Phi1, P.Mul(v2.Zrho[i], X[i]))
 		Phi2 = Phi2.Add(Phi2, P.Mul(p5.Zsigma[i], Ybar[i])) // (32)
@@ -328,7 +328,7 @@ func Shuffle(group kyber.Group, G, H kyber.Point, X, Y []kyber.Point,
 
 	// Pick a random permutation
 	pi := make([]int, k)
-	for i := 0; i < k; i++ { // Initialize a trivial permutation
+	for i := range k { // Initialize a trivial permutation
 		pi[i] = i
 	}
 	for i := k - 1; i > 0; i-- { // Shuffle by random swaps
@@ -340,14 +340,14 @@ func Shuffle(group kyber.Group, G, H kyber.Point, X, Y []kyber.Point,
 
 	// Pick a fresh ElGamal blinding factor for each pair
 	beta := make([]kyber.Scalar, k)
-	for i := 0; i < k; i++ {
+	for i := range k {
 		beta[i] = ps.grp.Scalar().Pick(rand)
 	}
 
 	// Create the output pair vectors
 	Xbar := make([]kyber.Point, k)
 	Ybar := make([]kyber.Point, k)
-	for i := 0; i < k; i++ {
+	for i := range k {
 		Xbar[i] = ps.grp.Point().Mul(beta[pi[i]], G)
 		Xbar[i].Add(Xbar[i], X[pi[i]])
 		Ybar[i] = ps.grp.Point().Mul(beta[pi[i]], H)

@@ -137,7 +137,7 @@ func TestVSSAggregatorEnoughApprovals(t *testing.T) {
 	dealer := genDealer()
 	aggr := dealer.aggregator
 	// just below
-	for i := uint32(0); i < aggr.t-1; i++ {
+	for i := range aggr.t - 1 {
 		aggr.responses[uint32(i)] = &Response{Approved: true}
 	}
 
@@ -160,7 +160,7 @@ func TestVSSAggregatorDealCertified(t *testing.T) {
 	dealer := genDealer()
 	aggr := dealer.aggregator
 
-	for i := uint32(0); i < aggr.t; i++ {
+	for i := range aggr.t {
 		aggr.responses[uint32(i)] = &Response{Approved: true}
 	}
 
@@ -174,7 +174,7 @@ func TestVSSAggregatorDealCertified(t *testing.T) {
 	assert.Nil(t, dealer.SecretCommit())
 	// inconsistent state on purpose
 	// too much complaints
-	for i := uint32(0); i < aggr.t; i++ {
+	for i := range aggr.t {
 		aggr.responses[uint32(i)] = &Response{Approved: false}
 	}
 	assert.False(t, aggr.DealCertified())
@@ -474,7 +474,7 @@ func TestVSSAggregatorCleanVerifiers(t *testing.T) {
 	dealer := genDealer()
 	aggr := dealer.aggregator
 
-	for i := uint32(0); i < aggr.t; i++ {
+	for i := range aggr.t {
 		aggr.responses[uint32(i)] = &Response{Approved: true}
 	}
 
@@ -490,8 +490,8 @@ func TestVSSDealerSetTimeout(t *testing.T) {
 	dealer := genDealer()
 	aggr := dealer.aggregator
 
-	for i := uint32(0); i < aggr.t; i++ {
-		aggr.responses[uint32(i)] = &Response{Approved: true}
+	for i := range aggr.t {
+		aggr.responses[i] = &Response{Approved: true}
 	}
 
 	assert.True(t, aggr.EnoughApprovals())
@@ -517,8 +517,8 @@ func TestVSSVerifierSetTimeout(t *testing.T) {
 
 	aggr := ver.aggregator
 
-	for i := uint32(0); i < aggr.t; i++ {
-		aggr.responses[uint32(i)] = &Response{Approved: true}
+	for i := range aggr.t {
+		aggr.responses[i] = &Response{Approved: true}
 	}
 
 	assert.True(t, aggr.EnoughApprovals())
@@ -578,7 +578,7 @@ func genPair() (kyber.Scalar, kyber.Point) {
 func genCommits(n uint32) ([]kyber.Scalar, []kyber.Point) {
 	var secrets = make([]kyber.Scalar, n)
 	var publics = make([]kyber.Point, n)
-	for i := uint32(0); i < n; i++ {
+	for i := range n {
 		secrets[i], publics[i] = genPair()
 	}
 	return secrets, publics
@@ -592,7 +592,7 @@ func genDealer() *Dealer {
 func genAll() (*Dealer, []*Verifier) {
 	dealer := genDealer()
 	var verifiers = make([]*Verifier, nbVerifiers)
-	for i := uint32(0); i < nbVerifiers; i++ {
+	for i := range nbVerifiers {
 		v, _ := NewVerifier(suite, verifiersSec[i], dealerPub, verifiersPub)
 		verifiers[i] = v
 	}
