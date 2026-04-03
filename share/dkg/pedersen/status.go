@@ -1,8 +1,10 @@
 package dkg
 
 import (
+	"bufio"
 	"fmt"
-	"sort"
+	"io"
+	"slices"
 	"strings"
 )
 
@@ -90,24 +92,27 @@ func (s *StatusMatrix) String() string {
 	for shareIdx := range (*s)[dealerIdx[0]] {
 		sharesIdx = append(sharesIdx, shareIdx)
 	}
-	sort.Slice(dealerIdx, func(i, j int) bool { return dealerIdx[i] < dealerIdx[j] })
-	sort.Slice(sharesIdx, func(i, j int) bool { return sharesIdx[i] < sharesIdx[j] })
-	var str = ""
+
+	slices.Sort(dealerIdx)
+	slices.Sort(sharesIdx)
+
+	var b strings.Builder
+	var cw io.Writer = bufio.NewWriter(&b)
 	for _, dealerIndex := range dealerIdx {
 		var statuses []string
 		for _, shareIndex := range sharesIdx {
 			status := (*s)[dealerIndex][shareIndex]
 			var st string
 			if status == Success {
-				st = fmt.Sprintf(" %d: ok", shareIndex)
+				fmt.Fprintf(cw, " %d: ok", shareIndex)
 			} else {
-				st = fmt.Sprintf(" %d: no", shareIndex)
+				fmt.Fprintf(cw, " %d: no", shareIndex)
 			}
 			statuses = append(statuses, st)
 		}
-		str += fmt.Sprintf("dealer %d: [ %s ]\n", dealerIndex, strings.Join(statuses, ","))
+		fmt.Fprintf(cw, "dealer %d: [ %s ]\n", dealerIndex, strings.Join(statuses, ","))
 	}
-	return str
+	return b.String()
 }
 
 func (b BitSet) LengthComplaints() uint32 {

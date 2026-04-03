@@ -130,7 +130,7 @@ func (p *PriPoly) Equal(q *PriPoly) bool {
 	}
 	b := 1
 
-	for i := uint32(0); i < p.Threshold(); i++ {
+	for i := range p.Threshold() {
 		pb, _ := p.coeffs[i].MarshalBinary()
 		qb, _ := q.coeffs[i].MarshalBinary()
 		b &= subtle.ConstantTimeCompare(pb, qb)
@@ -393,7 +393,7 @@ func (p *PubPoly) Equal(q *PubPoly) bool {
 		return false
 	}
 
-	for i := int64(0); i < p.Threshold(); i++ {
+	for i := range p.Threshold() {
 		pb, _ := p.commits[i].MarshalBinary()
 		qb, _ := q.commits[i].MarshalBinary()
 		b &= subtle.ConstantTimeCompare(pb, qb)

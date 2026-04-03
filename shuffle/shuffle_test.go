@@ -43,7 +43,7 @@ func setShuffleKeyPairs(rand cipher.Stream, suite Suite, k int) (kyber.Point, []
 	// Create a set of ephemeral "client" keypairs to shuffle
 	c1 := make([]kyber.Point, k)
 
-	for i := 0; i < k; i++ {
+	for i := range k {
 		c0 := suite.Scalar().Pick(rand)
 		c1[i] = suite.Point().Mul(c0, nil)
 	}
@@ -61,7 +61,7 @@ func elGamalEncryptPair(
 	x := make([]kyber.Point, k)
 	y := make([]kyber.Point, k)
 	r := suite.Scalar() // temporary
-	for i := 0; i < k; i++ {
+	for i := range k {
 		r.Pick(rand)
 		x[i] = suite.Point().Mul(r, nil)
 		y[i] = suite.Point().Mul(r, h) // ElGamal blinding factor
@@ -77,7 +77,7 @@ func pairShuffleTest(suite Suite, k, n int) {
 	x, y := elGamalEncryptPair(rand, suite, c, h, k)
 
 	// Repeat only the actual shuffle portion for benchmark purposes.
-	for i := 0; i < n; i++ {
+	for range n {
 		// Do a key-shuffle
 		Xbar, Ybar, prover := Shuffle(suite, nil, h, x, y, rand)
 		prf, err := proof.HashProve(suite, "PairShuffle", prover)
@@ -124,11 +124,11 @@ func generateAndEncryptRandomSequences(
 	Y := make([][]kyber.Point, NQ)
 
 	// generate random sequences
-	for i := 0; i < NQ; i++ {
+	for i := range NQ {
 		xs := make([]kyber.Point, k)
 		ys := make([]kyber.Point, k)
 
-		for j := 0; j < k; j++ {
+		for j := range k {
 			xs[j] = suite.Point().Mul(suite.Scalar().Pick(suite.RandomStream()), nil)
 			ys[j] = suite.Point().Mul(suite.Scalar().Pick(suite.RandomStream()), nil)
 		}
@@ -139,8 +139,8 @@ func generateAndEncryptRandomSequences(
 
 	// ElGamal-encrypt all these keypairs with the "server" key
 	r := suite.Scalar() // temporary
-	for j := 0; j < NQ; j++ {
-		for i := 0; i < k; i++ {
+	for j := range NQ {
+		for i := range k {
 			r.Pick(rand)
 			X[j][i] = suite.Point().Mul(r, nil)
 			Y[j][i] = suite.Point().Mul(r, h) // ElGamal blinding factor
@@ -157,13 +157,13 @@ func sequenceShuffleTest(suite Suite, k, nq, n int) {
 	X, Y := generateAndEncryptRandomSequences(rand, suite, h, c, k)
 
 	// Repeat only the actual shuffle portion for benchmark purposes.
-	for i := 0; i < n; i++ {
+	for range n {
 
 		// Do a key-shuffle
 		XX, YY, getProver := SequencesShuffle(suite, nil, h, X, Y, rand)
 
 		e := make([]kyber.Scalar, nq)
-		for j := 0; j < nq; j++ {
+		for j := range nq {
 			e[j] = suite.Scalar().Pick(suite.RandomStream())
 		}
 
@@ -201,7 +201,7 @@ func sequenceInvalidShuffleTest(t *testing.T, suite Suite, k, nq int) {
 	X[0][0], Y[0][0] = X[0][1], Y[0][1]
 
 	e := make([]kyber.Scalar, nq)
-	for j := 0; j < nq; j++ {
+	for j := range nq {
 		e[j] = suite.Scalar().Pick(suite.RandomStream())
 	}
 

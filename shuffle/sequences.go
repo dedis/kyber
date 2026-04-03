@@ -50,7 +50,7 @@ func SequencesShuffle(
 	// Pick a random permutation used in ALL k ElGamal sequences. The permutation
 	// (π) of an ElGamal pair at index i always outputs to the same index
 	pi := make([]int, k)
-	for i := 0; i < k; i++ {
+	for i := range k {
 		pi[i] = i
 	}
 
@@ -66,9 +66,9 @@ func SequencesShuffle(
 	// Pick a fresh ElGamal blinding factor β(j, i) for each ElGamal sequence
 	// and each ElGamal pair
 	beta := make([][]kyber.Scalar, NQ)
-	for j := 0; j < NQ; j++ {
+	for j := range NQ {
 		beta[j] = make([]kyber.Scalar, k)
-		for i := 0; i < k; i++ {
+		for i := range k {
 			beta[j][i] = group.Scalar().Pick(rand)
 		}
 	}
@@ -77,11 +77,11 @@ func SequencesShuffle(
 	xBar = make([][]kyber.Point, NQ)
 	yBar = make([][]kyber.Point, NQ)
 
-	for j := 0; j < NQ; j++ {
+	for j := range NQ {
 		xBar[j] = make([]kyber.Point, k)
 		yBar[j] = make([]kyber.Point, k)
 
-		for i := 0; i < k; i++ {
+		for i := range k {
 			xBar[j][i] = group.Point().Mul(beta[j][pi[i]], G)
 			xBar[j][i].Add(xBar[j][i], X[j][pi[i]])
 
@@ -105,7 +105,7 @@ func SequencesShuffle(
 			// Need to consolidate beta to a one dimensional array
 			beta2 := make([]kyber.Scalar, k)
 
-			for i := 0; i < k; i++ {
+			for i := range k {
 				beta2[i] = group.Scalar().Mul(e[0], beta[0][i])
 
 				for j := 1; j < NQ; j++ {
@@ -164,7 +164,7 @@ func GetSequenceVerifiable(group kyber.Group, X, Y, Xbar, Ybar [][]kyber.Point, 
 	xDown = make([]kyber.Point, k)
 	yDown = make([]kyber.Point, k)
 
-	for i := 0; i < k; i++ {
+	for i := range k {
 		// No modification could be made for e[0] -> e[0] = 1 if one wanted -
 		// Remark 7 in the paper
 		xUp[i] = group.Point().Mul(e[0], X[0][i])

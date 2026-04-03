@@ -29,7 +29,7 @@ func geScalarMultVartime(h *extendedGroupElement, a *[32]byte,
 	A.ToCached(&Ai[0])
 	A.Double(&t)
 	t.ToExtended(&A2)
-	for i := 0; i < 7; i++ {
+	for i := range 7 {
 		t.Add(&A2, &Ai[i])
 		t.ToExtended(&u)
 		u.ToCached(&Ai[i+1])
