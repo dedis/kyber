@@ -30,7 +30,7 @@ func getConfig(n, t uint32) Config {
 		x:     make([]kyber.Scalar, n),
 	}
 
-	for i := uint32(0); i < n; i++ {
+	for i := range n {
 		conf.x[i] = suite.Scalar().Pick(suite.RandomStream())
 		conf.X[i] = suite.Point().Mul(conf.x[i], nil)
 	}
@@ -54,7 +54,7 @@ func ComputeKED(conf Config, l uint32, pubPoly *share.PubPoly, encShares []*PubV
 		return &KED{}, err
 	}
 
-	for i := uint32(0); i < conf.n; i++ {
+	for i := range conf.n {
 		if ds, err := DecShare(conf.suite, conf.H, conf.X[i], sH[i], conf.x[i], globalChallenge, encShares[i]); err == nil {
 			K = append(K, conf.X[i])
 			E = append(E, encShares[i])
@@ -74,7 +74,7 @@ func EncryptAndShare(conf Config, secret kyber.Scalar) (*share.PubPoly, []*PubVe
 
 	// (2) Share decryption (trustees)
 	sH := make([]kyber.Point, conf.n)
-	for i := uint32(0); i < conf.n; i++ {
+	for i := range conf.n {
 		sH[i] = pubPoly.Eval(encShares[i].S.I).V
 	}
 
@@ -105,7 +105,7 @@ func TestComputePolyCommitments(test *testing.T) {
 
 	x := make([]kyber.Scalar, n) // trustee private keys
 	X := make([]kyber.Point, n)  // trustee public keys
-	for i := uint32(0); i < n; i++ {
+	for i := range n {
 		x[i] = conf.suite.Scalar().Pick(conf.suite.RandomStream())
 		X[i] = conf.suite.Point().Mul(x[i], nil)
 	}
@@ -118,7 +118,7 @@ func TestComputePolyCommitments(test *testing.T) {
 	indices := make([]uint32, n)
 	values := make([]kyber.Scalar, n)
 	HS := make([]kyber.Point, n)
-	for i := uint32(0); i < n; i++ {
+	for i := range n {
 		indices[i] = priShares[i].I
 		values[i] = priShares[i].V
 		HS[i] = conf.H
@@ -133,7 +133,7 @@ func TestComputePolyCommitments(test *testing.T) {
 	require.Equal(test, n, uint32(len(expectedComm)))
 	require.Equal(test, len(expectedComm), len(actualComm))
 
-	for i := uint32(0); i < n; i++ {
+	for i := range n {
 		require.Equal(test, expectedComm[i].String(), actualComm[i].String())
 	}
 }
@@ -222,7 +222,7 @@ func TestPVSSBatch(test *testing.T) {
 	sH0 := make([]kyber.Point, n)
 	sH1 := make([]kyber.Point, n)
 	sH2 := make([]kyber.Point, n)
-	for i := uint32(0); i < n; i++ {
+	for i := range n {
 		sH0[i] = p0.Eval(e0[i].S.I).V
 		sH1[i] = p1.Eval(e1[i].S.I).V
 		sH2[i] = p2.Eval(e2[i].S.I).V

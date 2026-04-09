@@ -394,7 +394,7 @@ func TestRecoverPriPoly(test *testing.T) {
 	reverseRecovered, err := RecoverPriPoly(suite, reverses, t, n)
 	assert.Nil(test, err)
 
-	for i := uint32(0); i < t; i++ {
+	for i := range t {
 		assert.Equal(test, recovered.Eval(i).V.String(), a.Eval(i).V.String())
 		assert.Equal(test, reverseRecovered.Eval(i).V.String(), a.Eval(i).V.String())
 	}
@@ -424,7 +424,7 @@ func TestRefreshDKG(test *testing.T) {
 	priShares := make([][]*PriShare, n)
 	pubPolys := make([]*PubPoly, n)
 	pubShares := make([][]*PubShare, n)
-	for i := uint32(0); i < n; i++ {
+	for i := range n {
 		priPolys[i] = NewPriPoly(g, t, nil, g.RandomStream())
 		priShares[i] = priPolys[i].Shares(n)
 		pubPolys[i] = priPolys[i].Commit(nil)
@@ -432,8 +432,8 @@ func TestRefreshDKG(test *testing.T) {
 	}
 
 	// Verify VSS shares
-	for i := uint32(0); i < n; i++ {
-		for j := uint32(0); j < n; j++ {
+	for i := range n {
+		for j := range n {
 			sij := priShares[i][j]
 			// s_ij * G
 			sijG := g.Point().Base().Mul(sij.V, nil)
@@ -443,9 +443,9 @@ func TestRefreshDKG(test *testing.T) {
 
 	// Create private DKG shares
 	dkgShares := make([]*PriShare, n)
-	for i := uint32(0); i < n; i++ {
+	for i := range n {
 		acc := g.Scalar().Zero()
-		for j := uint32(0); j < n; j++ { // assuming all participants are in the qualified set
+		for j := range n { // assuming all participants are in the qualified set
 			acc = g.Scalar().Add(acc, priShares[j][i].V)
 		}
 		dkgShares[i] = &PriShare{i, acc}
@@ -453,9 +453,9 @@ func TestRefreshDKG(test *testing.T) {
 
 	// Create public DKG commitments (= verification vector)
 	dkgCommits := make([]kyber.Point, t)
-	for k := uint32(0); k < t; k++ {
+	for k := range t {
 		acc := g.Point().Null()
-		for i := uint32(0); i < n; i++ { // assuming all participants are in the qualified set
+		for i := range n { // assuming all participants are in the qualified set
 			_, coeff := pubPolys[i].Info()
 			acc = g.Point().Add(acc, coeff[k])
 		}
@@ -464,7 +464,7 @@ func TestRefreshDKG(test *testing.T) {
 
 	// Check that the private DKG shares verify against the public DKG commits
 	dkgPubPoly := NewPubPoly(g, nil, dkgCommits)
-	for i := uint32(0); i < n; i++ {
+	for i := range n {
 		require.True(test, dkgPubPoly.Check(dkgShares[i]))
 	}
 
@@ -475,7 +475,7 @@ func TestRefreshDKG(test *testing.T) {
 	subPubShares := make([][]*PubShare, n)
 
 	// Create subshares and subpolys
-	for i := uint32(0); i < n; i++ {
+	for i := range n {
 		subPriPolys[i] = NewPriPoly(g, t, dkgShares[i].V, g.RandomStream())
 		subPriShares[i] = subPriPolys[i].Shares(n)
 		subPubPolys[i] = subPriPolys[i].Commit(nil)
@@ -485,10 +485,10 @@ func TestRefreshDKG(test *testing.T) {
 
 	// Handout shares to new nodes column-wise and verify them
 	newDKGShares := make([]*PriShare, n)
-	for i := uint32(0); i < n; i++ {
+	for i := range n {
 		tmpPriShares := make([]*PriShare, n) // column-wise reshuffled sub-shares
 		tmpPubShares := make([]*PubShare, n) // public commitments to old DKG private shares
-		for j := uint32(0); j < n; j++ {
+		for j := range n {
 			// Check 1: Verify that the received individual private subshares s_ji
 			// is correct by evaluating the public commitment vector
 			tmpPriShares[j] = &PriShare{I: j, V: subPriShares[j][i].V} // Shares that participant i gets from j
@@ -513,9 +513,9 @@ func TestRefreshDKG(test *testing.T) {
 
 	// Refresh the DKG commitments (= verification vector)
 	newDKGCommits := make([]kyber.Point, t)
-	for i := uint32(0); i < t; i++ {
+	for i := range t {
 		pubShares := make([]*PubShare, n)
-		for j := uint32(0); j < n; j++ {
+		for j := range n {
 			_, c := subPubPolys[j].Info()
 			pubShares[j] = &PubShare{I: j, V: c[i]}
 		}
@@ -528,13 +528,13 @@ func TestRefreshDKG(test *testing.T) {
 	require.True(test, dkgCommits[0].Equal(newDKGCommits[0]))
 
 	// Check that the old and new DKG private shares are different
-	for i := uint32(0); i < n; i++ {
+	for i := range n {
 		require.False(test, dkgShares[i].V.Equal(newDKGShares[i].V))
 	}
 
 	// Check that the refreshed private DKG shares verify against the refreshed public DKG commits
 	q := NewPubPoly(g, nil, newDKGCommits)
-	for i := uint32(0); i < n; i++ {
+	for i := range n {
 		require.True(test, q.Check(newDKGShares[i]))
 	}
 

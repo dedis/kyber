@@ -89,7 +89,7 @@ func (d *Deal) Marshal() ([]byte, error) {
 func (d *Deal) Unmarshal(data []byte, suite Suite) error {
 	compatibleDeal := &pedersenCompatibleDeal{}
 	constructors := make(protobuf.Constructors)
-	constructors[reflect.TypeFor[kyber.Point]()] = func() interface{} { return suite.Point() }
+	constructors[reflect.TypeFor[kyber.Point]()] = func() any { return suite.Point() }
 	err := protobuf.DecodeWithConstructors(data, compatibleDeal, constructors)
 	if err != nil {
 		return err
