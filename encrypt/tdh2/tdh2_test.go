@@ -22,22 +22,29 @@ func TestThresholdDecryption(t *testing.T) {
 	m := []byte("This is the 24-bytes key")
 	label := []byte("some random label")
 	useAESGCM := true
-	ct, err := Encrypt(suite, public, m, label, useAESGCM)
+	params := Parameters{
+		Threshold:    2,
+		UseAESGCM:    useAESGCM,
+		PublicKey:    public,
+		PublicShares: nil, // not needed for encryption
+	}
+	ct, err := Encrypt(suite, params, m, label)
 	require.NoError(t, err, "encryption failed")
 
 	// verify ct
-	err = Verify(suite, ct, public, label)
+	err = Verify(suite, params, ct, label)
 	require.NoError(t, err)
 
 	// verify with wrong public key
 	wrongPrivate := suite.Scalar().Pick(suite.RandomStream()) // private key
-	wrongPublic := suite.Point().Mul(wrongPrivate, nil)
-	err = Verify(suite, ct, wrongPublic, label)
+	params.PublicKey = suite.Point().Mul(wrongPrivate, nil)
+	err = Verify(suite, params, ct, label)
 	require.Error(t, err, "verification with wrong public key should fail")
+	params.PublicKey = public // reset
 
 	// verify with wrong label
 	wrongLabel := []byte("wrong label")
-	err = Verify(suite, ct, public, wrongLabel)
+	err = Verify(suite, params, ct, wrongLabel)
 	require.Error(t, err, "verification with wrong label key should fail")
 
 	// Threshold ElGamal
@@ -52,10 +59,11 @@ func TestThresholdDecryption(t *testing.T) {
 		// q_i = x_i * G
 		publicKeys[i] = suite.Point().Mul(shares[i].V, nil)
 	}
+	params.PublicShares = publicKeys
 	// Simulate partial decryptions (using 3 shares)
 	partials := make([]*PartialDecryptionShare, threshold+1)
 	for i := 0; i <= threshold; i++ {
-		partials[i], err = PartialDecrypt(suite, ct, shares[i].I, shares[i].V, label, public)
+		partials[i], err = PartialDecrypt(suite, params, ct, shares[i].I, shares[i].V, label)
 		require.NoError(t, err, "partial decryption failed")
 
 		err := VerifyPartialDecryptionShare(suite, ct, partials[i], publicKeys[shares[i].I])
@@ -67,7 +75,7 @@ func TestThresholdDecryption(t *testing.T) {
 	}
 
 	// Combine partial decryptions
-	combined, validPartials, err := CombinePartialDecryptionShares(suite, ct, partials, publicKeys, threshold, label, public, useAESGCM)
+	combined, validPartials, err := CombinePartialDecryptionShares(suite, params, ct, partials, label)
 	require.NoError(t, err, "combining shares failed")
 	require.Equal(t, len(partials), validPartials, "wrong number of valid partial decryptions")
 

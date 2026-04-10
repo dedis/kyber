@@ -66,6 +66,14 @@ type CipherText struct {
 	E, F   kyber.Scalar
 }
 
+// Parameters represents the public parameters of the scheme that are needed for encryption and decryption
+type Parameters struct {
+	Threshold    int           // threshold for decryption (for N check the len of publicKeys)
+	UseAESGCM    bool          // whether to use AES-GCM for encryption/decryption instead of one-time-pad
+	PublicKey    kyber.Point   // public key corresponding to the private key that encrypts the message
+	PublicShares []kyber.Point // public keys corresponding to the private key shares of each participant, order matters
+}
+
 // PartialDecryptionShare represents a partial decryption share produced by a
 // party, along with an embedded NIZK proof of correctness
 type PartialDecryptionShare struct {
@@ -82,10 +90,9 @@ type PartialDecryptionShare struct {
 // as described in the original paper.
 func Encrypt(
 	suite Suite,
-	pk kyber.Point,
+	params Parameters,
 	message []byte,
 	label []byte,
-	useAESGCM bool,
 ) (*CipherText, error) {
 	randomStream := suite.RandomStream()
 
@@ -95,11 +102,11 @@ func Encrypt(
 
 	// ephemeral DH shared secret (ss = g^{r . pk})
 	// where pk is the public key and r is a random scalar
-	ss := suite.Point().Mul(r, pk)
+	ss := suite.Point().Mul(r, params.PublicKey)
 
 	var w []byte
 	var p int
-	if useAESGCM { // if aes gcm is requested
+	if params.UseAESGCM { // if aes gcm is requested
 		// generate random nonce for AES-GCM
 		nonce := make([]byte, NonceSize)
 		random.Bytes(nonce, randomStream)
@@ -143,11 +150,11 @@ func Encrypt(
 		}
 	}
 
-	r1 := suite.Point().Mul(r, nil) // r1 = r . G
-	r2 := suite.Point().Mul(r, pk)  // r2 = r . pub
+	r1 := suite.Point().Mul(r, nil)              // r1 = r . G
+	r2 := suite.Point().Mul(r, params.PublicKey) // r2 = r . pub
 
-	w1 := suite.Point().Mul(s, nil) // w1 = s . G
-	w2 := suite.Point().Mul(s, pk)  // w2 = s . pub
+	w1 := suite.Point().Mul(s, nil)              // w1 = s . G
+	w2 := suite.Point().Mul(s, params.PublicKey) // w2 = s . pub
 
 	e, err := hash2(suite, w, label, r1, w1, r2, w2)
 	if err != nil {
@@ -171,8 +178,8 @@ func Encrypt(
 // Verify checks the validity of the ciphertext and its embedded NIZK proof
 func Verify(
 	suite Suite,
+	params Parameters,
 	ct *CipherText,
-	pk kyber.Point,
 	expectedLabel []byte,
 ) error {
 	// check expected label
@@ -197,7 +204,7 @@ func Verify(
 
 	// w2 = f * pk - e * R2;
 	w2 := suite.Point().Sub(
-		suite.Point().Mul(ct.F, pk),
+		suite.Point().Mul(ct.F, params.PublicKey),
 		suite.Point().Mul(ct.E, ct.R2),
 	)
 
@@ -217,13 +224,13 @@ func Verify(
 // before proceeding with the partial decryption.
 func PartialDecrypt(
 	suite Suite,
+	params Parameters,
 	ct *CipherText,
 	index uint32, // index
 	ski kyber.Scalar, // private key share i
 	expectedLabel []byte,
-	pk kyber.Point, // public key
 ) (*PartialDecryptionShare, error) {
-	if err := Verify(suite, ct, pk, expectedLabel); err != nil {
+	if err := Verify(suite, params, ct, expectedLabel); err != nil {
 		return nil, fmt.Errorf("invalid ciphertext: %w", err)
 	}
 
@@ -301,33 +308,30 @@ func VerifyPartialDecryptionShare(
 // can help detect invalid or malicious shares.
 func CombinePartialDecryptionShares(
 	suite Suite,
+	params Parameters,
 	ct *CipherText,
 	partials []*PartialDecryptionShare,
-	publicKeys []kyber.Point, // order matters
-	threshold int,
 	expectedLabel []byte,
-	pk kyber.Point, // public key
-	useAESGCM bool,
 ) (msg []byte, validPartials int, err error) {
 	// verify ciphertext
-	if err := Verify(suite, ct, pk, expectedLabel); err != nil {
+	if err := Verify(suite, params, ct, expectedLabel); err != nil {
 		return nil, 0, fmt.Errorf("invalid ciphertext: %w", err)
 	}
 
 	// verify partials validatity and meeting the threshold requirement
-	shares, err := verifyPartials(suite, ct, threshold, partials, publicKeys)
+	shares, err := verifyPartials(suite, params, ct, partials)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to verify partial decryptions: %w", err)
 	}
 
 	// Recover the shared secret (Lagrange interpolation in the exponent)
-	v, err := share.RecoverCommit(suite, shares, uint32(threshold), uint32(len(publicKeys)))
+	v, err := share.RecoverCommit(suite, shares, uint32(params.Threshold), uint32(len(params.PublicShares)))
 	if err != nil {
 		return nil, 0, err
 	}
 
 	// message recovery step
-	if useAESGCM {
+	if params.UseAESGCM {
 		// decrypt the ciphertext using AES-GCM
 		aesKey, err := hash1(suite, v, AESBytes)
 		if err != nil {
@@ -366,20 +370,19 @@ func CombinePartialDecryptionShares(
 
 func verifyPartials(
 	suite Suite,
+	params Parameters,
 	ct *CipherText,
-	threshold int,
 	partials []*PartialDecryptionShare,
-	publicKeys []kyber.Point,
 ) (validPartials []*share.PubShare, err error) {
 	validShares := make([]*share.PubShare, 0)
 	for i := 0; i < len(partials); i++ {
 
 		// fetch public key
 		idx := partials[i].Index
-		if int(idx) >= len(publicKeys) {
+		if int(idx) >= len(params.PublicShares) {
 			return nil, fmt.Errorf("invalid index")
 		}
-		qi := publicKeys[idx]
+		qi := params.PublicShares[idx]
 
 		if err := VerifyPartialDecryptionShare(suite, ct, partials[i], qi); err != nil {
 			// skip the partial share
@@ -388,8 +391,8 @@ func verifyPartials(
 		validShares = append(validShares, &share.PubShare{I: idx, V: partials[i].Xi})
 	}
 	// quorum check
-	if len(validShares) < threshold {
-		return nil, fmt.Errorf("not enough valid partial decryptions %d < %d", len(validShares), threshold)
+	if len(validShares) < params.Threshold {
+		return nil, fmt.Errorf("not enough valid partial decryptions %d < %d", len(validShares), params.Threshold)
 	}
 	return validShares, nil
 }
@@ -571,7 +574,6 @@ func xorByteSlices(a, b []byte) ([]byte, error) {
 }
 
 // validatePoint checks if a point is valid and in the proper subgroup
-// TODO: we might have more efficent ways to do this
 func validatePoint(suite Suite, p kyber.Point) error {
 	// first do the marshalling check
 	data, err := p.MarshalBinary()
