@@ -15,7 +15,7 @@
 // If useAESGCM is set to true, AES-GCM (256-bit) is used instead of the one-time-pad.
 // We also support labels that can be used as associated data in the AEAD scheme.
 //
-// TODO: in the future we might update this implemntation to benefit from
+// In the future this implementation can be updated to benefit from
 // improvemetns provided in the following paper:
 // https://eprint.iacr.org/2025/1578.pdf
 package tdh2
@@ -42,6 +42,8 @@ const (
 	AESBytes = 32
 	// length of AES-GCM nonce in bytes
 	NonceSize = 12
+
+	hashFunctionFailureErrorMessageWrapper = "hash%d failed: %w"
 )
 
 // Suite is the interface that groups the necessary methods for this scheme
@@ -85,11 +87,6 @@ func Encrypt(
 	label []byte,
 	useAESGCM bool,
 ) (*CipherText, error) {
-	// if no label is provided use empty string
-	if label == nil {
-		label = []byte("")
-	}
-
 	randomStream := suite.RandomStream()
 
 	// generate a random scalar for ephemeral private key
@@ -110,7 +107,7 @@ func Encrypt(
 		// hash the ephemeral shared secret and produce aes key
 		aesKey, err := hash1(suite, ss, AESBytes)
 		if err != nil {
-			return nil, fmt.Errorf("h1 failed: %w", err)
+			return nil, fmt.Errorf(hashFunctionFailureErrorMessageWrapper, 1, err)
 		}
 
 		// setup AES GCM
@@ -140,7 +137,7 @@ func Encrypt(
 		// apply hash and cut to the length of message
 		hashed, err := hash1(suite, ss, len(message))
 		if err != nil {
-			return nil, fmt.Errorf("h1 failed: %w", err)
+			return nil, fmt.Errorf(hashFunctionFailureErrorMessageWrapper, 1, err)
 		}
 
 		// H1(h^r) ⊕ m
@@ -158,7 +155,7 @@ func Encrypt(
 
 	e, err := hash2(suite, w, label, r1, w1, r2, w2)
 	if err != nil {
-		return nil, fmt.Errorf("cannot compute hash2: %w", err)
+		return nil, fmt.Errorf(hashFunctionFailureErrorMessageWrapper, 2, err)
 	}
 
 	// f = s + r.e (mod q)
@@ -210,7 +207,7 @@ func Verify(
 
 	e, err := hash2(suite, ct.W, ct.L, ct.R1, w1, ct.R2, w2)
 	if err != nil {
-		return fmt.Errorf("cannot compute hash2: %w", err)
+		return fmt.Errorf(hashFunctionFailureErrorMessageWrapper, 2, err)
 	}
 	if !e.Equal(ct.E) {
 		return fmt.Errorf("Verify failed: e mismatch")
@@ -244,7 +241,7 @@ func PartialDecrypt(
 	// compute hash4
 	ei, err := hash4(suite, xi, yi, zi)
 	if err != nil {
-		return nil, fmt.Errorf("cannot compute hash4: %w", err)
+		return nil, fmt.Errorf(hashFunctionFailureErrorMessageWrapper, 4, err)
 	}
 
 	// f_i = s_i + e_i * x_i (mod q)
@@ -286,7 +283,7 @@ func VerifyPartialDecryptionShare(
 
 	expectedEi, err := hash4(suite, partial.Xi, yi, zi)
 	if err != nil {
-		return fmt.Errorf("cannot compute hash4: %w", err)
+		return fmt.Errorf(hashFunctionFailureErrorMessageWrapper, 4, err)
 	}
 
 	if !partial.Ei.Equal(expectedEi) {
@@ -321,27 +318,10 @@ func CombinePartialDecryptionShares(
 		return nil, 0, fmt.Errorf("invalid ciphertext: %w", err)
 	}
 
-	// verify partials
-	shares := make([]*share.PubShare, 0)
-	for i := 0; i < len(partials); i++ {
-
-		// fetch public key
-		idx := partials[i].Index
-		if int(idx) >= len(publicKeys) {
-			return nil, 0, fmt.Errorf("invalid index")
-		}
-		qi := publicKeys[idx]
-
-		if err := VerifyPartialDecryptionShare(suite, ct, partials[i], qi); err != nil {
-			// skip the partial share
-			continue
-		}
-		shares = append(shares, &share.PubShare{I: idx, V: partials[i].Xi})
-	}
-
-	// quorum check
-	if len(shares) < threshold {
-		return nil, 0, fmt.Errorf("not enough valid partial decryptions")
+	// verify partials validatity and meeting the threshold requirement
+	shares, err := verifyPartials(suite, ct, threshold, partials, publicKeys)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to verify partial decryptions: %w", err)
 	}
 
 	// Recover the shared secret (Lagrange interpolation in the exponent)
@@ -352,7 +332,6 @@ func CombinePartialDecryptionShares(
 
 	// message recovery step
 	if useAESGCM {
-
 		// decrypt the ciphertext using AES-GCM
 		aesKey, err := hash1(suite, v, AESBytes)
 		if err != nil {
@@ -383,7 +362,7 @@ func CombinePartialDecryptionShares(
 	// else
 	hashed, err := hash1(suite, v, len(ct.W))
 	if err != nil {
-		return nil, 0, fmt.Errorf("h1 failed: %w", err)
+		return nil, 0, fmt.Errorf(hashFunctionFailureErrorMessageWrapper, 1, err)
 	}
 
 	message, err := xorByteSlices(hashed, ct.W)
@@ -392,6 +371,36 @@ func CombinePartialDecryptionShares(
 	}
 	// strip out the extra padding
 	return message[:len(message)-ct.P], len(shares), nil
+}
+
+func verifyPartials(
+	suite Suite,
+	ct *CipherText,
+	threshold int,
+	partials []*PartialDecryptionShare,
+	publicKeys []kyber.Point,
+) (validPartials []*share.PubShare, err error) {
+	validShares := make([]*share.PubShare, 0)
+	for i := 0; i < len(partials); i++ {
+
+		// fetch public key
+		idx := partials[i].Index
+		if int(idx) >= len(publicKeys) {
+			return nil, fmt.Errorf("invalid index")
+		}
+		qi := publicKeys[idx]
+
+		if err := VerifyPartialDecryptionShare(suite, ct, partials[i], qi); err != nil {
+			// skip the partial share
+			continue
+		}
+		validShares = append(validShares, &share.PubShare{I: idx, V: partials[i].Xi})
+	}
+	// quorum check
+	if len(validShares) < threshold {
+		return nil, fmt.Errorf("not enough valid partial decryptions %d < %d", len(validShares), threshold)
+	}
+	return validShares, nil
 }
 
 // h1Tag is the domain separation tag for the hash1 function
@@ -404,17 +413,17 @@ func h1Tag() []byte {
 func hash1(suite Suite, point kyber.Point, length int) ([]byte, error) {
 	hash := suite.Hash()
 	if _, err := hash.Write(h1Tag()); err != nil {
-		return nil, errors.New("err writing tag to hash")
+		return nil, errors.New("err writing h1 tag to hash")
 	}
 
 	// add group name to hash
 	if err := addGroupToHash(hash, suite); err != nil {
-		return nil, errors.New("err adding group to the hash function")
+		return nil, err
 	}
 
 	// add point encoding size
 	if err := addPointToHash(hash, point); err != nil {
-		return nil, errors.New("err adding point to the hash function")
+		return nil, err
 	}
 
 	hashSum := hash.Sum(nil)
@@ -430,7 +439,7 @@ func hash1(suite Suite, point kyber.Point, length int) ([]byte, error) {
 	}
 
 	// else extend using sha3 SHAKE256 as XOF(extendable-output function)
-	// TODO: we might want to use the random package in utils
+	// In the futuer we may want to use the random package in utils
 	hasher := sha3.NewShake256()
 
 	// seed the new hasher
@@ -454,38 +463,37 @@ func hash2(
 	w, l []byte,
 	r1, w1, r2, w2 kyber.Point,
 ) (kyber.Scalar, error) {
-
 	hash := suite.Hash()
 	if _, err := hash.Write(h2Tag()); err != nil {
-		return nil, errors.New("err writing tag to hash")
+		return nil, err
 	}
 
 	if err := addGroupToHash(hash, suite); err != nil {
-		return nil, errors.New("err adding group to the hash function")
+		return nil, err
 	}
 
 	if err := addStringToHash(hash, w); err != nil {
-		return nil, errors.New("err adding w to the hash function")
+		return nil, err
 	}
 
 	if err := addStringToHash(hash, l); err != nil {
-		return nil, errors.New("err adding l to the hash function")
+		return nil, err
 	}
 
 	if err := addPointToHash(hash, r1); err != nil {
-		return nil, errors.New("err adding r1 to the hash function")
+		return nil, err
 	}
 
 	if err := addPointToHash(hash, w1); err != nil {
-		return nil, errors.New("err adding w1 to the hash function")
+		return nil, err
 	}
 
 	if err := addPointToHash(hash, r2); err != nil {
-		return nil, errors.New("err adding r2 to the hash function")
+		return nil, err
 	}
 
 	if err := addPointToHash(hash, w2); err != nil {
-		return nil, errors.New("err adding w2 to the hash function")
+		return nil, err
 	}
 
 	// setByte applies mod q automatically
@@ -502,26 +510,25 @@ func hash4(
 	suite Suite,
 	xi, yi, zi kyber.Point,
 ) (kyber.Scalar, error) {
-
 	hash := suite.Hash()
 	if _, err := hash.Write(h4Tag()); err != nil {
-		return nil, errors.New("err writing tag to hash")
+		return nil, err
 	}
 
 	if err := addGroupToHash(hash, suite); err != nil {
-		return nil, errors.New("err adding group to the hash function")
+		return nil, err
 	}
 
 	if err := addPointToHash(hash, xi); err != nil {
-		return nil, errors.New("err adding xi to the hash function")
+		return nil, err
 	}
 
 	if err := addPointToHash(hash, yi); err != nil {
-		return nil, errors.New("err adding yi to the hash function")
+		return nil, err
 	}
 
 	if err := addPointToHash(hash, zi); err != nil {
-		return nil, errors.New("err adding zi to the hash function")
+		return nil, err
 	}
 
 	// the hash is reduced mod q automatically
@@ -531,7 +538,7 @@ func hash4(
 func addGroupToHash(h hash.Hash, group Suite) error {
 	// add group name to hash
 	if _, err := h.Write([]byte(group.String())); err != nil {
-		return errors.New("err writing group to hash")
+		return fmt.Errorf("err writing group info to hash: %W", err)
 	}
 	return nil
 }
@@ -540,10 +547,10 @@ func addStringToHash(h hash.Hash, str []byte) error {
 	marshalSize := make([]byte, 8)
 	binary.BigEndian.PutUint64(marshalSize, uint64(len(str)))
 	if _, err := h.Write(marshalSize); err != nil {
-		return errors.New("err writing length of r1 to hash")
+		return fmt.Errorf("err writing length of string to hash: %W", err)
 	}
 	if _, err := h.Write(str); err != nil {
-		return errors.New("err writing string to hash")
+		return fmt.Errorf("err writing string to hash: %W", err)
 	}
 	return nil
 }
@@ -552,10 +559,10 @@ func addPointToHash(h hash.Hash, point kyber.Point) error {
 	marshalSize := make([]byte, 2)
 	binary.BigEndian.PutUint16(marshalSize, uint16(point.MarshalSize()))
 	if _, err := h.Write(marshalSize); err != nil {
-		return errors.New("err writing length of r1 to hash")
+		return fmt.Errorf("err writing length of point to hash: %W", err)
 	}
 	if _, err := point.MarshalTo(h); err != nil {
-		return errors.New("err marshalling w1 to the hash function")
+		return fmt.Errorf("err marshalling point to the hash function: %W", err)
 	}
 	return nil
 }
@@ -590,7 +597,7 @@ func validatePoint(suite Suite, p kyber.Point) error {
 
 	// then also do the base check
 	if !suite.Point().Base().Equal(p.Clone().Base()) {
-		return errors.New("mismatch")
+		return errors.New("point base mismatch")
 	}
 	return nil
 
