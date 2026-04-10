@@ -111,11 +111,7 @@ func Encrypt(
 		}
 
 		// setup AES GCM
-		block, err := aes.NewCipher(aesKey)
-		if err != nil {
-			return nil, err
-		}
-		aead, err := cipher.NewGCM(block)
+		aead, err := newAEAD(suite, aesKey)
 		if err != nil {
 			return nil, err
 		}
@@ -337,21 +333,16 @@ func CombinePartialDecryptionShares(
 		if err != nil {
 			return nil, 0, fmt.Errorf("h1 failed: %w", err)
 		}
-
+		aead, err := newAEAD(suite, aesKey)
+		if err != nil {
+			return nil, 0, err
+		}
 		// split w into Nonce and c
 		if len(ct.W) < NonceSize {
 			return nil, 0, fmt.Errorf("ct.w too short")
 		}
 		nonce, c := ct.W[:NonceSize], ct.W[NonceSize:]
 
-		block, err := aes.NewCipher(aesKey)
-		if err != nil {
-			return nil, 0, err
-		}
-		aead, err := cipher.NewGCM(block)
-		if err != nil {
-			return nil, 0, err
-		}
 		plaintext, err := aead.Open(nil, nonce, c, expectedLabel)
 		if err != nil {
 			return nil, 0, err
@@ -601,4 +592,16 @@ func validatePoint(suite Suite, p kyber.Point) error {
 	}
 	return nil
 
+}
+
+func newAEAD(suite Suite, aesKey []byte) (cipher.AEAD, error) {
+	block, err := aes.NewCipher(aesKey)
+	if err != nil {
+		return nil, err
+	}
+	aead, err := cipher.NewGCM(block)
+	if err != nil {
+		return nil, err
+	}
+	return aead, nil
 }
