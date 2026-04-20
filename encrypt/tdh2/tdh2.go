@@ -133,8 +133,9 @@ func Encrypt(
 		// pad message to at least ComputationalSecurityParameter bytes
 		if len(message) < ComputationalSecurityParameter/8 {
 			p = ComputationalSecurityParameter/8 - len(message)
-			padding := make([]byte, p)
-			message = append(message, padding...)
+			padded := make([]byte, len(message)+p)
+			copy(padded, message)
+			message = padded
 		}
 
 		// apply hash and cut to the length of message
@@ -156,7 +157,7 @@ func Encrypt(
 	w1 := suite.Point().Mul(s, nil)              // w1 = s . G
 	w2 := suite.Point().Mul(s, params.PublicKey) // w2 = s . pub
 
-	e, err := hash2(suite, w, label, r1, w1, r2, w2)
+	e, err := hash2(suite, w, label, p, params.PublicKey, r1, w1, r2, w2)
 	if err != nil {
 		return nil, fmt.Errorf(hashFunctionFailureErrorMessageWrapper, 2, err)
 	}
@@ -208,7 +209,7 @@ func Verify(
 		suite.Point().Mul(ct.E, ct.R2),
 	)
 
-	e, err := hash2(suite, ct.W, ct.L, ct.R1, w1, ct.R2, w2)
+	e, err := hash2(suite, ct.W, ct.L, ct.P, params.PublicKey, ct.R1, w1, ct.R2, w2)
 	if err != nil {
 		return fmt.Errorf(hashFunctionFailureErrorMessageWrapper, 2, err)
 	}
@@ -242,7 +243,8 @@ func PartialDecrypt(
 	zi := suite.Point().Mul(si, nil)    // z_i = s_i * G
 
 	// compute hash4
-	ei, err := hash4(suite, xi, yi, zi)
+	pki := suite.Point().Mul(ski, nil)
+	ei, err := hash4(suite, ct.R1, pki, index, xi, yi, zi)
 	if err != nil {
 		return nil, fmt.Errorf(hashFunctionFailureErrorMessageWrapper, 4, err)
 	}
@@ -284,7 +286,7 @@ func VerifyPartialDecryptionShare(
 		suite.Point().Mul(partial.Ei, pki),
 	)
 
-	expectedEi, err := hash4(suite, partial.Xi, yi, zi)
+	expectedEi, err := hash4(suite, ct.R1, pki, partial.Index, partial.Xi, yi, zi)
 	if err != nil {
 		return fmt.Errorf(hashFunctionFailureErrorMessageWrapper, 4, err)
 	}
@@ -342,7 +344,7 @@ func CombinePartialDecryptionShares(
 			return nil, 0, err
 		}
 		// split w into Nonce and c
-		if len(ct.W) < NonceSize {
+		if len(ct.W) < NonceSize+16 { // AES-GCM tag is 16 bytes
 			return nil, 0, fmt.Errorf("ct.w too short")
 		}
 		nonce, c := ct.W[:NonceSize], ct.W[NonceSize:]
@@ -365,6 +367,9 @@ func CombinePartialDecryptionShares(
 		return nil, 0, fmt.Errorf("xor failed: %w", err)
 	}
 	// strip out the extra padding
+	if ct.P < 0 || ct.P > len(message) {
+		return nil, 0, fmt.Errorf("invalid padding length")
+	}
 	return message[:len(message)-ct.P], len(shares), nil
 }
 
@@ -375,10 +380,14 @@ func verifyPartials(
 	partials []*PartialDecryptionShare,
 ) (validPartials []*share.PubShare, err error) {
 	validShares := make([]*share.PubShare, 0)
+	seen := make(map[uint32]bool)
 	for i := 0; i < len(partials); i++ {
 
 		// fetch public key
 		idx := partials[i].Index
+		if seen[idx] {
+			continue // skip duplicate shares for the same index
+		}
 		if int(idx) >= len(params.PublicShares) {
 			return nil, fmt.Errorf("invalid index")
 		}
@@ -388,6 +397,7 @@ func verifyPartials(
 			// skip the partial share
 			continue
 		}
+		seen[idx] = true
 		validShares = append(validShares, &share.PubShare{I: idx, V: partials[i].Xi})
 	}
 	// quorum check
@@ -452,10 +462,12 @@ func h2Tag() []byte {
 }
 
 // hash2 as described in the paper computes hash2(ciphertext, label, r1, w1, r2, w2) -> scalar
+// modified to include padding p and public key pk
 func hash2(
 	suite Suite,
 	w, l []byte,
-	r1, w1, r2, w2 kyber.Point,
+	p int,
+	pk, r1, w1, r2, w2 kyber.Point,
 ) (kyber.Scalar, error) {
 	hash := suite.Hash()
 	if _, err := hash.Write(h2Tag()); err != nil {
@@ -471,6 +483,16 @@ func hash2(
 	}
 
 	if err := addStringToHash(hash, l); err != nil {
+		return nil, err
+	}
+
+	pBytes := make([]byte, 4)
+	binary.BigEndian.PutUint32(pBytes, uint32(p))
+	if _, err := hash.Write(pBytes); err != nil {
+		return nil, err
+	}
+
+	if err := addPointToHash(hash, pk); err != nil {
 		return nil, err
 	}
 
@@ -500,8 +522,11 @@ func h4Tag() []byte {
 }
 
 // hash4 as described in the paper computes hash(xi, yi, zi) -> scalar
+// modified to include statement bases r1, pki and index i
 func hash4(
 	suite Suite,
+	r1, pki kyber.Point,
+	index uint32,
 	xi, yi, zi kyber.Point,
 ) (kyber.Scalar, error) {
 	hash := suite.Hash()
@@ -510,6 +535,20 @@ func hash4(
 	}
 
 	if err := addGroupToHash(hash, suite); err != nil {
+		return nil, err
+	}
+
+	if err := addPointToHash(hash, r1); err != nil {
+		return nil, err
+	}
+
+	if err := addPointToHash(hash, pki); err != nil {
+		return nil, err
+	}
+
+	idxBytes := make([]byte, 4)
+	binary.BigEndian.PutUint32(idxBytes, index)
+	if _, err := hash.Write(idxBytes); err != nil {
 		return nil, err
 	}
 
@@ -532,7 +571,7 @@ func hash4(
 func addGroupToHash(h hash.Hash, group Suite) error {
 	// add group name to hash
 	if _, err := h.Write([]byte(group.String())); err != nil {
-		return fmt.Errorf("err writing group info to hash: %W", err)
+		return fmt.Errorf("err writing group info to hash: %w", err)
 	}
 	return nil
 }
@@ -541,10 +580,10 @@ func addStringToHash(h hash.Hash, str []byte) error {
 	marshalSize := make([]byte, 8)
 	binary.BigEndian.PutUint64(marshalSize, uint64(len(str)))
 	if _, err := h.Write(marshalSize); err != nil {
-		return fmt.Errorf("err writing length of string to hash: %W", err)
+		return fmt.Errorf("err writing length of string to hash: %w", err)
 	}
 	if _, err := h.Write(str); err != nil {
-		return fmt.Errorf("err writing string to hash: %W", err)
+		return fmt.Errorf("err writing string to hash: %w", err)
 	}
 	return nil
 }
@@ -553,10 +592,10 @@ func addPointToHash(h hash.Hash, point kyber.Point) error {
 	marshalSize := make([]byte, 2)
 	binary.BigEndian.PutUint16(marshalSize, uint16(point.MarshalSize()))
 	if _, err := h.Write(marshalSize); err != nil {
-		return fmt.Errorf("err writing length of point to hash: %W", err)
+		return fmt.Errorf("err writing length of point to hash: %w", err)
 	}
 	if _, err := point.MarshalTo(h); err != nil {
-		return fmt.Errorf("err marshalling point to the hash function: %W", err)
+		return fmt.Errorf("err marshalling point to the hash function: %w", err)
 	}
 	return nil
 }
